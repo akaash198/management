@@ -1,0 +1,139 @@
+"use client";
+
+import { useState } from "react";
+
+import { useDroppable } from "@dnd-kit/core";
+import { 
+  SortableContext, 
+  verticalListSortingStrategy 
+} from "@dnd-kit/sortable";
+import { TaskCard } from "./TaskCard";
+import { Column as ColumnType } from "@/types/project";
+import { Task } from "@/types/task";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { Plus, MoreVertical, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useCreateTask } from "@/hooks/useTasks";
+import { useDeleteColumn } from "@/hooks/useColumns";
+import { Textarea } from "@/components/ui/textarea";
+
+interface ColumnProps {
+  column: ColumnType;
+  projectId: string;
+  tasks: Task[];
+}
+
+export function Column({ column, projectId, tasks }: ColumnProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
+  const createTask = useCreateTask();
+  const deleteColumn = useDeleteColumn();
+
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+  });
+
+  const handleAddTask = () => {
+    if (!newTaskTitle.trim()) return;
+    
+    createTask.mutate({
+      title: newTaskTitle.trim(),
+      column: column.id,
+      project: projectId,
+    } as any, {
+      onSuccess: () => {
+        setNewTaskTitle("");
+        setIsAdding(false);
+      }
+    });
+  };
+
+  return (
+    <div className={`flex flex-col w-[280px] shrink-0 bg-muted/40 rounded-lg max-h-full border-[0.5px] transition-colors ${isOver ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+      {/* Column Header */}
+      <div className="px-3 py-2.5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-[12px] font-medium uppercase tracking-widest text-muted-foreground/70">
+            {column.name}
+          </h3>
+          <span className="bg-background border-[0.5px] border-border rounded text-muted-foreground/60 text-[10px] font-medium px-1.5 py-0.5">
+            {tasks.length}
+          </span>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-6 w-6 hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity">
+              <MoreVertical className="h-3.5 w-3.5 text-muted-foreground/60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem 
+               className="text-destructive focus:text-destructive gap-2 text-[13px]"
+               onClick={() => deleteColumn.mutate({ projectId, columnId: column.id })}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete column
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {/* Tasks Area */}
+      <div 
+        ref={setNodeRef}
+        className="flex-1 overflow-y-auto px-2 pb-3 space-y-2 min-h-[100px]"
+      >
+        <SortableContext 
+          id={column.id} 
+          items={tasks.map(t => t.id)} 
+          strategy={verticalListSortingStrategy}
+        >
+          {tasks.map((task) => (
+            <TaskCard key={task.id} task={task} />
+          ))}
+        </SortableContext>
+        
+        {isAdding ? (
+          <div className="space-y-2 pt-1">
+            <Textarea
+              autoFocus
+              placeholder="What needs to be done?"
+              value={newTaskTitle}
+              onChange={(e) => setNewTaskTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleAddTask();
+                }
+                if (e.key === "Escape") setIsAdding(false);
+              }}
+              className="min-h-[72px] bg-card border-[0.5px] border-border resize-none text-[13px] shadow-none"
+            />
+            <div className="flex items-center gap-2">
+              <Button size="sm" onClick={handleAddTask} disabled={!newTaskTitle.trim() || createTask.isPending} className="h-7 text-[12px]">
+                {createTask.isPending ? "Adding..." : "Add task"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="h-7 text-[12px]">
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <Button 
+            variant="ghost" 
+            onClick={() => setIsAdding(true)}
+            className="w-full justify-start text-muted-foreground/50 hover:text-foreground h-8 px-2 hover:bg-muted/50 text-[12px] mt-1"
+          >
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add task
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}

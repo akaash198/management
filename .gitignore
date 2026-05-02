@@ -1,0 +1,35 @@
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.expo/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs / local tooling artifacts
+*.log
+.playwright-mcp/
+
+# Prevent committing nested repos
+**/.git/
