@@ -44,10 +44,12 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
+          printf '%s' "${HETZNER_SSH_KEY}" > hetzner_key
+          chmod 600 hetzner_key
           python scripts/deploy_hetzner_paramiko.py \
             --host "${HETZNER_HOST}" \
             --user "${HETZNER_USER}" \
-            --ssh-key "${HETZNER_SSH_KEY}" \
+            --ssh-key-file hetzner_key \
             --deploy-path "${{ env.DEPLOY_PATH }}" \
             --server-ip "${HETZNER_HOST}" \
             --upload \

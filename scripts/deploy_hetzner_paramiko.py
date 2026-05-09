@@ -13,7 +13,9 @@ def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Deploy FlowTeam to a Hetzner VM via SSH (Paramiko).")
     parser.add_argument("--host", required=True)
     parser.add_argument("--user", required=True)
-    parser.add_argument("--ssh-key", required=True, help="SSH private key contents (PEM).")
+    key_group = parser.add_mutually_exclusive_group(required=True)
+    key_group.add_argument("--ssh-key", help="SSH private key contents (PEM/OpenSSH).")
+    key_group.add_argument("--ssh-key-file", help="Path to SSH private key file (PEM/OpenSSH).")
 
     parser.add_argument("--deploy-path", default="/opt/flowteam")
     parser.add_argument("--server-ip", default=None, help="Used to fill ALLOWED_HOSTS in .env.prod if created.")
@@ -49,7 +51,7 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _load_private_key(key_text: str) -> paramiko.PKey:
-    key_text = key_text.strip() + "\n"
+    key_text = key_text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
     key_buf = io.StringIO(key_text)
     last_exc: Optional[Exception] = None
     key_classes = [
@@ -142,6 +144,13 @@ def _bootstrap_ufw(client: paramiko.SSHClient) -> None:
 def main() -> int:
     args = _parse_args()
 
+    ssh_key_text: Optional[str] = args.ssh_key
+    if args.ssh_key_file:
+        ssh_key_text = open(args.ssh_key_file, "r", encoding="utf-8").read()
+    if not ssh_key_text:
+        print("Missing SSH key material", file=sys.stderr)
+        return 2
+
     if not (args.upload or args.write_env_prod or args.bootstrap_ufw or args.deploy):
         print("Nothing to do: pass at least one of --upload, --write-env-prod, --bootstrap-ufw, --deploy", file=sys.stderr)
         return 2
@@ -160,7 +169,7 @@ def main() -> int:
         print(f"Missing required file: {local_env_example}", file=sys.stderr)
         return 2
 
-    with _connect(args.host, args.user, args.ssh_key) as client:
+    with _connect(args.host, args.user, ssh_key_text) as client:
         _ensure_dir(client, args.deploy_path)
         with client.open_sftp() as sftp:
             if args.upload:
