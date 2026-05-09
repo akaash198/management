@@ -44,19 +44,19 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          python scripts/deploy_hetzner_paramiko.py `
-            --host "$env:HETZNER_HOST" `
-            --user "$env:HETZNER_USER" `
-            --ssh-key "$env:HETZNER_SSH_KEY" `
-            --deploy-path "${{ env.DEPLOY_PATH }}" `
-            --server-ip "$env:HETZNER_HOST" `
-            --upload `
-            --write-env-prod `
-            --bootstrap-ufw `
-            --ghcr-username "$env:GHCR_USERNAME" `
-            --ghcr-token "$env:GHCR_TOKEN" `
-            --registry "${{ env.REGISTRY }}" `
-            --image-backend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-backend:${{ env.DEPLOY_SHA }}" `
-            --image-frontend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-frontend:${{ env.DEPLOY_SHA }}" `
-            --deploy-sha "${{ env.DEPLOY_SHA }}" `
+          python scripts/deploy_hetzner_paramiko.py \
+            --host "${HETZNER_HOST}" \
+            --user "${HETZNER_USER}" \
+            --ssh-key "${HETZNER_SSH_KEY}" \
+            --deploy-path "${{ env.DEPLOY_PATH }}" \
+            --server-ip "${HETZNER_HOST}" \
+            --upload \
+            --write-env-prod \
+            --bootstrap-ufw \
+            --ghcr-username "${GHCR_USERNAME}" \
+            --ghcr-token "${GHCR_TOKEN}" \
+            --registry "${{ env.REGISTRY }}" \
+            --image-backend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-backend:${{ env.DEPLOY_SHA }}" \
+            --image-frontend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-frontend:${{ env.DEPLOY_SHA }}" \
+            --deploy-sha "${{ env.DEPLOY_SHA }}" \
             --deploy
