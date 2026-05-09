@@ -36,6 +36,7 @@ jobs:
       - name: Run tests
         working-directory: flowteam_backend
         env:
+          SECRET_KEY: "ci-test-secret-key"
           USE_SQLITE: "True"
           DISABLE_REDIS: "True"
         run: |
