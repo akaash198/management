@@ -96,17 +96,17 @@ def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
 
     try:
         return _try_connect()
-    except paramiko.AuthenticationException:
+    except (paramiko.AuthenticationException, paramiko.SSHException):
         # Some SSH servers have strict/legacy RSA signature algorithm policies.
         # If we're using an RSA key, retry with alternative pubkey algorithms.
         if isinstance(pkey, paramiko.RSAKey):
             for disabled in (
-                {"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},  # force ssh-rsa
                 {"pubkeys": ["ssh-rsa"]},  # force rsa-sha2
+                {"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},  # force ssh-rsa
             ):
                 try:
                     return _try_connect(disabled_algorithms=disabled)
-                except paramiko.AuthenticationException:
+                except (paramiko.AuthenticationException, paramiko.SSHException):
                     continue
         raise
 
