@@ -9,6 +9,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Public env vars are baked into the client bundle at build time.
+# Use relative paths so the app works behind a reverse proxy (Caddy/Traefik).
+ENV NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_WS_URL=/ws
 RUN npm run build
 
 FROM node:20-alpine AS runner
@@ -24,4 +28,3 @@ COPY --from=builder /app/next.config.* ./ 2>/dev/null || true
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]
-

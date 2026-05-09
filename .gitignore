@@ -31,5 +31,9 @@ Thumbs.db
 *.log
 .playwright-mcp/
 
+# Deploy keys (never commit private keys)
+deploy/keys/**
+!deploy/keys/.gitignore
+
 # Prevent committing nested repos
 **/.git/

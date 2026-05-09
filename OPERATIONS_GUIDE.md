@@ -84,3 +84,56 @@ On Next.js 16+, request-time auth redirects are implemented via Next "Proxy" in 
 If you see unexpected `404` responses for routes that exist (for example `/login` or `/dashboard`), restart the frontend and clear its cache:
 - `docker compose restart frontend`
 - If running outside Docker: stop `next dev`, delete `flowteam_frontend/.next`, then start `npm run dev` again.
+
+## Hetzner Cloud deployment (GitHub CI/CD)
+
+This repo includes GitHub Actions workflows to build/push Docker images to GHCR and deploy to a Hetzner VM via SSH.
+
+### Server setup (one-time)
+
+On your Hetzner Ubuntu VM:
+- Install Docker + Docker Compose plugin.
+- Create a deploy directory: `/opt/flowteam`
+- Create `/opt/flowteam/.env.prod` from `deploy/.env.prod.example` and fill in secrets (`POSTGRES_PASSWORD`, `SECRET_KEY`, `ALLOWED_HOSTS`, etc).
+- The deployment uses Caddy as a reverse proxy, so only port `80` needs to be exposed publicly.
+
+After deploy, access the app at:
+- `http://<server-ip>/`
+
+### GitHub repository secrets
+
+Add these GitHub Actions secrets:
+- `HETZNER_HOST` (server IP / DNS)
+- `HETZNER_USER` (e.g. `root` or `deploy`)
+- `HETZNER_SSH_KEY` (private key for SSH)
+- `GHCR_USERNAME` (user that can pull packages)
+- `GHCR_TOKEN` (PAT with `read:packages` for GHCR)
+
+### Firewall (recommended)
+
+Expose only SSH and HTTP:
+- Allow `22/tcp` (SSH)
+- Allow `80/tcp` (HTTP)
+- Do not expose `3000` or `8000` publicly (they are internal behind Caddy)
+
+### Paramiko deploy
+
+The deploy workflow uses Paramiko (Python SSH) to:
+- Upload `deploy/docker-compose.prod.yml` + `deploy/Caddyfile` to `/opt/flowteam`
+- Create `/opt/flowteam/.env.prod` from `deploy/.env.prod.example` if missing (and fills `ALLOWED_HOSTS` with the server IP)
+- Configure UFW to allow only `22/tcp` + `80/tcp`
+- `docker compose pull`, run migrations, and `docker compose up -d`
+
+### Workflows
+
+- `.github/workflows/build-images.yml` builds and pushes:
+  - `ghcr.io/<owner>/<repo>-backend:<sha>` and `:latest`
+  - `ghcr.io/<owner>/<repo>-frontend:<sha>` and `:latest`
+- `.github/workflows/deploy-hetzner.yml` runs `scripts/deploy_hetzner_paramiko.py` to deploy to Hetzner.
+
+### Rollback (manual)
+
+On the server, previous releases are tracked in `/opt/flowteam/releases.log`.
+
+To roll back, pick an older SHA from `releases.log` and re-run with that tag:
+- `IMAGE_BACKEND=ghcr.io/<owner>/<repo>-backend:<sha> IMAGE_FRONTEND=ghcr.io/<owner>/<repo>-frontend:<sha> docker compose --env-file .env.prod -f docker-compose.prod.yml up -d`

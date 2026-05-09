@@ -1,0 +1,62 @@
+name: Deploy to Hetzner (SSH + Docker Compose)
+
+on:
+  workflow_run:
+    workflows: ["Build & Push Images"]
+    types: [completed]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hetzner
+  cancel-in-progress: false
+
+env:
+  DEPLOY_PATH: /opt/flowteam
+  REGISTRY: ghcr.io
+  IMAGE_NAMESPACE: ${{ github.repository_owner }}
+  REPO_NAME: ${{ github.event.repository.name }}
+  DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+jobs:
+  deploy:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install paramiko
+        run: |
+          python -m pip install --upgrade pip
+          pip install paramiko
+
+      - name: Deploy (Paramiko)
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+          GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          python scripts/deploy_hetzner_paramiko.py `
+            --host "$env:HETZNER_HOST" `
+            --user "$env:HETZNER_USER" `
+            --ssh-key "$env:HETZNER_SSH_KEY" `
+            --deploy-path "${{ env.DEPLOY_PATH }}" `
+            --server-ip "$env:HETZNER_HOST" `
+            --upload `
+            --write-env-prod `
+            --bootstrap-ufw `
+            --ghcr-username "$env:GHCR_USERNAME" `
+            --ghcr-token "$env:GHCR_TOKEN" `
+            --registry "${{ env.REGISTRY }}" `
+            --image-backend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-backend:${{ env.DEPLOY_SHA }}" `
+            --image-frontend "${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ env.REPO_NAME }}-frontend:${{ env.DEPLOY_SHA }}" `
+            --deploy-sha "${{ env.DEPLOY_SHA }}" `
+            --deploy
