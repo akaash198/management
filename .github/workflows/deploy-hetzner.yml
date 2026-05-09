@@ -44,7 +44,11 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          printf '%s' "${HETZNER_SSH_KEY}" > hetzner_key
+          if printf '%s' "${HETZNER_SSH_KEY}" | grep -q "BEGIN"; then
+            printf '%s' "${HETZNER_SSH_KEY}" > hetzner_key
+          else
+            printf '%s' "${HETZNER_SSH_KEY}" | base64 -d > hetzner_key
+          fi
           chmod 600 hetzner_key
           python scripts/deploy_hetzner_paramiko.py \
             --host "${HETZNER_HOST}" \
