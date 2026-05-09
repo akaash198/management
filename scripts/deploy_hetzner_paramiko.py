@@ -76,11 +76,39 @@ def _load_private_key(key_text: str) -> paramiko.PKey:
 
 
 def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     pkey = _load_private_key(key_text)
-    client.connect(hostname=host, username=user, pkey=pkey, timeout=30, banner_timeout=30, auth_timeout=30)
-    return client
+
+    def _try_connect(*, disabled_algorithms: Optional[dict] = None) -> paramiko.SSHClient:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        client.connect(
+            hostname=host,
+            username=user,
+            pkey=pkey,
+            timeout=30,
+            banner_timeout=30,
+            auth_timeout=30,
+            allow_agent=False,
+            look_for_keys=False,
+            disabled_algorithms=disabled_algorithms,
+        )
+        return client
+
+    try:
+        return _try_connect()
+    except paramiko.AuthenticationException:
+        # Some SSH servers have strict/legacy RSA signature algorithm policies.
+        # If we're using an RSA key, retry with alternative pubkey algorithms.
+        if isinstance(pkey, paramiko.RSAKey):
+            for disabled in (
+                {"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},  # force ssh-rsa
+                {"pubkeys": ["ssh-rsa"]},  # force rsa-sha2
+            ):
+                try:
+                    return _try_connect(disabled_algorithms=disabled)
+                except paramiko.AuthenticationException:
+                    continue
+        raise
 
 
 def _run(client: paramiko.SSHClient, command: str) -> Tuple[int, str, str]:
