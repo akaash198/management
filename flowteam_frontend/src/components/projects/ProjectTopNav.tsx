@@ -61,9 +61,13 @@ const NAV: NavItem[] = [
   },
 ];
 
-export function ProjectTopNav({ projectId }: { projectId: string }) {
+export function ProjectTopNav({ projectId }: { projectId: string | string[] | undefined }) {
   const pathname = usePathname() || "";
-  const { data: project } = useProject(projectId);
+  const normalizedProjectId =
+    typeof projectId === "string" ? projectId : Array.isArray(projectId) ? projectId[0] ?? "" : "";
+  const { data: project } = useProject(normalizedProjectId);
+
+  if (!normalizedProjectId) return null;
 
   return (
     <div className="border-b border-border bg-background">
@@ -88,7 +92,7 @@ export function ProjectTopNav({ projectId }: { projectId: string }) {
 
           <div className="flex items-center gap-1.5 flex-wrap">
             {NAV.map((item) => {
-              const active = item.match(pathname, projectId);
+              const active = item.match(pathname, normalizedProjectId);
               const Icon = item.icon;
               return (
                 <Button
@@ -98,7 +102,7 @@ export function ProjectTopNav({ projectId }: { projectId: string }) {
                   size="sm"
                   className={cn("h-8 px-2 text-[12px]", active && "bg-muted")}
                 >
-                  <Link href={item.href(projectId)}>
+                  <Link href={item.href(normalizedProjectId)}>
                     <Icon className="mr-1.5 h-3.5 w-3.5" />
                     {item.label}
                   </Link>

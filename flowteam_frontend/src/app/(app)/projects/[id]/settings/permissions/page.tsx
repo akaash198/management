@@ -288,7 +288,9 @@ function MemberRoleRow({
 }
 
 export default function PermissionsPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const rawId = params?.id;
+  const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
   const queryClient = useQueryClient();
   const [newMemberId, setNewMemberId] = useState("");
   const [newRole, setNewRole] = useState<ProjectRoleType>("editor");
@@ -296,14 +298,16 @@ export default function PermissionsPage() {
   const { activeTeamId, fetchTeams } = useTeamStore();
   const teamPerms = useTeamPermissions();
 
+  if (!projectId) return null;
+
   useEffect(() => {
     fetchTeams();
   }, [fetchTeams]);
 
   const { data: roles, isLoading: rolesLoading } = useQuery<ProjectRole[]>({
-    queryKey: ["project-roles", id],
+    queryKey: ["project-roles", projectId],
     queryFn: async () => {
-      const res = await api.get(`/projects/${id}/roles/`);
+      const res = await api.get(`/projects/${projectId}/roles/`);
       return res.data.data;
     },
   });
@@ -319,10 +323,10 @@ export default function PermissionsPage() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ uid, patch }: { uid: string; patch: object }) => {
-      return api.patch(`/projects/${id}/roles/${uid}/`, patch);
+      return api.patch(`/projects/${projectId}/roles/${uid}/`, patch);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-roles", projectId] });
       toast.success("Permissions updated");
     },
     onError: (err: unknown) => {
@@ -333,10 +337,10 @@ export default function PermissionsPage() {
 
   const removeRoleMutation = useMutation({
     mutationFn: async (uid: string) => {
-      return api.delete(`/projects/${id}/roles/${uid}/`);
+      return api.delete(`/projects/${projectId}/roles/${uid}/`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-roles", projectId] });
       toast.success("Permission override removed");
     },
   });
@@ -345,10 +349,10 @@ export default function PermissionsPage() {
     mutationFn: async () => {
       const payload: Record<string, string> = { user: newMemberId, role: newRole };
       if (newValidUntil) payload.valid_until = new Date(newValidUntil).toISOString();
-      return api.post(`/projects/${id}/roles/`, payload);
+      return api.post(`/projects/${projectId}/roles/`, payload);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-roles", projectId] });
       toast.success("Member added with override");
       setNewMemberId("");
       setNewValidUntil("");
@@ -377,7 +381,7 @@ export default function PermissionsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ProjectTopNav projectId={id} />
+      <ProjectTopNav projectId={projectId} />
       <div className="p-6 space-y-6">
       <div>
         <h1 className="text-[22px] font-medium tracking-tight">Project Permissions</h1>
@@ -388,9 +392,9 @@ export default function PermissionsPage() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <GitHubSettingsCard projectId={String(id)} />
-        <GitLabSettingsCard projectId={String(id)} />
-        <BitbucketSettingsCard projectId={String(id)} />
+        <GitHubSettingsCard projectId={projectId} />
+        <GitLabSettingsCard projectId={projectId} />
+        <BitbucketSettingsCard projectId={projectId} />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
