@@ -52,7 +52,13 @@ def _load_private_key(key_text: str) -> paramiko.PKey:
     key_text = key_text.strip() + "\n"
     key_buf = io.StringIO(key_text)
     last_exc: Optional[Exception] = None
-    for key_cls in (paramiko.Ed25519Key, paramiko.RSAKey, paramiko.ECDSAKey, paramiko.DSSKey):
+    key_classes = [
+        getattr(paramiko, "Ed25519Key", None),
+        getattr(paramiko, "RSAKey", None),
+        getattr(paramiko, "ECDSAKey", None),
+        getattr(paramiko, "DSSKey", None),
+    ]
+    for key_cls in [c for c in key_classes if c is not None]:
         try:
             key_buf.seek(0)
             return key_cls.from_private_key(key_buf)
