@@ -47,7 +47,7 @@ jobs:
           if printf '%s' "${HETZNER_SSH_KEY}" | grep -q "BEGIN"; then
             printf '%s' "${HETZNER_SSH_KEY}" > hetzner_key
           else
-            printf '%s' "${HETZNER_SSH_KEY}" | base64 -d > hetzner_key
+            printf '%s' "${HETZNER_SSH_KEY}" | tr -d '\n\r ' | base64 -d > hetzner_key
           fi
           chmod 600 hetzner_key
           python scripts/deploy_hetzner_paramiko.py \
