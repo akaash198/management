@@ -36,6 +36,7 @@ import {
 import { GitHubSettingsCard } from "@/components/projects/GitHubSettingsCard";
 import { GitLabSettingsCard } from "@/components/projects/GitLabSettingsCard";
 import { BitbucketSettingsCard } from "@/components/projects/BitbucketSettingsCard";
+import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 const ROLE_BADGE_CLASS: Record<ProjectRoleType, string> = {
   project_admin: "bg-violet-100 text-violet-700 border-violet-200",
@@ -302,7 +303,7 @@ export default function PermissionsPage() {
   const { data: roles, isLoading: rolesLoading } = useQuery<ProjectRole[]>({
     queryKey: ["project-roles", id],
     queryFn: async () => {
-      const res = await api.get(`/projects/projects/${id}/roles/`);
+      const res = await api.get(`/projects/${id}/roles/`);
       return res.data.data;
     },
   });
@@ -318,7 +319,7 @@ export default function PermissionsPage() {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ uid, patch }: { uid: string; patch: object }) => {
-      return api.patch(`/projects/projects/${id}/roles/${uid}/`, patch);
+      return api.patch(`/projects/${id}/roles/${uid}/`, patch);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
@@ -332,7 +333,7 @@ export default function PermissionsPage() {
 
   const removeRoleMutation = useMutation({
     mutationFn: async (uid: string) => {
-      return api.delete(`/projects/projects/${id}/roles/${uid}/`);
+      return api.delete(`/projects/${id}/roles/${uid}/`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
@@ -344,7 +345,7 @@ export default function PermissionsPage() {
     mutationFn: async () => {
       const payload: Record<string, string> = { user: newMemberId, role: newRole };
       if (newValidUntil) payload.valid_until = new Date(newValidUntil).toISOString();
-      return api.post(`/projects/projects/${id}/roles/`, payload);
+      return api.post(`/projects/${id}/roles/`, payload);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project-roles", id] });
@@ -375,7 +376,9 @@ export default function PermissionsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
+      <ProjectTopNav projectId={id} />
+      <div className="p-6 space-y-6">
       <div>
         <h1 className="text-[22px] font-medium tracking-tight">Project Permissions</h1>
         <p className="text-[13px] text-muted-foreground/70 mt-0.5">
@@ -556,6 +559,7 @@ export default function PermissionsPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
       </div>
     </div>
   );

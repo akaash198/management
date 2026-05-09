@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 export default function ProjectDocsPage() {
   const { id } = useParams() as { id: string };
@@ -40,7 +41,7 @@ export default function ProjectDocsPage() {
         doc_type: draft.doc_type,
         content: draft.content,
       });
-      return res.data?.data;
+      return (res.data && typeof res.data === "object" && "data" in res.data ? (res.data as { data: unknown }).data : res.data);
     },
     onSuccess: () => {
       toast.success("Document saved");
@@ -78,7 +79,9 @@ export default function ProjectDocsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
+      <ProjectTopNav projectId={id} />
+      <div className="p-6 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-[22px] font-medium tracking-tight">Docs</h1>
@@ -175,7 +178,7 @@ export default function ProjectDocsPage() {
           </CardContent>
         </Card>
       </div>
+      </div>
     </div>
   );
 }
-

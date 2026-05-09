@@ -39,6 +39,35 @@ if (!env.DATABASE_URL) {
 
 runOrThrow(python, ['manage.py', 'migrate', '--noinput'], { cwd: backendDir, env });
 
+// Ensure a superuser exists for admin/super-admin E2E flows.
+env.E2E_SUPERUSER_EMAIL ??= 'admin@flowteam.test';
+env.E2E_SUPERUSER_PASSWORD ??= 'AdminPass123!';
+env.E2E_SUPERUSER_NAME ??= 'E2E Super Admin';
+runOrThrow(
+  python,
+  [
+    'manage.py',
+    'shell',
+    '-c',
+    [
+      "from django.contrib.auth import get_user_model",
+      "User=get_user_model()",
+      "email=__import__('os').environ['E2E_SUPERUSER_EMAIL']",
+      "pw=__import__('os').environ['E2E_SUPERUSER_PASSWORD']",
+      "name=__import__('os').environ.get('E2E_SUPERUSER_NAME','E2E Super Admin')",
+      "u=User.objects.filter(email=email).first()",
+      "created=False",
+      "if not u:",
+      "  u=User.objects.create_superuser(email=email,password=pw,full_name=name)",
+      "  created=True",
+      "else:",
+      "  u.is_staff=True; u.is_superuser=True; u.set_password(pw); u.full_name=name; u.save()",
+      "print('E2E superuser ready:', email, 'created' if created else 'updated')",
+    ].join('; '),
+  ],
+  { cwd: backendDir, env }
+);
+
 const child = spawn(python, ['manage.py', 'runserver', '8000'], {
   cwd: backendDir,
   env,

@@ -27,6 +27,7 @@ import {
   GanttChartSquare,
   Receipt,
   Shield,
+  FolderOpen,
   Download,
   CalendarDays,
   UserCircle2,
@@ -219,6 +220,12 @@ export default function ProjectBoardPage() {
               <Link href={`/projects/${id}/docs`}>
                 <FileText className="mr-1.5 h-3.5 w-3.5" />
                 Docs
+              </Link>
+            </Button>
+            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
+              <Link href={`/projects/${id}/files`}>
+                <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
+                Files
               </Link>
             </Button>
             <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">

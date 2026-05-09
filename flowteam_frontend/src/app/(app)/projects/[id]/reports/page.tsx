@@ -37,13 +37,16 @@ import { saveAs } from "file-saver";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AIGate } from "@/components/ai/AIGate";
 import { AIButton } from "@/components/ai/AIButton";
+import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 export default function ReportsPage() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("overview");
 
   return (
-    <div className="p-8 space-y-8 bg-slate-50/50 min-h-screen">
+    <div className="min-h-screen bg-background">
+      <ProjectTopNav projectId={id as string} />
+      <div className="p-8 space-y-8 bg-slate-50/50">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Project Insights</h1>
@@ -73,6 +76,7 @@ export default function ReportsPage() {
           <MembersTab projectId={id as string} />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

@@ -10,6 +10,7 @@ import type { Task } from "@/types/task";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 function parseDate(value: string | null | undefined): Date | null {
   if (!value) return null;
@@ -69,7 +70,9 @@ export default function ProjectTimelinePage() {
   }, [datedTasks, range.end, range.start]);
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
+      <ProjectTopNav projectId={id} />
+      <div className="p-6 space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-[22px] font-medium tracking-tight">Timeline</h1>
@@ -163,7 +166,7 @@ export default function ProjectTimelinePage() {
           )}
         </div>
       </div>
+      </div>
     </div>
   );
 }
-

@@ -26,6 +26,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
 
       - uses: actions/setup-python@v5
         with:
@@ -44,11 +46,24 @@ jobs:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
         run: |
-          if printf '%s' "${HETZNER_SSH_KEY}" | grep -q "BEGIN"; then
-            printf '%s' "${HETZNER_SSH_KEY}" > hetzner_key
-          else
-            printf '%s' "${HETZNER_SSH_KEY}" | tr -d '\n\r ' | base64 -d > hetzner_key
-          fi
+          python - <<'PY'
+          import os
+          import base64
+          
+          key = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if "BEGIN" in key:
+              # Handle secrets stored with literal "\n" sequences.
+              key = key.replace("\\r", "\r").replace("\\n", "\n")
+              if not key.endswith("\n"):
+                  key += "\n"
+              with open("hetzner_key", "w", encoding="utf-8") as f:
+                  f.write(key)
+          else:
+              # Handle base64-wrapped secrets.
+              key = key.replace("\\n", "").replace("\\r", "").replace(" ", "")
+              with open("hetzner_key", "wb") as f:
+                  f.write(base64.b64decode(key))
+          PY
           chmod 600 hetzner_key
           python scripts/deploy_hetzner_paramiko.py \
             --host "${HETZNER_HOST}" \

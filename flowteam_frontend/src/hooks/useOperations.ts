@@ -24,6 +24,13 @@ const errText = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const unwrap = <T,>(payload: unknown): T => {
+  if (typeof payload === "object" && payload !== null && "data" in payload) {
+    return (payload as { data: T }).data;
+  }
+  return payload as T;
+};
+
 export const useApprovals = (params: { teamId?: string; projectId?: string; taskId?: string; status?: string }) =>
   useQuery({
     queryKey: ["ops", "approvals", params],
@@ -36,7 +43,7 @@ export const useApprovals = (params: { teamId?: string; projectId?: string; task
           ...(params.status ? { status: params.status } : {}),
         },
       });
-      return response.data.data ?? [];
+      return unwrap<Approval[]>(response.data) ?? [];
     },
     enabled: !!params.teamId || !!params.projectId || !!params.taskId,
   });
@@ -99,7 +106,7 @@ export const useAdvancedReporting = (params: { teamId?: string; projectId?: stri
           ...(params.projectId ? { project_id: params.projectId } : {}),
         },
       });
-      return response.data.data;
+      return unwrap<AdvancedReporting>(response.data);
     },
     enabled: !!params.teamId || !!params.projectId,
   });
@@ -108,14 +115,14 @@ export const useDocuments = (params: { teamId?: string; projectId?: string; task
   useQuery({
     queryKey: ["ops", "documents", params],
     queryFn: async () => {
-      const response = await api.get<ApiResponse<ProjectDocument[]>>("/projects/documents/", {
+      const response = await api.get<ApiResponse<ProjectDocument[]> | ProjectDocument[]>("/projects/documents/", {
         params: {
           ...(params.teamId ? { team_id: params.teamId } : {}),
           ...(params.projectId ? { project_id: params.projectId } : {}),
           ...(params.taskId ? { task_id: params.taskId } : {}),
         },
       });
-      return response.data.data ?? [];
+      return unwrap<ProjectDocument[]>(response.data) ?? [];
     },
     enabled: !!params.teamId || !!params.projectId || !!params.taskId,
   });
@@ -123,9 +130,24 @@ export const useDocuments = (params: { teamId?: string; projectId?: string; task
 export const useCreateDocument = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Partial<ProjectDocument>) => {
-      const response = await api.post<ApiResponse<ProjectDocument>>("/projects/documents/", payload);
-      return response.data.data;
+    mutationFn: async (payload: (Partial<ProjectDocument> & { attachment?: File | null }) | Partial<ProjectDocument>) => {
+      const { attachment, ...rest } = payload as Partial<ProjectDocument> & { attachment?: File | null };
+      if (attachment instanceof File) {
+        const form = new FormData();
+        if (rest.project) form.append("project", rest.project);
+        if (rest.task) form.append("task", rest.task);
+        if (rest.parent_document) form.append("parent_document", rest.parent_document);
+        form.append("title", (rest.title || attachment.name).toString());
+        form.append("doc_type", (rest.doc_type || "note").toString());
+        form.append("content", (rest.content || "").toString());
+        if (rest.category) form.append("category", rest.category.toString());
+        form.append("attachment", attachment, attachment.name);
+        const response = await api.post<ApiResponse<ProjectDocument> | ProjectDocument>("/projects/documents/", form);
+        return unwrap<ProjectDocument>(response.data);
+      }
+
+      const response = await api.post<ApiResponse<ProjectDocument> | ProjectDocument>("/projects/documents/", rest);
+      return unwrap<ProjectDocument>(response.data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["ops", "documents"] });

@@ -546,6 +546,19 @@ class ProjectDocument(models.Model):
         (DOC_NOTE, "Note"),
     ]
 
+    CAT_PPT = "ppt"
+    CAT_USECASE = "usecase"
+    CAT_DOCUMENTATION = "documentation"
+    CAT_EXCEL = "excel"
+    CAT_OTHER = "other"
+    CATEGORY_CHOICES = [
+        (CAT_PPT, "Presentation (PPT)"),
+        (CAT_USECASE, "Use Case"),
+        (CAT_DOCUMENTATION, "Project Documentation"),
+        (CAT_EXCEL, "Spreadsheet (Excel)"),
+        (CAT_OTHER, "Other"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="documents")
     task = models.ForeignKey(Task, on_delete=models.CASCADE, null=True, blank=True, related_name="documents")
@@ -553,6 +566,7 @@ class ProjectDocument(models.Model):
     title = models.CharField(max_length=200)
     doc_type = models.CharField(max_length=20, choices=DOC_CHOICES, default=DOC_NOTE)
     content = models.TextField(blank=True, default="")
+    category = models.CharField(max_length=30, choices=CATEGORY_CHOICES, default=CAT_OTHER)
     attachment = models.FileField(upload_to="project_docs/", null=True, blank=True)
     version = models.PositiveIntegerField(default=1)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="project_documents")

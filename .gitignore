@@ -35,5 +35,9 @@ Thumbs.db
 deploy/keys/**
 !deploy/keys/.gitignore
 
+# Django/Backend user uploads (local/dev artifacts)
+flowteam_backend/media/**
+!flowteam_backend/media/.gitkeep
+
 # Prevent committing nested repos
 **/.git/

@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 function money(cents: number, currency: string) {
   const value = (cents ?? 0) / 100;
@@ -95,7 +96,9 @@ export default function ProjectBillingPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-background">
+    <div className="min-h-screen bg-background">
+      <ProjectTopNav projectId={id} />
+      <div className="p-6 space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-medium tracking-tight">Billing</h1>
@@ -299,6 +302,7 @@ export default function ProjectBillingPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

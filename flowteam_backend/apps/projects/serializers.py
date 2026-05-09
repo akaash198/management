@@ -434,12 +434,14 @@ class ProjectDocumentSerializer(serializers.ModelSerializer):
     project_name = serializers.CharField(source="project.name", read_only=True)
     task_title = serializers.CharField(source="task.title", read_only=True)
     attachment_url = serializers.SerializerMethodField()
+    attachment = serializers.FileField(write_only=True, required=False, allow_null=True)
+    category = serializers.ChoiceField(choices=ProjectDocument.CATEGORY_CHOICES, required=False, default=ProjectDocument.CAT_OTHER)
 
     class Meta:
         model = ProjectDocument
         fields = (
             "id", "project", "project_name", "task", "task_title", "parent_document", "title", "doc_type",
-            "content", "attachment_url", "version", "created_by", "created_at"
+            "content", "category", "attachment", "attachment_url", "version", "created_by", "created_at"
         )
 
     def get_attachment_url(self, obj):

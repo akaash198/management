@@ -52,6 +52,7 @@ export interface ProjectDocument {
   title: string;
   doc_type: "sop" | "spec" | "meeting" | "decision" | "note";
   content: string;
+  category: "ppt" | "usecase" | "documentation" | "excel" | "other";
   attachment_url: string;
   version: number;
   created_by: User;
