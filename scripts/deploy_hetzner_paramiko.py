@@ -52,6 +52,9 @@ def _parse_args() -> argparse.Namespace:
 
 def _load_private_key(key_text: str) -> paramiko.PKey:
     key_text = key_text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
+    first_line = key_text.splitlines()[0] if key_text.strip() else ""
+    if first_line:
+        print(f"SSH key header: {first_line}")
     key_buf = io.StringIO(key_text)
     last_exc: Optional[Exception] = None
     key_classes = [
@@ -60,13 +63,16 @@ def _load_private_key(key_text: str) -> paramiko.PKey:
         getattr(paramiko, "ECDSAKey", None),
         getattr(paramiko, "DSSKey", None),
     ]
+    errors = []
     for key_cls in [c for c in key_classes if c is not None]:
         try:
             key_buf.seek(0)
             return key_cls.from_private_key(key_buf)
         except Exception as exc:  # noqa: BLE001
             last_exc = exc
-    raise RuntimeError(f"Unable to parse SSH private key ({type(last_exc).__name__}: {last_exc})")
+            errors.append(f"{getattr(key_cls, '__name__', str(key_cls))}: {type(exc).__name__}: {exc}")
+    details = "; ".join(errors[-3:]) if errors else f"{type(last_exc).__name__}: {last_exc}"
+    raise RuntimeError(f"Unable to parse SSH private key ({details})")
 
 
 def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
