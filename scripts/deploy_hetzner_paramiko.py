@@ -96,7 +96,7 @@ def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
 
     try:
         return _try_connect()
-    except (paramiko.AuthenticationException, paramiko.SSHException):
+    except (paramiko.AuthenticationException, paramiko.SSHException) as exc:
         # Some SSH servers have strict/legacy RSA signature algorithm policies.
         # If we're using an RSA key, retry with alternative pubkey algorithms.
         if isinstance(pkey, paramiko.RSAKey):
@@ -108,6 +108,12 @@ def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
                     return _try_connect(disabled_algorithms=disabled)
                 except (paramiko.AuthenticationException, paramiko.SSHException):
                     continue
+            # If the server rejects all RSA algorithms, provide a clearer hint.
+            if "no RSA pubkey algorithms are configured" in str(exc):
+                raise RuntimeError(
+                    "SSH server rejected RSA keys (no RSA pubkey algorithms enabled). "
+                    "Use an Ed25519/ECDSA key for deployment, or update the server SSHD config to allow RSA."
+                ) from exc
         raise
 
 
