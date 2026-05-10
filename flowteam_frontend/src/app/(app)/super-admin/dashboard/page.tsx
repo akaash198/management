@@ -29,8 +29,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
-import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2, UserPlus, Pencil, Building2, Crown, ChevronRight, ChevronDown, X, ArrowLeft } from "lucide-react";
+import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2, UserPlus, Pencil } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import CompanyManagementPanel from "@/components/super-admin/CompanyManagementPanel";
 
 type SuperAdminDashboard = {
   counts: {
@@ -98,19 +99,6 @@ type AdminUserUpsertPayload = {
   is_superuser: boolean;
 };
 
-type AdminCompany = {
-  id: string;
-  name: string;
-  slug: string;
-  ceo: { id: string; email: string; full_name: string } | null;
-  team_count: number;
-  member_count: number;
-  created_at: string;
-};
-
-type AdminCompanyDetail = AdminCompany & {
-  teams: AdminTeam[];
-};
 
 export default function SuperAdminDashboardPage() {
   const router = useRouter();
@@ -147,19 +135,7 @@ export default function SuperAdminDashboardPage() {
     if (user && !user.is_superuser) router.replace("/dashboard");
   }, [user, router]);
 
-  // Company state
-  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<AdminCompany | null>(null);
-  const [companyName, setCompanyName] = useState("");
-  const [companyCeoEmail, setCompanyCeoEmail] = useState("");
-  const [deleteCompanyOpen, setDeleteCompanyOpen] = useState(false);
-  const [deletingCompany, setDeletingCompany] = useState<AdminCompany | null>(null);
-  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
-  const [assignTeamCompanyId, setAssignTeamCompanyId] = useState<string | null>(null);
-  const [assignTeamId, setAssignTeamId] = useState<string>("");
-  const [drilldownTeam, setDrilldownTeam] = useState<AdminTeam | null>(null);
-  const [drilldownMembers, setDrilldownMembers] = useState<TeamMember[]>([]);
-  const [drilldownLoading, setDrilldownLoading] = useState(false);
+  // Company state (now fully managed by CompanyManagementPanel)
 
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -323,88 +299,7 @@ export default function SuperAdminDashboardPage() {
     enabled: isSuperuser,
   });
 
-  // Companies
-  const { data: companies, isLoading: isCompaniesLoading } = useQuery<AdminCompany[]>({
-    queryKey: ["super-admin-companies"],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<AdminCompany[]>>("/companies/");
-      return res.data.data ?? [];
-    },
-    enabled: isSuperuser,
-  });
-
-  const { data: expandedCompanyDetail } = useQuery<AdminCompanyDetail>({
-    queryKey: ["super-admin-company-detail", expandedCompanyId],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<AdminCompanyDetail>>(`/companies/${expandedCompanyId}/`);
-      return res.data.data;
-    },
-    enabled: isSuperuser && !!expandedCompanyId,
-  });
-
-  const upsertCompany = useMutation({
-    mutationFn: async () => {
-      const ceoUser = users?.find((u) => u.email === companyCeoEmail.trim());
-      const payload: Record<string, unknown> = { name: companyName };
-      if (ceoUser) payload.ceo_id = ceoUser.id;
-      if (editingCompany) {
-        const res = await api.patch<ApiResponse<AdminCompany>>(`/companies/${editingCompany.id}/`, payload);
-        return res.data.data;
-      }
-      const res = await api.post<ApiResponse<AdminCompany>>("/companies/", payload);
-      return res.data.data;
-    },
-    onSuccess: () => {
-      toast.success(editingCompany ? "Company updated" : "Company created");
-      setCompanyDialogOpen(false);
-      setEditingCompany(null);
-      setCompanyName("");
-      setCompanyCeoEmail("");
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to save company")),
-  });
-
-  const deleteCompany = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/companies/${id}/`);
-    },
-    onSuccess: () => {
-      toast.success("Company deleted");
-      setDeleteCompanyOpen(false);
-      setDeletingCompany(null);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to delete company")),
-  });
-
-  const assignTeam = useMutation({
-    mutationFn: async ({ companyId, teamId }: { companyId: string; teamId: string }) => {
-      await api.post(`/companies/${companyId}/assign-team/`, { team_id: teamId });
-    },
-    onSuccess: (_, { companyId }) => {
-      toast.success("Team assigned to company");
-      setAssignTeamCompanyId(null);
-      setAssignTeamId("");
-      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to assign team")),
-  });
-
-  const unassignTeam = useMutation({
-    mutationFn: async ({ companyId, teamId }: { companyId: string; teamId: string }) => {
-      await api.delete(`/companies/${companyId}/assign-team/`, { data: { team_id: teamId } });
-    },
-    onSuccess: (_, { companyId }) => {
-      toast.success("Team removed from company");
-      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to remove team")),
-  });
+  // Companies are fully managed by CompanyManagementPanel below.
 
   const upsertTeam = useMutation({
     mutationFn: async () => {
@@ -456,20 +351,6 @@ export default function SuperAdminDashboardPage() {
       setMembers([]);
     } finally {
       setMembersLoading(false);
-    }
-  };
-
-  const openDrilldownTeam = async (team: AdminTeam) => {
-    setDrilldownTeam(team);
-    setDrilldownMembers([]);
-    setDrilldownLoading(true);
-    try {
-      const res = await api.get<ApiResponse<TeamMember[]>>(`/teams/${team.id}/members/`);
-      setDrilldownMembers(res.data.data ?? []);
-    } catch (err) {
-      toast.error(toErrorMessage(err, "Failed to load team members"));
-    } finally {
-      setDrilldownLoading(false);
     }
   };
 
@@ -765,303 +646,8 @@ export default function SuperAdminDashboardPage() {
       </div>
 
       {/* ── Companies ── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold flex items-center gap-2">
-              <Building2 size={20} className="text-primary" />
-              Companies
-            </h2>
-            <p className="text-sm text-muted-foreground">Hierarchy: Company → CEO → Teams → Members</p>
-          </div>
-          <Button
-            size="sm"
-            className="gap-2"
-            onClick={() => { setEditingCompany(null); setCompanyName(""); setCompanyCeoEmail(""); setCompanyDialogOpen(true); }}
-          >
-            <Plus className="h-4 w-4" />
-            New Company
-          </Button>
-        </div>
+      <CompanyManagementPanel isSuperuser={isSuperuser} />
 
-        {isCompaniesLoading && (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-2xl" />
-            ))}
-          </div>
-        )}
-
-        {!isCompaniesLoading && (companies?.length ?? 0) === 0 && (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center gap-3">
-              <div className="p-4 rounded-2xl bg-muted">
-                <Building2 size={32} className="text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground">No companies yet.</p>
-              <Button size="sm" variant="outline" onClick={() => { setEditingCompany(null); setCompanyName(""); setCompanyCeoEmail(""); setCompanyDialogOpen(true); }}>
-                Create your first company
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {(companies ?? []).map((c) => {
-            const isExpanded = expandedCompanyId === c.id;
-            const detail = isExpanded ? expandedCompanyDetail : undefined;
-            return (
-              <div key={c.id} className="flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden transition-all hover:shadow-md">
-                {/* Company Header */}
-                <div className="p-5 space-y-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                        <Building2 size={18} className="text-primary" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-base truncate">{c.name}</p>
-                        <p className="text-xs text-muted-foreground">/{c.slug}</p>
-                      </div>
-                    </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-44">
-                        <DropdownMenuItem onClick={() => { setEditingCompany(c); setCompanyName(c.name); setCompanyCeoEmail(c.ceo?.email ?? ""); setCompanyDialogOpen(true); }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => { setAssignTeamCompanyId(c.id); setAssignTeamId(""); setExpandedCompanyId(c.id); }}>
-                          Assign Team
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => { setDeletingCompany(c); setDeleteCompanyOpen(true); }}
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* CEO row */}
-                  <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-                    <Crown size={13} className="text-amber-500 shrink-0" />
-                    {c.ceo ? (
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 truncate">{c.ceo.full_name || c.ceo.email}</p>
-                        {c.ceo.full_name && <p className="text-[10px] text-muted-foreground truncate">{c.ceo.email}</p>}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">No CEO assigned</p>
-                    )}
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Layers size={12} />
-                      <span>{c.team_count} {c.team_count === 1 ? "team" : "teams"}</span>
-                    </div>
-                    <div className="w-px h-3 bg-border" />
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Users size={12} />
-                      <span>{c.member_count} {c.member_count === 1 ? "member" : "members"}</span>
-                    </div>
-                    <div className="w-px h-3 bg-border" />
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(c.created_at).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Teams expand toggle */}
-                <button
-                  className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm font-medium"
-                  onClick={() => {
-                    setDrilldownTeam(null);
-                    setExpandedCompanyId(isExpanded ? null : c.id);
-                  }}
-                >
-                  <span className="flex items-center gap-2 text-muted-foreground">
-                    <Layers size={14} />
-                    View Teams
-                  </span>
-                  {isExpanded ? <ChevronDown size={14} className="text-muted-foreground" /> : <ChevronRight size={14} className="text-muted-foreground" />}
-                </button>
-
-                {/* Expanded teams panel */}
-                {isExpanded && (
-                  <div className="border-t border-border bg-muted/10">
-                    {drilldownTeam ? (
-                      /* Team member drilldown */
-                      <div className="p-4 space-y-3">
-                        <div className="flex items-center gap-2">
-                          <button
-                            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={() => { setDrilldownTeam(null); setDrilldownMembers([]); }}
-                          >
-                            <ArrowLeft size={12} />
-                            Teams
-                          </button>
-                          <ChevronRight size={12} className="text-muted-foreground" />
-                          <span className="text-xs font-semibold">{drilldownTeam.name}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p className="text-[11px] uppercase font-bold text-muted-foreground tracking-wider">Members</p>
-                          <Button size="sm" variant="outline" className="h-6 text-xs gap-1 px-2" onClick={() => openMembers(drilldownTeam)}>
-                            <UserPlus size={10} />
-                            Manage
-                          </Button>
-                        </div>
-                        {drilldownLoading ? (
-                          <div className="space-y-2">
-                            {[1, 2, 3].map((i) => <Skeleton key={i} className="h-9 rounded-lg" />)}
-                          </div>
-                        ) : drilldownMembers.length === 0 ? (
-                          <p className="text-xs text-muted-foreground italic py-2">No members yet.</p>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {drilldownMembers.map((m) => (
-                              <div key={m.id} className="flex items-center gap-2.5 rounded-lg px-3 py-2 bg-background border border-border">
-                                <div className="w-7 h-7 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0">
-                                  {(m.user.full_name || m.user.email).charAt(0).toUpperCase()}
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-xs font-medium truncate">{m.user.full_name || "—"}</p>
-                                  <p className="text-[10px] text-muted-foreground truncate">{m.user.email}</p>
-                                </div>
-                                <RoleBadge role={m.role} />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      /* Teams list */
-                      <div className="p-4 space-y-3">
-                        {!detail ? (
-                          <div className="space-y-2">
-                            {[1, 2].map((i) => <Skeleton key={i} className="h-12 rounded-lg" />)}
-                          </div>
-                        ) : (detail.teams?.length ?? 0) === 0 ? (
-                          <p className="text-xs text-muted-foreground italic py-2">No teams assigned yet.</p>
-                        ) : (
-                          <div className="space-y-2">
-                            {detail.teams.map((t) => (
-                              <div
-                                key={t.id}
-                                className="group flex items-center gap-3 rounded-xl border border-border bg-background px-3 py-2.5 hover:border-primary/30 hover:bg-primary/5 transition-all cursor-pointer"
-                                onClick={() => openDrilldownTeam(t)}
-                              >
-                                <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                                  <Layers size={14} className="text-muted-foreground" />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm font-medium truncate">{t.name}</p>
-                                  <p className="text-[10px] text-muted-foreground">{t.member_count ?? 0} members · {t.plan ?? "free"}</p>
-                                </div>
-                                <div className="flex items-center gap-1.5">
-                                  <button
-                                    className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all p-1 rounded"
-                                    title="Remove from company"
-                                    onClick={(e) => { e.stopPropagation(); unassignTeam.mutate({ companyId: c.id, teamId: t.id }); }}
-                                  >
-                                    <X size={12} />
-                                  </button>
-                                  <ChevronRight size={14} className="text-muted-foreground group-hover:text-primary transition-colors" />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Assign team inline */}
-                        {assignTeamCompanyId === c.id ? (
-                          <div className="flex gap-2 items-center pt-1">
-                            <select
-                              value={assignTeamId}
-                              onChange={(e) => setAssignTeamId(e.target.value)}
-                              className="flex-1 h-8 rounded-lg border border-input bg-background px-2 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                            >
-                              <option value="">Select a team…</option>
-                              {(teams ?? []).filter((t) => !t.company_id || t.company_id === c.id).map((t) => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                              ))}
-                            </select>
-                            <Button size="sm" className="h-8 text-xs" disabled={!assignTeamId} onClick={() => assignTeam.mutate({ companyId: c.id, teamId: assignTeamId })}>
-                              Add
-                            </Button>
-                            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => { setAssignTeamCompanyId(null); setAssignTeamId(""); }}>
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <button
-                            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors pt-1"
-                            onClick={() => { setAssignTeamCompanyId(c.id); setAssignTeamId(""); }}
-                          >
-                            <Plus size={12} />
-                            Assign team
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Company create/edit dialog */}
-      <Dialog open={companyDialogOpen} onOpenChange={setCompanyDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{editingCompany ? "Edit Company" : "New Company"}</DialogTitle>
-            <DialogDescription>
-              {editingCompany ? "Update company details." : "Create a new company and assign a CEO."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid gap-2">
-              <Label>Company name</Label>
-              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Corp" />
-            </div>
-            <div className="grid gap-2">
-              <Label>CEO email</Label>
-              <Input value={companyCeoEmail} onChange={(e) => setCompanyCeoEmail(e.target.value)} placeholder="ceo@example.com" />
-              <p className="text-xs text-muted-foreground">Must be an existing user. Leave blank to set later.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCompanyDialogOpen(false)}>Cancel</Button>
-            <Button disabled={!companyName.trim() || upsertCompany.isPending} onClick={() => upsertCompany.mutate()}>
-              {upsertCompany.isPending ? "Saving…" : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Company delete dialog */}
-      <Dialog open={deleteCompanyOpen} onOpenChange={setDeleteCompanyOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete {deletingCompany?.name}?</DialogTitle>
-            <DialogDescription>This cannot be undone. Teams will be unlinked but not deleted.</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteCompanyOpen(false)}>Cancel</Button>
-            <Button variant="destructive" disabled={deleteCompany.isPending} onClick={() => deletingCompany && deleteCompany.mutate(deletingCompany.id)}>
-              {deleteCompany.isPending ? "Deleting…" : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* ── Teams ── */}
       <Card>
