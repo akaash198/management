@@ -563,15 +563,18 @@ class CompanyOnboardingView(generics.GenericAPIView):
 
         invite_email = (data.get("invite_ceo_email") or "").strip()
         if invite_email:
-            invite, created = CompanyOnboardingInvite.objects.get_or_create(
+            # Use CompanyInvite (tokenized link) so the CEO lands on the
+            # /company-invite/<token> page which handles register-then-join.
+            CompanyInvite.objects.filter(
+                company=company, email=invite_email, status__in=["pending", "expired"]
+            ).delete()
+            invite = CompanyInvite.objects.create(
                 company=company,
                 email=invite_email,
-                defaults={"role": "ceo", "invited_by": request.user},
+                role=CompanyMember.CEO,
+                invited_by=request.user,
             )
-            if created or invite.status == "pending":
-                self._send_onboarding_invite_email(
-                    company=company, to_email=invite_email, role="CEO", inviter=request.user,
-                )
+            self._send_ceo_invite_email(invite=invite, inviter=request.user, company=company)
 
     def _handle_teams_setup(self, company, data, request):
         from apps.teams.models import Team, TeamMember
@@ -606,6 +609,26 @@ class CompanyOnboardingView(generics.GenericAPIView):
 
     def _handle_review(self, company):
         pass
+
+    def _send_ceo_invite_email(self, *, invite, inviter, company):
+        from django.conf import settings as django_settings
+        base = (getattr(django_settings, "FRONTEND_BASE_URL", "") or "http://localhost:3000").rstrip("/")
+        link = f"{base}/company-invite/{invite.token}"
+        subject = f"You've been invited to lead {company.name} on FlowTeam"
+        body = (
+            f"Hi,\n\n"
+            f"{inviter.full_name or inviter.email} has invited you to join "
+            f"{company.name} as CEO on FlowTeam.\n\n"
+            f"Accept your invite (valid 7 days):\n{link}\n\n"
+            f"If you don't have an account yet, you'll be prompted to create one.\n\n"
+            f"— FlowTeam"
+        )
+        result = send_transactional_email(to_email=invite.email, subject=subject, text=body)
+        if not result.ok:
+            logger.warning(
+                "CEO invite email failed",
+                extra={"invite_id": str(invite.id), "error": result.error},
+            )
 
     def _send_onboarding_invite_email(self, *, company, to_email, role, inviter):
         from django.conf import settings as django_settings
