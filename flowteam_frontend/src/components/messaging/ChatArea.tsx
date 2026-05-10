@@ -1293,55 +1293,63 @@ export function ChatArea({
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Text action buttons */}
-          <Button variant="ghost" size="sm"
-            className="hidden h-8 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 sm:flex"
-            onClick={() => setPinsOpen(true)} aria-label="Pinned" title="Pinned"
-          >
-            {pins?.length ? `📌 ${pins.length}` : "Pins"}
-          </Button>
-          <Button variant="ghost" size="sm"
-            className="hidden h-8 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 sm:flex"
-            onClick={() => setSavedOpen(true)} aria-label="Saved" title="Saved"
-          >
-            {saves?.length ? `🔖 ${saves.length}` : "Saved"}
-          </Button>
-          <Button variant="ghost" size="sm"
-            className="hidden h-8 gap-1 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 lg:flex"
-            onClick={() => setScheduledOpen(true)} aria-label="Scheduled" title="Scheduled"
-          >
-            <Clock3 size={12} />
-            {scheduledMessages?.length ? scheduledMessages.length : "Scheduled"}
-          </Button>
-          {aiEnabled && (
-            <AIButton
-              variant="ghost"
-              size="sm"
-              className="hidden h-8 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 lg:flex"
-              loading={summarizingChannel}
-              onClick={() => void summarizeChannel()}
-              aria-label="Catch up"
-              title="Catch up"
+          {/* Pill tab group */}
+          <div className="hidden sm:flex h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border">
+            <button
+              type="button"
+              onClick={() => setPinsOpen(true)}
+              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+              title="Pinned messages"
             >
-              Catch up
-            </AIButton>
-          )}
-
-          {/* Call buttons */}
-          <Button variant="ghost" size="sm"
-            className="hidden h-8 gap-1 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 sm:flex"
-            onClick={() => startCall('audio')} aria-label="Start audio call" title="Start audio call"
-          >
-            <Phone size={12} />
-            Call
-          </Button>
-          <Button variant="ghost" size="sm"
-            className="hidden h-8 gap-1 rounded-xl border border-transparent bg-transparent px-3 text-[11px] font-medium text-muted-foreground hover:border-border/70 hover:bg-muted/60 sm:flex"
-            onClick={() => startCall('video')} aria-label="Start video call" title="Start video call"
-          >
-            <Video size={12} />
-            Video
-          </Button>
+              📌 {pins?.length ? pins.length : "Pins"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setSavedOpen(true)}
+              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+              title="Saved messages"
+            >
+              🔖 {saves?.length ? saves.length : "Saved"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setScheduledOpen(true)}
+              className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+              title="Scheduled messages"
+            >
+              <Clock3 size={11} />
+              {scheduledMessages?.length ? scheduledMessages.length : "Scheduled"}
+            </button>
+            {aiEnabled && (
+              <button
+                type="button"
+                onClick={() => void summarizeChannel()}
+                className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="AI catch-up summary"
+                disabled={summarizingChannel}
+              >
+                {summarizingChannel ? "…" : "Catch up"}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => startCall('audio')}
+              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+              title="Start audio call"
+            >
+              <Phone size={11} />
+              Call
+            </button>
+            <button
+              type="button"
+              onClick={() => startCall('video')}
+              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+              title="Start video call"
+            >
+              <Video size={11} />
+              Video
+            </button>
+          </div>
 
           {/* Divider */}
           <div className="mx-1 hidden h-5 w-px bg-border/70 sm:block" />

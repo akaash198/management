@@ -17,6 +17,8 @@ import {
   BarChart3,
   Building2,
   ShieldCheck,
+  Smile,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TeamSwitcher } from "@/components/teams/TeamSwitcher";
@@ -35,6 +37,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { usePresenceStore } from "@/store/presence";
 import { PRESENCE_META } from "@/lib/presence";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+// Quick status presets
+const STATUS_PRESETS: Array<{ emoji: string; text: string; clearMinutes: number | null }> = [
+  { emoji: "🗓️", text: "In a meeting", clearMinutes: 60 },
+  { emoji: "🤒", text: "Out sick", clearMinutes: 24 * 60 },
+  { emoji: "🌴", text: "On vacation", clearMinutes: null },
+  { emoji: "🏠", text: "Working remotely", clearMinutes: null },
+  { emoji: "🎯", text: "Focusing — DMs only", clearMinutes: 60 },
+  { emoji: "🚂", text: "Commuting", clearMinutes: 30 },
+];
 
 const NAV_MAIN = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -49,12 +64,105 @@ const NAV_BOTTOM = [
   { name: "Settings",  href: "/settings",  icon: Settings },
 ];
 
+function StatusModal({ onClose }: { onClose: () => void }) {
+  const { customStatus, setCustomStatus } = usePresenceStore();
+  const [emoji, setEmoji] = useState(customStatus?.emoji ?? "");
+  const [text, setText] = useState(customStatus?.text ?? "");
+  const [clearMinutes, setClearMinutes] = useState<number | null>(null);
+
+  const save = () => {
+    if (!text.trim() && !emoji) {
+      setCustomStatus(null);
+    } else {
+      const clearAt = clearMinutes
+        ? new Date(Date.now() + clearMinutes * 60_000).toISOString()
+        : null;
+      setCustomStatus({ emoji: emoji || "💬", text: text.trim() || emoji, clearAt });
+    }
+    onClose();
+  };
+
+  return (
+    <div className="w-72 p-3 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[13px] font-semibold">Set a status</span>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Presets */}
+      <div className="space-y-1">
+        {STATUS_PRESETS.map((p) => (
+          <button
+            key={p.text}
+            type="button"
+            onClick={() => { setEmoji(p.emoji); setText(p.text); setClearMinutes(p.clearMinutes); }}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-muted/60 transition-colors text-left"
+          >
+            <span className="text-base">{p.emoji}</span>
+            <span className="truncate">{p.text}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="border-t border-border pt-2 space-y-2">
+        <div className="flex gap-1.5">
+          <Input
+            value={emoji}
+            onChange={(e) => setEmoji(e.target.value)}
+            placeholder="😊"
+            className="h-8 w-12 text-center text-base shrink-0 px-1"
+            maxLength={4}
+          />
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="What's your status?"
+            className="h-8 flex-1 text-[12px]"
+            maxLength={80}
+            onKeyDown={(e) => { if (e.key === "Enter") save(); }}
+          />
+        </div>
+        <select
+          value={clearMinutes ?? ""}
+          onChange={(e) => setClearMinutes(e.target.value ? Number(e.target.value) : null)}
+          className="h-8 w-full rounded-md border border-border bg-background px-2 text-[12px]"
+        >
+          <option value="">Don&apos;t clear</option>
+          <option value="30">Clear in 30 minutes</option>
+          <option value="60">Clear in 1 hour</option>
+          <option value="240">Clear in 4 hours</option>
+          <option value="480">Clear in 8 hours</option>
+          <option value="1440">Clear today</option>
+        </select>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="flex-1 h-8 text-[12px]" onClick={() => { setCustomStatus(null); onClose(); }}>
+            Clear
+          </Button>
+          <Button size="sm" className="flex-1 h-8 text-[12px]" onClick={save}>
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const pathname    = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
   const { user, logout } = useAuthStore();
   const myPresence  = usePresenceStore((s) => s.status);
+  const customStatus = usePresenceStore((s) => s.customStatus);
+  const setCustomStatus = usePresenceStore((s) => s.setCustomStatus);
   const initials    = (user?.full_name?.charAt(0) ?? "?").toUpperCase();
+
+  // Auto-clear expired custom status
+  if (customStatus?.clearAt && new Date(customStatus.clearAt) < new Date()) {
+    setCustomStatus(null);
+  }
 
   // Detect if user is a company CEO/admin to show Company Admin nav item.
   const { data: myCompanies } = useQuery<Company[]>({
@@ -229,9 +337,15 @@ export function Sidebar() {
                   <p className="text-[12px] font-semibold text-[hsl(220_14%_85%)] truncate leading-tight">
                     {user?.full_name ?? "Account"}
                   </p>
-                  <p className={cn("text-[10px] font-medium leading-tight mt-px", PRESENCE_META[myPresence].textClass)}>
-                    {PRESENCE_META[myPresence].label}
-                  </p>
+                  {customStatus ? (
+                    <p className="text-[10px] font-medium leading-tight mt-px text-[hsl(220_14%_65%)] truncate">
+                      {customStatus.emoji} {customStatus.text}
+                    </p>
+                  ) : (
+                    <p className={cn("text-[10px] font-medium leading-tight mt-px", PRESENCE_META[myPresence].textClass)}>
+                      {PRESENCE_META[myPresence].label}
+                    </p>
+                  )}
                 </div>
               )}
             </button>
@@ -241,14 +355,35 @@ export function Sidebar() {
             side="right"
             align="end"
             sideOffset={8}
-            className="w-52"
+            className="w-56"
           >
             <DropdownMenuLabel className="text-[12px] font-semibold pb-1">
               {user?.full_name}
               <p className="text-[10px] font-normal text-muted-foreground mt-0.5 truncate">
                 {user?.email}
               </p>
+              {customStatus && (
+                <p className="text-[10px] font-normal text-foreground/80 mt-0.5 truncate">
+                  {customStatus.emoji} {customStatus.text}
+                </p>
+              )}
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {/* Status setter — opens inline popover */}
+            <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+              <PopoverTrigger asChild>
+                <DropdownMenuItem
+                  onSelect={(e) => { e.preventDefault(); setStatusOpen(true); }}
+                  className="text-[13px] gap-2"
+                >
+                  <Smile size={13} className="text-muted-foreground" />
+                  {customStatus ? "Update status" : "Set a status"}
+                </DropdownMenuItem>
+              </PopoverTrigger>
+              <PopoverContent side="right" align="start" sideOffset={8} className="p-0 w-auto">
+                <StatusModal onClose={() => setStatusOpen(false)} />
+              </PopoverContent>
+            </Popover>
             <DropdownMenuSeparator />
             <Link href="/settings">
               <DropdownMenuItem className="text-[13px] gap-2">
