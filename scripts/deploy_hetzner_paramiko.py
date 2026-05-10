@@ -183,11 +183,11 @@ def _render_env_prod(template_text: str, *, server_ip: Optional[str], allowed_ho
 def _bootstrap_ufw(client: paramiko.SSHClient) -> None:
     # Keep it simple/idempotent.
     cmds = [
-        "ufw --force reset",
-        "ufw allow OpenSSH",
-        "ufw allow 80/tcp",
-        "ufw --force enable",
-        "ufw status verbose",
+        "sudo ufw --force reset",
+        "sudo ufw allow OpenSSH",
+        "sudo ufw allow 80/tcp",
+        "sudo ufw --force enable",
+        "sudo ufw status verbose",
     ]
     for cmd in cmds:
         code, out, err = _run(client, cmd)
