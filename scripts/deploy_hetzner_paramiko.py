@@ -274,29 +274,29 @@ def main() -> int:
                 raise RuntimeError("Deploy requires --image-backend and --image-frontend.")
 
             deploy_sha = args.deploy_sha or ""
-            cd = f"cd {args.deploy_path}"
+            dp = args.deploy_path
             login = f"echo '{args.ghcr_token}' | docker login '{args.registry}' -u '{args.ghcr_username}' --password-stdin"
             pull = (
-                f"IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
+                f"cd {dp} && IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
                 f"docker compose --env-file .env.prod -f docker-compose.prod.yml pull"
             )
             migrate = (
-                f"IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
+                f"cd {dp} && IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
                 f"docker compose --env-file .env.prod -f docker-compose.prod.yml run --rm backend "
                 f"python manage.py migrate --noinput"
             )
             up = (
-                f"IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
+                f"cd {dp} && IMAGE_BACKEND='{args.image_backend}' IMAGE_FRONTEND='{args.image_frontend}' "
                 f"docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --remove-orphans"
             )
             tag = (
-                f"echo '{deploy_sha}' > current.sha && "
+                f"cd {dp} && echo '{deploy_sha}' > current.sha && "
                 f"echo \"$(date -u +%Y-%m-%dT%H:%M:%SZ) {deploy_sha}\" >> releases.log"
                 if deploy_sha
                 else "true"
             )
 
-            for cmd in (cd, login, tag, pull, migrate, up):
+            for cmd in (login, tag, pull, migrate, up):
                 code, out, err = _run(client, cmd)
                 if out:
                     print(out.strip())
