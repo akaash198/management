@@ -401,9 +401,14 @@ export function ChatArea({
 
   const pinnedIds = useMemo(() => new Set((pins ?? []).map((p) => p.message.id)), [pins]);
   const [pinsOpen, setPinsOpen] = useState(false);
+  const isDirectMessage = channel.is_private && (
+    !!channel.dm_other_user_id ||
+    (channel.name || "").startsWith("dm-") ||
+    ((channelMembers ?? []).length === 2)
+  );
   const directPeer = useMemo(
-    () => (channel.is_private ? (channelMembers ?? []).find((member) => member.id !== user?.id) ?? null : null),
-    [channel.is_private, channelMembers, user?.id]
+    () => (isDirectMessage ? (channelMembers ?? []).find((member) => member.id !== user?.id) ?? null : null),
+    [isDirectMessage, channelMembers, user?.id]
   );
   const directPeerIsOnline = !!(directPeer && onlineUserIds?.has(directPeer.id));
   const recentMediaAttachments = useMemo(

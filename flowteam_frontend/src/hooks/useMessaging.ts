@@ -148,6 +148,34 @@ export function useChatSocket(
     { onMessage: handleMessage }
   );
 
+  // REST fallback: if WS hasn't delivered history within 2s, fetch via HTTP.
+  useEffect(() => {
+    if (!channelId) return;
+    const timer = setTimeout(async () => {
+      setMessages((prev) => {
+        // Only fetch if we have no server messages yet
+        if (prev.some((m) => !m.id.startsWith("client:"))) return prev;
+        void (async () => {
+          try {
+            const res = await api.get<ApiResponse<Message[]>>(
+              `/messaging/channels/${channelId}/messages/`
+            );
+            const incoming = res.data.data ?? [];
+            if (!Array.isArray(incoming) || incoming.length === 0) return;
+            setMessages((current) => {
+              if (current.some((m) => !m.id.startsWith("client:"))) return current;
+              return mergeAndSortMessages([...current, ...incoming.reverse()]);
+            });
+          } catch {
+            // best-effort
+          }
+        })();
+        return prev;
+      });
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [channelId]);
+
   const sendCallMessage = useCallback((type: string, data: any) => {
     return send(type, data);
   }, [send]);
