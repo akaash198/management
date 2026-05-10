@@ -475,21 +475,42 @@ class CompanyCapabilitiesView(generics.GenericAPIView):
 # Teams, Onboarding, Settings, Domain (existing, preserved)
 # ──────────────────────────────────────────────────────────────
 
-class CompanyTeamsView(generics.ListAPIView):
-    """List teams belonging to a company."""
+class CompanyTeamsView(generics.GenericAPIView):
+    """
+    GET  /companies/<id>/teams/  → list company teams (any member)
+    POST /companies/<id>/teams/  → create a new team under this company (admin+)
+    """
 
     def get_permissions(self):
-        return [permissions.IsAuthenticated(), IsCompanyMemberPermission()]
+        if self.request.method in permissions.SAFE_METHODS:
+            return [permissions.IsAuthenticated(), IsCompanyMemberPermission()]
+        return [permissions.IsAuthenticated(), IsCompanyAdminPermission()]
 
-    def get_queryset(self):
-        return Company.objects.get(id=self.kwargs["id"]).teams.all()
-
-    def list(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
         from apps.teams.serializers import TeamSerializer
-        company = Company.objects.get(id=self.kwargs["id"])
+        company = get_object_or_404(Company, id=self.kwargs["id"])
         teams = company.teams.all()
         data = TeamSerializer(teams, many=True, context={"request": request}).data
         return standardize_response(data=data)
+
+    def post(self, request, id):
+        from apps.teams.models import Team, TeamMember
+        from apps.teams.serializers import TeamSerializer
+        company = get_object_or_404(Company, id=id)
+        name = (request.data.get("name") or "").strip()
+        if not name:
+            return standardize_response(success=False, error="name is required.", status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            team = Team.objects.create(name=name, company=company, created_by=request.user)
+            TeamMember.objects.create(team=team, user=request.user, role=TeamMember.ADMIN)
+            if company.ceo and company.ceo != request.user:
+                TeamMember.objects.get_or_create(
+                    team=team, user=company.ceo, defaults={"role": TeamMember.CEO}
+                )
+        return standardize_response(
+            data=TeamSerializer(team, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
 
 
 class CompanyAssignTeamView(generics.GenericAPIView):

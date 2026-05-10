@@ -41,17 +41,11 @@ import {
   Pause,
   AlertTriangle,
   ChevronRight,
-  ChevronDown,
-  ArrowLeft,
-  X,
-  UserPlus,
   Pencil,
   Trash2,
   Settings2,
-  RefreshCw,
   Shield,
   ExternalLink,
-  Info,
 } from "lucide-react";
 import CompanyOnboardingWizard, {
   type AdminCompany,
@@ -167,17 +161,6 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
     onError: (err) => toast.error(toErrorMessage(err, "Failed to update status")),
   });
 
-  const unassignTeam = useMutation({
-    mutationFn: async ({ companyId, teamId }: { companyId: string; teamId: string }) => {
-      await api.delete(`/companies/${companyId}/assign-team/`, { data: { team_id: teamId } });
-    },
-    onSuccess: (_, { companyId }) => {
-      toast.success("Team removed from company");
-      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", companyId] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-    },
-    onError: (err) => toast.error(toErrorMessage(err, "Failed to remove team")),
-  });
 
   // ── Computed ──────────────────────────────────────────────────────────────
 
@@ -335,7 +318,6 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
           onOpenTeamMembers={openTeamMembers}
           onEdit={() => openWizard(activeCompany)}
           onOpenSettings={() => companyDetail && openSettings(companyDetail)}
-          onUnassignTeam={(teamId) => unassignTeam.mutate({ companyId: activeCompany.id, teamId })}
           onStatusChange={(status) => updateStatus.mutate({ id: activeCompany.id, status })}
         />
       )}
@@ -523,7 +505,7 @@ function CompanyCard({
 
 function CompanyDetailView({
   company, detail, isLoading,
-  onOpenTeamMembers, onEdit, onOpenSettings, onUnassignTeam, onStatusChange,
+  onOpenTeamMembers, onEdit, onOpenSettings, onStatusChange,
 }: {
   company: AdminCompany;
   detail: AdminCompanyDetail | null;
@@ -531,7 +513,6 @@ function CompanyDetailView({
   onOpenTeamMembers: (t: Team) => void;
   onEdit: () => void;
   onOpenSettings: () => void;
-  onUnassignTeam: (teamId: string) => void;
   onStatusChange: (s: AdminCompany["onboarding_status"]) => void;
 }) {
   return (
@@ -650,10 +631,8 @@ function CompanyDetailView({
           ) : !detail || detail.teams.length === 0 ? (
             <div className="flex flex-col items-center py-10 gap-2 text-center">
               <Layers size={28} className="text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No teams assigned yet.</p>
-              <Button size="sm" variant="outline" onClick={onEdit} className="gap-2 mt-1">
-                <Plus size={12} /> Assign Teams
-              </Button>
+              <p className="text-sm text-muted-foreground">No teams yet.</p>
+              <p className="text-xs text-muted-foreground/60">Teams are created by the company Admin via the company dashboard.</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -678,13 +657,6 @@ function CompanyDetailView({
                     >
                       <Users size={11} /> Members
                     </Button>
-                    <button
-                      onClick={() => onUnassignTeam(t.id)}
-                      className="p-1.5 rounded text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Remove from company"
-                    >
-                      <X size={12} />
-                    </button>
                   </div>
                   <ChevronRight
                     size={14}

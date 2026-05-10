@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import type { ApiResponse, Team, TeamMember } from "@/types";
+import type { ApiResponse } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
-import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2, UserPlus } from "lucide-react";
+import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import CompanyManagementPanel from "@/components/super-admin/CompanyManagementPanel";
 
@@ -50,10 +50,6 @@ type SuperAdminDashboard = {
 };
 
 type RecentUser = SuperAdminDashboard["recent_users"][number];
-
-type AdminTeam = Team;
-
-type TeamRole = TeamMember["role"];
 
 type AdminUser = {
   id: string;
@@ -112,20 +108,6 @@ export default function SuperAdminDashboardPage() {
     if (user && !user.is_superuser) router.replace("/dashboard");
   }, [user, router]);
 
-  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
-  const [editingTeam, setEditingTeam] = useState<AdminTeam | null>(null);
-  const [teamName, setTeamName] = useState("");
-  const [deleteTeamOpen, setDeleteTeamOpen] = useState(false);
-  const [deletingTeam, setDeletingTeam] = useState<AdminTeam | null>(null);
-
-  const [membersDialogOpen, setMembersDialogOpen] = useState(false);
-  const [membersTeam, setMembersTeam] = useState<AdminTeam | null>(null);
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [membersLoading, setMembersLoading] = useState(false);
-  const [memberEmail, setMemberEmail] = useState("");
-  const [memberRole, setMemberRole] = useState<TeamRole>("member");
-  const [memberSearch, setMemberSearch] = useState("");
-  const [selectedUserIdToAdd, setSelectedUserIdToAdd] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery<SuperAdminDashboard>({
     queryKey: ["super-admin-dashboard"],
@@ -146,18 +128,6 @@ export default function SuperAdminDashboardPage() {
     enabled: isSuperuser,
   });
 
-  const memberSearchKey = useMemo(() => ["super-admin-users-search", memberSearch], [memberSearch]);
-  const { data: memberSearchResults, isLoading: isMemberSearchLoading } = useQuery<AdminUser[]>({
-    queryKey: memberSearchKey,
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<AdminUser[]>>("/super-admin/users/", {
-        params: memberSearch.trim() ? { q: memberSearch.trim() } : {},
-      });
-      return res.data.data ?? [];
-    },
-    enabled: isSuperuser && membersDialogOpen && memberSearch.trim().length > 0,
-    staleTime: 10_000,
-  });
 
   const selectableUserIds = useMemo(() => {
     const me = user?.id;
@@ -250,134 +220,6 @@ export default function SuperAdminDashboardPage() {
     setDialogOpen(true);
   };
 
-  const { data: teams } = useQuery<Team[]>({
-    queryKey: ["super-admin-all-teams"],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<Team[]>>("/teams/");
-      return res.data.data ?? [];
-    },
-    enabled: isSuperuser,
-  });
-
-  const upsertTeam = useMutation({
-    mutationFn: async () => {
-      if (!teamName.trim()) throw new Error("Team name is required");
-
-      if (editingTeam) {
-        const res = await api.patch<ApiResponse<Team>>(`/teams/${editingTeam.id}/`, { name: teamName.trim() });
-        return res.data.data;
-      }
-
-      const res = await api.post<ApiResponse<Team>>("/teams/", { name: teamName.trim() });
-      return res.data.data;
-    },
-    onSuccess: () => {
-      toast.success(editingTeam ? "Team updated" : "Team created");
-      setTeamDialogOpen(false);
-      setEditingTeam(null);
-      setTeamName("");
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-dashboard"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to save team")),
-  });
-
-  const deleteTeam = useMutation({
-    mutationFn: async (teamId: string) => {
-      await api.delete(`/teams/${teamId}/`);
-    },
-    onSuccess: () => {
-      toast.success("Team deleted");
-      setDeleteTeamOpen(false);
-      setDeletingTeam(null);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-      queryClient.invalidateQueries({ queryKey: ["super-admin-dashboard"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to delete team")),
-  });
-
-  const loadMembers = async (team: AdminTeam) => {
-    setMembersLoading(true);
-    try {
-      const res = await api.get<ApiResponse<TeamMember[]>>(`/teams/${team.id}/members/`);
-      setMembers(res.data.data ?? []);
-    } catch (err) {
-      console.error(err);
-      toast.error(toErrorMessage(err, "Failed to load team members"));
-      setMembers([]);
-    } finally {
-      setMembersLoading(false);
-    }
-  };
-
-  const addMember = useMutation({
-    mutationFn: async () => {
-      if (!membersTeam) throw new Error("No team selected");
-      if (!selectedUserIdToAdd && !memberEmail.trim()) throw new Error("Select a user or enter an email");
-      const res = await api.post<ApiResponse<TeamMember>>(`/teams/${membersTeam.id}/members/`, {
-        ...(selectedUserIdToAdd ? { user_id: selectedUserIdToAdd } : { email: memberEmail.trim() }),
-        role: memberRole,
-      });
-      return res.data.data;
-    },
-    onSuccess: async () => {
-      toast.success("Member added");
-      setMemberEmail("");
-      setMemberSearch("");
-      setSelectedUserIdToAdd(null);
-      if (membersTeam) await loadMembers(membersTeam);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to add member")),
-  });
-
-  const updateMemberRole = useMutation({
-    mutationFn: async (payload: { teamId: string; userId: string; role: TeamRole }) => {
-      const res = await api.patch<ApiResponse<TeamMember>>(`/teams/${payload.teamId}/members/${payload.userId}/`, { role: payload.role });
-      return res.data.data;
-    },
-    onSuccess: async () => {
-      toast.success("Member updated");
-      if (membersTeam) await loadMembers(membersTeam);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to update member")),
-  });
-
-  const removeMember = useMutation({
-    mutationFn: async (payload: { teamId: string; userId: string }) => {
-      await api.delete(`/teams/${payload.teamId}/members/${payload.userId}/`);
-    },
-    onSuccess: async () => {
-      toast.success("Member removed");
-      if (membersTeam) await loadMembers(membersTeam);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
-    },
-    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to remove member")),
-  });
-
-  const openCreateTeam = () => {
-    setEditingTeam(null);
-    setTeamName("");
-    setTeamDialogOpen(true);
-  };
-
-  const openEditTeam = (t: AdminTeam) => {
-    setEditingTeam(t);
-    setTeamName(t.name);
-    setTeamDialogOpen(true);
-  };
-
-  const openDeleteTeam = (t: AdminTeam) => {
-    setDeletingTeam(t);
-    setDeleteTeamOpen(true);
-  };
-
-  const openMembers = async (t: AdminTeam) => {
-    setMembersTeam(t);
-    setMembersDialogOpen(true);
-    await loadMembers(t);
-  };
 
   if (!user) return null;
   if (!isSuperuser) return null;
@@ -493,73 +335,6 @@ export default function SuperAdminDashboardPage() {
 
       {/* ── Companies ── */}
       <CompanyManagementPanel isSuperuser={isSuperuser} />
-
-      {/* ── Teams ── */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div className="space-y-1">
-            <CardTitle className="text-lg">Teams</CardTitle>
-            <p className="text-sm text-muted-foreground">Create and manage organizations.</p>
-          </div>
-          <Button onClick={openCreateTeam} size="sm" className="gap-2">
-            <Plus className="h-4 w-4" />
-            New Team
-          </Button>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div className="overflow-hidden rounded-xl border border-border">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/40 text-[11px] uppercase font-bold text-muted-foreground">
-                <tr>
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Slug</th>
-                  <th className="px-4 py-3 text-right">Members</th>
-                  <th className="px-4 py-3 w-[60px]" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {(teams?.length ?? 0) === 0 ? (
-                  <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={4}>
-                      No teams found.
-                    </td>
-                  </tr>
-                ) : (
-                  teams?.map((t) => (
-                    <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{t.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{t.slug || "—"}</td>
-                      <td className="px-4 py-3 text-right text-muted-foreground">{t.member_count ?? 0}</td>
-                      <td className="px-4 py-3 text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem onClick={() => openEditTeam(t)}>Rename</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openMembers(t)} className="gap-2">
-                              <UserPlus className="h-4 w-4" />
-                              Members
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => openDeleteTeam(t)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* ── Users ── */}
       <Card>
@@ -799,250 +574,6 @@ export default function SuperAdminDashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Team create/rename dialog ── */}
-      <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
-        <DialogContent className="sm:max-w-[480px]">
-          <DialogHeader>
-            <DialogTitle>{editingTeam ? "Rename Team" : "Create Team"}</DialogTitle>
-            <DialogDescription>
-              {editingTeam ? "Update the organization name." : "Create a new organization for projects and members."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="teamName">Team Name</Label>
-              <Input
-                id="teamName"
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                placeholder="Acme Inc"
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setTeamDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => upsertTeam.mutate()} disabled={upsertTeam.isPending || !teamName.trim()} className="gap-2">
-              <Save className="h-4 w-4" />
-              {upsertTeam.isPending ? "Saving..." : "Save"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Team delete dialog ── */}
-      <Dialog open={deleteTeamOpen} onOpenChange={setDeleteTeamOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete team?</DialogTitle>
-            <DialogDescription>
-              {deletingTeam ? (
-                <>
-                  This will permanently delete <span className="font-medium">{deletingTeam.name}</span> and all related data (members, projects, tasks).
-                </>
-              ) : (
-                "This action cannot be undone."
-              )}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteTeamOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deletingTeam && deleteTeam.mutate(deletingTeam.id)}
-              disabled={!deletingTeam || deleteTeam.isPending}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              {deleteTeam.isPending ? "Deleting..." : "Delete"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Team members dialog ── */}
-      <Dialog
-        open={membersDialogOpen}
-        onOpenChange={(open) => {
-          setMembersDialogOpen(open);
-          if (!open) {
-            setMembersTeam(null);
-            setMembers([]);
-            setMemberEmail("");
-            setMemberRole("member");
-            setMemberSearch("");
-            setSelectedUserIdToAdd(null);
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[760px]">
-          <DialogHeader>
-            <DialogTitle>Team members</DialogTitle>
-            <DialogDescription>
-              {membersTeam ? `Manage members for ${membersTeam.name}.` : "Manage team members."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid gap-4">
-            <div className="grid gap-2 md:grid-cols-3">
-              <div className="md:col-span-2 grid gap-2">
-                <Label htmlFor="memberEmail">Add member</Label>
-                <div className="relative">
-                  <Input
-                    id="memberEmail"
-                    value={memberSearch}
-                    onChange={(e) => {
-                      setMemberSearch(e.target.value);
-                      setSelectedUserIdToAdd(null);
-                      setMemberEmail(e.target.value);
-                    }}
-                    placeholder="Search users by name/email or type an email"
-                    autoComplete="off"
-                  />
-
-                  {memberSearch.trim().length > 0 && (
-                    <div className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-                      <div className="max-h-56 overflow-auto">
-                        {isMemberSearchLoading && (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">Searching…</div>
-                        )}
-
-                        {!isMemberSearchLoading && (memberSearchResults?.length ?? 0) === 0 && (
-                          <div className="px-3 py-2 text-sm text-muted-foreground">No users found.</div>
-                        )}
-
-                        {(memberSearchResults ?? [])
-                          .filter((u) => !(members ?? []).some((m) => m.user.id === u.id))
-                          .slice(0, 8)
-                          .map((u) => (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => {
-                                setSelectedUserIdToAdd(u.id);
-                                setMemberEmail(u.email);
-                                setMemberSearch(u.email);
-                              }}
-                              className="flex w-full items-start justify-between gap-3 px-3 py-2 text-left hover:bg-muted/50"
-                            >
-                              <div className="min-w-0">
-                                <div className="truncate text-sm font-medium">{u.full_name || "—"}</div>
-                                <div className="truncate text-xs text-muted-foreground">{u.email}</div>
-                              </div>
-                              <Badge variant="outline" className="shrink-0 text-[10px]">
-                                Select
-                              </Badge>
-                            </button>
-                          ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {selectedUserIdToAdd && (
-                  <p className="text-xs text-muted-foreground">
-                    Selected: <span className="font-medium">{memberEmail}</span>
-                  </p>
-                )}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="memberRole">Role</Label>
-                <select
-                  id="memberRole"
-                  value={memberRole}
-                  onChange={(e) => setMemberRole(e.target.value as TeamRole)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="ceo">CEO</option>
-                  <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
-                  <option value="member">Member</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={() => addMember.mutate()}
-                disabled={!membersTeam || addMember.isPending || (!selectedUserIdToAdd && !memberEmail.trim())}
-                className="gap-2"
-              >
-                <UserPlus className="h-4 w-4" />
-                {addMember.isPending ? "Adding..." : "Add member"}
-              </Button>
-            </div>
-
-            <div className="overflow-hidden rounded-xl border border-border">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-muted/40 text-[11px] uppercase font-bold text-muted-foreground">
-                  <tr>
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Email</th>
-                    <th className="px-4 py-3 w-[160px]">Role</th>
-                    <th className="px-4 py-3 w-[90px]" />
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {membersLoading && (
-                    <tr>
-                      <td className="px-4 py-10 text-center text-muted-foreground" colSpan={4}>
-                        Loading members...
-                      </td>
-                    </tr>
-                  )}
-                  {!membersLoading && (members?.length ?? 0) === 0 && (
-                    <tr>
-                      <td className="px-4 py-10 text-center text-muted-foreground" colSpan={4}>
-                        No members found.
-                      </td>
-                    </tr>
-                  )}
-                  {(members ?? []).map((m: TeamMember) => (
-                    <tr key={m.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-medium">{m.user.full_name || "—"}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{m.user.email}</td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={m.role}
-                          onChange={(e) => {
-                            if (!membersTeam) return;
-                            updateMemberRole.mutate({ teamId: membersTeam.id, userId: m.user.id, role: e.target.value as TeamRole });
-                          }}
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                        >
-                          <option value="ceo">CEO</option>
-                          <option value="admin">Admin</option>
-                          <option value="manager">Manager</option>
-                          <option value="member">Member</option>
-                          <option value="viewer">Viewer</option>
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            if (!membersTeam) return;
-                            removeMember.mutate({ teamId: membersTeam.id, userId: m.user.id });
-                          }}
-                          disabled={removeMember.isPending}
-                        >
-                          Remove
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

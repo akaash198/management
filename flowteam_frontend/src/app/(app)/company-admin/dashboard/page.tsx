@@ -141,6 +141,10 @@ export default function CompanyAdminDashboard() {
   const [teamInviteEmail, setTeamInviteEmail] = useState("");
   const [teamInviteRole, setTeamInviteRole] = useState<"member" | "viewer">("member");
 
+  // ── New team dialog state ──
+  const [newTeamOpen, setNewTeamOpen] = useState(false);
+  const [newTeamName, setNewTeamName] = useState("");
+
   // ── Mutations ──
   const sendInvite = useMutation({
     mutationFn: async () => {
@@ -195,6 +199,21 @@ export default function CompanyAdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["my-companies"] });
     },
     onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to remove member")),
+  });
+
+  const createTeam = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<ApiResponse<Team>>(`/companies/${companyId}/teams/`, { name: newTeamName.trim() });
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success(`Team "${newTeamName}" created`);
+      setNewTeamOpen(false);
+      setNewTeamName("");
+      queryClient.invalidateQueries({ queryKey: ["company-teams", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["my-companies"] });
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to create team")),
   });
 
   const sendTeamInvite = useMutation({
@@ -439,9 +458,17 @@ export default function CompanyAdminDashboard() {
       {/* ── View: Teams ── */}
       {view === "teams" && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Teams</CardTitle>
-            <p className="text-sm text-muted-foreground">Teams under {company.name}.</p>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div className="space-y-1">
+              <CardTitle className="text-base">Teams</CardTitle>
+              <p className="text-sm text-muted-foreground">Teams under {company.name}.</p>
+            </div>
+            {caps?.can_create_teams && (
+              <Button onClick={() => { setNewTeamName(""); setNewTeamOpen(true); }} size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                New Team
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="pt-0">
             {isLoadingTeams ? (
@@ -625,6 +652,37 @@ export default function CompanyAdminDashboard() {
               disabled={changeMemberRole.isPending}
             >
               {changeMemberRole.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── New team dialog ── */}
+      <Dialog open={newTeamOpen} onOpenChange={setNewTeamOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Create new team</DialogTitle>
+            <DialogDescription>Add a team under {company.name}.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Label htmlFor="newTeamName">Team name</Label>
+            <Input
+              id="newTeamName"
+              placeholder="e.g. Engineering, Marketing"
+              value={newTeamName}
+              onChange={e => setNewTeamName(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && newTeamName.trim() && createTeam.mutate()}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewTeamOpen(false)}>Cancel</Button>
+            <Button
+              onClick={() => createTeam.mutate()}
+              disabled={createTeam.isPending || !newTeamName.trim()}
+              className="gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {createTeam.isPending ? "Creating…" : "Create team"}
             </Button>
           </DialogFooter>
         </DialogContent>
