@@ -5,7 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/runtimeConfig";
-import { Smile, MessageSquare, Edit2, Trash2, MoreHorizontal, X, Check, Phone, PhoneOff, Video, VideoOff } from "lucide-react";
+import { Smile, MessageSquare, Edit2, Trash2, MoreHorizontal, X, Check, Phone, PhoneOff, Video, VideoOff, ChevronDown } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -74,6 +76,40 @@ function highlightText(text: string, query: string): ReactNode[] {
 }
 
 function renderMessageText(text: string, opts?: { highlightQuery?: string }): ReactNode[] {
+  // Blockquote lines (> text)
+  if (/^> /m.test(text)) {
+    const lines = text.split("\n");
+    const out: ReactNode[] = [];
+    let quoteBuffer: string[] = [];
+    let rest: string[] = [];
+
+    const flushQuote = (key: string) => {
+      if (!quoteBuffer.length) return;
+      out.push(
+        <div key={key} className="my-1.5 border-l-2 border-primary/40 pl-3 text-muted-foreground/80 italic text-[13px]">
+          {renderMessageText(quoteBuffer.join("\n"), opts)}
+        </div>
+      );
+      quoteBuffer = [];
+    };
+
+    lines.forEach((line, i) => {
+      if (line.startsWith("> ")) {
+        if (rest.length) {
+          out.push(<span key={`r${i}`}>{renderMessageText(rest.join("\n"), opts)}</span>);
+          rest = [];
+        }
+        quoteBuffer.push(line.slice(2));
+      } else {
+        flushQuote(`q${i}`);
+        rest.push(line);
+      }
+    });
+    flushQuote("qend");
+    if (rest.length) out.push(<span key="rend">{renderMessageText(rest.join("\n"), opts)}</span>);
+    return out;
+  }
+
   // Code blocks
   if (/```[\s\S]*?```/.test(text)) {
     const parts: ReactNode[] = [];
@@ -99,23 +135,35 @@ function renderMessageText(text: string, opts?: { highlightQuery?: string }): Re
     return parts;
   }
 
-  // Inline: mentions, URLs, code
-  const regex = /(@[\w.-]+)|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
-  const out: Array<{ type: "text" | "mention" | "url"; value: string }> = [];
+  // Inline: bold (**text**), italic (_text_), strikethrough (~~text~~), mentions, URLs, code
+  const regex = /(\*\*([^*]+)\*\*)|(_([^_]+)_)|(~~([^~]+)~~)|(@[\w.-]+)|(https?:\/\/[^\s]+|www\.[^\s]+)/g;
+  type Token = { type: "text" | "bold" | "italic" | "strike" | "mention" | "url"; value: string; inner?: string };
+  const out: Token[] = [];
   let last = 0;
   for (const match of text.matchAll(regex)) {
     const idx = match.index ?? 0;
     if (idx > last) out.push({ type: "text", value: text.slice(last, idx) });
     const token = match[0] ?? "";
-    out.push({ type: token.startsWith("@") ? "mention" : "url", value: token });
+    if (token.startsWith("**")) out.push({ type: "bold", value: token, inner: match[2] });
+    else if (token.startsWith("_") && !token.startsWith("__")) out.push({ type: "italic", value: token, inner: match[4] });
+    else if (token.startsWith("~~")) out.push({ type: "strike", value: token, inner: match[6] });
+    else if (token.startsWith("@")) out.push({ type: "mention", value: token });
+    else out.push({ type: "url", value: token });
     last = idx + token.length;
   }
   if (last < text.length) out.push({ type: "text", value: text.slice(last) });
 
   return out.map((p, i) => {
+    if (p.type === "bold") return <strong key={i} className="font-semibold">{p.inner}</strong>;
+    if (p.type === "italic") return <em key={i} className="italic">{p.inner}</em>;
+    if (p.type === "strike") return <del key={i} className="line-through text-muted-foreground/70">{p.inner}</del>;
     if (p.type === "mention") {
+      const isSpecial = p.value === "@channel" || p.value === "@here";
       return (
-        <span key={i} className="font-semibold text-primary rounded px-0.5 bg-primary/8">
+        <span key={i} className={cn(
+          "font-semibold rounded px-0.5",
+          isSpecial ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" : "text-primary bg-primary/8"
+        )}>
           {p.value}
         </span>
       );
@@ -615,26 +663,50 @@ export function MessageItem({
         </div>
       )}
 
-      {/* ── Quick emoji picker ── */}
+      {/* ── Full emoji picker for reactions ── */}
       {pickerOpen && (
         <div className="absolute right-3 top-9 z-30">
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-card shadow-lg p-1.5">
-            {QUICK_REACTIONS.map((emoji) => {
-              const mine = !!message.reactions?.find((r) => r.emoji === emoji)?.reacted_by_me;
-              return (
-                <button
-                  key={emoji}
-                  type="button"
-                  className={cn(
-                    "h-8 w-8 rounded-lg flex items-center justify-center text-[18px] hover:bg-muted transition-colors",
-                    mine && "bg-primary/10"
-                  )}
-                  onClick={() => { onToggleReaction?.(emoji, mine); setPickerOpen(false); }}
-                >
-                  {emoji}
-                </button>
-              );
-            })}
+          <div className="flex flex-col gap-1">
+            {/* Quick reactions row */}
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-card shadow-lg p-1.5">
+              {QUICK_REACTIONS.map((emoji) => {
+                const mine = !!message.reactions?.find((r) => r.emoji === emoji)?.reacted_by_me;
+                return (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className={cn(
+                      "h-8 w-8 rounded-lg flex items-center justify-center text-[18px] hover:bg-muted transition-colors",
+                      mine && "bg-primary/10"
+                    )}
+                    onClick={() => { onToggleReaction?.(emoji, mine); setPickerOpen(false); }}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+              <div className="mx-1 h-5 w-px bg-border" />
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
+                    title="More reactions"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end" side="bottom">
+                  <EmojiPicker
+                    onSelect={(emoji) => {
+                      const mine = !!message.reactions?.find((r) => r.emoji === emoji)?.reacted_by_me;
+                      onToggleReaction?.(emoji, mine);
+                      setPickerOpen(false);
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
       )}

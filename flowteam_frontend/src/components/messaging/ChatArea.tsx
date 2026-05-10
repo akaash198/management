@@ -8,7 +8,9 @@ import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
-import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic } from "lucide-react";
+import { EmojiPicker } from "./EmojiPicker";
+import { FormatToolbar } from "./FormatToolbar";
 import { CallComponent } from "./CallComponent";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -155,9 +157,7 @@ export function ChatArea({
   const [dragActive, setDragActive] = useState(false);
   const [channelSummary, setChannelSummary] = useState("");
   const [summarizingChannel, setSummarizingChannel] = useState(false);
-
-  // Emoji picker (simple but extensible)
-  const EMOJIS = ["😀", "😁", "😂", "😊", "😍", "😮", "😢", "😡", "👍", "👎", "🙏", "🎉", "✅", "🔥", "💡", "❤️"];
+  const [showFormatToolbar, setShowFormatToolbar] = useState(false);
 
   const draftKey = `draft:channel:${channel.id}`;
   useEffect(() => {
@@ -1881,15 +1881,22 @@ export function ChatArea({
 
       {lastServerMessage && lastServerMessage.sender.id === user?.id && seenByUsers.length > 0 && (
         <div className="pb-2">
-          <div className="max-w-5xl mx-auto px-6 xl:pr-[320px] text-[11px] text-muted-foreground">
-            {channel.is_private ? "Seen by " : `Read by ${seenByUsers.length}: `}
-            {channel.is_private
-              ? `${seenByUsers[0]?.full_name ?? "Someone"}`
-              : seenByUsers
-                  .slice(0, 3)
-                  .map((u) => u.full_name)
-                  .join(", ")}
-            {!channel.is_private && seenByUsers.length > 3 ? ` +${seenByUsers.length - 3}` : ""}
+          <div className="max-w-5xl mx-auto px-6 xl:pr-[320px] flex items-center gap-1.5">
+            <div className="flex -space-x-1.5">
+              {seenByUsers.slice(0, 5).map((u) => (
+                <Avatar key={u.id} className="h-4 w-4 border border-card" title={u.full_name}>
+                  <AvatarImage src={u.avatar ?? ""} />
+                  <AvatarFallback className="text-[8px] font-bold bg-muted text-muted-foreground">
+                    {u.full_name?.[0]?.toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+            </div>
+            <span className="text-[11px] text-muted-foreground">
+              {seenByUsers.length === 1
+                ? `Seen by ${seenByUsers[0]?.full_name}`
+                : `Seen by ${seenByUsers.length}`}
+            </span>
           </div>
         </div>
       )}
@@ -1998,6 +2005,14 @@ export function ChatArea({
                 placeholder={`Message ${channel.is_private ? "" : "#"}${channel.display_name || channel.name}`}
                 onSubmit={() => handleSend(threadOpen && threadRoot ? threadRoot.id : undefined)}
              />
+             {showFormatToolbar && (
+               <FormatToolbar
+                 value={text}
+                 onChange={setText}
+                 textareaRef={composerRef}
+                 className="border-t border-border/60"
+               />
+             )}
              <div className="mt-1 flex items-center justify-between border-t border-border/60 px-2 pb-1.5 pt-2">
                <div className="flex items-center gap-1">
                  <input
@@ -2013,7 +2028,7 @@ export function ChatArea({
                  />
                  <button
                    type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                   className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                    onClick={() => fileInputRef.current?.click()}
                    aria-label="Attach files"
                    title="Attach files"
@@ -2024,31 +2039,32 @@ export function ChatArea({
                    <PopoverTrigger asChild>
                      <button
                        type="button"
-                        className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                       className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                        aria-label="Emoji"
                        title="Emoji"
                      >
                        <Smile size={15} />
                      </button>
                    </PopoverTrigger>
-                   <PopoverContent className="w-64 p-3" align="start">
-                     <div className="grid grid-cols-8 gap-1">
-                       {EMOJIS.map((e) => (
-                         <button
-                           key={e}
-                           type="button"
-                           className="h-8 w-8 rounded-md hover:bg-muted flex items-center justify-center text-lg"
-                           onClick={() => insertIntoComposer(e)}
-                         >
-                           {e}
-                         </button>
-                       ))}
-                     </div>
-                 </PopoverContent>
+                   <PopoverContent className="w-auto p-0" align="start" side="top">
+                     <EmojiPicker onSelect={(emoji) => insertIntoComposer(emoji)} />
+                   </PopoverContent>
                  </Popover>
                  <button
                    type="button"
-                    className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                   className={cn(
+                     "flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                     showFormatToolbar && "bg-muted text-foreground"
+                   )}
+                   aria-label="Formatting"
+                   title="Text formatting"
+                   onClick={() => setShowFormatToolbar((v) => !v)}
+                 >
+                   <Bold size={15} />
+                 </button>
+                 <button
+                   type="button"
+                   className="flex h-8 w-8 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                    aria-label="Schedule message"
                    title="Schedule message"
                    onClick={() => {
@@ -2128,21 +2144,33 @@ export function ChatArea({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            <Button variant="outline" size="sm" className="h-9 rounded-xl text-[11px]" onClick={() => (isDirectConversation ? setMembersOpen(true) : setInfoOpen(true))}>
+          <div className="mt-4 flex rounded-lg border border-border overflow-hidden">
+            <button
+              type="button"
+              className="flex-1 py-2 text-[12px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors border-r border-border"
+              onClick={() => (isDirectConversation ? setMembersOpen(true) : setInfoOpen(true))}
+            >
               {isDirectConversation ? "Profile" : "Details"}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl text-[11px]"
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "flex-1 py-2 text-[12px] font-medium transition-colors border-r border-border",
+                channel.is_muted
+                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 hover:bg-amber-100"
+                  : "text-muted-foreground hover:bg-muted/50"
+              )}
               onClick={() => (channel.is_muted ? void unmuteChannel() : void muteChannel({ minutes: 60 }))}
             >
               {channel.is_muted ? "Unmute" : "Mute"}
-            </Button>
-            <Button variant="outline" size="sm" className="h-9 rounded-xl text-[11px]" onClick={() => (isDirectConversation ? setInfoOpen(true) : setMembersOpen(true))}>
+            </button>
+            <button
+              type="button"
+              className="flex-1 py-2 text-[12px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
+              onClick={() => (isDirectConversation ? setInfoOpen(true) : setMembersOpen(true))}
+            >
               {isDirectConversation ? "More" : "Members"}
-            </Button>
+            </button>
           </div>
         </div>
 

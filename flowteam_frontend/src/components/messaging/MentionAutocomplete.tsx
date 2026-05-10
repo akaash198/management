@@ -21,7 +21,13 @@ interface MentionAutocompleteProps {
 
 type MentionSuggestion =
   | { kind: "user"; member: TeamMember }
+  | { kind: "special"; handle: string; description: string }
   | { kind: "emoji"; shortcode: string; emoji: string };
+
+const SPECIAL_MENTIONS = [
+  { handle: "channel", description: "Notify everyone in this channel" },
+  { handle: "here", description: "Notify online members" },
+];
 
 const EMOJI_SHORTCODES: Array<{ shortcode: string; emoji: string }> = [
   { shortcode: "smile", emoji: "😄" },
@@ -80,6 +86,11 @@ export function MentionAutocomplete({
 
       const members = await loadTeamMembers();
       const q = search.trim().toLowerCase();
+
+      const specials: MentionSuggestion[] = SPECIAL_MENTIONS
+        .filter((s) => !q || s.handle.startsWith(q))
+        .map((s) => ({ kind: "special", handle: s.handle, description: s.description }));
+
       const filtered = q
         ? members.filter((m) => {
             const name = (m.user.full_name ?? "").toLowerCase();
@@ -88,7 +99,8 @@ export function MentionAutocomplete({
           })
         : members;
 
-      const top = filtered.slice(0, 6).map((member) => ({ kind: "user", member } as MentionSuggestion));
+      const userSuggestions = filtered.slice(0, 6).map((member) => ({ kind: "user", member } as MentionSuggestion));
+      const top = [...specials, ...userSuggestions].slice(0, 8);
       setSuggestions(top);
       setSelectedIndex(0);
       setShowSuggestions(top.length > 0);
@@ -106,6 +118,19 @@ export function MentionAutocomplete({
     setSelectedIndex(0);
     setShowSuggestions(top.length > 0);
   }, []);
+
+  const insertSpecialMention = (handle: string) => {
+    const textBefore = value.substring(0, cursorPos - query.length - 1);
+    const textAfter = value.substring(cursorPos);
+    const newValue = `${textBefore}@${handle} ${textAfter}`;
+    onChange(newValue);
+    setShowSuggestions(false);
+    setTimeout(() => {
+      effectiveRef.current?.focus();
+      const newPos = textBefore.length + handle.length + 2;
+      effectiveRef.current?.setSelectionRange(newPos, newPos);
+    }, 0);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // Avoid interfering with IME composition (e.g. Japanese/Chinese input)
@@ -125,11 +150,44 @@ export function MentionAutocomplete({
         const selected = suggestions[selectedIndex];
         if (!selected) return;
         if (selected.kind === "user") insertMention(selected.member);
+        else if (selected.kind === "special") insertSpecialMention(selected.handle);
         else insertEmoji(selected);
       } else if (e.key === "Escape") {
         setShowSuggestions(false);
       }
       return;
+    }
+
+    // Formatting keyboard shortcuts
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
+      const el = effectiveRef.current;
+      if (!el) return;
+      const start = el.selectionStart ?? 0;
+      const end = el.selectionEnd ?? 0;
+      const selected = value.slice(start, end);
+      const before = value.slice(0, start);
+      const after = value.slice(end);
+
+      if (e.key === "b") {
+        e.preventDefault();
+        const next = `${before}**${selected}**${after}`;
+        onChange(next);
+        requestAnimationFrame(() => {
+          el.focus();
+          el.setSelectionRange(start + 2, end + 2);
+        });
+        return;
+      }
+      if (e.key === "i") {
+        e.preventDefault();
+        const next = `${before}_${selected}_${after}`;
+        onChange(next);
+        requestAnimationFrame(() => {
+          el.focus();
+          el.setSelectionRange(start + 1, end + 1);
+        });
+        return;
+      }
     }
 
     // When suggestions are not open: Enter sends, Shift+Enter inserts newline.
@@ -215,9 +273,13 @@ export function MentionAutocomplete({
           </div>
           <div className="max-h-48 overflow-y-auto">
             {suggestions.map((m, i) => (
-              <div 
-                key={m.kind === "user" ? m.member.user.id : `emoji:${m.shortcode}`}
-                onClick={() => (m.kind === "user" ? insertMention(m.member) : insertEmoji(m))}
+              <div
+                key={m.kind === "user" ? m.member.user.id : m.kind === "special" ? `special:${m.handle}` : `emoji:${m.shortcode}`}
+                onClick={() => {
+                  if (m.kind === "user") insertMention(m.member);
+                  else if (m.kind === "special") insertSpecialMention(m.handle);
+                  else insertEmoji(m);
+                }}
                 className={cn(
                   "flex items-center gap-3 p-2 cursor-pointer transition-colors",
                   i === selectedIndex ? "bg-primary text-primary-foreground" : "hover:bg-muted/40"
@@ -240,6 +302,23 @@ export function MentionAutocomplete({
                         )}
                       >
                         {m.member.user.email}
+                      </span>
+                    </div>
+                  </>
+                ) : m.kind === "special" ? (
+                  <>
+                    <div className="h-6 w-6 rounded bg-background/70 flex items-center justify-center text-sm font-bold text-primary">
+                      @
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-semibold truncate">@{m.handle}</span>
+                      <span
+                        className={cn(
+                          "text-[10px] truncate",
+                          i === selectedIndex ? "text-primary-foreground/80" : "text-muted-foreground"
+                        )}
+                      >
+                        {m.description}
                       </span>
                     </div>
                   </>
