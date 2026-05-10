@@ -405,11 +405,13 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
 
 // ─── Company Card ─────────────────────────────────────────────────────────────
 
-const STATUS_ACCENT: Record<AdminCompany["onboarding_status"], string> = {
-  active: "border-l-4 border-l-green-500",
-  in_progress: "border-l-4 border-l-blue-500",
-  pending: "border-l-4 border-l-amber-400",
-  suspended: "border-l-4 border-l-red-500",
+const STATUS_CONFIG: Record<AdminCompany["onboarding_status"], {
+  border: string; icon: string; iconBg: string; dot: string;
+}> = {
+  active:      { border: "border-t-2 border-t-emerald-500", icon: "text-emerald-600", iconBg: "bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900", dot: "bg-emerald-500" },
+  in_progress: { border: "border-t-2 border-t-violet-500",  icon: "text-violet-600",  iconBg: "bg-violet-50 dark:bg-violet-950/40 border border-violet-100 dark:border-violet-900",   dot: "bg-violet-500" },
+  pending:     { border: "border-t-2 border-t-slate-400",   icon: "text-slate-500",   iconBg: "bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700",         dot: "bg-slate-400" },
+  suspended:   { border: "border-t-2 border-t-rose-500",    icon: "text-rose-600",    iconBg: "bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900",             dot: "bg-rose-500" },
 };
 
 function CompanyCard({
@@ -421,36 +423,28 @@ function CompanyCard({
   onDelete: () => void;
   onStatusChange: (s: AdminCompany["onboarding_status"]) => void;
 }) {
+  const cfg = STATUS_CONFIG[company.onboarding_status] ?? STATUS_CONFIG.pending;
   return (
-    <div className={`flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-md transition-all ${STATUS_ACCENT[company.onboarding_status]}`}>
-      <div className="p-5 space-y-3">
+    <div className={`flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all ${cfg.border}`}>
+      <div className="p-5 space-y-4">
+        {/* Header row */}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-              company.onboarding_status === "active"
-                ? "bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"
-                : company.onboarding_status === "in_progress"
-                ? "bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"
-                : "bg-primary/10 border border-primary/20"
-            }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${cfg.iconBg}`}>
               {company.logo_url ? (
                 <img src={company.logo_url} alt={company.name} className="w-8 h-8 rounded-lg object-cover" />
               ) : (
-                <Building2 size={18} className={
-                  company.onboarding_status === "active" ? "text-green-600 dark:text-green-400"
-                  : company.onboarding_status === "in_progress" ? "text-blue-600 dark:text-blue-400"
-                  : "text-primary"
-                } />
+                <Building2 size={18} className={cfg.icon} />
               )}
             </div>
             <div className="min-w-0">
-              <p className="font-semibold truncate">{company.name}</p>
-              <p className="text-xs text-muted-foreground">/{company.slug}</p>
+              <p className="font-semibold text-foreground truncate">{company.name}</p>
+              <p className="text-[11px] text-muted-foreground/70 font-mono">/{company.slug}</p>
             </div>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground">
                 <MoreHorizontal size={14} />
               </Button>
             </DropdownMenuTrigger>
@@ -463,12 +457,12 @@ function CompanyCard({
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {company.onboarding_status !== "active" && (
-                <DropdownMenuItem onClick={() => onStatusChange("active")} className="gap-2 text-green-600 focus:text-green-600">
+                <DropdownMenuItem onClick={() => onStatusChange("active")} className="gap-2 text-emerald-600 focus:text-emerald-600">
                   <CheckCircle2 size={14} /> Mark Active
                 </DropdownMenuItem>
               )}
               {company.onboarding_status !== "suspended" && (
-                <DropdownMenuItem onClick={() => onStatusChange("suspended")} className="gap-2 text-amber-600 focus:text-amber-600">
+                <DropdownMenuItem onClick={() => onStatusChange("suspended")} className="gap-2 text-rose-600 focus:text-rose-600">
                   <Pause size={14} /> Suspend
                 </DropdownMenuItem>
               )}
@@ -480,29 +474,27 @@ function CompanyCard({
           </DropdownMenu>
         </div>
 
-        {/* Status + completion */}
+        {/* Status badge + domain */}
         <div className="flex items-center gap-2 flex-wrap">
           <OnboardingStatusBadge status={company.onboarding_status} />
           {company.email_domain && (
-            <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-              <Globe size={10} />
+            <div className="flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 rounded-full px-2 py-0.5">
+              <Globe size={9} />
               {company.email_domain}
-              {company.email_domain_verified && <Shield size={9} className="text-green-500" />}
+              {company.email_domain_verified && <Shield size={9} className="text-emerald-500" />}
             </div>
           )}
         </div>
 
-        {/* CEO */}
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
-          company.ceo
-            ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
-            : "bg-muted/60 border border-border"
-        }`}>
-          <Crown size={12} className={company.ceo ? "text-amber-500 shrink-0" : "text-muted-foreground/50 shrink-0"} />
+        {/* CEO row — neutral, no amber tint */}
+        <div className="flex items-center gap-2.5 rounded-xl bg-muted/40 border border-border px-3 py-2.5">
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${company.ceo ? "bg-violet-100 dark:bg-violet-900/40" : "bg-muted"}`}>
+            <Crown size={11} className={company.ceo ? "text-violet-600 dark:text-violet-400" : "text-muted-foreground/40"} />
+          </div>
           {company.ceo ? (
             <div className="min-w-0">
-              <p className="text-xs font-medium truncate text-amber-900 dark:text-amber-200">{company.ceo.full_name || company.ceo.email}</p>
-              {company.ceo.full_name && <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70 truncate">{company.ceo.email}</p>}
+              <p className="text-xs font-semibold text-foreground truncate">{company.ceo.full_name || company.ceo.email}</p>
+              {company.ceo.full_name && <p className="text-[10px] text-muted-foreground truncate">{company.ceo.email}</p>}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground italic">No CEO assigned</p>
@@ -511,13 +503,13 @@ function CompanyCard({
 
         {/* Stats */}
         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Layers size={11} />{company.team_count} teams</span>
+          <span className="flex items-center gap-1.5"><Layers size={11} className="text-muted-foreground/60" />{company.team_count} teams</span>
           <span className="w-px h-3 bg-border" />
-          <span className="flex items-center gap-1"><Users size={11} />{company.member_count} members</span>
+          <span className="flex items-center gap-1.5"><Users size={11} className="text-muted-foreground/60" />{company.member_count} members</span>
           {company.pending_invites_count > 0 && (
             <>
               <span className="w-px h-3 bg-border" />
-              <span className="flex items-center gap-1 text-amber-600"><Clock size={11} />{company.pending_invites_count} pending</span>
+              <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400"><Clock size={11} />{company.pending_invites_count} pending</span>
             </>
           )}
         </div>
@@ -526,7 +518,7 @@ function CompanyCard({
       {/* Drilldown CTA */}
       <button
         onClick={onDrilldown}
-        className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-muted/20 hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground group"
+        className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-muted/10 hover:bg-muted/40 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground group"
       >
         <span className="flex items-center gap-1.5">
           <Layers size={11} />
@@ -585,14 +577,19 @@ function CompanyDetailView({
           <OnboardingStatusBadge status={company.onboarding_status} />
 
           {/* CEO */}
-          <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 px-3 py-2.5 space-y-0.5">
-            <p className="text-[10px] uppercase font-bold text-amber-600 tracking-wider flex items-center gap-1">
-              <Crown size={10} /> CEO
+          <div className="rounded-xl bg-muted/40 border border-border px-3 py-2.5 space-y-1.5">
+            <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1.5">
+              <Crown size={10} className="text-violet-500" /> CEO
             </p>
             {company.ceo ? (
-              <div>
-                <p className="text-sm font-medium">{company.ceo.full_name || "—"}</p>
-                <p className="text-xs text-muted-foreground">{company.ceo.email}</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 rounded-full bg-violet-100 dark:bg-violet-900/40 flex items-center justify-center shrink-0 text-xs font-bold text-violet-700 dark:text-violet-300">
+                  {(company.ceo.full_name || company.ceo.email).charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{company.ceo.full_name || "—"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{company.ceo.email}</p>
+                </div>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground italic">Not assigned</p>
@@ -634,14 +631,14 @@ function CompanyDetailView({
           )}
 
           {/* Status actions */}
-          <div className="pt-2 space-y-2">
+          <div className="pt-1 space-y-2">
             {company.onboarding_status !== "active" && (
-              <Button size="sm" variant="outline" className="w-full gap-2 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-400 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950/30" onClick={() => onStatusChange("active")}>
+              <Button size="sm" variant="outline" className="w-full gap-2 text-emerald-700 border-emerald-200 hover:bg-emerald-50 hover:border-emerald-400 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/30" onClick={() => onStatusChange("active")}>
                 <CheckCircle2 size={13} /> Mark Active
               </Button>
             )}
             {company.onboarding_status !== "suspended" && (
-              <Button size="sm" variant="outline" className="w-full gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-400 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/20" onClick={() => onStatusChange("suspended")}>
+              <Button size="sm" variant="outline" className="w-full gap-2 text-rose-600 border-rose-200 hover:bg-rose-50 hover:border-rose-400 dark:text-rose-400 dark:border-rose-800 dark:hover:bg-rose-950/20" onClick={() => onStatusChange("suspended")}>
                 <Pause size={13} /> Suspend
               </Button>
             )}
@@ -904,20 +901,20 @@ function StatusChip({
   onClick?: () => void;
   color: "default" | "success" | "info" | "muted";
 }) {
-  const baseClass = "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all border cursor-pointer";
+  const baseClass = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all border cursor-pointer select-none";
   const colorMap = {
     default: active
-      ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
-      : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground",
+      ? "bg-foreground text-background border-foreground shadow-sm"
+      : "bg-background text-muted-foreground border-border hover:border-foreground/30 hover:text-foreground",
     success: active
-      ? "bg-green-600 text-white border-green-600 shadow-sm shadow-green-200 dark:shadow-green-900/40"
-      : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50",
+      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+      : "bg-background text-muted-foreground border-border hover:border-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400",
     info: active
-      ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200 dark:shadow-blue-900/40"
-      : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/50",
+      ? "bg-violet-600 text-white border-violet-600 shadow-sm"
+      : "bg-background text-muted-foreground border-border hover:border-violet-400 hover:text-violet-700 dark:hover:text-violet-400",
     muted: active
-      ? "bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-200 dark:shadow-amber-900/40"
-      : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/50",
+      ? "bg-slate-600 text-white border-slate-600 shadow-sm"
+      : "bg-background text-muted-foreground border-border hover:border-slate-400 hover:text-slate-700 dark:hover:text-slate-400",
   };
   return (
     <button
@@ -925,7 +922,7 @@ function StatusChip({
       className={`${baseClass} ${colorMap[color]}`}
     >
       {label}
-      <span className="rounded-full bg-black/10 dark:bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums">{count}</span>
+      <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums ${active ? "bg-white/20" : "bg-muted"}`}>{count}</span>
     </button>
   );
 }
