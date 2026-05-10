@@ -15,10 +15,15 @@ import {
   Calendar,
   Video,
   BarChart3,
+  Building2,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TeamSwitcher } from "@/components/teams/TeamSwitcher";
 import { useAuthStore } from "@/store/auth";
+import { useQuery } from "@tanstack/react-query";
+import api from "@/lib/api";
+import type { ApiResponse, Company } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +55,22 @@ export function Sidebar() {
   const { user, logout } = useAuthStore();
   const myPresence  = usePresenceStore((s) => s.status);
   const initials    = (user?.full_name?.charAt(0) ?? "?").toUpperCase();
+
+  // Detect if user is a company CEO/admin to show Company Admin nav item.
+  const { data: myCompanies } = useQuery<Company[]>({
+    queryKey: ["my-companies-sidebar"],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<Company[]>>("/companies/");
+      return res.data.data ?? [];
+    },
+    enabled: !!user && !user.is_superuser,
+    staleTime: 60_000,
+  });
+
+  const isCompanyAdmin = !!(user?.is_superuser) ||
+    (myCompanies ?? []).some(c =>
+      c.your_role === "ceo" || c.your_role === "admin"
+    );
 
   const NavLink = ({
     item,
@@ -141,6 +162,24 @@ export function Sidebar() {
         {NAV_MAIN.map((item) => (
           <NavLink key={item.href} item={item} />
         ))}
+
+        {/* ── Admin section ── */}
+        {(isCompanyAdmin || user?.is_superuser) && (
+          <>
+            {!collapsed && (
+              <p className="px-2 mt-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[hsl(220_12%_62%)]">
+                Admin
+              </p>
+            )}
+            {collapsed && <div className="my-1.5 border-t border-[hsl(220_18%_20%)]" />}
+            {isCompanyAdmin && !user?.is_superuser && (
+              <NavLink item={{ name: "Company", href: "/company-admin/dashboard", icon: Building2 }} />
+            )}
+            {user?.is_superuser && (
+              <NavLink item={{ name: "Super Admin", href: "/super-admin/dashboard", icon: ShieldCheck }} />
+            )}
+          </>
+        )}
       </nav>
 
       {/* ── Bottom nav ── */}

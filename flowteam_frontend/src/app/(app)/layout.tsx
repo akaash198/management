@@ -38,6 +38,7 @@ const PAGE_LABELS: Record<string, string> = {
   reports:     "Reports",
   audit:       "Audit Log",
   "super-admin": "Admin",
+  "company-admin": "Company Admin",
 };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

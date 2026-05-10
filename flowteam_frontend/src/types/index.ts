@@ -50,6 +50,65 @@ export interface TeamCapabilities {
   assignable_invite_roles: Array<"ceo" | "admin" | "manager" | "member" | "viewer">;
 }
 
+export type CompanyRole = "ceo" | "admin" | "manager" | "member" | "viewer";
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  website: string;
+  industry: string;
+  size: string;
+  country: string;
+  logo_url: string | null;
+  email_domain: string;
+  email_domain_verified: boolean;
+  onboarding_status: "pending" | "in_progress" | "active" | "suspended";
+  onboarding_completed_at: string | null;
+  team_count: number;
+  member_count: number;
+  created_at: string;
+  updated_at: string;
+  ceo: { id: string; email: string; full_name: string } | null;
+  your_role?: CompanyRole | "superuser" | null;
+}
+
+export interface CompanyDetail extends Company {
+  teams: Team[];
+  settings_json: Record<string, unknown>;
+  pending_invites_count: number;
+}
+
+export interface CompanyMember {
+  id: string;
+  user: { id: string; email: string; full_name: string };
+  role: CompanyRole;
+  joined_at: string;
+}
+
+export interface CompanyInvite {
+  id: string;
+  email: string;
+  role: CompanyRole;
+  status: "pending" | "accepted" | "expired";
+  invited_by: { id: string; email: string; full_name: string } | null;
+  invite_link: string;
+  created_at: string;
+  expires_at: string | null;
+  accepted_at: string | null;
+}
+
+export interface CompanyCapabilities {
+  role: CompanyRole | "superuser" | null;
+  can_manage_company: boolean;
+  can_invite_members: boolean;
+  can_change_roles: boolean;
+  can_remove_members: boolean;
+  can_create_teams: boolean;
+  can_view_members: boolean;
+  assignable_invite_roles: CompanyRole[];
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

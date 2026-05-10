@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Company, CompanyMember, CompanyOnboardingInvite
+from .models import Company, CompanyMember, CompanyInvite, CompanyOnboardingInvite
 
 User = get_user_model()
 
@@ -45,13 +45,14 @@ class CompanySerializer(serializers.ModelSerializer):
 
 
 class CompanyDetailSerializer(CompanySerializer):
-    """Used for retrieve — includes teams list and settings."""
+    """Used for retrieve — includes teams list, members, and settings."""
     teams = serializers.SerializerMethodField()
     settings_json = serializers.JSONField(read_only=True)
     pending_invites_count = serializers.SerializerMethodField()
+    your_role = serializers.SerializerMethodField()
 
     class Meta(CompanySerializer.Meta):
-        fields = CompanySerializer.Meta.fields + ("teams", "settings_json", "pending_invites_count")
+        fields = CompanySerializer.Meta.fields + ("teams", "settings_json", "pending_invites_count", "your_role")
 
     def get_teams(self, obj):
         from apps.teams.serializers import TeamSerializer
@@ -59,7 +60,16 @@ class CompanyDetailSerializer(CompanySerializer):
         return TeamSerializer(obj.teams.all(), many=True, context={"request": request}).data
 
     def get_pending_invites_count(self, obj):
-        return obj.onboarding_invites.filter(status="pending").count()
+        return obj.invites.filter(status="pending").count()
+
+    def get_your_role(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        if request.user.is_superuser:
+            return "superuser"
+        from .rbac import get_user_company_role
+        return get_user_company_role(company_id=str(obj.id), user=request.user)
 
 
 class CompanyMemberSerializer(serializers.ModelSerializer):
@@ -67,7 +77,31 @@ class CompanyMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CompanyMember
-        fields = ("id", "user", "joined_at")
+        fields = ("id", "user", "role", "joined_at")
+        read_only_fields = ("id", "joined_at")
+
+
+class CompanyInviteSerializer(serializers.ModelSerializer):
+    invited_by = CompanyCEOSerializer(read_only=True)
+    invite_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CompanyInvite
+        fields = ("id", "email", "role", "status", "invited_by", "invite_link", "created_at", "expires_at", "accepted_at")
+        read_only_fields = ("id", "status", "invited_by", "invite_link", "created_at", "expires_at", "accepted_at")
+
+    def get_invite_link(self, obj):
+        from django.conf import settings as django_settings
+        base = (getattr(django_settings, "FRONTEND_BASE_URL", "") or "http://localhost:3000").rstrip("/")
+        return f"{base}/company-invite/{obj.token}"
+
+
+class CompanyInviteCreateSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    role = serializers.ChoiceField(
+        choices=[c[0] for c in CompanyMember.ROLE_CHOICES],
+        default=CompanyMember.MEMBER,
+    )
 
 
 class CompanyOnboardingInviteSerializer(serializers.ModelSerializer):
@@ -129,3 +163,14 @@ class CompanySettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Company
         fields = ("settings_json",)
+
+
+class CompanyCapabilitiesSerializer(serializers.Serializer):
+    role = serializers.CharField(allow_null=True)
+    can_manage_company = serializers.BooleanField()
+    can_invite_members = serializers.BooleanField()
+    can_change_roles = serializers.BooleanField()
+    can_remove_members = serializers.BooleanField()
+    can_create_teams = serializers.BooleanField()
+    can_view_members = serializers.BooleanField()
+    assignable_invite_roles = serializers.ListField(child=serializers.CharField())

@@ -1,4 +1,5 @@
 import uuid
+import secrets
 from django.db import models
 from django.conf import settings
 from slugify import slugify
@@ -103,7 +104,22 @@ class Company(models.Model):
 
 
 class CompanyMember(models.Model):
-    """Tracks which users belong to which companies (many-to-many)."""
+    """Tracks which users belong to which companies with a company-level role."""
+
+    CEO = "ceo"
+    ADMIN = "admin"
+    MANAGER = "manager"
+    MEMBER = "member"
+    VIEWER = "viewer"
+
+    ROLE_CHOICES = [
+        (CEO, "CEO"),
+        (ADMIN, "Admin"),
+        (MANAGER, "Manager"),
+        (MEMBER, "Member"),
+        (VIEWER, "Viewer"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="members")
     user = models.ForeignKey(
@@ -111,13 +127,65 @@ class CompanyMember(models.Model):
         on_delete=models.CASCADE,
         related_name="company_memberships",
     )
+    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=MEMBER)
     joined_at = models.DateTimeField(auto_now_add=True)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="company_invites_sent",
+    )
 
     class Meta:
         unique_together = ("company", "user")
 
     def __str__(self):
-        return f"{self.user.email} @ {self.company.name}"
+        return f"{self.user.email} @ {self.company.name} ({self.role})"
+
+
+class CompanyInvite(models.Model):
+    """
+    Post-onboarding invite: CEO/Admin/Manager sends an email invite to join
+    the company. Recipient clicks the link → registers (if needed) → auto-joined.
+    """
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+        ("expired", "Expired"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="invites")
+    email = models.EmailField()
+    role = models.CharField(max_length=20, choices=CompanyMember.ROLE_CHOICES, default=CompanyMember.MEMBER)
+    invited_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="sent_company_invites",
+    )
+    token = models.CharField(max_length=64, unique=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ("company", "email")
+        ordering = ["-created_at"]
+
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        if not self.expires_at:
+            from django.utils import timezone as tz
+            import datetime
+            self.expires_at = tz.now() + datetime.timedelta(days=7)
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"CompanyInvite: {self.email} → {self.company.name} ({self.role})"
 
 
 class CompanyOnboardingInvite(models.Model):
