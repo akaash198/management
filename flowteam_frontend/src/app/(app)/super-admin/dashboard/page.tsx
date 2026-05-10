@@ -77,6 +77,15 @@ type AdminProjectDetail = {
   team_name?: string | null;
 };
 
+type CompanyRole = "owner" | "manager" | "member" | "guest";
+
+const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
+  owner: "Owner",
+  manager: "Manager",
+  member: "Member",
+  guest: "Guest / Contractor",
+};
+
 type AdminUser = {
   id: string;
   email: string;
@@ -85,6 +94,7 @@ type AdminUser = {
   is_active: boolean;
   is_staff: boolean;
   is_superuser: boolean;
+  company_role: CompanyRole;
   date_joined: string;
 };
 
@@ -96,6 +106,7 @@ type AdminUserUpsertPayload = {
   is_active: boolean;
   is_staff: boolean;
   is_superuser: boolean;
+  company_role: CompanyRole;
 };
 
 export default function SuperAdminDashboardPage() {
@@ -118,6 +129,7 @@ export default function SuperAdminDashboardPage() {
   const [formIsActive, setFormIsActive] = useState(true);
   const [formIsStaff, setFormIsStaff] = useState(false);
   const [formIsSuperuser, setFormIsSuperuser] = useState(false);
+  const [formCompanyRole, setFormCompanyRole] = useState<CompanyRole>("member");
 
   const resetForm = () => {
     setFormEmail("");
@@ -127,6 +139,7 @@ export default function SuperAdminDashboardPage() {
     setFormIsActive(true);
     setFormIsStaff(false);
     setFormIsSuperuser(false);
+    setFormCompanyRole("member");
   };
 
   useEffect(() => {
@@ -218,6 +231,7 @@ export default function SuperAdminDashboardPage() {
         is_active: formIsActive,
         is_staff: formIsStaff,
         is_superuser: formIsSuperuser,
+        company_role: formCompanyRole,
       };
       if (formPassword) payload.password = formPassword;
 
@@ -282,6 +296,7 @@ export default function SuperAdminDashboardPage() {
     setFormIsActive(!!u.is_active);
     setFormIsStaff(!!u.is_staff);
     setFormIsSuperuser(!!u.is_superuser);
+    setFormCompanyRole((u.company_role as CompanyRole) ?? "member");
     setDialogOpen(true);
   };
 
@@ -755,7 +770,8 @@ export default function SuperAdminDashboardPage() {
                   </th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">System Role</th>
+                  <th className="px-4 py-3">Company Role</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -763,14 +779,14 @@ export default function SuperAdminDashboardPage() {
               <tbody className="divide-y divide-border">
                 {isUsersLoading && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
                       Loading users...
                     </td>
                   </tr>
                 )}
                 {!isUsersLoading && (users?.length ?? 0) === 0 && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
                       No users found.
                     </td>
                   </tr>
@@ -794,10 +810,13 @@ export default function SuperAdminDashboardPage() {
                       ) : u.is_staff ? (
                         <Badge variant="outline">Staff</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-muted-foreground">
-                          User
-                        </Badge>
+                        <Badge variant="outline" className="text-muted-foreground">User</Badge>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant="outline" className="text-muted-foreground capitalize">
+                        {COMPANY_ROLE_LABELS[u.company_role as CompanyRole] ?? u.company_role ?? "Member"}
+                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {u.is_active ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}
@@ -918,6 +937,19 @@ export default function SuperAdminDashboardPage() {
                 <option value="user">User</option>
                 <option value="staff">Admin (Staff)</option>
                 <option value="superuser">Super Admin</option>
+              </select>
+
+              <Label htmlFor="company_role">Company Role</Label>
+              <select
+                id="company_role"
+                value={formCompanyRole}
+                onChange={(e) => setFormCompanyRole(e.target.value as CompanyRole)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="owner">Owner</option>
+                <option value="manager">Manager</option>
+                <option value="member">Member</option>
+                <option value="guest">Guest / Contractor</option>
               </select>
             </div>
 

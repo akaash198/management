@@ -5,6 +5,17 @@ from django.utils import timezone
 from .managers import CustomUserManager
 
 class User(AbstractBaseUser, PermissionsMixin):
+    OWNER = "owner"
+    MANAGER = "manager"
+    MEMBER = "member"
+    GUEST = "guest"
+    COMPANY_ROLE_CHOICES = [
+        (OWNER, "Owner"),
+        (MANAGER, "Manager"),
+        (MEMBER, "Member"),
+        (GUEST, "Guest / Contractor"),
+    ]
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     full_name = models.CharField(max_length=255)
@@ -17,7 +28,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     two_factor_enabled = models.BooleanField(default=False)
     totp_secret = models.CharField(max_length=64, null=True, blank=True)
     two_factor_backup_codes = models.JSONField(default=list, blank=True)
-    
+
+    company_role = models.CharField(max_length=20, choices=COMPANY_ROLE_CHOICES, default=MEMBER)
+
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)

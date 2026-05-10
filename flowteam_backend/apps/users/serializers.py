@@ -22,6 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
             "two_factor_enabled",
             "is_staff",
             "is_superuser",
+            "company_role",
         )
         read_only_fields = ("id", "email")
         extra_kwargs = {"avatar": {"write_only": True}}
@@ -51,6 +52,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "is_active",
             "is_staff",
             "is_superuser",
+            "company_role",
             "date_joined",
         )
         read_only_fields = ("id", "date_joined")
@@ -62,7 +64,7 @@ class AdminUserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("email", "full_name", "timezone", "password", "is_active", "is_staff", "is_superuser")
+        fields = ("email", "full_name", "timezone", "password", "is_active", "is_staff", "is_superuser", "company_role")
 
     def create(self, validated_data):
         password = validated_data.pop("password")
@@ -76,7 +78,7 @@ class AdminUserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("full_name", "timezone", "password", "is_active", "is_staff", "is_superuser")
+        fields = ("full_name", "timezone", "password", "is_active", "is_staff", "is_superuser", "company_role")
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
