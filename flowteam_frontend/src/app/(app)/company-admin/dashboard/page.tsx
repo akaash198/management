@@ -111,7 +111,7 @@ export default function CompanyAdminDashboard() {
       const res = await api.get<ApiResponse<CompanyInvite[]>>(`/companies/${companyId}/invites/`);
       return res.data.data ?? [];
     },
-    enabled: !!companyId && caps?.can_manage_company === true,
+    enabled: !!companyId && caps?.can_invite_members === true,
   });
 
   // ── Teams ──
@@ -135,6 +135,11 @@ export default function CompanyAdminDashboard() {
 
   // ── Remove member dialog ──
   const [removeDialogMember, setRemoveDialogMember] = useState<CompanyMember | null>(null);
+
+  // ── Team invite dialog state ──
+  const [teamInviteTarget, setTeamInviteTarget] = useState<Team | null>(null);
+  const [teamInviteEmail, setTeamInviteEmail] = useState("");
+  const [teamInviteRole, setTeamInviteRole] = useState<"member" | "viewer">("member");
 
   // ── Mutations ──
   const sendInvite = useMutation({
@@ -192,6 +197,23 @@ export default function CompanyAdminDashboard() {
     onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to remove member")),
   });
 
+  const sendTeamInvite = useMutation({
+    mutationFn: async () => {
+      const res = await api.post(`/teams/${teamInviteTarget!.id}/invite/`, {
+        email: teamInviteEmail.trim(),
+        role: teamInviteRole,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast.success(`Invite sent to ${teamInviteEmail}`);
+      setTeamInviteTarget(null);
+      setTeamInviteEmail("");
+      setTeamInviteRole("member");
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to send team invite")),
+  });
+
   // ── Loading ──
   if (isLoadingCompanies) return <PageSkeleton />;
 
@@ -246,7 +268,7 @@ export default function CompanyAdminDashboard() {
       {/* ── Nav tabs ── */}
       <div className="flex items-center gap-1 border-b border-border">
         {(["overview", "members", "teams", "invites"] as const).map((v) => {
-          if (v === "invites" && !caps?.can_manage_company) return null;
+          if (v === "invites" && !caps?.can_invite_members) return null;
           return (
             <button
               key={v}
@@ -441,7 +463,17 @@ export default function CompanyAdminDashboard() {
                         <p className="text-xs text-muted-foreground">/{t.slug} · {t.member_count ?? 0} members</p>
                       </div>
                     </div>
-                    <ChevronRight size={15} className="text-muted-foreground/50" />
+                    {caps?.can_invite_members && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs h-7"
+                        onClick={() => { setTeamInviteTarget(t); setTeamInviteEmail(""); setTeamInviteRole("member"); }}
+                      >
+                        <UserPlus size={12} />
+                        Invite
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -451,7 +483,7 @@ export default function CompanyAdminDashboard() {
       )}
 
       {/* ── View: Invites ── */}
-      {view === "invites" && caps?.can_manage_company && (
+      {view === "invites" && caps?.can_invite_members && (
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <div className="space-y-1">
@@ -593,6 +625,53 @@ export default function CompanyAdminDashboard() {
               disabled={changeMemberRole.isPending}
             >
               {changeMemberRole.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Team invite dialog ── */}
+      <Dialog open={!!teamInviteTarget} onOpenChange={open => !open && setTeamInviteTarget(null)}>
+        <DialogContent className="sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle>Invite to {teamInviteTarget?.name}</DialogTitle>
+            <DialogDescription>
+              They'll receive an email to join this team directly.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="teamInviteEmail">Email address</Label>
+              <Input
+                id="teamInviteEmail"
+                type="email"
+                placeholder="colleague@example.com"
+                value={teamInviteEmail}
+                onChange={e => setTeamInviteEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="teamInviteRole">Role</Label>
+              <select
+                id="teamInviteRole"
+                value={teamInviteRole}
+                onChange={e => setTeamInviteRole(e.target.value as "member" | "viewer")}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
+                <option value="member">Member</option>
+                <option value="viewer">Viewer</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTeamInviteTarget(null)}>Cancel</Button>
+            <Button
+              onClick={() => sendTeamInvite.mutate()}
+              disabled={sendTeamInvite.isPending || !teamInviteEmail.trim()}
+              className="gap-2"
+            >
+              <Mail className="h-4 w-4" />
+              {sendTeamInvite.isPending ? "Sending…" : "Send invite"}
             </Button>
           </DialogFooter>
         </DialogContent>

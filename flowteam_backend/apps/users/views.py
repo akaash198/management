@@ -35,20 +35,35 @@ class RegisterView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
-        
+
         # Create default personal team
         team_name = f"{user.full_name}'s Team"
         if Team.objects.filter(name=team_name).exists():
             team_name = f"{team_name} {uuid.uuid4().hex[:4]}"
-            
+
         team = Team.objects.create(
             name=team_name,
             created_by=user
         )
         TeamMember.objects.create(team=team, user=user, role=TeamMember.ADMIN)
-        
+
+        # Auto-join company if email domain matches a verified company
+        email_domain = user.email.split("@")[-1].lower() if "@" in user.email else ""
+        if email_domain:
+            from apps.companies.models import Company, CompanyMember
+            matched = Company.objects.filter(
+                email_domain=email_domain,
+                email_domain_verified=True,
+            ).first()
+            if matched:
+                CompanyMember.objects.get_or_create(
+                    company=matched,
+                    user=user,
+                    defaults={"role": CompanyMember.MEMBER},
+                )
+
         refresh = RefreshToken.for_user(user)
-        
+
         data = {
             "user": UserSerializer(user, context={"request": request}).data,
             "access": str(refresh.access_token),

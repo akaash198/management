@@ -263,13 +263,16 @@ class CompanyInviteListCreateView(generics.GenericAPIView):
     """
 
     def get_permissions(self):
-        if self.request.method in permissions.SAFE_METHODS:
-            return [permissions.IsAuthenticated(), IsCompanyAdminPermission()]
         return [permissions.IsAuthenticated(), IsCompanyManagerPermission()]
 
     def get(self, request, id):
         company = get_object_or_404(Company, id=id)
-        invites = CompanyInvite.objects.filter(company=company)
+        actor_role = get_user_company_role(company_id=str(id), user=request.user)
+        # Managers only see their own sent invites; admin+ see all
+        if request.user.is_superuser or actor_role in (CompanyMember.CEO, CompanyMember.ADMIN):
+            invites = CompanyInvite.objects.filter(company=company)
+        else:
+            invites = CompanyInvite.objects.filter(company=company, invited_by=request.user)
         data = CompanyInviteSerializer(invites, many=True, context={"request": request}).data
         return standardize_response(data=data)
 
@@ -334,14 +337,23 @@ class CompanyInviteListCreateView(generics.GenericAPIView):
 
 
 class CompanyInviteDeleteView(generics.DestroyAPIView):
-    """DELETE /companies/<id>/invites/<invite_id>/  → revoke pending invite (admin+)"""
-    permission_classes = [permissions.IsAuthenticated, IsCompanyAdminPermission]
+    """DELETE /companies/<id>/invites/<invite_id>/  → revoke pending invite (manager can revoke own; admin+ can revoke any)"""
+    permission_classes = [permissions.IsAuthenticated, IsCompanyManagerPermission]
 
     def get_object(self):
         return get_object_or_404(CompanyInvite, id=self.kwargs["invite_id"], company_id=self.kwargs["id"])
 
     def destroy(self, request, *args, **kwargs):
         invite = self.get_object()
+        actor_role = get_user_company_role(company_id=str(self.kwargs["id"]), user=request.user)
+        # Managers can only revoke invites they sent themselves
+        if not request.user.is_superuser and actor_role == CompanyMember.MANAGER:
+            if invite.invited_by_id != request.user.id:
+                return standardize_response(
+                    success=False,
+                    error="You can only revoke invites you sent.",
+                    status=status.HTTP_403_FORBIDDEN,
+                )
         invite.delete()
         return standardize_response(status=status.HTTP_204_NO_CONTENT)
 
