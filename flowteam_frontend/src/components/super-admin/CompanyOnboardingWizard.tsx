@@ -472,13 +472,19 @@ export default function CompanyOnboardingWizard({
               companyId={savedCompany?.id}
             />
           )}
-          {currentStep === "review" && savedCompany && (
+          {currentStep === "review" && (
             <StepReview
+              name={name}
+              website={website}
+              industry={industry}
+              size={size}
+              country={country}
               company={savedCompany}
               teamNamesToCreate={teamNamesToCreate}
               selectedTeamIds={selectedTeamIds}
               allTeams={allTeams ?? []}
               ceoMode={ceoMode}
+              selectedCeoEmail={selectedCeoEmail}
               inviteCeoEmail={inviteCeoEmail}
               enableEmailDomain={enableEmailDomain}
               emailDomain={emailDomain}
@@ -959,63 +965,81 @@ function StepEmailDomain({
 // ─── Step 5: Review & Launch ─────────────────────────────────────────────────
 
 function StepReview({
+  name, website, industry, size, country,
   company, teamNamesToCreate, selectedTeamIds, allTeams,
-  ceoMode, inviteCeoEmail, enableEmailDomain, emailDomain,
+  ceoMode, selectedCeoEmail, inviteCeoEmail, enableEmailDomain, emailDomain,
 }: {
-  company: AdminCompany;
+  name: string; website: string; industry: string; size: string; country: string;
+  company: AdminCompany | null;
   teamNamesToCreate: string[];
   selectedTeamIds: string[];
   allTeams: Team[];
   ceoMode: "select" | "invite";
+  selectedCeoEmail: string;
   inviteCeoEmail: string;
   enableEmailDomain: boolean;
   emailDomain: string;
 }) {
   const assignedTeams = allTeams.filter((t) => selectedTeamIds.includes(t.id));
+  const displayName = name || company?.name || "—";
+  const displayWebsite = website || company?.website || "";
+  const displayIndustry = industry || company?.industry || "";
+  const displaySize = size || company?.size || "";
+  const displayCountry = country || company?.country || "";
+
+  const INDUSTRY_LABELS: Record<string, string> = {
+    technology: "Technology", finance: "Finance", healthcare: "Healthcare",
+    education: "Education", retail: "Retail", manufacturing: "Manufacturing",
+    media: "Media & Entertainment", consulting: "Consulting",
+    real_estate: "Real Estate", other: "Other",
+  };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <StepHeader
         icon={<CheckCircle2 size={18} className="text-green-500" />}
         title="Review & Launch"
         description="Confirm all details before activating this company."
       />
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {/* Company info */}
         <ReviewSection title="Company" icon={<Building2 size={13} />}>
-          <ReviewRow label="Name" value={company.name} />
-          {company.website && <ReviewRow label="Website" value={company.website} />}
-          {company.industry && <ReviewRow label="Industry" value={company.industry} />}
-          {company.size && <ReviewRow label="Size" value={company.size} />}
-          {company.country && <ReviewRow label="Country" value={company.country} />}
+          <ReviewRow label="Name" value={displayName} />
+          {displayWebsite && <ReviewRow label="Website" value={displayWebsite} />}
+          {displayIndustry && <ReviewRow label="Industry" value={INDUSTRY_LABELS[displayIndustry] ?? displayIndustry} />}
+          {displaySize && <ReviewRow label="Size" value={displaySize} />}
+          {displayCountry && <ReviewRow label="Country" value={displayCountry} />}
         </ReviewSection>
 
         {/* CEO */}
         <ReviewSection title="CEO" icon={<Crown size={13} className="text-amber-500" />}>
-          {company.ceo ? (
+          {company?.ceo ? (
             <>
               <ReviewRow label="Name" value={company.ceo.full_name || "—"} />
               <ReviewRow label="Email" value={company.ceo.email} />
+              <ReviewRow label="Status" value="Active" highlight="success" />
             </>
+          ) : ceoMode === "select" && selectedCeoEmail ? (
+            <ReviewRow label="Selected user" value={selectedCeoEmail} highlight="success" />
           ) : ceoMode === "invite" && inviteCeoEmail ? (
-            <ReviewRow label="Invite pending" value={inviteCeoEmail} />
+            <ReviewRow label="Invite will be sent to" value={inviteCeoEmail} highlight="warning" />
           ) : (
-            <p className="text-xs text-muted-foreground italic">No CEO assigned yet.</p>
+            <p className="text-xs text-muted-foreground italic">No CEO assigned — you can add one later.</p>
           )}
         </ReviewSection>
 
         {/* Teams */}
         <ReviewSection title="Teams" icon={<Layers size={13} className="text-blue-500" />}>
           {teamNamesToCreate.length === 0 && selectedTeamIds.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No teams configured.</p>
+            <p className="text-xs text-muted-foreground italic">No teams configured — Admin can create them after launch.</p>
           ) : (
             <>
               {teamNamesToCreate.map((n) => (
-                <ReviewRow key={n} label="Create" value={n} />
+                <ReviewRow key={n} label="Will create" value={n} />
               ))}
               {assignedTeams.map((t) => (
-                <ReviewRow key={t.id} label="Assign" value={t.name} />
+                <ReviewRow key={t.id} label="Will assign" value={t.name} />
               ))}
             </>
           )}
@@ -1028,12 +1052,12 @@ function StepReview({
               <ReviewRow label="Domain" value={`@${emailDomain}`} />
               <ReviewRow
                 label="Verification"
-                value={company.email_domain_verified ? "Verified" : "Pending"}
-                highlight={company.email_domain_verified ? "success" : "warning"}
+                value={company?.email_domain_verified ? "Verified ✓" : "Pending DNS setup"}
+                highlight={company?.email_domain_verified ? "success" : "warning"}
               />
             </>
           ) : (
-            <p className="text-xs text-muted-foreground italic">Not configured.</p>
+            <p className="text-xs text-muted-foreground italic">Not configured — can be set up later.</p>
           )}
         </ReviewSection>
       </div>
@@ -1041,7 +1065,7 @@ function StepReview({
       <div className="rounded-xl bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900 px-4 py-3 flex items-start gap-2">
         <CheckCircle2 size={14} className="text-green-600 shrink-0 mt-0.5" />
         <p className="text-xs text-green-700 dark:text-green-400">
-          Clicking <strong>Launch Company</strong> will set the status to <strong>Active</strong>. All configured teams and invitations will be finalized.
+          Clicking <strong>Launch Company</strong> will create the company and set its status to <strong>Active</strong>. CEO invite and teams will be set up automatically.
         </p>
       </div>
     </div>
@@ -1090,15 +1114,17 @@ function ReviewRow({ label, value, highlight }: { label: string; value: string; 
 }
 
 export function OnboardingStatusBadge({ status }: { status: AdminCompany["onboarding_status"] }) {
-  const map = {
-    pending: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-    in_progress: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    active: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-    suspended: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+  const map: Record<AdminCompany["onboarding_status"], { badge: string; dot: string }> = {
+    pending:     { badge: "bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800",     dot: "bg-amber-400" },
+    in_progress: { badge: "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800",           dot: "bg-blue-500 animate-pulse" },
+    active:      { badge: "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800",     dot: "bg-green-500" },
+    suspended:   { badge: "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800",                 dot: "bg-red-500" },
   };
   const labels = { pending: "Pending", in_progress: "In Progress", active: "Active", suspended: "Suspended" };
+  const { badge, dot } = map[status] ?? map.pending;
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase ${map[status] ?? map.pending}`}>
+    <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${badge}`}>
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
       {labels[status] ?? status}
     </span>
   );

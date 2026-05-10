@@ -81,8 +81,9 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
   const [activeCompany, setActiveCompany] = useState<AdminCompany | null>(null);
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
 
-  // Search
+  // Search + filter
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<AdminCompany["onboarding_status"] | "all">("all");
 
   // Wizard
   const [wizardOpen, setWizardOpen] = useState(false);
@@ -165,6 +166,7 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
   // ── Computed ──────────────────────────────────────────────────────────────
 
   const filtered = (companies ?? []).filter((c) => {
+    if (statusFilter !== "all" && c.onboarding_status !== statusFilter) return false;
     if (!search.trim()) return true;
     const q = search.toLowerCase();
     return (
@@ -226,36 +228,41 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
 
       {/* Status filter strip */}
       <div className="flex gap-2 flex-wrap">
-        <StatusChip label="All" count={statusCounts.all} active={!search} onClick={() => setSearch("")} color="default" />
-        <StatusChip label="Active" count={statusCounts.active} active={false} color="success" />
-        <StatusChip label="Onboarding" count={statusCounts.in_progress} active={false} color="info" />
-        <StatusChip label="Pending" count={statusCounts.pending} active={false} color="muted" />
+        <StatusChip label="All" count={statusCounts.all} active={statusFilter === "all"} onClick={() => setStatusFilter("all")} color="default" />
+        <StatusChip label="Active" count={statusCounts.active} active={statusFilter === "active"} onClick={() => setStatusFilter("active")} color="success" />
+        <StatusChip label="Onboarding" count={statusCounts.in_progress} active={statusFilter === "in_progress"} onClick={() => setStatusFilter("in_progress")} color="info" />
+        <StatusChip label="Pending" count={statusCounts.pending} active={statusFilter === "pending"} onClick={() => setStatusFilter("pending")} color="muted" />
       </div>
 
       {/* Drill-down breadcrumb */}
       {drillView !== "companies" && (
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-1.5 text-sm bg-muted/40 border border-border rounded-xl px-3 py-2">
           <button
             onClick={() => { setDrillView("companies"); setActiveCompany(null); setActiveTeam(null); }}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
+            <Building2 size={12} />
             Companies
           </button>
           {activeCompany && (
             <>
-              <ChevronRight size={14} className="text-muted-foreground" />
+              <ChevronRight size={13} className="text-muted-foreground/50" />
               <button
                 onClick={() => { setDrillView("company_detail"); setActiveTeam(null); }}
-                className={drillView === "company_detail" ? "font-semibold" : "text-muted-foreground hover:text-foreground transition-colors"}
+                className={`flex items-center gap-1.5 transition-colors ${drillView === "company_detail" ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
+                <OnboardingStatusBadge status={activeCompany.onboarding_status} />
                 {activeCompany.name}
               </button>
             </>
           )}
           {drillView === "team_members" && activeTeam && (
             <>
-              <ChevronRight size={14} className="text-muted-foreground" />
-              <span className="font-semibold">{activeTeam.name}</span>
+              <ChevronRight size={13} className="text-muted-foreground/50" />
+              <span className="font-semibold text-foreground flex items-center gap-1.5">
+                <Layers size={12} className="text-blue-500" />
+                {activeTeam.name}
+              </span>
             </>
           )}
         </div>
@@ -282,10 +289,16 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
                 <div className="p-4 rounded-2xl bg-muted">
                   <Building2 size={32} className="text-muted-foreground" />
                 </div>
-                <p className="text-muted-foreground">
-                  {search ? "No companies match your search." : "No companies yet."}
+                <p className="text-muted-foreground text-sm">
+                  {search || statusFilter !== "all"
+                    ? "No companies match your filters."
+                    : "No companies yet."}
                 </p>
-                {!search && (
+                {(search || statusFilter !== "all") ? (
+                  <Button size="sm" variant="outline" onClick={() => { setSearch(""); setStatusFilter("all"); }}>
+                    Clear filters
+                  </Button>
+                ) : (
                   <Button size="sm" variant="outline" onClick={() => openWizard(null)}>
                     Onboard your first company
                   </Button>
@@ -392,6 +405,13 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
 
 // ─── Company Card ─────────────────────────────────────────────────────────────
 
+const STATUS_ACCENT: Record<AdminCompany["onboarding_status"], string> = {
+  active: "border-l-4 border-l-green-500",
+  in_progress: "border-l-4 border-l-blue-500",
+  pending: "border-l-4 border-l-amber-400",
+  suspended: "border-l-4 border-l-red-500",
+};
+
 function CompanyCard({
   company, onDrilldown, onEdit, onDelete, onStatusChange,
 }: {
@@ -402,15 +422,25 @@ function CompanyCard({
   onStatusChange: (s: AdminCompany["onboarding_status"]) => void;
 }) {
   return (
-    <div className="flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+    <div className={`flex flex-col rounded-2xl border border-border bg-card shadow-sm overflow-hidden hover:shadow-md transition-all ${STATUS_ACCENT[company.onboarding_status]}`}>
       <div className="p-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              company.onboarding_status === "active"
+                ? "bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800"
+                : company.onboarding_status === "in_progress"
+                ? "bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800"
+                : "bg-primary/10 border border-primary/20"
+            }`}>
               {company.logo_url ? (
                 <img src={company.logo_url} alt={company.name} className="w-8 h-8 rounded-lg object-cover" />
               ) : (
-                <Building2 size={18} className="text-primary" />
+                <Building2 size={18} className={
+                  company.onboarding_status === "active" ? "text-green-600 dark:text-green-400"
+                  : company.onboarding_status === "in_progress" ? "text-blue-600 dark:text-blue-400"
+                  : "text-primary"
+                } />
               )}
             </div>
             <div className="min-w-0">
@@ -463,12 +493,16 @@ function CompanyCard({
         </div>
 
         {/* CEO */}
-        <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2">
-          <Crown size={12} className="text-amber-500 shrink-0" />
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 ${
+          company.ceo
+            ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800"
+            : "bg-muted/60 border border-border"
+        }`}>
+          <Crown size={12} className={company.ceo ? "text-amber-500 shrink-0" : "text-muted-foreground/50 shrink-0"} />
           {company.ceo ? (
             <div className="min-w-0">
-              <p className="text-xs font-medium truncate">{company.ceo.full_name || company.ceo.email}</p>
-              {company.ceo.full_name && <p className="text-[10px] text-muted-foreground truncate">{company.ceo.email}</p>}
+              <p className="text-xs font-medium truncate text-amber-900 dark:text-amber-200">{company.ceo.full_name || company.ceo.email}</p>
+              {company.ceo.full_name && <p className="text-[10px] text-amber-600/70 dark:text-amber-400/70 truncate">{company.ceo.email}</p>}
             </div>
           ) : (
             <p className="text-xs text-muted-foreground italic">No CEO assigned</p>
@@ -492,10 +526,13 @@ function CompanyCard({
       {/* Drilldown CTA */}
       <button
         onClick={onDrilldown}
-        className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-muted/30 hover:bg-muted/60 transition-colors text-sm text-muted-foreground"
+        className="flex items-center justify-between px-5 py-2.5 border-t border-border bg-muted/20 hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground group"
       >
-        <span>View teams & members</span>
-        <ChevronRight size={14} />
+        <span className="flex items-center gap-1.5">
+          <Layers size={11} />
+          View teams & members
+        </span>
+        <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
       </button>
     </div>
   );
@@ -599,12 +636,12 @@ function CompanyDetailView({
           {/* Status actions */}
           <div className="pt-2 space-y-2">
             {company.onboarding_status !== "active" && (
-              <Button size="sm" variant="outline" className="w-full gap-2" onClick={() => onStatusChange("active")}>
-                <CheckCircle2 size={13} className="text-green-600" /> Mark Active
+              <Button size="sm" variant="outline" className="w-full gap-2 text-green-700 border-green-200 hover:bg-green-50 hover:border-green-400 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-950/30" onClick={() => onStatusChange("active")}>
+                <CheckCircle2 size={13} /> Mark Active
               </Button>
             )}
             {company.onboarding_status !== "suspended" && (
-              <Button size="sm" variant="outline" className="w-full gap-2 text-amber-600 border-amber-200 hover:bg-amber-50 dark:hover:bg-amber-950/20" onClick={() => onStatusChange("suspended")}>
+              <Button size="sm" variant="outline" className="w-full gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:border-red-400 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-950/20" onClick={() => onStatusChange("suspended")}>
                 <Pause size={13} /> Suspend
               </Button>
             )}
@@ -614,54 +651,55 @@ function CompanyDetailView({
 
       {/* Right: Teams */}
       <Card className="lg:col-span-2">
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-3 border-b border-border">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Layers size={16} className="text-muted-foreground" />
+              <div className="w-7 h-7 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <Layers size={14} className="text-blue-600 dark:text-blue-400" />
+              </div>
               Teams
             </CardTitle>
-            <Badge variant="outline">{detail?.teams?.length ?? 0}</Badge>
+            <Badge className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-0 font-bold">
+              {detail?.teams?.length ?? 0}
+            </Badge>
           </div>
         </CardHeader>
-        <CardContent className="pt-0">
+        <CardContent className="pt-3">
           {isLoading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 rounded-xl" />)}
             </div>
           ) : !detail || detail.teams.length === 0 ? (
-            <div className="flex flex-col items-center py-10 gap-2 text-center">
-              <Layers size={28} className="text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">No teams yet.</p>
-              <p className="text-xs text-muted-foreground/60">Teams are created by the company Admin via the company dashboard.</p>
+            <div className="flex flex-col items-center py-10 gap-3 text-center">
+              <div className="p-3 rounded-xl bg-muted/60">
+                <Layers size={24} className="text-muted-foreground/50" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground font-medium">No teams yet</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">Teams are created by the company Admin via the company dashboard.</p>
+              </div>
             </div>
           ) : (
             <div className="space-y-2">
               {detail.teams.map((t) => (
                 <div
                   key={t.id}
-                  className="group flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:border-primary/30 hover:bg-primary/5 transition-all"
+                  className="group flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all cursor-pointer"
+                  onClick={() => onOpenTeamMembers(t)}
                 >
-                  <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                    <Layers size={15} className="text-muted-foreground" />
+                  <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
+                    <Layers size={15} className="text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground">{t.member_count ?? 0} members · {t.plan ?? "free"}</p>
+                    <p className="text-sm font-semibold truncate">{t.name}</p>
+                    <p className="text-xs text-muted-foreground">{t.member_count ?? 0} members · <span className="capitalize">{t.plan ?? "free"}</span></p>
                   </div>
                   <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 text-xs gap-1"
-                      onClick={() => onOpenTeamMembers(t)}
-                    >
-                      <Users size={11} /> Members
-                    </Button>
+                    <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">View members</span>
                   </div>
                   <ChevronRight
                     size={14}
-                    className="text-muted-foreground group-hover:text-primary transition-colors cursor-pointer shrink-0"
-                    onClick={() => onOpenTeamMembers(t)}
+                    className="text-muted-foreground/40 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0"
                   />
                 </div>
               ))}
@@ -690,27 +728,35 @@ function TeamMembersView({ team, members, isLoading }: {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-3 border-b border-border">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            <Users size={16} className="text-muted-foreground" />
-            {team.name} — Members
+            <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Users size={14} className="text-primary" />
+            </div>
+            {team.name}
+            <span className="text-muted-foreground font-normal">— Members</span>
           </CardTitle>
-          <Badge variant="outline">{members.length}</Badge>
+          <Badge className="bg-primary/10 text-primary border-0 font-bold">{members.length}</Badge>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
+      <CardContent className="pt-3">
         {isLoading ? (
           <div className="space-y-2">
             {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
           </div>
         ) : members.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic py-8 text-center">No members yet.</p>
+          <div className="flex flex-col items-center py-10 gap-3 text-center">
+            <div className="p-3 rounded-xl bg-muted/60">
+              <Users size={24} className="text-muted-foreground/50" />
+            </div>
+            <p className="text-sm text-muted-foreground">No members yet.</p>
+          </div>
         ) : (
           <div className="space-y-2">
             {members.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3">
-                <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-bold text-primary shrink-0">
+              <div key={m.id} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/30 transition-colors">
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${ROLE_COLORS[m.role] ?? ROLE_COLORS.viewer}`}>
                   {(m.user.full_name || m.user.email).charAt(0).toUpperCase()}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -858,19 +904,28 @@ function StatusChip({
   onClick?: () => void;
   color: "default" | "success" | "info" | "muted";
 }) {
+  const baseClass = "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold transition-all border cursor-pointer";
   const colorMap = {
-    default: active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80",
-    success: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-    info: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    muted: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
+    default: active
+      ? "bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20"
+      : "bg-background text-muted-foreground border-border hover:border-primary/40 hover:text-foreground",
+    success: active
+      ? "bg-green-600 text-white border-green-600 shadow-sm shadow-green-200 dark:shadow-green-900/40"
+      : "bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-950/50",
+    info: active
+      ? "bg-blue-600 text-white border-blue-600 shadow-sm shadow-blue-200 dark:shadow-blue-900/40"
+      : "bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-950/50",
+    muted: active
+      ? "bg-amber-500 text-white border-amber-500 shadow-sm shadow-amber-200 dark:shadow-amber-900/40"
+      : "bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-950/50",
   };
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-colors ${colorMap[color]}`}
+      className={`${baseClass} ${colorMap[color]}`}
     >
       {label}
-      <span className="rounded-full bg-black/10 dark:bg-white/10 px-1.5 py-0.5 text-[10px] font-bold">{count}</span>
+      <span className="rounded-full bg-black/10 dark:bg-white/15 px-1.5 py-0.5 text-[10px] font-bold tabular-nums">{count}</span>
     </button>
   );
 }
