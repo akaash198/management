@@ -51,6 +51,11 @@ def _parse_args() -> argparse.Namespace:
 
 
 def _load_private_key(key_text: str) -> paramiko.PKey:
+    if key_text.strip().startswith("ssh-"):
+        raise RuntimeError(
+            "Provided SSH key material looks like a public key (starts with 'ssh-'). "
+            "Supply the *private* key (e.g. '-----BEGIN OPENSSH PRIVATE KEY-----')."
+        )
     key_text = key_text.replace("\r\n", "\n").replace("\r", "\n").strip() + "\n"
     first_line = key_text.splitlines()[0] if key_text.strip() else ""
     if first_line:
@@ -77,6 +82,8 @@ def _load_private_key(key_text: str) -> paramiko.PKey:
 
 def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
     pkey = _load_private_key(key_text)
+    fp_hex = pkey.get_fingerprint().hex()
+    fp_colon = ":".join(fp_hex[i : i + 2] for i in range(0, len(fp_hex), 2))
 
     def _try_connect(*, disabled_algorithms: Optional[dict] = None) -> paramiko.SSHClient:
         client = paramiko.SSHClient()
@@ -96,6 +103,15 @@ def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
 
     try:
         return _try_connect()
+    except paramiko.AuthenticationException as exc:
+        raise RuntimeError(
+            f"SSH authentication failed for {user}@{host}.\n"
+            f"- Key fingerprint offered: {fp_colon}\n"
+            "- Fix: ensure the matching *public* key is present in the target user's ~/.ssh/authorized_keys, "
+            "and that HETZNER_USER matches that account.\n"
+            "- If you meant to use the repo deploy key, make sure GitHub secret HETZNER_SSH_KEY contains the "
+            "matching *private* key (not the .pub)."
+        ) from exc
     except (paramiko.AuthenticationException, paramiko.SSHException) as exc:
         # Some SSH servers have strict/legacy RSA signature algorithm policies.
         # If we're using an RSA key, retry with alternative pubkey algorithms.

@@ -49,8 +49,16 @@ jobs:
           python - <<'PY'
           import os
           import base64
+          import binascii
           
           key = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if not key:
+              raise SystemExit("Missing HETZNER_SSH_KEY secret (must be an SSH *private* key).")
+          if key.startswith("ssh-"):
+              raise SystemExit(
+                  "HETZNER_SSH_KEY looks like an SSH *public* key (starts with 'ssh-'). "
+                  "Set this secret to the matching *private* key (OpenSSH format) instead."
+              )
           if "BEGIN" in key:
               # Handle secrets stored with literal "\n" sequences.
               key = key.replace("\\r", "\r").replace("\\n", "\n")
@@ -62,9 +70,35 @@ jobs:
               # Handle base64-wrapped secrets.
               key = key.replace("\\n", "").replace("\\r", "").replace(" ", "")
               with open("hetzner_key", "wb") as f:
-                  f.write(base64.b64decode(key))
+                  try:
+                      f.write(base64.b64decode(key, validate=True))
+                  except (binascii.Error, ValueError) as exc:
+                      raise SystemExit(
+                          "HETZNER_SSH_KEY is neither a raw private key (contains 'BEGIN') nor valid base64. "
+                          "If you pasted a public key by mistake, it will start with 'ssh-ed25519' or 'ssh-rsa'."
+                      ) from exc
           PY
           chmod 600 hetzner_key
+
+          # Optional guardrail: if the repo contains a canonical deploy public key,
+          # verify the provided private key matches it. This catches "wrong key in secret"
+          # problems early with a clearer error than Paramiko's generic auth failure.
+          if [ -f "deploy/keys/hetzner_deploy_ed25519.pub" ]; then
+            EXPECTED_PUB="$(tr -d '\r' < deploy/keys/hetzner_deploy_ed25519.pub | sed -e 's/[[:space:]]\+$//')"
+            ACTUAL_PUB="$(ssh-keygen -y -f hetzner_key 2>/dev/null | tr -d '\r' | sed -e 's/[[:space:]]\+$//')"
+            if [ -z "$ACTUAL_PUB" ]; then
+              echo "Unable to derive public key from HETZNER_SSH_KEY (is it encrypted or invalid?)" >&2
+              exit 1
+            fi
+            if [ "$EXPECTED_PUB" != "$ACTUAL_PUB" ]; then
+              echo "HETZNER_SSH_KEY does not match deploy/keys/hetzner_deploy_ed25519.pub" >&2
+              echo "Expected: $(echo "$EXPECTED_PUB" | cut -d' ' -f1-2) ..." >&2
+              echo "Actual:   $(echo "$ACTUAL_PUB" | cut -d' ' -f1-2) ..." >&2
+              echo "Fix: update the GitHub secret HETZNER_SSH_KEY to the matching private key, or update the repo .pub file." >&2
+              exit 1
+            fi
+          fi
+
           python scripts/deploy_hetzner_paramiko.py \
             --host "${HETZNER_HOST}" \
             --user "${HETZNER_USER}" \

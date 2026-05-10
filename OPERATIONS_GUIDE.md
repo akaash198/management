@@ -105,9 +105,15 @@ After deploy, access the app at:
 Add these GitHub Actions secrets:
 - `HETZNER_HOST` (server IP / DNS)
 - `HETZNER_USER` (e.g. `root` or `deploy`)
-- `HETZNER_SSH_KEY` (private key for SSH)
+- `HETZNER_SSH_KEY` (SSH *private* key for deployment; not the `.pub` public key)
 - `GHCR_USERNAME` (user that can pull packages)
 - `GHCR_TOKEN` (PAT with `read:packages` for GHCR)
+
+Notes:
+- If `HETZNER_SSH_KEY` starts with `ssh-ed25519` / `ssh-rsa`, you pasted a public key and deploy will fail.
+- Store the private key either:
+  - As raw OpenSSH private key text (recommended), preserving newlines, or
+  - Base64-encoded (the workflow auto-detects and decodes it).
 
 ### Firewall (recommended)
 
