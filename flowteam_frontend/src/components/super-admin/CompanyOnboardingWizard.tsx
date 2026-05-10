@@ -228,17 +228,7 @@ export default function CompanyOnboardingWizard({
 
   // ── Mutations ────────────────────────────────────────────────────────────
 
-  const createCompany = useMutation({
-    mutationFn: async () => {
-      const res = await api.post<ApiResponse<AdminCompany>>("/companies/", { name: name.trim() });
-      return res.data.data;
-    },
-    onSuccess: (data) => {
-      setSavedCompany(data);
-      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
-    },
-  });
-
+  // Used only when editing an already-created company (resuming onboarding).
   const submitStep = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
       const cid = savedCompany!.id;
@@ -251,6 +241,58 @@ export default function CompanyOnboardingWizard({
       queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", data.id] });
     },
     onError: (err) => toast.error(toErrorMessage(err, "Failed to save step")),
+  });
+
+  // Single mutation that runs on "Launch Company" — creates + fully onboards in one go.
+  const launchCompany = useMutation({
+    mutationFn: async () => {
+      let company = savedCompany;
+
+      // 1. Create the company record if this is a new onboarding.
+      if (!company) {
+        const res = await api.post<ApiResponse<AdminCompany>>("/companies/", { name: name.trim() });
+        company = res.data.data;
+      }
+      const cid = company.id;
+
+      // 2. Submit each step sequentially.
+      const detailsRes = await api.post<ApiResponse<AdminCompany>>(`/companies/${cid}/onboarding/`, {
+        step: "company_details",
+        name: name.trim(), website, industry, size, country, notes,
+      });
+      company = detailsRes.data.data;
+
+      const ceoPayload: Record<string, unknown> = { step: "ceo_assignment" };
+      if (ceoMode === "select" && selectedCeoId) ceoPayload.ceo_id = selectedCeoId;
+      if (ceoMode === "invite" && inviteCeoEmail.trim()) ceoPayload.invite_ceo_email = inviteCeoEmail.trim();
+      const ceoRes = await api.post<ApiResponse<AdminCompany>>(`/companies/${cid}/onboarding/`, ceoPayload);
+      company = ceoRes.data.data;
+
+      const teamsRes = await api.post<ApiResponse<AdminCompany>>(`/companies/${cid}/onboarding/`, {
+        step: "teams_setup",
+        team_names: teamNamesToCreate,
+        team_ids: selectedTeamIds,
+      });
+      company = teamsRes.data.data;
+
+      const domainRes = await api.post<ApiResponse<AdminCompany>>(`/companies/${cid}/onboarding/`, {
+        step: "email_domain",
+        email_domain: enableEmailDomain ? emailDomain.trim() : "",
+      });
+      company = domainRes.data.data;
+
+      // 3. Final review step — marks status as "active".
+      const reviewRes = await api.post<ApiResponse<AdminCompany>>(`/companies/${cid}/onboarding/`, { step: "review" });
+      return reviewRes.data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", data.id] });
+      toast.success(`${data.name} is now active!`);
+      onComplete(data);
+      onOpenChange(false);
+    },
+    onError: (err) => toast.error(toErrorMessage(err, "Failed to create company")),
   });
 
   const verifyDomain = useMutation({
@@ -286,58 +328,47 @@ export default function CompanyOnboardingWizard({
   // ── Step Handlers ─────────────────────────────────────────────────────────
 
   const handleNext = async () => {
-    try {
-      if (currentStep === "company_details") {
-        if (!name.trim()) { toast.error("Company name is required"); return; }
-        if (!savedCompany) {
-          const created = await createCompany.mutateAsync();
-          // After creation, apply remaining fields
-          await submitStep.mutateAsync({
-            step: "company_details",
-            name: name.trim(),
-            website, industry, size, country, notes,
-          });
-          setSavedCompany(created);
-        } else {
+    // Steps 1–4: pure client-side navigation — just validate and advance.
+    if (currentStep === "company_details") {
+      if (!name.trim()) { toast.error("Company name is required"); return; }
+      // If resuming an existing company, persist step 1 immediately.
+      if (savedCompany) {
+        try {
           await submitStep.mutateAsync({ step: "company_details", name: name.trim(), website, industry, size, country, notes });
-        }
-      } else if (currentStep === "ceo_assignment") {
-        const payload: Record<string, unknown> = { step: "ceo_assignment" };
-        if (ceoMode === "select" && selectedCeoId) payload.ceo_id = selectedCeoId;
-        if (ceoMode === "invite" && inviteCeoEmail.trim()) payload.invite_ceo_email = inviteCeoEmail.trim();
-        await submitStep.mutateAsync(payload);
-      } else if (currentStep === "teams_setup") {
-        await submitStep.mutateAsync({
-          step: "teams_setup",
-          team_names: teamNamesToCreate,
-          team_ids: selectedTeamIds,
-        });
-      } else if (currentStep === "email_domain") {
-        if (enableEmailDomain && emailDomain.trim()) {
-          await submitStep.mutateAsync({ step: "email_domain", email_domain: emailDomain.trim() });
-        } else {
-          await submitStep.mutateAsync({ step: "email_domain", email_domain: "" });
-        }
-      } else if (currentStep === "review") {
-        await submitStep.mutateAsync({ step: "review" });
-        toast.success(`${savedCompany?.name} is now active!`);
-        onComplete(savedCompany!);
-        onOpenChange(false);
+        } catch { return; }
+      }
+    } else if (currentStep === "review") {
+      // Final step: create + onboard everything in one shot.
+      if (savedCompany) {
+        // Resuming — submit remaining steps then finalize.
+        try {
+          const ceoPayload: Record<string, unknown> = { step: "ceo_assignment" };
+          if (ceoMode === "select" && selectedCeoId) ceoPayload.ceo_id = selectedCeoId;
+          if (ceoMode === "invite" && inviteCeoEmail.trim()) ceoPayload.invite_ceo_email = inviteCeoEmail.trim();
+          await submitStep.mutateAsync(ceoPayload);
+          await submitStep.mutateAsync({ step: "teams_setup", team_names: teamNamesToCreate, team_ids: selectedTeamIds });
+          await submitStep.mutateAsync({ step: "email_domain", email_domain: enableEmailDomain ? emailDomain.trim() : "" });
+          await submitStep.mutateAsync({ step: "review" });
+          toast.success(`${savedCompany.name} is now active!`);
+          onComplete(savedCompany);
+          onOpenChange(false);
+        } catch { /* handled by mutation */ }
         return;
       }
-
-      const nextIndex = currentStepIndex + 1;
-      if (nextIndex < STEPS.length) setCurrentStep(STEPS[nextIndex].key);
-    } catch {
-      // errors handled by mutation
+      // New company: launch everything atomically.
+      launchCompany.mutate();
+      return;
     }
+
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < STEPS.length) setCurrentStep(STEPS[nextIndex].key);
   };
 
   const handleBack = () => {
     if (currentStepIndex > 0) setCurrentStep(STEPS[currentStepIndex - 1].key);
   };
 
-  const isLoading = createCompany.isPending || submitStep.isPending;
+  const isLoading = submitStep.isPending || launchCompany.isPending;
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -369,8 +400,8 @@ export default function CompanyOnboardingWizard({
               {STEPS.map((s, i) => (
                 <button
                   key={s.key}
-                  onClick={() => savedCompany && i <= currentStepIndex && setCurrentStep(s.key)}
-                  disabled={!savedCompany || i > currentStepIndex}
+                  onClick={() => i <= currentStepIndex && setCurrentStep(s.key)}
+                  disabled={i > currentStepIndex}
                   className={`flex-1 flex flex-col items-center gap-1 rounded-lg py-1.5 px-1 transition-colors text-[10px] font-medium
                     ${s.key === currentStep
                       ? "bg-primary/10 text-primary"
@@ -469,16 +500,16 @@ export default function CompanyOnboardingWizard({
           </Button>
 
           <div className="flex items-center gap-2">
-            {savedCompany && (
+            {savedCompany && currentStep !== "review" && (
               <OnboardingStatusBadge status={savedCompany.onboarding_status} />
             )}
             <Button
               onClick={handleNext}
               disabled={isLoading || (currentStep === "company_details" && !name.trim())}
-              className="gap-2 min-w-[120px]"
+              className="gap-2 min-w-[130px]"
             >
               {isLoading ? (
-                <><Loader2 size={14} className="animate-spin" /> Saving…</>
+                <><Loader2 size={14} className="animate-spin" /> {currentStep === "review" ? "Launching…" : "Saving…"}</>
               ) : currentStep === "review" ? (
                 <><CheckCircle2 size={14} /> Launch Company</>
               ) : (
