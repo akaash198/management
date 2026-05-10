@@ -17,6 +17,8 @@ export interface Team {
   avatar_url: string | null;
   plan: "free" | "pro" | "ai" | string;
   ai_enabled: boolean;
+  company_id: string | null;
+  company_name: string | null;
   member_count: number;
   your_role: "ceo" | "admin" | "manager" | "member" | "viewer";
 }

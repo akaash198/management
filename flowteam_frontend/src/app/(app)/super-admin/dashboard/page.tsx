@@ -77,15 +77,6 @@ type AdminProjectDetail = {
   team_name?: string | null;
 };
 
-type CompanyRole = "owner" | "manager" | "member" | "guest";
-
-const COMPANY_ROLE_LABELS: Record<CompanyRole, string> = {
-  owner: "Owner",
-  manager: "Manager",
-  member: "Member",
-  guest: "Guest / Contractor",
-};
-
 type AdminUser = {
   id: string;
   email: string;
@@ -94,7 +85,6 @@ type AdminUser = {
   is_active: boolean;
   is_staff: boolean;
   is_superuser: boolean;
-  company_role: CompanyRole;
   date_joined: string;
 };
 
@@ -106,7 +96,20 @@ type AdminUserUpsertPayload = {
   is_active: boolean;
   is_staff: boolean;
   is_superuser: boolean;
-  company_role: CompanyRole;
+};
+
+type AdminCompany = {
+  id: string;
+  name: string;
+  slug: string;
+  ceo: { id: string; email: string; full_name: string } | null;
+  team_count: number;
+  member_count: number;
+  created_at: string;
+};
+
+type AdminCompanyDetail = AdminCompany & {
+  teams: AdminTeam[];
 };
 
 export default function SuperAdminDashboardPage() {
@@ -129,7 +132,6 @@ export default function SuperAdminDashboardPage() {
   const [formIsActive, setFormIsActive] = useState(true);
   const [formIsStaff, setFormIsStaff] = useState(false);
   const [formIsSuperuser, setFormIsSuperuser] = useState(false);
-  const [formCompanyRole, setFormCompanyRole] = useState<CompanyRole>("member");
 
   const resetForm = () => {
     setFormEmail("");
@@ -139,12 +141,22 @@ export default function SuperAdminDashboardPage() {
     setFormIsActive(true);
     setFormIsStaff(false);
     setFormIsSuperuser(false);
-    setFormCompanyRole("member");
   };
 
   useEffect(() => {
     if (user && !user.is_superuser) router.replace("/dashboard");
   }, [user, router]);
+
+  // Company state
+  const [companyDialogOpen, setCompanyDialogOpen] = useState(false);
+  const [editingCompany, setEditingCompany] = useState<AdminCompany | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [companyCeoEmail, setCompanyCeoEmail] = useState("");
+  const [deleteCompanyOpen, setDeleteCompanyOpen] = useState(false);
+  const [deletingCompany, setDeletingCompany] = useState<AdminCompany | null>(null);
+  const [expandedCompanyId, setExpandedCompanyId] = useState<string | null>(null);
+  const [assignTeamCompanyId, setAssignTeamCompanyId] = useState<string | null>(null);
+  const [assignTeamId, setAssignTeamId] = useState<string>("");
 
   const [selectedTeamId, setSelectedTeamId] = useState<string>("");
   const [teamDialogOpen, setTeamDialogOpen] = useState(false);
@@ -231,7 +243,6 @@ export default function SuperAdminDashboardPage() {
         is_active: formIsActive,
         is_staff: formIsStaff,
         is_superuser: formIsSuperuser,
-        company_role: formCompanyRole,
       };
       if (formPassword) payload.password = formPassword;
 
@@ -296,7 +307,6 @@ export default function SuperAdminDashboardPage() {
     setFormIsActive(!!u.is_active);
     setFormIsStaff(!!u.is_staff);
     setFormIsSuperuser(!!u.is_superuser);
-    setFormCompanyRole((u.company_role as CompanyRole) ?? "member");
     setDialogOpen(true);
   };
 
@@ -308,6 +318,89 @@ export default function SuperAdminDashboardPage() {
       return res.data.data ?? [];
     },
     enabled: isSuperuser,
+  });
+
+  // Companies
+  const { data: companies, isLoading: isCompaniesLoading } = useQuery<AdminCompany[]>({
+    queryKey: ["super-admin-companies"],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<AdminCompany[]>>("/companies/");
+      return res.data.data ?? [];
+    },
+    enabled: isSuperuser,
+  });
+
+  const { data: expandedCompanyDetail } = useQuery<AdminCompanyDetail>({
+    queryKey: ["super-admin-company-detail", expandedCompanyId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<AdminCompanyDetail>>(`/companies/${expandedCompanyId}/`);
+      return res.data.data;
+    },
+    enabled: isSuperuser && !!expandedCompanyId,
+  });
+
+  const upsertCompany = useMutation({
+    mutationFn: async () => {
+      const ceoUser = users?.find((u) => u.email === companyCeoEmail.trim());
+      const payload: Record<string, unknown> = { name: companyName };
+      if (ceoUser) payload.ceo_id = ceoUser.id;
+      if (editingCompany) {
+        const res = await api.patch<ApiResponse<AdminCompany>>(`/companies/${editingCompany.id}/`, payload);
+        return res.data.data;
+      }
+      const res = await api.post<ApiResponse<AdminCompany>>("/companies/", payload);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      toast.success(editingCompany ? "Company updated" : "Company created");
+      setCompanyDialogOpen(false);
+      setEditingCompany(null);
+      setCompanyName("");
+      setCompanyCeoEmail("");
+      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to save company")),
+  });
+
+  const deleteCompany = useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/companies/${id}/`);
+    },
+    onSuccess: () => {
+      toast.success("Company deleted");
+      setDeleteCompanyOpen(false);
+      setDeletingCompany(null);
+      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to delete company")),
+  });
+
+  const assignTeam = useMutation({
+    mutationFn: async ({ companyId, teamId }: { companyId: string; teamId: string }) => {
+      await api.post(`/companies/${companyId}/assign-team/`, { team_id: teamId });
+    },
+    onSuccess: (_, { companyId }) => {
+      toast.success("Team assigned to company");
+      setAssignTeamCompanyId(null);
+      setAssignTeamId("");
+      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to assign team")),
+  });
+
+  const unassignTeam = useMutation({
+    mutationFn: async ({ companyId, teamId }: { companyId: string; teamId: string }) => {
+      await api.delete(`/companies/${companyId}/assign-team/`, { data: { team_id: teamId } });
+    },
+    onSuccess: (_, { companyId }) => {
+      toast.success("Team removed from company");
+      queryClient.invalidateQueries({ queryKey: ["super-admin-company-detail", companyId] });
+      queryClient.invalidateQueries({ queryKey: ["super-admin-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["super-admin-all-teams"] });
+    },
+    onError: (err: unknown) => toast.error(toErrorMessage(err, "Failed to remove team")),
   });
 
   const upsertTeam = useMutation({
@@ -654,6 +747,187 @@ export default function SuperAdminDashboardPage() {
         </Card>
       </div>
 
+      {/* ── Companies ── */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Briefcase size={18} className="text-muted-foreground" />
+              Companies
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">Manage companies, assign CEOs and teams.</p>
+          </div>
+          <Button
+            size="sm"
+            className="gap-2"
+            onClick={() => { setEditingCompany(null); setCompanyName(""); setCompanyCeoEmail(""); setCompanyDialogOpen(true); }}
+          >
+            <Plus className="h-4 w-4" />
+            New Company
+          </Button>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="overflow-hidden rounded-xl border border-border">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-muted/40 text-[11px] uppercase font-bold text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3">Company</th>
+                  <th className="px-4 py-3">CEO</th>
+                  <th className="px-4 py-3 text-center">Teams</th>
+                  <th className="px-4 py-3 text-center">Members</th>
+                  <th className="px-4 py-3 w-[60px]" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {isCompaniesLoading && (
+                  <tr><td className="px-4 py-10 text-center text-muted-foreground" colSpan={5}>Loading…</td></tr>
+                )}
+                {!isCompaniesLoading && (companies?.length ?? 0) === 0 && (
+                  <tr><td className="px-4 py-10 text-center text-muted-foreground" colSpan={5}>No companies yet.</td></tr>
+                )}
+                {(companies ?? []).map((c) => (
+                  <>
+                    <tr
+                      key={c.id}
+                      className="hover:bg-muted/30 transition-colors cursor-pointer"
+                      onClick={() => setExpandedCompanyId(expandedCompanyId === c.id ? null : c.id)}
+                    >
+                      <td className="px-4 py-3 font-medium">{c.name}</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        {c.ceo ? (
+                          <span>{c.ceo.full_name || c.ceo.email}</span>
+                        ) : (
+                          <span className="italic text-muted-foreground/60">No CEO</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-center">{c.team_count}</td>
+                      <td className="px-4 py-3 text-center">{c.member_count}</td>
+                      <td className="px-4 py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-44">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setEditingCompany(c); setCompanyName(c.name); setCompanyCeoEmail(c.ceo?.email ?? ""); setCompanyDialogOpen(true); }}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setAssignTeamCompanyId(c.id); setAssignTeamId(""); }}>
+                              Assign Team
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={(e) => { e.stopPropagation(); setDeletingCompany(c); setDeleteCompanyOpen(true); }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                    {expandedCompanyId === c.id && (
+                      <tr key={`${c.id}-detail`}>
+                        <td colSpan={5} className="bg-muted/20 px-6 py-4">
+                          <p className="text-xs font-semibold uppercase text-muted-foreground mb-2">Teams in {c.name}</p>
+                          {!expandedCompanyDetail ? (
+                            <p className="text-sm text-muted-foreground">Loading…</p>
+                          ) : (expandedCompanyDetail.teams?.length ?? 0) === 0 ? (
+                            <p className="text-sm text-muted-foreground italic">No teams assigned yet.</p>
+                          ) : (
+                            <div className="flex flex-wrap gap-2">
+                              {expandedCompanyDetail.teams.map((t) => (
+                                <div key={t.id} className="flex items-center gap-1 rounded-md border bg-background px-3 py-1 text-sm">
+                                  <span>{t.name}</span>
+                                  <span className="text-muted-foreground">({t.member_count} members)</span>
+                                  <button
+                                    className="ml-1 text-destructive hover:text-destructive/80"
+                                    onClick={() => unassignTeam.mutate({ companyId: c.id, teamId: t.id })}
+                                    title="Remove from company"
+                                  >
+                                    ×
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {assignTeamCompanyId === c.id && (
+                            <div className="mt-3 flex gap-2 items-center">
+                              <select
+                                value={assignTeamId}
+                                onChange={(e) => setAssignTeamId(e.target.value)}
+                                className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              >
+                                <option value="">Select a team…</option>
+                                {(teams ?? []).filter((t) => !t.company_id || t.company_id === c.id).map((t) => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                                ))}
+                              </select>
+                              <Button size="sm" disabled={!assignTeamId} onClick={() => assignTeam.mutate({ companyId: c.id, teamId: assignTeamId })}>
+                                Assign
+                              </Button>
+                              <Button size="sm" variant="ghost" onClick={() => { setAssignTeamCompanyId(null); setAssignTeamId(""); }}>
+                                Cancel
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Company create/edit dialog */}
+      <Dialog open={companyDialogOpen} onOpenChange={setCompanyDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingCompany ? "Edit Company" : "New Company"}</DialogTitle>
+            <DialogDescription>
+              {editingCompany ? "Update company details." : "Create a new company and assign a CEO."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label>Company name</Label>
+              <Input value={companyName} onChange={(e) => setCompanyName(e.target.value)} placeholder="Acme Corp" />
+            </div>
+            <div className="grid gap-2">
+              <Label>CEO email</Label>
+              <Input value={companyCeoEmail} onChange={(e) => setCompanyCeoEmail(e.target.value)} placeholder="ceo@example.com" />
+              <p className="text-xs text-muted-foreground">Must be an existing user. Leave blank to set later.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompanyDialogOpen(false)}>Cancel</Button>
+            <Button disabled={!companyName.trim() || upsertCompany.isPending} onClick={() => upsertCompany.mutate()}>
+              {upsertCompany.isPending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Company delete dialog */}
+      <Dialog open={deleteCompanyOpen} onOpenChange={setDeleteCompanyOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete {deletingCompany?.name}?</DialogTitle>
+            <DialogDescription>This cannot be undone. Teams will be unlinked but not deleted.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteCompanyOpen(false)}>Cancel</Button>
+            <Button variant="destructive" disabled={deleteCompany.isPending} onClick={() => deletingCompany && deleteCompany.mutate(deletingCompany.id)}>
+              {deleteCompany.isPending ? "Deleting…" : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Teams ── */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div className="space-y-1">
@@ -770,8 +1044,7 @@ export default function SuperAdminDashboardPage() {
                   </th>
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">System Role</th>
-                  <th className="px-4 py-3">Company Role</th>
+                  <th className="px-4 py-3">Role</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -779,14 +1052,14 @@ export default function SuperAdminDashboardPage() {
               <tbody className="divide-y divide-border">
                 {isUsersLoading && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
                       Loading users...
                     </td>
                   </tr>
                 )}
                 {!isUsersLoading && (users?.length ?? 0) === 0 && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
                       No users found.
                     </td>
                   </tr>
@@ -812,11 +1085,6 @@ export default function SuperAdminDashboardPage() {
                       ) : (
                         <Badge variant="outline" className="text-muted-foreground">User</Badge>
                       )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge variant="outline" className="text-muted-foreground capitalize">
-                        {COMPANY_ROLE_LABELS[u.company_role as CompanyRole] ?? u.company_role ?? "Member"}
-                      </Badge>
                     </td>
                     <td className="px-4 py-3">
                       {u.is_active ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}
@@ -939,18 +1207,6 @@ export default function SuperAdminDashboardPage() {
                 <option value="superuser">Super Admin</option>
               </select>
 
-              <Label htmlFor="company_role">Company Role</Label>
-              <select
-                id="company_role"
-                value={formCompanyRole}
-                onChange={(e) => setFormCompanyRole(e.target.value as CompanyRole)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="owner">Owner</option>
-                <option value="manager">Manager</option>
-                <option value="member">Member</option>
-                <option value="guest">Guest / Contractor</option>
-              </select>
             </div>
 
             <div className="flex items-center gap-2 py-2">

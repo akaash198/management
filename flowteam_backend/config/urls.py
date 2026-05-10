@@ -12,6 +12,7 @@ urlpatterns = [
     path("api/metrics/", MetricsView.as_view(), name="metrics"),
     path("api/auth/", include("apps.users.urls")),
     path("api/super-admin/", include("apps.users.admin_urls")),
+    path("api/companies/", include("apps.companies.urls")),
     path("api/teams/", include("apps.teams.urls")),
     path("api/projects/", include("apps.projects.urls")),
     path("api/tasks/", include("apps.projects.task_urls")),

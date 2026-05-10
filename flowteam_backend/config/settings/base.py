@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     
     # Local apps
     "apps.users",
+    "apps.companies",
     "apps.teams",
     "apps.projects",
     "apps.messaging",

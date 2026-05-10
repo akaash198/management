@@ -28,8 +28,12 @@ def get_user_team_role(*, team_id: str, user) -> str | None:
     if not getattr(user, "is_authenticated", False):
         return None
     if getattr(user, "is_superuser", False):
-        # Treat platform superuser as "admin" for team RBAC purposes, while still allowing overrides.
-        return TeamMember.ADMIN
+        return TeamMember.CEO
+    # Check if this user is the CEO of the company that owns this team.
+    from apps.companies.models import Company
+    is_company_ceo = Company.objects.filter(teams__id=team_id, ceo=user).exists()
+    if is_company_ceo:
+        return TeamMember.CEO
     membership = TeamMember.objects.filter(team_id=team_id, user=user).only("role").first()
     return membership.role if membership else None
 
@@ -171,8 +175,7 @@ class TeamCapabilities:
 
 def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
     role = get_user_team_role(team_id=str(team.id), user=user)
-    is_super = bool(getattr(user, "is_superuser", False))
-    is_ceo = is_super or role == TeamMember.CEO
+    is_ceo = role == TeamMember.CEO
     is_admin = is_ceo or role == TeamMember.ADMIN
     is_manager = is_admin or role == TeamMember.MANAGER
     has_ceo = team_has_ceo(team_id=str(team.id))
@@ -186,6 +189,6 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
         can_delete_team=is_ceo,
         can_view_audit_log=is_admin,
         can_create_project=is_manager,
-        assignable_invite_roles=assignable_roles_for_invite(actor_role=role if not is_super else TeamMember.CEO, has_ceo=has_ceo),
+        assignable_invite_roles=assignable_roles_for_invite(actor_role=role, has_ceo=has_ceo),
     )
 

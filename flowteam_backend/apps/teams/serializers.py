@@ -7,10 +7,12 @@ class TeamSerializer(serializers.ModelSerializer):
     avatar_url = serializers.SerializerMethodField()
     member_count = serializers.IntegerField(source="members.count", read_only=True)
     your_role = serializers.SerializerMethodField()
+    company_id = serializers.UUIDField(source="company.id", read_only=True, allow_null=True)
+    company_name = serializers.CharField(source="company.name", read_only=True, allow_null=True)
 
     class Meta:
         model = Team
-        fields = ("id", "name", "slug", "avatar", "avatar_url", "plan", "ai_enabled", "member_count", "your_role", "created_at")
+        fields = ("id", "name", "slug", "avatar", "avatar_url", "plan", "ai_enabled", "company_id", "company_name", "member_count", "your_role", "created_at")
         read_only_fields = ("id", "slug", "created_at")
         extra_kwargs = {"avatar": {"write_only": True}}
 

@@ -10,6 +10,13 @@ class Team(models.Model):
     avatar = models.ImageField(upload_to="team_avatars/", null=True, blank=True)
     plan = models.CharField(max_length=20, default="free")
     ai_enabled = models.BooleanField(default=False)
+    company = models.ForeignKey(
+        "companies.Company",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="teams",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_teams"
     )
