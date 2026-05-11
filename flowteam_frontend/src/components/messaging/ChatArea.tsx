@@ -1354,7 +1354,7 @@ export function ChatArea({
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Pill tab group */}
-          <div className={cn("hidden h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border", searchOpen ? "xl:flex" : "sm:flex")}>
+          <div className={cn("hidden h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border", searchOpen ? "hidden 2xl:flex" : "sm:flex")}>
             <button
               type="button"
               onClick={() => setPinsOpen(true)}
