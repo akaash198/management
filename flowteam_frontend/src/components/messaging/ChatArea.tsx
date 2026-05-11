@@ -143,6 +143,17 @@ export function ChatArea({
     },
   });
 
+  // Only show the disconnected banner after 3s of being non-connected,
+  // so brief reconnects (token refresh, tab focus, etc.) don't flash it.
+  useEffect(() => {
+    if (connectionState === "connected") {
+      setShowDisconnected(false);
+      return;
+    }
+    const t = setTimeout(() => setShowDisconnected(true), 3000);
+    return () => clearTimeout(t);
+  }, [connectionState]);
+
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const pendingPrependAdjustRef = useRef<{ scrollHeight: number; scrollTop: number } | null>(null);
   const isAtBottomRef = useRef(true);
@@ -157,6 +168,7 @@ export function ChatArea({
   const [dragActive, setDragActive] = useState(false);
   const [channelSummary, setChannelSummary] = useState("");
   const [summarizingChannel, setSummarizingChannel] = useState(false);
+  const [showDisconnected, setShowDisconnected] = useState(false);
   const [showFormatToolbar, setShowFormatToolbar] = useState(false);
 
   const draftKey = `draft:channel:${channel.id}`;
@@ -2095,11 +2107,11 @@ export function ChatArea({
              </div>
           </div>
           <div className="flex justify-center">
-            {connectionState !== "connected" && (
+            {showDisconnected && (
               <button
                 type="button"
                 className="text-[10px] text-red-500 flex items-center gap-2"
-                onClick={() => reconnectNow()}
+                onClick={() => { setShowDisconnected(false); reconnectNow(); }}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" aria-hidden="true" />
                 {connectionState === "connecting" ? "Reconnecting…" : "Disconnected"} (click to retry)
