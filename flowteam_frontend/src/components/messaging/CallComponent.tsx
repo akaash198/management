@@ -424,8 +424,8 @@ export function CallComponent({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="p-0 overflow-hidden border-0 max-w-md w-full [&>button]:hidden" 
-        style={{ borderRadius: '20px' }}
+        className="p-0 overflow-hidden border-0 max-w-md w-full [&>button]:hidden shadow-2xl" 
+        style={{ borderRadius: '24px' }}
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -433,41 +433,62 @@ export function CallComponent({
           <DialogTitle>{callType === 'video' ? 'Video' : 'Audio'} call with {remoteUserName}</DialogTitle>
         </VisuallyHidden>
 
-        <div className="relative flex flex-col bg-gradient-to-b from-slate-800 to-slate-900 text-white min-h-[520px]">
+        <div className="relative flex flex-col bg-black text-white min-h-[520px] overflow-hidden">
+          
+          {/* Ambient Blurred Background */}
+          {remoteUserAvatar && (
+            <div 
+              className="absolute inset-0 z-0 opacity-40 mix-blend-screen scale-110"
+              style={{
+                backgroundImage: `url(${remoteUserAvatar})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: 'blur(60px)'
+              }}
+            />
+          )}
+          {!remoteUserAvatar && (
+            <div className="absolute inset-0 z-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 opacity-60 blur-3xl scale-150" />
+          )}
 
           {/* ── Calling screen ── */}
           {callStatus === 'calling' && (
-            <div className="flex flex-col items-center justify-center flex-1 gap-6 py-16 px-8">
+            <div className="relative z-10 flex flex-col items-center justify-center flex-1 gap-8 py-16 px-8 animate-in fade-in zoom-in-95 duration-500">
               <div className="relative flex items-center justify-center">
-                <span className="absolute inline-flex h-36 w-36 rounded-full bg-white/10 animate-ping" style={{ animationDuration: '1.8s' }} />
-                <span className="absolute inline-flex h-28 w-28 rounded-full bg-white/10 animate-ping" style={{ animationDuration: '1.8s', animationDelay: '0.4s' }} />
-                <Avatar className="h-20 w-20 border-2 border-white/30 relative z-10">
+                {/* Multi-layered dynamic ripples */}
+                <span className="absolute inline-flex h-48 w-48 rounded-full bg-white/5 animate-ping" style={{ animationDuration: '2.5s' }} />
+                <span className="absolute inline-flex h-36 w-36 rounded-full bg-white/10 animate-ping" style={{ animationDuration: '2.5s', animationDelay: '0.8s' }} />
+                <span className="absolute inline-flex h-28 w-28 rounded-full border border-white/20 animate-pulse" />
+                <Avatar className="h-24 w-24 border-[3px] border-white/40 shadow-2xl shadow-white/10 relative z-10 transition-transform duration-700 hover:scale-105">
                   {remoteUserAvatar && <AvatarImage src={remoteUserAvatar} />}
-                  <AvatarFallback className="text-2xl font-semibold bg-slate-600 text-white">{initials}</AvatarFallback>
+                  <AvatarFallback className="text-3xl font-semibold bg-slate-800/80 backdrop-blur-sm text-white">{initials}</AvatarFallback>
                 </Avatar>
               </div>
 
-              <div className="text-center space-y-1">
-                <h2 className="text-2xl font-semibold">{remoteUserName}</h2>
-                <p className="text-slate-400 text-sm animate-pulse">
+              <div className="text-center space-y-2">
+                <h2 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">{remoteUserName}</h2>
+                <p className="text-white/70 text-sm font-medium tracking-wide uppercase flex items-center justify-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
                   {existingCallId ? 'Connecting…' : `${callType === 'video' ? 'Video' : 'Audio'} calling…`}
                 </p>
               </div>
 
               <button
                 onClick={endCall}
-                className="mt-8 h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center shadow-lg"
+                className="mt-12 h-16 w-16 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] hover:shadow-[0_0_30px_rgba(239,68,68,0.6)] hover:scale-110 active:scale-95"
               >
-                <PhoneOff size={26} />
+                <PhoneOff size={26} strokeWidth={2.5} />
               </button>
             </div>
           )}
 
           {/* ── Connected screen ── */}
           {callStatus === 'connected' && (
-            <div className="flex flex-col flex-1">
-              {/* Remote video / avatar */}
-              <div className="relative flex-1 bg-slate-800 min-h-[340px]">
+            <div className="relative z-10 flex flex-col flex-1 h-full">
+              {/* Remote video / avatar container */}
+              <div className="relative flex-1 bg-black/40 backdrop-blur-md overflow-hidden flex items-center justify-center">
+                
+                {/* Always render remote streams (invisible if audio-only) to capture the audio playback */}
                 {Array.from(remoteStreams.entries()).map(([userId, stream]) => (
                   <video
                     key={userId}
@@ -476,60 +497,73 @@ export function CallComponent({
                         remoteVideoRefs.current.set(userId, el);
                         if (el.srcObject !== stream) {
                           el.srcObject = stream;
+                          el.volume = 1.0;
+                          el.muted = false;
                           el.play().catch((e) => console.error("Playback failed", e));
                         }
                       }
                     }}
                     autoPlay
                     playsInline
-                    className="w-full h-full object-cover"
+                    className={cn(
+                      "w-full h-full object-cover transition-opacity duration-500",
+                      callType === 'audio' ? "opacity-0 absolute inset-0" : "opacity-100 relative z-10"
+                    )}
                   />
                 ))}
-                {remoteStreams.size === 0 && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <Avatar className="h-24 w-24">
-                      {remoteUserAvatar && <AvatarImage src={remoteUserAvatar} />}
-                      <AvatarFallback className="text-3xl bg-slate-600 text-white">{initials}</AvatarFallback>
-                    </Avatar>
+
+                {/* Show big avatar overlay for audio calls or when waiting for video stream */}
+                {(callType === 'audio' || remoteStreams.size === 0) && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center animate-in fade-in zoom-in-95 duration-500 z-0">
+                    <div className="relative">
+                      <span className="absolute inset-[-40%] rounded-full border border-white/10 animate-[spin_4s_linear_infinite]" />
+                      <span className="absolute inset-[-20%] rounded-full border border-white/5 animate-[spin_3s_linear_infinite_reverse]" />
+                      <Avatar className="h-32 w-32 shadow-2xl border border-white/20 relative z-10">
+                        {remoteUserAvatar && <AvatarImage src={remoteUserAvatar} />}
+                        <AvatarFallback className="text-4xl font-semibold bg-slate-800/80 backdrop-blur-sm text-white">{initials}</AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
                 )}
 
-                {/* Duration */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 bg-black/50 text-white text-xs px-3 py-1 rounded-full tabular-nums">
-                  {formatDuration(callDuration)}
+                {/* Top bar (Duration & Name) */}
+                <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 to-transparent flex items-center justify-between z-20">
+                  <div className="flex items-center gap-2.5">
+                     <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                     <span className="text-white/90 text-sm font-medium drop-shadow-sm">{remoteUserName}</span>
+                  </div>
+                  <div className="bg-black/40 backdrop-blur-md text-white/90 font-mono text-sm px-3 py-1.5 rounded-lg border border-white/10 shadow-sm">
+                    {formatDuration(callDuration)}
+                  </div>
                 </div>
 
                 {/* Local PiP (video only) */}
                 {callType === 'video' && (
-                  <div className="absolute bottom-3 right-3 w-28 h-20 rounded-xl overflow-hidden border border-white/20 shadow-lg bg-black">
+                  <div className="absolute bottom-6 right-6 w-32 h-44 sm:w-40 sm:h-56 rounded-2xl overflow-hidden border-2 border-white/20 shadow-2xl bg-slate-900 z-30 transition-transform hover:scale-105 duration-300">
                     <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
                     {isVideoOff && (
-                      <div className="absolute inset-0 bg-slate-800 flex items-center justify-center">
-                        <VideoOff size={16} className="text-slate-400" />
+                      <div className="absolute inset-0 bg-slate-800/90 backdrop-blur flex flex-col items-center justify-center gap-2">
+                        <VideoOff size={24} className="text-white/50" />
                       </div>
                     )}
                   </div>
                 )}
-
-                <div className="absolute bottom-3 left-3 text-white text-xs bg-black/50 px-2 py-1 rounded-full">
-                  {remoteUserName}
-                </div>
               </div>
 
               {/* Controls */}
-              <div className="flex items-center justify-center gap-4 py-5 bg-slate-900">
+              <div className="flex items-center justify-center gap-3 sm:gap-6 py-6 px-4 bg-black/60 backdrop-blur-xl border-t border-white/10 z-20">
                 <ControlButton active={isMuted} danger onClick={toggleMute} label={isMuted ? 'Unmute' : 'Mute'}>
-                  {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
                 </ControlButton>
 
                 {callType === 'video' && (
                   <ControlButton active={isVideoOff} danger onClick={toggleVideo} label={isVideoOff ? 'Show video' : 'Hide video'}>
-                    {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
+                    {isVideoOff ? <VideoOff size={22} /> : <Video size={22} />}
                   </ControlButton>
                 )}
 
                 <ControlButton onClick={toggleScreenShare} active={isScreenSharing} label="Screen share">
-                  <Monitor size={20} />
+                  <Monitor size={22} />
                 </ControlButton>
 
                 {meetingId && (
@@ -539,16 +573,18 @@ export function CallComponent({
                     danger
                     label={isRecording ? "Stop recording" : "Record"}
                   >
-                    <CircleDot size={20} />
+                    <CircleDot size={22} className={isRecording ? "animate-pulse text-red-400" : ""} />
                   </ControlButton>
                 )}
+
+                <div className="w-px h-10 bg-white/10 mx-2" />
 
                 <button
                   onClick={endCall}
                   title="End call"
-                  className="h-14 w-14 rounded-full bg-red-500 hover:bg-red-600 transition-colors flex items-center justify-center shadow-md"
+                  className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:scale-110 active:scale-95"
                 >
-                  <PhoneOff size={22} />
+                  <PhoneOff size={24} strokeWidth={2.5} />
                 </button>
               </div>
             </div>
@@ -573,8 +609,8 @@ function ControlButton({
       onClick={onClick}
       title={label}
       className={cn(
-        "h-12 w-12 rounded-full flex items-center justify-center transition-colors text-white",
-        danger && active ? "bg-red-500/80 hover:bg-red-500" : "bg-white/10 hover:bg-white/20",
+        "h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 text-white border border-transparent shadow-sm hover:scale-105 active:scale-95",
+        danger && active ? "bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]" : "bg-white/10 hover:bg-white/20 hover:border-white/20 backdrop-blur-md",
       )}
     >
       {children}

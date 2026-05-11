@@ -1326,19 +1326,19 @@ export function ChatArea({
       {/* ── Header ── */}
       <div className="z-10 flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-card px-5 xl:pr-[348px]">
         {/* Channel identity */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
             {channel.is_private ? <Lock size={13} /> : <Hash size={13} />}
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 min-w-0">
               <h2 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-tight">
                 {channel.display_name}
               </h2>
               {directPeer ? (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[11px]">
+                <span className="inline-flex items-center gap-1 shrink-0 text-[11px] truncate">
                   <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", directPeerIsOnline ? "bg-emerald-500" : "bg-amber-400")} />
-                  <span className={directPeerIsOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500"}>
+                  <span className={cn("truncate", directPeerIsOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500")}>
                     {directPeerIsOnline ? "Online" : "Away"}
                   </span>
                 </span>
