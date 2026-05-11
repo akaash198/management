@@ -1,7 +1,7 @@
 "use client";
 
 import { Channel } from "@/types/messaging";
-import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Lock, MessageSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Inbox, Lock, MessageSquare, MessagesSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive, ArrowDownUp, Compass } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -65,6 +65,7 @@ export function ChatSidebar({
   });
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({ starred: true, channels: true, private: true, dm: true });
   const [sortMode, setSortMode] = useState<'recent' | 'alpha' | 'unread'>('recent');
+  const [browseOpen, setBrowseOpen] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
   const [channelOpen, setChannelOpen] = useState(false);
   const [dmQuery, setDmQuery] = useState("");
@@ -113,10 +114,19 @@ export function ChatSidebar({
       const bMuted = !!b.is_muted;
       if (aMuted !== bMuted) return aMuted ? 1 : -1;
 
-      const aUnread = aMuted ? 0 : (a.unread_count || 0);
-      const bUnread = bMuted ? 0 : (b.unread_count || 0);
-      if (aUnread !== bUnread) return bUnread - aUnread;
+      if (sortMode === 'unread') {
+        const aUnread = aMuted ? 0 : (a.unread_count || 0);
+        const bUnread = bMuted ? 0 : (b.unread_count || 0);
+        if (aUnread !== bUnread) return bUnread - aUnread;
+      }
 
+      if (sortMode === 'alpha') {
+        const aName = (a.display_name || a.name || "").toLowerCase();
+        const bName = (b.display_name || b.name || "").toLowerCase();
+        return aName.localeCompare(bName);
+      }
+
+      // Default: recent
       const aLast = a.last_message?.created_at ? Date.parse(a.last_message.created_at) : 0;
       const bLast = b.last_message?.created_at ? Date.parse(b.last_message.created_at) : 0;
       if (aLast !== bLast) return bLast - aLast;
@@ -125,7 +135,7 @@ export function ChatSidebar({
       const bName = (b.display_name || b.name || "").toLowerCase();
       return aName.localeCompare(bName);
     });
-  }, [channels, query, showMuted, unreadOnly]);
+  }, [channels, query, showMuted, unreadOnly, sortMode]);
 
   const publicChannels = useMemo(() => visible.filter((c) => !c.is_private && !starredIds.has(c.id)), [visible, starredIds]);
   const directMessages = useMemo(() => visible.filter((c) => isDmChannel(c) && !starredIds.has(c.id)), [visible, starredIds]);
@@ -213,6 +223,16 @@ export function ChatSidebar({
       onRefreshChannels?.();
     } catch (err) {
       toast.error(toErrorMessage(err, "Failed to unmute channel"));
+    }
+  };
+
+  const leaveChannel = async (channelId: string) => {
+    try {
+      await api.post(`/messaging/channels/${channelId}/leave/`);
+      toast.success("Left channel");
+      onRefreshChannels?.();
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to leave channel"));
     }
   };
 
@@ -306,11 +326,69 @@ export function ChatSidebar({
             <EyeOff size={11} />
             {showMuted ? "Muted on" : "Muted off"}
           </button>
+          {/* Sort dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 rounded-md border border-transparent bg-[hsl(220_18%_18%)] px-2 py-1 text-[11px] font-medium text-[hsl(220_10%_55%)] hover:bg-[hsl(220_18%_22%)] transition-all"
+                title="Sort channels"
+              >
+                <ArrowDownUp size={10} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuItem onClick={() => setSortMode('recent')} className={cn(sortMode === 'recent' && "font-semibold text-primary")}>
+                Most recent
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortMode('alpha')} className={cn(sortMode === 'alpha' && "font-semibold text-primary")}>
+                Alphabetical
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortMode('unread')} className={cn(sortMode === 'unread' && "font-semibold text-primary")}>
+                Most unread
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
       {/* ── Channel list ── */}
       <ScrollArea className="flex-1 py-2">
+        {/* ── Quick links ── */}
+        <div className="mb-2 space-y-0.5 px-2">
+          <button
+            type="button"
+            onClick={() => setUnreadOnly(true)}
+            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+          >
+            <Inbox size={13} className="opacity-60 shrink-0" />
+            <span className="flex-1 text-left">All Unreads</span>
+            {unreadTotal > 0 && (
+              <span className="h-4 min-w-[16px] rounded-full bg-[hsl(239_84%_60%)] text-white text-[9px] font-bold flex items-center justify-center px-1 leading-none">
+                {unreadTotal > 99 ? "99+" : unreadTotal}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => toast.info("Threads view coming soon")}
+            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+          >
+            <MessagesSquare size={13} className="opacity-60 shrink-0" />
+            <span className="flex-1 text-left">Threads</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => toast.info("Drafts view coming soon")}
+            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+          >
+            <Pencil size={13} className="opacity-60 shrink-0" />
+            <span className="flex-1 text-left">Drafts &amp; Sent</span>
+          </button>
+        </div>
+
+        <div className="mx-3 mb-2 h-px bg-[hsl(220_18%_20%)]" />
+
         {/* ── Starred ── */}
         {starredChannels.length > 0 && (
           <>
@@ -334,8 +412,16 @@ export function ChatSidebar({
             {isLoading ? [1,2,3].map(i => <SkeletonRow key={i} />) : publicChannels.length === 0 ? (
               <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No channels found.</p>
             ) : publicChannels.map((ch) => (
-              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} onLeave={leaveChannel} />
             ))}
+            {/* Browse all channels */}
+            <button
+              type="button"
+              onClick={() => setBrowseOpen(true)}
+              className="nav-item w-full flex items-center gap-2 px-2.5 py-1.5 text-[11px] rounded-md opacity-60 hover:opacity-100"
+            >
+              <Compass size={12} /> Browse all channels
+            </button>
           </div>
         )}
 
@@ -598,6 +684,7 @@ function ChannelRow({
   onUnmute,
   starred,
   onToggleStar,
+  onLeave,
 }: {
   channel: Channel;
   active: boolean;
@@ -608,6 +695,7 @@ function ChannelRow({
   onUnmute: (channelId: string) => void;
   starred?: boolean;
   onToggleStar?: (id: string) => void;
+  onLeave?: (channelId: string) => void;
 }) {
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
   return (
@@ -703,6 +791,14 @@ function ChannelRow({
                   </DropdownMenuItem>
                 </>
               )}
+              {onLeave && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => void onLeave(channel.id)} className="text-destructive focus:text-destructive">
+                    <LogOut size={14} className="mr-2 opacity-70" /> Leave channel
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -745,11 +841,16 @@ function DmRow({
       )}
       style={{ whiteSpace: "normal", alignItems: "flex-start" }}
     >
-      {/* Presence dot + icon */}
-      <div className="relative mt-[3px] shrink-0">
-        <User size={13} className="opacity-60" />
+      {/* Avatar with presence */}
+      <div className="relative shrink-0">
+        <Avatar className="h-6 w-6">
+          <AvatarImage src="" />
+          <AvatarFallback className="text-[9px] bg-[hsl(220_18%_22%)] text-[hsl(220_14%_65%)]">
+            {(channel.display_name?.[0] ?? "?").toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
         <span className={cn(
-          "absolute -right-1 -bottom-1 h-2 w-2 rounded-full ring-[1.5px] ring-[hsl(222_26%_12%)]",
+          "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-[1.5px] ring-[hsl(222_26%_12%)]",
           online ? "bg-emerald-500" : "bg-[hsl(220_10%_40%)]"
         )} />
       </div>
