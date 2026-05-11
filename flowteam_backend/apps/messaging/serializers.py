@@ -276,7 +276,7 @@ class CallSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Call
-        fields = ["id", "channel", "started_by", "started_at", "ended_at", "is_active", "participants"]
+        fields = ["id", "channel", "started_by", "started_at", "ended_at", "is_active", "call_type", "participants"]
 
     def get_participants(self, obj):
         return CallParticipantSerializer(obj.participants.all(), many=True).data

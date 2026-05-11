@@ -473,7 +473,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def start_call(self, call_type):
         from .models import Call, CallParticipant
         channel = Channel.objects.get(id=self.channel_id)
-        call = Call.objects.create(channel=channel, started_by=self.user)
+        call = Call.objects.create(channel=channel, started_by=self.user, call_type=call_type)
         CallParticipant.objects.create(call=call, user=self.user)
         return CallSerializer(call).data
 

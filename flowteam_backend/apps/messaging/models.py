@@ -171,6 +171,7 @@ class Notification(models.Model):
         ("task_moved", "Task Moved"),
         ("task_completed", "Task Completed"),
         ("invite_accepted", "Invite Accepted"),
+        ("missed_call", "Missed Call"),
     )
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -210,6 +211,7 @@ class Call(models.Model):
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)
+    call_type = models.CharField(max_length=10, choices=(('audio', 'Audio'), ('video', 'Video')), default='audio')
 
     class Meta:
         ordering = ["-started_at"]
