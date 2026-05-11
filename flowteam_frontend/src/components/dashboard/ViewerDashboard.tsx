@@ -18,39 +18,42 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
   const projectItems = data.projects.items ?? [];
 
   return (
-    <div className="mx-auto max-w-[1400px] space-y-7 p-6">
-      {/* Header */}
+    <div className="mx-auto max-w-[1400px] space-y-6 p-6">
+
+      {/* ── Header ── */}
       <div className="flex items-start justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <Eye size={16} className="text-muted-foreground" />
-            <h1 className="text-[22px] font-semibold tracking-tight text-foreground">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-muted/70">
+              <Eye size={13} className="text-muted-foreground" />
+            </div>
+            <h1 className="text-[20px] font-semibold tracking-[-0.03em] text-foreground">
               Good {getTimeOfDay()}, {firstName}
             </h1>
           </div>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
+          <p className="ml-8 text-[12.5px] text-muted-foreground">
             You have read-only access to this workspace.
           </p>
         </div>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-3 py-1.5 text-[11px] font-semibold text-muted-foreground">
-          <Eye size={11} />
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[10.5px] font-semibold text-muted-foreground">
+          <Eye size={10} />
           View only
         </span>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
-        <div className="min-w-0 space-y-6">
-          {/* Projects */}
+      {/* ── Main grid ── */}
+      <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
+        <div className="min-w-0 space-y-5">
           <div>
             <div className="mb-3 flex items-center justify-between">
-              <h2 className="flex items-center gap-2 text-[14px] font-semibold text-foreground">
-                <Briefcase size={14} className="text-primary" />
+              <h2 className="flex items-center gap-2 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                <Briefcase size={13} className="text-primary" />
                 Projects
               </h2>
               <SectionLink href="/projects">View all</SectionLink>
             </div>
             {projectItems.length === 0 ? (
-              <div className="rounded-xl border border-border bg-card p-5 text-[13px] text-muted-foreground">
+              <div className="rounded-2xl border border-border bg-card p-5 text-[12.5px] text-muted-foreground">
                 No projects available.
               </div>
             ) : (
@@ -61,10 +64,10 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
           </div>
         </div>
 
-        {/* Sidebar: activity */}
+        {/* Sidebar */}
         <div>
-          <Section title="Team activity" icon={<Activity size={14} className="text-muted-foreground" />}>
-            <div className="divide-y divide-border">
+          <Section title="Team activity" icon={<Activity size={13} className="text-muted-foreground" />}>
+            <div className="divide-y divide-border/60">
               {(data.activity?.length ?? 0) === 0 ? (
                 <EmptyNote>No recent activity.</EmptyNote>
               ) : (
