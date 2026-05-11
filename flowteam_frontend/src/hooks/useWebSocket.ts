@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getAccessToken, getRefreshToken, setTokens } from "@/lib/auth";
+import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "@/lib/auth";
 import { getApiBaseUrl } from "@/lib/runtimeConfig";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
@@ -13,14 +13,23 @@ interface WebSocketOptions {
 
 async function tryRefreshToken(): Promise<boolean> {
   const refresh = getRefreshToken();
-  if (!refresh) return false;
+  if (!refresh) {
+    clearTokens();
+    if (typeof window !== "undefined") window.location.href = "/login";
+    return false;
+  }
   try {
     const res = await fetch(`${getApiBaseUrl()}/auth/refresh/`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ refresh }),
     });
-    if (!res.ok) return false;
+    if (!res.ok) {
+      // Refresh token is expired or invalid — force re-login.
+      clearTokens();
+      if (typeof window !== "undefined") window.location.href = "/login";
+      return false;
+    }
     const body = await res.json();
     if (body?.success && body?.data?.access) {
       setTokens(body.data.access, refresh);
@@ -117,7 +126,7 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
 
       setConnectionState("disconnected");
       if (shouldReconnectRef.current !== false) {
-        const backoff = Math.min(1000 * Math.pow(2, reconnectCountRef.current), 30000);
+        const backoff = Math.min(1000 * Math.pow(2, reconnectCountRef.current), 8000);
         reconnectTimeoutRef.current = setTimeout(() => {
           reconnectCountRef.current += 1;
           connectRef.current?.();
