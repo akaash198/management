@@ -275,9 +275,11 @@ export function Sidebar() {
 
         {/* User avatar dropdown */}
         <DropdownMenu>
+          <TooltipPrimitive.Root delayDuration={300}>
+          <TooltipPrimitive.Trigger asChild>
           <DropdownMenuTrigger asChild>
             <button
-              className="rail-item group relative focus-visible:outline-none"
+              className="rail-item relative focus-visible:outline-none"
               aria-label="Account menu"
             >
               <div className="relative">
@@ -295,15 +297,19 @@ export function Sidebar() {
                   style={{ borderColor: "hsl(var(--rail-bg))" }}
                 />
               </div>
-              {/* Flyout tooltip */}
-              <span className="rail-tooltip">
-                <span className="font-semibold">{user?.full_name ?? "Account"}</span>
-                {customStatus && (
-                  <span className="block text-[10px] opacity-70 mt-0.5">{customStatus.emoji} {customStatus.text}</span>
-                )}
-              </span>
             </button>
           </DropdownMenuTrigger>
+          </TooltipPrimitive.Trigger>
+          <TooltipPrimitive.Portal>
+            <TooltipPrimitive.Content side="right" sideOffset={12} className="rail-radix-tooltip">
+              <span className="font-semibold">{user?.full_name ?? "Account"}</span>
+              {customStatus && (
+                <span className="block text-[10px] opacity-70 mt-0.5">{customStatus.emoji} {customStatus.text}</span>
+              )}
+              <TooltipPrimitive.Arrow className="fill-[hsl(224_28%_14%)]" width={8} height={5} />
+            </TooltipPrimitive.Content>
+          </TooltipPrimitive.Portal>
+          </TooltipPrimitive.Root>
 
           <DropdownMenuContent side="right" align="end" sideOffset={12} className="w-58 min-w-[220px]">
             <DropdownMenuLabel className="font-normal">
