@@ -74,7 +74,7 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary/8">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-border">
               <Layers size={13} className="text-primary" />
             </div>
             <h1 className="text-[20px] font-semibold tracking-[-0.03em] text-foreground">
@@ -186,10 +186,10 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
 
 function FocusTaskCard({ task }: { task: DashboardTask }) {
   const priorityClasses: Record<string, string> = {
-    urgent: "border-red-200 bg-red-50 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400",
-    high:   "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-400",
-    normal: "border-primary/20 bg-primary/8 text-primary",
-    low:    "border-border bg-muted/60 text-muted-foreground",
+    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
+    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
+    normal: "border-primary/25 text-primary",
+    low:    "border-border text-muted-foreground",
   };
   return (
     <Link

@@ -170,7 +170,7 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
                 href="/dashboard/my-tasks"
                 className="flex items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5 transition-all duration-150 hover:border-primary/20 hover:bg-primary/3 group"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground group-hover:text-primary group-hover:border-primary/20 transition-colors">
                   <ListTodo size={13} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -183,7 +183,7 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
                 href="/calendar"
                 className="flex items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5 transition-all duration-150 hover:border-primary/20 hover:bg-primary/3 group"
               >
-                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground group-hover:text-primary group-hover:border-primary/20 transition-colors">
                   <CalendarRange size={13} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -204,7 +204,7 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
               <div className="flex items-center gap-3">
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={reportingTo.user.avatar_url || ""} />
-                  <AvatarFallback className="bg-primary/8 text-[10px] font-semibold text-primary">
+                  <AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">
                     {reportingTo.user.full_name.split(" ").map((n: string) => n[0]).join("")}
                   </AvatarFallback>
                 </Avatar>
@@ -223,10 +223,10 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
 
 function FocusCard({ task }: { task: DashboardTask }) {
   const priorityClasses: Record<string, string> = {
-    urgent: "border-red-200 bg-red-50 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400",
-    high:   "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-400",
-    normal: "border-primary/20 bg-primary/8 text-primary",
-    low:    "border-border bg-muted/60 text-muted-foreground",
+    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
+    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
+    normal: "border-primary/25 text-primary",
+    low:    "border-border text-muted-foreground",
   };
   return (
     <Link

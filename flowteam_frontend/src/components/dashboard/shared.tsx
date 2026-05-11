@@ -89,9 +89,7 @@ export function StatCard({
     )}>
       <div className="mb-4 flex items-start justify-between">
         <p className="text-[11.5px] font-medium tracking-[-0.01em] text-muted-foreground leading-snug">{title}</p>
-        <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", iconBg)}>
-          <Icon className={cn("h-3.5 w-3.5", iconColor)} />
-        </div>
+        <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
       </div>
       <p className={cn(
         "text-[30px] font-semibold leading-none tracking-[-0.04em]",
@@ -150,7 +148,7 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
               {(project.members ?? []).slice(0, 4).map((m) => (
                 <div
                   key={m.id}
-                  className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-primary/10 text-[8px] font-bold uppercase text-primary"
+                  className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-muted text-[8px] font-bold uppercase text-muted-foreground"
                   title={m.full_name}
                 >
                   {m.full_name.split(" ").map((n: string) => n[0]).join("")}
@@ -194,8 +192,8 @@ export function TaskRow({ task }: { task: DashboardTask }) {
         <span className={cn(
           "shrink-0 rounded-lg border px-2 py-0.5 text-[10.5px] font-semibold tabular-nums",
           task.is_overdue
-            ? "border-destructive/20 bg-destructive/6 text-destructive"
-            : "border-border bg-muted/50 text-muted-foreground"
+            ? "border-destructive/30 text-destructive"
+            : "border-border text-muted-foreground"
         )}>
           {task.due_date}
         </span>
@@ -211,7 +209,7 @@ export function ActivityRow({ item }: { item: ActivityItemType }) {
     <div className="flex items-start gap-3 px-5 py-3">
       <Avatar className="mt-0.5 h-6 w-6 shrink-0">
         <AvatarImage src={item.actor.avatar ?? ""} />
-        <AvatarFallback className="bg-primary/8 text-[9px] font-bold text-primary">
+        <AvatarFallback className="bg-muted text-[9px] font-bold text-muted-foreground">
           {item.actor.full_name[0]}
         </AvatarFallback>
       </Avatar>
@@ -235,10 +233,10 @@ export function ActivityRow({ item }: { item: ActivityItemType }) {
 
 export function PriorityPill({ priority }: { priority: PriorityKey }) {
   const classes: Record<PriorityKey, string> = {
-    urgent: "border-red-200 bg-red-50 text-red-600 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-400",
-    high:   "border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-400",
-    normal: "border-primary/20 bg-primary/8 text-primary",
-    low:    "border-border bg-muted/60 text-muted-foreground",
+    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
+    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
+    normal: "border-primary/25 text-primary",
+    low:    "border-border text-muted-foreground",
   };
   return (
     <span className={cn(
@@ -308,7 +306,7 @@ export function QuickActionLink({
       href={href}
       className="flex items-center gap-3 rounded-xl border border-border bg-background px-3.5 py-2.5 transition-all duration-150 hover:border-primary/20 hover:bg-primary/3 group"
     >
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-primary/8 text-primary transition-colors group-hover:bg-primary/12">
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors group-hover:text-primary group-hover:border-primary/20">
         {icon}
       </div>
       <div className="min-w-0 flex-1">
@@ -324,11 +322,11 @@ export function QuickActionLink({
 
 export function RoleBadge({ role }: { role: string }) {
   const styles: Record<string, string> = {
-    ceo:     "bg-violet-50 text-violet-600 border-violet-100 dark:bg-violet-950/30 dark:text-violet-300 dark:border-violet-900/40",
-    admin:   "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/30 dark:text-blue-300 dark:border-blue-900/40",
-    manager: "bg-primary/6 text-primary border-primary/15",
-    member:  "bg-muted/60 text-muted-foreground border-border",
-    viewer:  "bg-muted/40 text-muted-foreground/60 border-border/60",
+    ceo:     "text-violet-600 border-violet-200 dark:text-violet-300 dark:border-violet-800",
+    admin:   "text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-800",
+    manager: "text-primary border-primary/25",
+    member:  "text-muted-foreground border-border",
+    viewer:  "text-muted-foreground/60 border-border/60",
   };
   return (
     <span className={cn(
@@ -349,7 +347,7 @@ export function MemberRow({ member, action }: { member: TeamMember; action?: Rea
     <div className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20">
       <Avatar className="h-7 w-7 shrink-0">
         <AvatarImage src={member.user.avatar_url || ""} />
-        <AvatarFallback className="bg-primary/8 text-[10px] font-semibold text-primary">
+        <AvatarFallback className="bg-muted text-[10px] font-semibold text-muted-foreground">
           {initials}
         </AvatarFallback>
       </Avatar>

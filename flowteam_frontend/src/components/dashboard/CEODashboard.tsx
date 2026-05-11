@@ -58,7 +58,7 @@ export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetchin
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-violet-50 dark:bg-violet-950/40">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-border">
               <Crown size={13} className="text-violet-500" />
             </div>
             <h1 className="text-[20px] font-semibold tracking-[-0.03em] text-foreground">
@@ -85,11 +85,11 @@ export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetchin
       </div>
 
       {/* ── Org pulse banner ── */}
-      <div className="overflow-hidden rounded-2xl border border-violet-100/80 bg-gradient-to-br from-violet-50/60 via-background to-background p-5 dark:border-violet-900/20 dark:from-violet-950/20 dark:to-transparent shadow-2xs">
+      <div className="overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-2xs">
         <div className="mb-4 flex items-center gap-2">
-          <div className="flex items-center gap-1.5 rounded-full border border-violet-200/80 bg-white/70 px-2.5 py-1 dark:border-violet-800/50 dark:bg-violet-950/50">
-            <Zap size={10} className="text-violet-500" />
-            <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-violet-600 dark:text-violet-300">Organisation pulse</span>
+          <div className="flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1">
+            <Zap size={10} className="text-muted-foreground" />
+            <span className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Organisation pulse</span>
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

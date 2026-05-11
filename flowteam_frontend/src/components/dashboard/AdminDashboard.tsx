@@ -51,7 +51,7 @@ export function AdminDashboard({ data, members, activeTeamId, onRefresh, isFetch
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-0.5">
-            <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-950/40">
+            <div className="flex h-6 w-6 items-center justify-center rounded-lg border border-border">
               <Shield size={13} className="text-blue-500" />
             </div>
             <h1 className="text-[20px] font-semibold tracking-[-0.03em] text-foreground">
