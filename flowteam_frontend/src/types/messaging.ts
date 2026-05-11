@@ -12,6 +12,7 @@ export interface Channel {
   mute_until?: string | null;
   notification_level?: "all" | "mentions" | "mute";
   notification_keywords?: string[];
+  member_count?: number;
 }
 
 export interface Attachment {
