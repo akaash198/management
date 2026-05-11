@@ -34,14 +34,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.channel_id = self.scope["url_route"]["kwargs"]["channel_id"]
         self.group_name = f"chat_{self.channel_id}"
         self._rate_key_prefix = None
-        
-        # Auth
+
+        # Auth — must accept() before closing with a custom code so the browser
+        # receives the actual close code (4001) rather than a network error (1006).
         query_string = self.scope.get("query_string", b"").decode()
         token = None
         if "token=" in query_string:
             token = query_string.split("token=")[1].split("&")[0]
-            
+
         if not token:
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -50,10 +52,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
             user_id = untyped_token.payload.get("user_id")
             self.user = await self.get_user(user_id)
             if not await self.is_member(self.user, self.channel_id):
+                await self.accept()
                 await self.close(code=4001)
                 return
             self._rate_key_prefix = f"ws:chat:{self.channel_id}:user:{self.user.id}"
         except (InvalidToken, TokenError, User.DoesNotExist):
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -524,6 +528,7 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
             token = query_string.split("token=")[1].split("&")[0]
 
         if not token:
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -536,6 +541,7 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
             await self.channel_layer.group_add(self.group_name, self.channel_name)
             await self.accept()
         except Exception:
+            await self.accept()
             await self.close(code=4001)
 
     async def disconnect(self, close_code):
@@ -571,6 +577,7 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
             token = query_string.split("token=")[1].split("&")[0]
 
         if not token:
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -579,10 +586,12 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
             user_id = untyped_token.payload.get("user_id")
             self.user = await self.get_user(user_id)
         except (InvalidToken, TokenError, User.DoesNotExist):
+            await self.accept()
             await self.close(code=4001)
             return
 
         if not await self.can_join_team(self.user.id, self.team_id):
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -682,6 +691,7 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             token = query_string.split("token=")[1].split("&")[0]
             
         if not token:
+            await self.accept()
             await self.close(code=4001)
             return
 
@@ -691,7 +701,8 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             self.group_name = f"notifications_{self.user_id}"
             await self.channel_layer.group_add(self.group_name, self.channel_name)
             await self.accept()
-        except:
+        except Exception:
+            await self.accept()
             await self.close(code=4001)
 
     async def disconnect(self, close_code):
