@@ -7,11 +7,17 @@ export function getApiBaseUrl(): string {
 
 export function getWsBaseUrl(): string {
   const envValue = process.env.NEXT_PUBLIC_WS_URL;
-  if (envValue) return envValue;
+  if (envValue) {
+    // If it's already an absolute ws/wss URL, use it directly.
+    if (envValue.startsWith("ws://") || envValue.startsWith("wss://")) return envValue;
+    // If it's a relative path or just a path prefix, derive the WS origin from
+    // the current page and ignore the env value (the path is already in useMessaging).
+    // Fall through to the window.location derivation below.
+  }
 
   // If the API base URL is configured (common in local dev), derive WS base from it.
   const apiEnv = process.env.NEXT_PUBLIC_API_URL;
-  if (apiEnv) {
+  if (apiEnv && (apiEnv.startsWith("http://") || apiEnv.startsWith("https://"))) {
     try {
       const apiUrl = new URL(apiEnv);
       const proto = apiUrl.protocol === "https:" ? "wss" : "ws";
