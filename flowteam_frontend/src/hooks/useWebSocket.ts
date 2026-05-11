@@ -1,13 +1,35 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getAccessToken } from "@/lib/auth";
+import { getAccessToken, getRefreshToken, setTokens } from "@/lib/auth";
+import { getApiBaseUrl } from "@/lib/runtimeConfig";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
 
 interface WebSocketOptions {
   onMessage?: (data: any) => void;
   shouldReconnect?: boolean;
+}
+
+async function tryRefreshToken(): Promise<boolean> {
+  const refresh = getRefreshToken();
+  if (!refresh) return false;
+  try {
+    const res = await fetch(`${getApiBaseUrl()}/auth/refresh/`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
+    if (!res.ok) return false;
+    const body = await res.json();
+    if (body?.success && body?.data?.access) {
+      setTokens(body.data.access, refresh);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export function useWebSocket(url: string, options: WebSocketOptions = {}) {
@@ -79,10 +101,20 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
 
     socket.onclose = (event) => {
       if (event.code === 4001) {
-        setConnectionState("error");
+        // Auth failure — try refreshing the JWT once, then reconnect.
+        // If refresh fails the user will be redirected to login by the API interceptor.
+        setConnectionState("connecting");
+        tryRefreshToken().then((refreshed) => {
+          if (refreshed) {
+            reconnectCountRef.current = 0;
+            connectRef.current?.();
+          } else {
+            setConnectionState("error");
+          }
+        });
         return;
       }
-      
+
       setConnectionState("disconnected");
       if (shouldReconnectRef.current !== false) {
         const backoff = Math.min(1000 * Math.pow(2, reconnectCountRef.current), 30000);
