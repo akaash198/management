@@ -1,7 +1,7 @@
 "use client";
 
 import { Channel } from "@/types/messaging";
-import { Bell, BellOff, BellRing, CheckCircle2, EyeOff, Hash, Lock, MessageSquare, MoreHorizontal, Plus, Search, User } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Lock, MessageSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,11 @@ export function ChatSidebar({
   const [query, setQuery] = useState("");
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [showMuted, setShowMuted] = useState(true);
+  const [starredIds, setStarredIds] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('flowteam_starred') || '[]')); } catch { return new Set(); }
+  });
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({ starred: true, channels: true, private: true, dm: true });
+  const [sortMode, setSortMode] = useState<'recent' | 'alpha' | 'unread'>('recent');
   const [dmOpen, setDmOpen] = useState(false);
   const [channelOpen, setChannelOpen] = useState(false);
   const [dmQuery, setDmQuery] = useState("");
@@ -122,12 +127,24 @@ export function ChatSidebar({
     });
   }, [channels, query, showMuted, unreadOnly]);
 
-  const publicChannels = useMemo(() => visible.filter((c) => !c.is_private), [visible]);
-  const directMessages = useMemo(() => visible.filter((c) => isDmChannel(c)), [visible]);
+  const publicChannels = useMemo(() => visible.filter((c) => !c.is_private && !starredIds.has(c.id)), [visible, starredIds]);
+  const directMessages = useMemo(() => visible.filter((c) => isDmChannel(c) && !starredIds.has(c.id)), [visible, starredIds]);
   const privateChannels = useMemo(
-    () => visible.filter((c) => c.is_private && !isDmChannel(c) && !isMeetingChannel(c)),
-    [visible]
+    () => visible.filter((c) => c.is_private && !isDmChannel(c) && !isMeetingChannel(c) && !starredIds.has(c.id)),
+    [visible, starredIds]
   );
+  const starredChannels = useMemo(() => visible.filter((c) => starredIds.has(c.id)), [visible, starredIds]);
+
+  const toggleStar = (channelId: string) => {
+    setStarredIds(prev => {
+      const next = new Set(prev);
+      if (next.has(channelId)) next.delete(channelId); else next.add(channelId);
+      localStorage.setItem('flowteam_starred', JSON.stringify([...next]));
+      return next;
+    });
+  };
+
+  const toggleSection = (key: string) => setSectionsOpen(prev => ({ ...prev, [key]: !prev[key] }));
 
   useEffect(() => {
     const load = async () => {
@@ -294,66 +311,57 @@ export function ChatSidebar({
 
       {/* ── Channel list ── */}
       <ScrollArea className="flex-1 py-2">
-        <SectionLabel>Channels</SectionLabel>
-        <div className="mb-4 space-y-0.5 px-2">
-          {isLoading ? (
-            [1,2,3].map((i) => <SkeletonRow key={i} />)
-          ) : publicChannels.length === 0 ? (
-            <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No channels found.</p>
-          ) : publicChannels.map((ch) => (
-            <ChannelRow
-              key={ch.id}
-              channel={ch}
-              active={selectedId === ch.id}
-              onSelect={onSelect}
-              onMarkRead={markRead}
-              onMarkUnread={markUnread}
-              onMute={mute}
-              onUnmute={unmute}
-            />
-          ))}
-        </div>
+        {/* ── Starred ── */}
+        {starredChannels.length > 0 && (
+          <>
+            <SectionHeader label="Starred" sectionKey="starred" isOpen={sectionsOpen.starred} onToggle={toggleSection} icon={<Star size={10} className="text-amber-400" />} />
+            {sectionsOpen.starred && (
+              <div className="mb-3 space-y-0.5 px-2">
+                {starredChannels.map((ch) => isDmChannel(ch) ? (
+                  <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} />
+                ) : (
+                  <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} />
+                ))}
+              </div>
+            )}
+          </>
+        )}
 
-        <SectionLabel>Private Channels</SectionLabel>
-        <div className="mb-4 space-y-0.5 px-2">
-          {isLoading ? (
-            [1,2].map((i) => <SkeletonRow key={`priv-${i}`} />)
-          ) : privateChannels.length === 0 ? (
-            <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No private channels yet.</p>
-          ) : privateChannels.map((ch) => (
-            <ChannelRow
-              key={ch.id}
-              channel={ch}
-              active={selectedId === ch.id}
-              onSelect={onSelect}
-              onMarkRead={markRead}
-              onMarkUnread={markUnread}
-              onMute={mute}
-              onUnmute={unmute}
-            />
-          ))}
-        </div>
+        {/* ── Channels ── */}
+        <SectionHeader label="Channels" sectionKey="channels" isOpen={sectionsOpen.channels} onToggle={toggleSection} onAdd={() => { if (onCreateChannel) setChannelOpen(true); else toast.error('Channel creation not available'); }} />
+        {sectionsOpen.channels && (
+          <div className="mb-3 space-y-0.5 px-2">
+            {isLoading ? [1,2,3].map(i => <SkeletonRow key={i} />) : publicChannels.length === 0 ? (
+              <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No channels found.</p>
+            ) : publicChannels.map((ch) => (
+              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+            ))}
+          </div>
+        )}
 
-        <SectionLabel>Direct Messages</SectionLabel>
-        <div className="space-y-0.5 px-2 pb-3">
-          {isLoading ? (
-            [1,2].map((i) => <SkeletonRow key={i} />)
-          ) : directMessages.length === 0 ? (
-            <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No direct messages yet.</p>
-          ) : directMessages.map((ch) => (
-            <DmRow
-              key={ch.id}
-              channel={ch}
-              active={selectedId === ch.id}
-              onSelect={onSelect}
-              onlineUserIds={onlineUserIds}
-              onMarkRead={markRead}
-              onMarkUnread={markUnread}
-              onMute={mute}
-              onUnmute={unmute}
-            />
-          ))}
-        </div>
+        {/* ── Private Channels ── */}
+        <SectionHeader label="Private Channels" sectionKey="private" isOpen={sectionsOpen.private} onToggle={toggleSection} onAdd={() => { if (onCreateChannel) { setChannelPrivate(true); setChannelOpen(true); } }} />
+        {sectionsOpen.private && (
+          <div className="mb-3 space-y-0.5 px-2">
+            {isLoading ? [1,2].map(i => <SkeletonRow key={`p-${i}`} />) : privateChannels.length === 0 ? (
+              <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No private channels yet.</p>
+            ) : privateChannels.map((ch) => (
+              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+            ))}
+          </div>
+        )}
+
+        {/* ── Direct Messages ── */}
+        <SectionHeader label="Direct Messages" sectionKey="dm" isOpen={sectionsOpen.dm} onToggle={toggleSection} onAdd={() => setDmOpen(true)} />
+        {sectionsOpen.dm && (
+          <div className="space-y-0.5 px-2 pb-3">
+            {isLoading ? [1,2].map(i => <SkeletonRow key={i} />) : directMessages.length === 0 ? (
+              <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No direct messages yet.</p>
+            ) : directMessages.map((ch) => (
+              <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+            ))}
+          </div>
+        )}
       </ScrollArea>
 
       {/* ── DM dialog ── */}
@@ -544,6 +552,38 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
+  label: string; sectionKey: string; isOpen: boolean;
+  onToggle: (key: string) => void; onAdd?: () => void;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <div className="group/sec flex items-center px-2 pt-2 pb-0.5">
+      <button
+        type="button"
+        onClick={() => onToggle(sectionKey)}
+        className="flex flex-1 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[hsl(220_18%_18%)]"
+        style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+      >
+        {isOpen ? <ChevronDown size={11} className="shrink-0 opacity-60" /> : <ChevronRight size={11} className="shrink-0 opacity-60" />}
+        {icon && <span className="shrink-0">{icon}</span>}
+        {label}
+      </button>
+      {onAdd && (
+        <button
+          type="button"
+          onClick={onAdd}
+          className="h-5 w-5 flex items-center justify-center rounded opacity-0 group-hover/sec:opacity-60 hover:!opacity-100 hover:bg-[hsl(220_18%_18%)] transition-all"
+          style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+          title={`Add to ${label}`}
+        >
+          <Plus size={12} />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SkeletonRow() {
   return <div className="mx-1 h-[52px] rounded-lg animate-pulse mb-0.5" style={{ background: "hsl(var(--sidebar-hover-bg))" }} />;
 }
@@ -556,6 +596,8 @@ function ChannelRow({
   onMarkUnread,
   onMute,
   onUnmute,
+  starred,
+  onToggleStar,
 }: {
   channel: Channel;
   active: boolean;
@@ -564,6 +606,8 @@ function ChannelRow({
   onMarkUnread: (channel: Channel) => void;
   onMute: (channelId: string, input?: { minutes?: number; forever?: boolean }) => void;
   onUnmute: (channelId: string) => void;
+  starred?: boolean;
+  onToggleStar?: (id: string) => void;
 }) {
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
   return (
@@ -627,8 +671,13 @@ function ChannelRow({
                 <MoreHorizontal size={13} />
               </span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => onSelect(channel)}>Open</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)}>
+                <Star size={14} className={cn("mr-2 opacity-70", starred && "fill-amber-400 text-amber-400")} />
+                {starred ? "Unstar" : "Star channel"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)}>
                 <CheckCircle2 size={14} className="mr-2 opacity-70" /> Mark read
@@ -645,6 +694,9 @@ function ChannelRow({
                 <>
                   <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 60 })}>
                     <BellOff size={14} className="mr-2 opacity-70" /> Mute 1 hour
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 8 * 60 })}>
+                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 8 hours
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => void onMute(channel.id, { forever: true })}>
                     <BellOff size={14} className="mr-2 opacity-70" /> Mute indefinitely
@@ -668,6 +720,8 @@ function DmRow({
   onMarkUnread,
   onMute,
   onUnmute,
+  starred,
+  onToggleStar,
 }: {
   channel: Channel;
   active: boolean;
@@ -677,6 +731,8 @@ function DmRow({
   onMarkUnread: (channel: Channel) => void;
   onMute: (channelId: string, input?: { minutes?: number; forever?: boolean }) => void;
   onUnmute: (channelId: string) => void;
+  starred?: boolean;
+  onToggleStar?: (id: string) => void;
 }) {
   const online = channel.dm_other_user_id ? !!onlineUserIds?.has(channel.dm_other_user_id) : false;
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
@@ -741,8 +797,13 @@ function DmRow({
                 <MoreHorizontal size={13} />
               </span>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => onSelect(channel)}>Open</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)}>
+                <Star size={14} className={cn("mr-2 opacity-70", starred && "fill-amber-400 text-amber-400")} />
+                {starred ? "Unstar" : "Star conversation"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)}>
                 <CheckCircle2 size={14} className="mr-2 opacity-70" /> Mark read
@@ -759,6 +820,9 @@ function DmRow({
                 <>
                   <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 60 })}>
                     <BellOff size={14} className="mr-2 opacity-70" /> Mute 1 hour
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 8 * 60 })}>
+                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 8 hours
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => void onMute(channel.id, { forever: true })}>
                     <BellOff size={14} className="mr-2 opacity-70" /> Mute indefinitely
