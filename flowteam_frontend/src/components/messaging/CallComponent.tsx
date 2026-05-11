@@ -265,6 +265,19 @@ export function CallComponent({
       stopRinging();
       if (noAnswerTimerRef.current) { clearTimeout(noAnswerTimerRef.current); noAnswerTimerRef.current = null; }
       setCallStatus('connected');
+      // Play a subtle connected beep
+      try {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.2);
+      } catch {}
+
       startDurationTimer();
       setRemoteStreams(prev => new Map(prev.set(userId, remoteStream)));
     });
@@ -550,20 +563,20 @@ export function CallComponent({
                 )}
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center justify-center gap-3 sm:gap-6 py-6 px-4 bg-black/60 backdrop-blur-xl border-t border-white/10 z-20">
+              {/* Floating Controls Bar */}
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 sm:gap-4 py-3 px-6 bg-slate-900/80 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-40 animate-in slide-in-from-bottom-8 duration-700">
                 <ControlButton active={isMuted} danger onClick={toggleMute} label={isMuted ? 'Unmute' : 'Mute'}>
-                  {isMuted ? <MicOff size={22} /> : <Mic size={22} />}
+                  {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
                 </ControlButton>
 
                 {callType === 'video' && (
                   <ControlButton active={isVideoOff} danger onClick={toggleVideo} label={isVideoOff ? 'Show video' : 'Hide video'}>
-                    {isVideoOff ? <VideoOff size={22} /> : <Video size={22} />}
+                    {isVideoOff ? <VideoOff size={20} /> : <Video size={20} />}
                   </ControlButton>
                 )}
 
                 <ControlButton onClick={toggleScreenShare} active={isScreenSharing} label="Screen share">
-                  <Monitor size={22} />
+                  <Monitor size={20} />
                 </ControlButton>
 
                 {meetingId && (
@@ -573,18 +586,21 @@ export function CallComponent({
                     danger
                     label={isRecording ? "Stop recording" : "Record"}
                   >
-                    <CircleDot size={22} className={isRecording ? "animate-pulse text-red-400" : ""} />
+                    <div className="relative">
+                       <CircleDot size={20} className={isRecording ? "text-red-500" : ""} />
+                       {isRecording && <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500 animate-ping" />}
+                    </div>
                   </ControlButton>
                 )}
 
-                <div className="w-px h-10 bg-white/10 mx-2" />
+                <div className="w-px h-8 bg-white/10 mx-1" />
 
                 <button
                   onClick={endCall}
                   title="End call"
-                  className="h-14 w-14 sm:h-16 sm:w-16 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-[0_0_15px_rgba(239,68,68,0.3)] hover:shadow-[0_0_25px_rgba(239,68,68,0.5)] hover:scale-110 active:scale-95"
+                  className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-red-500/40 hover:scale-110 active:scale-95"
                 >
-                  <PhoneOff size={24} strokeWidth={2.5} />
+                  <PhoneOff size={20} strokeWidth={2.5} />
                 </button>
               </div>
             </div>

@@ -76,6 +76,10 @@ export function ChatSidebar({
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set());
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [membersLoading, setMembersLoading] = useState(false);
+  const [allChannels, setAllChannels] = useState<Channel[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [userStatus, setUserStatus] = useState({ emoji: "💬", text: "" });
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -168,6 +172,31 @@ export function ChatSidebar({
     };
     load();
   }, [dmOpen, channelOpen, teamId]);
+
+  const fetchAllChannels = async () => {
+    if (!teamId) return;
+    try {
+      setBrowseLoading(true);
+      const res = await api.get<ApiResponse<Channel[]>>(`/messaging/channels/`, { params: { team_id: teamId, all: true } });
+      setAllChannels(res.data.data ?? []);
+    } catch { setAllChannels([]); }
+    finally { setBrowseLoading(false); }
+  };
+
+  useEffect(() => {
+    if (browseOpen) fetchAllChannels();
+  }, [browseOpen, teamId]);
+
+  const joinChannel = async (id: string) => {
+    try {
+      await api.post(`/messaging/channels/${id}/join/`);
+      toast.success("Joined channel");
+      onRefreshChannels?.();
+      setBrowseOpen(false);
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to join channel"));
+    }
+  };
 
   const filteredMembers = useMemo(() => {
     const q = dmQuery.trim().toLowerCase();
@@ -270,6 +299,17 @@ export function ChatSidebar({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setStatusOpen(true)}
+            className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-[hsl(220_18%_20%)] max-w-[180px]"
+            style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+          >
+            <span className="shrink-0">{userStatus.emoji}</span>
+            <span className="truncate">{userStatus.text || "Set status"}</span>
+          </button>
         </div>
 
         <div className="relative">
@@ -621,6 +661,98 @@ export function ChatSidebar({
             >
               Create channel
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* ── Browse channels dialog ── */}
+      <Dialog open={browseOpen} onOpenChange={setBrowseOpen}>
+        <DialogContent className="sm:max-w-[580px]">
+          <DialogHeader>
+            <DialogTitle>Browse channels</DialogTitle>
+            <DialogDescription>Discover and join public channels in your workspace.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 max-h-[400px] overflow-auto rounded-xl border border-border">
+            {browseLoading ? (
+              <p className="p-8 text-center text-sm text-muted-foreground">Loading channels…</p>
+            ) : allChannels.length === 0 ? (
+              <p className="p-8 text-center text-sm text-muted-foreground">No other channels found.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {allChannels.map((c) => {
+                  const isMember = channels.some(mine => mine.id === c.id);
+                  return (
+                    <div key={c.id} className="flex items-center justify-between p-4 hover:bg-muted/30 transition-colors">
+                      <div className="min-w-0 flex-1 mr-4">
+                        <div className="flex items-center gap-1.5">
+                          {c.is_private ? <Lock size={14} className="opacity-60" /> : <Hash size={14} className="opacity-60" />}
+                          <span className="font-semibold text-[14px]">{c.display_name || c.name}</span>
+                        </div>
+                        {c.description && <p className="mt-1 text-[12px] text-muted-foreground line-clamp-1">{c.description}</p>}
+                        <p className="mt-0.5 text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
+                          {c.member_count ?? 0} members
+                        </p>
+                      </div>
+                      {isMember ? (
+                        <Button variant="ghost" size="sm" disabled className="text-[11px] h-8">
+                          Already joined
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => joinChannel(c.id)} className="text-[11px] h-8">
+                          Join
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBrowseOpen(false)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Custom Status dialog ── */}
+      <Dialog open={statusOpen} onOpenChange={setStatusOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>Set a status</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex gap-2">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-xl cursor-pointer hover:bg-muted transition-colors">
+                {userStatus.emoji}
+              </div>
+              <Input
+                placeholder="What's your status?"
+                value={userStatus.text}
+                onChange={(e) => setUserStatus(prev => ({ ...prev, text: e.target.value }))}
+                onKeyDown={(e) => e.key === 'Enter' && setStatusOpen(false)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { e: "🏠", t: "Working remotely" },
+                { e: "🤒", t: "Out sick" },
+                { e: "🌴", t: "Vacationing" },
+                { e: "🏃", t: "Commuting" },
+                { e: "🍴", t: "On lunch" },
+                { e: "📅", t: "In a meeting" },
+              ].map(s => (
+                <button
+                  key={s.t}
+                  className="rounded-full border border-border px-3 py-1 text-[12px] hover:bg-muted transition-colors"
+                  onClick={() => setUserStatus({ emoji: s.e, text: s.t })}
+                >
+                  {s.e} {s.t}
+                </button>
+              ))}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setUserStatus({ emoji: "💬", text: "" }); setStatusOpen(false); }}>Clear</Button>
+            <Button onClick={() => setStatusOpen(false)}>Save</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

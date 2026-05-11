@@ -106,6 +106,47 @@ export function ChatArea({
   const [callType, setCallType] = useState<'audio' | 'video'>('audio');
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ callId: string; callType: 'audio' | 'video'; callerName: string } | null>(null);
+  const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
+
+  const stopIncomingRingtone = useCallback(() => {
+    if (ringtoneRef.current) {
+      clearInterval(ringtoneRef.current.interval);
+      try { ringtoneRef.current.ctx.close(); } catch {}
+      ringtoneRef.current = null;
+    }
+  }, []);
+
+  const startIncomingRingtone = useCallback(() => {
+    stopIncomingRingtone();
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx() as AudioContext;
+      const play = () => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        // Slack-like two-tone ring
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.4); // C#
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.8);
+      };
+      ringtoneRef.current = { ctx, interval: setInterval(play, 1500) };
+      play();
+    } catch {}
+  }, [stopIncomingRingtone]);
+
+  useEffect(() => {
+    if (incomingCall) {
+      startIncomingRingtone();
+    } else {
+      stopIncomingRingtone();
+    }
+    return () => stopIncomingRingtone();
+  }, [incomingCall, startIncomingRingtone, stopIncomingRingtone]);
   const callEventHandlerRef = useRef<((type: string, data: any) => void) | null>(null);
   const incomingRingRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
   const queryClient = useQueryClient();
