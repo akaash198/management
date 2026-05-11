@@ -6,12 +6,12 @@ import { cn } from "@/lib/utils"
 const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-1.5 whitespace-nowrap",
-    "font-medium text-[13px] leading-none",
+    "font-medium text-[13px] leading-none tracking-[-0.01em]",
     "rounded-lg border border-transparent",
     "transition-all duration-150 ease-in-out",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1",
-    "disabled:pointer-events-none disabled:opacity-45",
-    "select-none",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-1",
+    "disabled:pointer-events-none disabled:opacity-40",
+    "select-none cursor-pointer",
   ].join(" "),
   {
     variants: {
@@ -19,32 +19,33 @@ const buttonVariants = cva(
         /* Filled — primary action */
         default: [
           "bg-primary text-primary-foreground border-primary",
-          "hover:brightness-110 active:brightness-95",
-          "shadow-sm shadow-primary/20",
+          "hover:bg-primary-mid active:brightness-95",
+          "shadow-xs shadow-primary/25",
         ].join(" "),
 
         /* Outlined — secondary action */
         outline: [
-          "bg-background text-foreground border-border",
-          "hover:bg-muted hover:border-border-strong active:bg-muted/80",
+          "bg-card text-foreground border-border",
+          "hover:bg-muted hover:border-border-strong active:bg-muted/70",
+          "shadow-2xs",
         ].join(" "),
 
         /* Ghost — tertiary / toolbar */
         ghost: [
-          "text-muted-foreground border-transparent",
-          "hover:bg-muted hover:text-foreground active:bg-muted/80",
+          "text-muted-foreground border-transparent bg-transparent",
+          "hover:bg-muted/80 hover:text-foreground active:bg-muted",
         ].join(" "),
 
         /* Destructive */
         destructive: [
           "bg-destructive text-destructive-foreground border-destructive",
           "hover:brightness-110 active:brightness-90",
-          "shadow-sm shadow-destructive/20",
+          "shadow-xs shadow-destructive/20",
         ].join(" "),
 
         /* Destructive ghost */
         "destructive-ghost": [
-          "text-destructive border-transparent",
+          "text-destructive border-transparent bg-transparent",
           "hover:bg-destructive/8 hover:text-destructive active:bg-destructive/12",
         ].join(" "),
 
@@ -55,18 +56,19 @@ const buttonVariants = cva(
         ].join(" "),
 
         /* Link */
-        link: "text-primary underline-offset-4 hover:underline border-transparent p-0 h-auto",
+        link: "text-primary underline-offset-4 hover:underline border-transparent p-0 h-auto shadow-none",
       },
       size: {
-        xs:   "h-6  px-2    text-[11px] rounded-md gap-1",
-        sm:   "h-7  px-2.5  text-[12px] rounded-md",
+        "2xs": "h-5  px-1.5  text-[10px] rounded-md gap-0.5",
+        xs:    "h-6  px-2    text-[11px] rounded-md gap-1",
+        sm:    "h-7  px-2.5  text-[12px] rounded-md",
         default: "h-8 px-3.5",
-        md:   "h-9  px-4",
-        lg:   "h-10 px-5    text-[14px]",
-        xl:   "h-11 px-6    text-[14px]",
-        icon: "h-8  w-8     p-0",
+        md:    "h-9  px-4",
+        lg:    "h-10 px-5    text-[14px]",
+        xl:    "h-11 px-6    text-[15px]",
+        icon:  "h-8  w-8     p-0",
         "icon-sm": "h-7 w-7 p-0 rounded-md",
-        "icon-xs": "h-6 w-6 p-0 rounded-md text-[11px]",
+        "icon-xs": "h-6 w-6 p-0 rounded-md",
       },
     },
     defaultVariants: {

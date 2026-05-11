@@ -1,14 +1,14 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-/* Surface card — clean white, subtle border, no heavy shadow */
+/* ── Card — editorial white surface, clean border ── */
 const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         "rounded-xl border border-border bg-card text-card-foreground",
-        "shadow-sm",
+        "shadow-xs",
         className
       )}
       {...props}
@@ -21,7 +21,7 @@ const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDiv
   ({ className, ...props }, ref) => (
     <div
       ref={ref}
-      className={cn("flex flex-col gap-1 p-5 pb-0", className)}
+      className={cn("flex flex-col gap-1 px-5 pt-5 pb-0", className)}
       {...props}
     />
   )
@@ -33,7 +33,7 @@ const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTML
     <h3
       ref={ref}
       className={cn(
-        "text-[14px] font-semibold leading-tight tracking-[-0.01em] text-foreground",
+        "text-[14px] font-semibold leading-snug tracking-[-0.02em] text-foreground",
         className
       )}
       {...props}
@@ -56,7 +56,7 @@ CardDescription.displayName = "CardDescription"
 
 const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn("p-5 pt-4", className)} {...props} />
+    <div ref={ref} className={cn("px-5 pt-4 pb-5", className)} {...props} />
   )
 )
 CardContent.displayName = "CardContent"

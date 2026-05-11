@@ -10,8 +10,6 @@ import {
   Settings,
   LogOut,
   User as UserIcon,
-  PanelLeftClose,
-  PanelLeftOpen,
   Calendar,
   Video,
   BarChart3,
@@ -19,9 +17,9 @@ import {
   ShieldCheck,
   Smile,
   X,
+  ChevronsUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { TeamSwitcher } from "@/components/teams/TeamSwitcher";
 import { useAuthStore } from "@/store/auth";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -40,34 +38,35 @@ import { PRESENCE_META } from "@/lib/presence";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TeamSwitcher } from "@/components/teams/TeamSwitcher";
 
-// Quick status presets
-const STATUS_PRESETS: Array<{ emoji: string; text: string; clearMinutes: number | null }> = [
-  { emoji: "🗓️", text: "In a meeting", clearMinutes: 60 },
-  { emoji: "🤒", text: "Out sick", clearMinutes: 24 * 60 },
-  { emoji: "🌴", text: "On vacation", clearMinutes: null },
-  { emoji: "🏠", text: "Working remotely", clearMinutes: null },
+/* ── Quick status presets ── */
+const STATUS_PRESETS = [
+  { emoji: "🗓️", text: "In a meeting",      clearMinutes: 60 },
+  { emoji: "🤒", text: "Out sick",           clearMinutes: 24 * 60 },
+  { emoji: "🌴", text: "On vacation",        clearMinutes: null },
+  { emoji: "🏠", text: "Working remotely",   clearMinutes: null },
   { emoji: "🎯", text: "Focusing — DMs only", clearMinutes: 60 },
-  { emoji: "🚂", text: "Commuting", clearMinutes: 30 },
-];
+  { emoji: "🚂", text: "Commuting",          clearMinutes: 30 },
+] as const;
 
+/* ── Navigation definitions ── */
 const NAV_MAIN = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Portfolio", href: "/portfolio", icon: BarChart3 },
-  { name: "Projects",  href: "/projects",  icon: FolderKanban },
-  { name: "Messages",  href: "/messages",  icon: MessageSquare },
-  { name: "Calendar",  href: "/calendar",  icon: Calendar },
-  { name: "Meetings",  href: "/meetings",  icon: Video },
+  { name: "Dashboard", href: "/dashboard",  icon: LayoutDashboard },
+  { name: "Portfolio",  href: "/portfolio",  icon: BarChart3 },
+  { name: "Projects",   href: "/projects",   icon: FolderKanban },
+  { name: "Messages",   href: "/messages",   icon: MessageSquare },
+  { name: "Calendar",   href: "/calendar",   icon: Calendar },
+  { name: "Meetings",   href: "/meetings",   icon: Video },
 ];
 
-const NAV_BOTTOM = [
-  { name: "Settings",  href: "/settings",  icon: Settings },
-];
-
+/* ═══════════════════════════════════════════
+   STATUS MODAL
+   ═══════════════════════════════════════════ */
 function StatusModal({ onClose }: { onClose: () => void }) {
   const { customStatus, setCustomStatus } = usePresenceStore();
-  const [emoji, setEmoji] = useState(customStatus?.emoji ?? "");
-  const [text, setText] = useState(customStatus?.text ?? "");
+  const [emoji, setEmoji]               = useState(customStatus?.emoji ?? "");
+  const [text, setText]                 = useState(customStatus?.text ?? "");
   const [clearMinutes, setClearMinutes] = useState<number | null>(null);
 
   const save = () => {
@@ -83,52 +82,39 @@ function StatusModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="w-72 p-3 space-y-3">
+    <div className="w-72 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <span className="text-[13px] font-semibold">Set a status</span>
-        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground">
+        <span className="text-[13px] font-semibold tracking-tight">Set a status</span>
+        <button type="button" onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
           <X size={14} />
         </button>
       </div>
 
-      {/* Presets */}
-      <div className="space-y-1">
+      <div className="space-y-0.5">
         {STATUS_PRESETS.map((p) => (
           <button
             key={p.text}
             type="button"
             onClick={() => { setEmoji(p.emoji); setText(p.text); setClearMinutes(p.clearMinutes); }}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-muted/60 transition-colors text-left"
+            className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-[12.5px] hover:bg-muted/70 transition-colors text-left"
           >
-            <span className="text-base">{p.emoji}</span>
-            <span className="truncate">{p.text}</span>
+            <span className="text-base leading-none">{p.emoji}</span>
+            <span className="truncate text-foreground/80">{p.text}</span>
           </button>
         ))}
       </div>
 
-      <div className="border-t border-border pt-2 space-y-2">
+      <div className="border-t border-border pt-3 space-y-2">
         <div className="flex gap-1.5">
-          <Input
-            value={emoji}
-            onChange={(e) => setEmoji(e.target.value)}
-            placeholder="😊"
-            className="h-8 w-12 text-center text-base shrink-0 px-1"
-            maxLength={4}
-          />
-          <Input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What's your status?"
-            className="h-8 flex-1 text-[12px]"
-            maxLength={80}
-            onKeyDown={(e) => { if (e.key === "Enter") save(); }}
-          />
+          <Input value={emoji} onChange={(e) => setEmoji(e.target.value)}
+            placeholder="😊" className="h-8 w-12 text-center text-base shrink-0 px-1" maxLength={4} />
+          <Input value={text} onChange={(e) => setText(e.target.value)}
+            placeholder="What's your status?" className="h-8 flex-1 text-[12px]" maxLength={80}
+            onKeyDown={(e) => { if (e.key === "Enter") save(); }} />
         </div>
-        <select
-          value={clearMinutes ?? ""}
+        <select value={clearMinutes ?? ""}
           onChange={(e) => setClearMinutes(e.target.value ? Number(e.target.value) : null)}
-          className="h-8 w-full rounded-md border border-border bg-background px-2 text-[12px]"
-        >
+          className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground">
           <option value="">Don&apos;t clear</option>
           <option value="30">Clear in 30 minutes</option>
           <option value="60">Clear in 1 hour</option>
@@ -137,34 +123,69 @@ function StatusModal({ onClose }: { onClose: () => void }) {
           <option value="1440">Clear today</option>
         </select>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="flex-1 h-8 text-[12px]" onClick={() => { setCustomStatus(null); onClose(); }}>
-            Clear
-          </Button>
-          <Button size="sm" className="flex-1 h-8 text-[12px]" onClick={save}>
-            Save
-          </Button>
+          <Button variant="outline" size="sm" className="flex-1 h-8 text-[12px]"
+            onClick={() => { setCustomStatus(null); onClose(); }}>Clear</Button>
+          <Button size="sm" className="flex-1 h-8 text-[12px]" onClick={save}>Save</Button>
         </div>
       </div>
     </div>
   );
 }
 
+/* ═══════════════════════════════════════════
+   RAIL ICON BUTTON w/ flyout tooltip
+   ═══════════════════════════════════════════ */
+function RailItem({
+  href,
+  label,
+  icon: Icon,
+  active,
+  badge,
+}: {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  active?: boolean;
+  badge?: number;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className={cn(
+        "rail-item group",
+        active && "active"
+      )}
+    >
+      <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+      {badge != null && badge > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground px-1 leading-none">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+      {/* Flyout label */}
+      <span className="rail-tooltip">{label}</span>
+    </Link>
+  );
+}
+
+/* ═══════════════════════════════════════════
+   SIDEBAR — Icon rail
+   ═══════════════════════════════════════════ */
 export function Sidebar() {
-  const pathname    = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const pathname      = usePathname();
   const [statusOpen, setStatusOpen] = useState(false);
   const { user, logout } = useAuthStore();
-  const myPresence  = usePresenceStore((s) => s.status);
-  const customStatus = usePresenceStore((s) => s.customStatus);
+  const myPresence    = usePresenceStore((s) => s.status);
+  const customStatus  = usePresenceStore((s) => s.customStatus);
   const setCustomStatus = usePresenceStore((s) => s.setCustomStatus);
-  const initials    = (user?.full_name?.charAt(0) ?? "?").toUpperCase();
+  const initials      = (user?.full_name?.charAt(0) ?? "?").toUpperCase();
 
   // Auto-clear expired custom status
   if (customStatus?.clearAt && new Date(customStatus.clearAt) < new Date()) {
     setCustomStatus(null);
   }
 
-  // Detect if user is a company CEO/admin to show Company Admin nav item.
   const { data: myCompanies } = useQuery<Company[]>({
     queryKey: ["my-companies-sidebar"],
     queryFn: async () => {
@@ -176,200 +197,125 @@ export function Sidebar() {
   });
 
   const isCompanyAdmin = !!(user?.is_superuser) ||
-    (myCompanies ?? []).some(c =>
-      c.your_role === "ceo" || c.your_role === "admin"
-    );
+    (myCompanies ?? []).some((c) => c.your_role === "ceo" || c.your_role === "admin");
 
-  const NavLink = ({
-    item,
-  }: {
-    item: { name: string; href: string; icon: React.ElementType };
-  }) => {
-    const active = pathname === item.href || pathname.startsWith(item.href + "/");
-    return (
-      <Link
-        href={item.href}
-        title={collapsed ? item.name : undefined}
-        className={cn("nav-item", active && "active", collapsed && "justify-center px-0 gap-0")}
-      >
-        <item.icon size={15} className="nav-icon" />
-        {!collapsed && <span>{item.name}</span>}
-      </Link>
-    );
-  };
+  const isActive = (href: string) =>
+    href === "/dashboard"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(href + "/");
 
   return (
     <aside
       className={cn(
         "flex flex-col shrink-0 h-screen overflow-hidden",
-        "sidebar-shell border-r",
-        "transition-[width] duration-200 ease-in-out",
-        collapsed ? "w-[52px]" : "w-[216px]"
+        "rail-shell border-r w-[56px]",
       )}
+      style={{ borderRightColor: "hsl(var(--rail-border))" }}
     >
-      {/* ── Header: logo + collapse ── */}
-      <div
-        className={cn(
-          "flex h-[52px] shrink-0 items-center border-b border-[hsl(220_18%_20%)]",
-          collapsed ? "justify-center px-0" : "justify-between px-4"
-        )}
-      >
-        {!collapsed && (
-          <div className="flex items-center gap-2 select-none">
-            <span className="h-5 w-5 rounded-md bg-primary flex items-center justify-center shrink-0">
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                <rect x="1" y="1" width="3.5" height="3.5" rx="0.75" fill="white" />
-                <rect x="5.5" y="1" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.7" />
-                <rect x="1" y="5.5" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.7" />
-                <rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.4" />
-              </svg>
-            </span>
-            <span className="text-[13.5px] font-bold tracking-tight text-white select-none">
-              flowteam
-            </span>
-          </div>
-        )}
-        <button
-          onClick={() => setCollapsed((v) => !v)}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={cn(
-            "flex items-center justify-center h-7 w-7 rounded-md",
-            "text-[hsl(220_12%_62%)] hover:text-[hsl(220_14%_85%)]",
-            "hover:bg-[hsl(220_18%_18%)] transition-colors",
-          )}
+      {/* ── Logo mark ── */}
+      <div className="flex h-[56px] shrink-0 items-center justify-center border-b" style={{ borderColor: "hsl(var(--rail-border))" }}>
+        <div
+          className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
+          style={{ background: "hsl(158 64% 38%)" }}
         >
-          {collapsed
-            ? <PanelLeftOpen size={14} />
-            : <PanelLeftClose size={14} />
-          }
-        </button>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="white" />
+            <rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" fill="white" opacity="0.7" />
+            <rect x="1.5" y="8" width="4.5" height="4.5" rx="1.2" fill="white" opacity="0.7" />
+            <rect x="8" y="8" width="4.5" height="4.5" rx="1.2" fill="white" opacity="0.35" />
+          </svg>
+        </div>
       </div>
 
-      {/* ── Workspace switcher ── */}
-      <div
-        className={cn(
-          "shrink-0 border-b border-[hsl(220_18%_20%)]",
-          collapsed ? "px-2 py-2" : "px-3 py-2.5"
-        )}
-      >
-        <TeamSwitcher collapsed={collapsed} />
+      {/* ── Team switcher (icon-only) ── */}
+      <div className="shrink-0 flex items-center justify-center py-2 border-b" style={{ borderColor: "hsl(var(--rail-border))" }}>
+        <TeamSwitcher collapsed={true} />
       </div>
 
       {/* ── Main nav ── */}
-      <nav
-        className={cn(
-          "flex-1 overflow-y-auto py-3 space-y-0.5",
-          collapsed ? "px-1.5" : "px-2"
-        )}
-      >
-        {!collapsed && (
-          <p className="px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[hsl(220_12%_62%)]">
-            Main
-          </p>
-        )}
+      <nav className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto">
         {NAV_MAIN.map((item) => (
-          <NavLink key={item.href} item={item} />
+          <RailItem
+            key={item.href}
+            href={item.href}
+            label={item.name}
+            icon={item.icon}
+            active={isActive(item.href)}
+          />
         ))}
 
-        {/* ── Admin section ── */}
+        {/* Admin section */}
         {(isCompanyAdmin || user?.is_superuser) && (
           <>
-            {!collapsed && (
-              <p className="px-2 mt-3 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-[hsl(220_12%_62%)]">
-                Admin
-              </p>
-            )}
-            {collapsed && <div className="my-1.5 border-t border-[hsl(220_18%_20%)]" />}
+            <div className="w-7 border-t my-1" style={{ borderColor: "hsl(var(--rail-border))" }} />
             {isCompanyAdmin && !user?.is_superuser && (
-              <NavLink item={{ name: "Company", href: "/company-admin/dashboard", icon: Building2 }} />
+              <RailItem href="/company-admin/dashboard" label="Company" icon={Building2} active={isActive("/company-admin/dashboard")} />
             )}
             {user?.is_superuser && (
-              <NavLink item={{ name: "Super Admin", href: "/super-admin/dashboard", icon: ShieldCheck }} />
+              <RailItem href="/super-admin/dashboard" label="Super Admin" icon={ShieldCheck} active={isActive("/super-admin/dashboard")} />
             )}
           </>
         )}
       </nav>
 
-      {/* ── Bottom nav ── */}
-      <div
-        className={cn(
-          "shrink-0 border-t border-[hsl(220_18%_20%)] py-2 space-y-0.5",
-          collapsed ? "px-1.5" : "px-2"
-        )}
-      >
-        {NAV_BOTTOM.map((item) => (
-          <NavLink key={item.href} item={item} />
-        ))}
-      </div>
+      {/* ── Bottom: settings + user ── */}
+      <div className="shrink-0 flex flex-col items-center gap-1 pb-3 border-t pt-2" style={{ borderColor: "hsl(var(--rail-border))" }}>
+        <RailItem href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} />
 
-      {/* ── User account ── */}
-      <div
-        className={cn(
-          "shrink-0 border-t border-[hsl(220_18%_20%)] p-2.5"
-        )}
-      >
+        {/* User avatar dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className={cn(
-                "w-full flex items-center gap-2.5 rounded-lg p-1.5 text-left",
-                "hover:bg-[hsl(220_18%_18%)] transition-colors focus-visible:outline-none",
-                "focus-visible:ring-1 focus-visible:ring-ring",
-                collapsed && "justify-center"
-              )}
+              className="rail-item group relative focus-visible:outline-none"
+              aria-label="Account menu"
             >
-              <div className="relative shrink-0">
-                <Avatar className="h-6.5 w-6.5 h-[26px] w-[26px] border border-[hsl(220_18%_20%)]">
+              <div className="relative">
+                <Avatar className="h-8 w-8 border-2" style={{ borderColor: "hsl(var(--rail-border))" }}>
                   <AvatarImage src={user?.avatar_url || ""} />
-                  <AvatarFallback className="text-[10px] bg-primary text-white font-semibold">
+                  <AvatarFallback className="text-[11px] font-bold bg-primary text-primary-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <span
                   className={cn(
-                    "absolute -bottom-px -right-px h-2 w-2 rounded-full border-[1.5px] border-sidebar-bg",
+                    "absolute -bottom-px -right-px h-2.5 w-2.5 rounded-full border-2",
                     PRESENCE_META[myPresence].dotClass
                   )}
+                  style={{ borderColor: "hsl(var(--rail-bg))" }}
                 />
               </div>
-              {!collapsed && (
-                <div className="min-w-0 flex-1">
-                  <p className="text-[12px] font-semibold text-[hsl(220_14%_85%)] truncate leading-tight">
-                    {user?.full_name ?? "Account"}
-                  </p>
-                  {customStatus ? (
-                    <p className="text-[10px] font-medium leading-tight mt-px text-[hsl(220_14%_65%)] truncate">
-                      {customStatus.emoji} {customStatus.text}
-                    </p>
-                  ) : (
-                    <p className={cn("text-[10px] font-medium leading-tight mt-px", PRESENCE_META[myPresence].textClass)}>
-                      {PRESENCE_META[myPresence].label}
-                    </p>
-                  )}
-                </div>
-              )}
+              {/* Flyout tooltip */}
+              <span className="rail-tooltip">
+                <span className="font-semibold">{user?.full_name ?? "Account"}</span>
+                {customStatus && (
+                  <span className="block text-[10px] opacity-70 mt-0.5">{customStatus.emoji} {customStatus.text}</span>
+                )}
+              </span>
             </button>
           </DropdownMenuTrigger>
 
-          <DropdownMenuContent
-            side="right"
-            align="end"
-            sideOffset={8}
-            className="w-56"
-          >
-            <DropdownMenuLabel className="text-[12px] font-semibold pb-1">
-              {user?.full_name}
-              <p className="text-[10px] font-normal text-muted-foreground mt-0.5 truncate">
-                {user?.email}
-              </p>
-              {customStatus && (
-                <p className="text-[10px] font-normal text-foreground/80 mt-0.5 truncate">
-                  {customStatus.emoji} {customStatus.text}
-                </p>
-              )}
+          <DropdownMenuContent side="right" align="end" sideOffset={12} className="w-58 min-w-[220px]">
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex items-center gap-2.5 py-0.5">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={user?.avatar_url || ""} />
+                  <AvatarFallback className="text-[11px] font-bold bg-primary text-primary-foreground">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold leading-tight truncate">{user?.full_name}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight truncate mt-0.5">{user?.email}</p>
+                  {customStatus && (
+                    <p className="text-[11px] text-foreground/70 leading-tight truncate mt-0.5">
+                      {customStatus.emoji} {customStatus.text}
+                    </p>
+                  )}
+                </div>
+              </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* Status setter — opens inline popover */}
+
             <Popover open={statusOpen} onOpenChange={setStatusOpen}>
               <PopoverTrigger asChild>
                 <DropdownMenuItem
@@ -384,6 +330,7 @@ export function Sidebar() {
                 <StatusModal onClose={() => setStatusOpen(false)} />
               </PopoverContent>
             </Popover>
+
             <DropdownMenuSeparator />
             <Link href="/settings">
               <DropdownMenuItem className="text-[13px] gap-2">

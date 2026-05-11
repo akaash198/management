@@ -1,157 +1,185 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════════
+   FLOWTEAM DESIGN SYSTEM v2
+   Direction: Clean light, editorial — Notion × Craft × Linear
+   Palette: Emerald / Teal primary — warm neutral base
+   Sidebar: Ultra-dark icon rail with flyout
+   ═══════════════════════════════════════════════════════════════════ */
+
 /* ─────────────────────────────────────────────
-   DESIGN TOKENS — Light mode
-   Palette: slate-neutral base, indigo primary
+   LIGHT MODE TOKENS
    ───────────────────────────────────────────── */
 :root {
-  /* Surface */
-  --background:      220 20% 98%;
-  --foreground:      222 25% 10%;
+  /* ── Page surface ── */
+  --background:         38 20% 97%;        /* warm off-white #F8F7F5 */
+  --foreground:         220 22% 12%;       /* near-black slate */
 
-  --card:            0 0% 100%;
-  --card-foreground: 222 25% 10%;
+  /* ── Card / panel surfaces ── */
+  --card:               0 0% 100%;         /* pure white */
+  --card-foreground:    220 22% 12%;
 
-  --popover:         0 0% 100%;
-  --popover-foreground: 222 25% 10%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 220 22% 12%;
 
-  /* Brand */
-  --primary:         239 84% 60%;
+  /* ── Brand — Emerald / Teal ── */
+  --primary:            158 64% 38%;       /* emerald-600 #17A96B */
   --primary-foreground: 0 0% 100%;
+  --primary-light:      158 80% 94%;       /* emerald-50 tint */
+  --primary-mid:        158 64% 46%;       /* emerald-500 */
 
-  /* Secondary / neutral */
-  --secondary:       220 16% 96%;
-  --secondary-foreground: 222 18% 30%;
+  /* ── Secondary ── */
+  --secondary:          220 16% 95%;
+  --secondary-foreground: 220 18% 32%;
 
-  /* Muted */
-  --muted:           220 14% 95%;
-  --muted-foreground: 220 10% 50%;
+  /* ── Muted ── */
+  --muted:              220 14% 94%;
+  --muted-foreground:   220 10% 52%;
 
-  /* Accent = same hue as primary but lighter usage */
-  --accent:          239 84% 60%;
-  --accent-foreground: 0 0% 100%;
+  /* ── Accent (teal-leaning for hover states) ── */
+  --accent:             168 72% 36%;       /* teal-600 */
+  --accent-foreground:  0 0% 100%;
 
-  /* Semantic */
-  --destructive:     0 78% 55%;
+  /* ── Semantic ── */
+  --destructive:        4 78% 54%;
   --destructive-foreground: 0 0% 100%;
-  --success:         142 72% 36%;
+  --success:            158 64% 38%;
   --success-foreground: 0 0% 100%;
-  --warning:         36 96% 48%;
-  --warning-foreground: 0 0% 100%;
-  --info:            210 92% 50%;
-  --info-foreground: 0 0% 100%;
+  --warning:            38 92% 50%;
+  --warning-foreground: 28 30% 15%;
+  --info:               210 92% 50%;
+  --info-foreground:    0 0% 100%;
 
-  /* Structural */
-  --border:          220 14% 91%;
-  --border-strong:   220 14% 82%;
-  --input:           220 14% 91%;
-  --ring:            239 84% 60%;
+  /* ── Structural ── */
+  --border:             220 14% 90%;
+  --border-strong:      220 14% 80%;
+  --input:              220 14% 90%;
+  --ring:               158 64% 38%;
 
-  /* Sidebar */
-  --sidebar-bg:      222 26% 12%;
-  --sidebar-fg:      220 12% 62%;
-  --sidebar-fg-muted: 220 10% 42%;
-  --sidebar-active-bg:  239 60% 24%;
-  --sidebar-active-fg:  239 100% 92%;
-  --sidebar-hover-bg:   220 18% 18%;
-  --sidebar-border:     220 18% 20%;
+  /* ── Sidebar — ultra dark, independent of light/dark mode ── */
+  --rail-bg:            224 28% 9%;        /* #0E1118 near-black */
+  --rail-fg:            220 14% 52%;       /* muted slate */
+  --rail-fg-active:     158 80% 72%;       /* emerald glow */
+  --rail-active-bg:     158 50% 18%;       /* deep emerald fill */
+  --rail-hover-bg:      222 22% 16%;
+  --rail-border:        222 20% 15%;
+  --rail-logo-fg:       158 80% 68%;
 
-  /* Radius */
+  /* ── Topbar ── */
+  --topbar-bg:          0 0% 100%;
+  --topbar-border:      220 14% 90%;
+
+  /* ── Radius ── */
   --radius: 0.5rem;
 }
 
 /* ─────────────────────────────────────────────
-   DARK MODE
+   DARK MODE — content area only
+   (Rail always stays dark — see sidebar vars)
    ───────────────────────────────────────────── */
 .dark {
-  --background:      222 26% 9%;
-  --foreground:      210 18% 92%;
+  --background:         222 26% 9%;
+  --foreground:         210 18% 92%;
 
-  --card:            222 22% 12%;
-  --card-foreground: 210 18% 92%;
+  --card:               222 22% 12%;
+  --card-foreground:    210 18% 92%;
 
-  --popover:         222 22% 13%;
+  --popover:            222 22% 13%;
   --popover-foreground: 210 18% 92%;
 
-  --primary:         239 84% 67%;
+  --primary:            158 60% 48%;
   --primary-foreground: 222 26% 9%;
+  --primary-light:      158 40% 16%;
+  --primary-mid:        158 58% 54%;
 
-  --secondary:       220 18% 17%;
+  --secondary:          220 18% 17%;
   --secondary-foreground: 210 14% 72%;
 
-  --muted:           220 18% 16%;
-  --muted-foreground: 220 10% 52%;
+  --muted:              220 18% 16%;
+  --muted-foreground:   220 10% 52%;
 
-  --accent:          239 84% 67%;
-  --accent-foreground: 222 26% 9%;
+  --accent:             168 65% 44%;
+  --accent-foreground:  222 26% 9%;
 
-  --destructive:     0 72% 52%;
+  --destructive:        4 68% 52%;
   --destructive-foreground: 0 0% 100%;
-  --success:         142 68% 44%;
+  --success:            158 60% 48%;
   --success-foreground: 0 0% 100%;
-  --warning:         36 92% 52%;
+  --warning:            38 88% 54%;
   --warning-foreground: 0 0% 0%;
 
-  --border:          220 16% 20%;
-  --border-strong:   220 16% 28%;
-  --input:           220 16% 20%;
-  --ring:            239 84% 67%;
+  --border:             220 16% 20%;
+  --border-strong:      220 16% 28%;
+  --input:              220 16% 20%;
+  --ring:               158 60% 48%;
 
-  --sidebar-bg:      222 28% 7%;
-  --sidebar-fg:      220 12% 58%;
-  --sidebar-fg-muted: 220 10% 38%;
-  --sidebar-active-bg:  239 55% 22%;
-  --sidebar-active-fg:  239 100% 90%;
-  --sidebar-hover-bg:   220 20% 13%;
-  --sidebar-border:     220 18% 14%;
+  --topbar-bg:          222 22% 11%;
+  --topbar-border:      220 16% 18%;
 }
 
 /* ─────────────────────────────────────────────
    TAILWIND THEME MAPPING
    ───────────────────────────────────────────── */
 @theme inline {
-  --color-background:           hsl(var(--background));
-  --color-foreground:           hsl(var(--foreground));
-  --color-card:                 hsl(var(--card));
-  --color-card-foreground:      hsl(var(--card-foreground));
-  --color-popover:              hsl(var(--popover));
-  --color-popover-foreground:   hsl(var(--popover-foreground));
-  --color-primary:              hsl(var(--primary));
-  --color-primary-foreground:   hsl(var(--primary-foreground));
-  --color-secondary:            hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted:                hsl(var(--muted));
-  --color-muted-foreground:     hsl(var(--muted-foreground));
-  --color-accent:               hsl(var(--accent));
-  --color-accent-foreground:    hsl(var(--accent-foreground));
-  --color-destructive:          hsl(var(--destructive));
+  --color-background:             hsl(var(--background));
+  --color-foreground:             hsl(var(--foreground));
+  --color-card:                   hsl(var(--card));
+  --color-card-foreground:        hsl(var(--card-foreground));
+  --color-popover:                hsl(var(--popover));
+  --color-popover-foreground:     hsl(var(--popover-foreground));
+  --color-primary:                hsl(var(--primary));
+  --color-primary-foreground:     hsl(var(--primary-foreground));
+  --color-primary-light:          hsl(var(--primary-light));
+  --color-primary-mid:            hsl(var(--primary-mid));
+  --color-secondary:              hsl(var(--secondary));
+  --color-secondary-foreground:   hsl(var(--secondary-foreground));
+  --color-muted:                  hsl(var(--muted));
+  --color-muted-foreground:       hsl(var(--muted-foreground));
+  --color-accent:                 hsl(var(--accent));
+  --color-accent-foreground:      hsl(var(--accent-foreground));
+  --color-destructive:            hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border:               hsl(var(--border));
-  --color-input:                hsl(var(--input));
-  --color-ring:                 hsl(var(--ring));
+  --color-border:                 hsl(var(--border));
+  --color-border-strong:          hsl(var(--border-strong));
+  --color-input:                  hsl(var(--input));
+  --color-ring:                   hsl(var(--ring));
 
-  --color-sidebar-bg:           hsl(var(--sidebar-bg));
-  --color-sidebar-fg:           hsl(var(--sidebar-fg));
-  --color-sidebar-active-bg:    hsl(var(--sidebar-active-bg));
-  --color-sidebar-active-fg:    hsl(var(--sidebar-active-fg));
-  --color-sidebar-hover-bg:     hsl(var(--sidebar-hover-bg));
-  --color-sidebar-border:       hsl(var(--sidebar-border));
+  /* Rail (sidebar) — always dark */
+  --color-rail-bg:            hsl(var(--rail-bg));
+  --color-rail-fg:            hsl(var(--rail-fg));
+  --color-rail-fg-active:     hsl(var(--rail-fg-active));
+  --color-rail-active-bg:     hsl(var(--rail-active-bg));
+  --color-rail-hover-bg:      hsl(var(--rail-hover-bg));
+  --color-rail-border:        hsl(var(--rail-border));
 
-  /* Radius scale */
-  --radius-xs:   2px;
-  --radius-sm:   4px;
-  --radius-md:   6px;
-  --radius-lg:   8px;
-  --radius-xl:   12px;
-  --radius-2xl:  16px;
-  --radius-3xl:  24px;
+  /* Legacy sidebar aliases — keeps old components working */
+  --color-sidebar-bg:           hsl(var(--rail-bg));
+  --color-sidebar-fg:           hsl(var(--rail-fg));
+  --color-sidebar-active-bg:    hsl(var(--rail-active-bg));
+  --color-sidebar-active-fg:    hsl(var(--rail-fg-active));
+  --color-sidebar-hover-bg:     hsl(var(--rail-hover-bg));
+  --color-sidebar-border:       hsl(var(--rail-border));
+
+  /* Topbar */
+  --color-topbar-bg:     hsl(var(--topbar-bg));
+  --color-topbar-border: hsl(var(--topbar-border));
+
+  /* ── Radius scale ── */
+  --radius-2xs: 2px;
+  --radius-xs:  3px;
+  --radius-sm:  5px;
+  --radius-md:  7px;
+  --radius-lg:  10px;
+  --radius-xl:  14px;
+  --radius-2xl: 18px;
+  --radius-3xl: 24px;
   --radius-full: 9999px;
 
-  /* Typography */
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "Geist Mono", ui-monospace, monospace;
+  /* ── Font stack ── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, monospace;
 
-  /* Type scale */
+  /* ── Type scale ── */
   --text-2xs:  0.625rem;    /* 10px */
   --text-xs:   0.6875rem;   /* 11px */
   --text-sm:   0.75rem;     /* 12px */
@@ -162,15 +190,21 @@
   --text-2xl:  1.25rem;     /* 20px */
   --text-3xl:  1.5rem;      /* 24px */
   --text-4xl:  1.875rem;    /* 30px */
+  --text-5xl:  2.25rem;     /* 36px */
 
-  /* Shadow scale — subtle, professional */
-  --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-  --shadow-md:  0 4px 6px -1px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-  --shadow-lg:  0 10px 15px -3px rgb(0 0 0 / 0.07), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-xl:  0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.18);
-  --shadow-inner: inset 0 2px 4px 0 rgb(0 0 0 / 0.04);
+  /* ── Shadow scale — editorial, airy ── */
+  --shadow-2xs: 0 1px 1px 0 rgb(0 0 0 / 0.03);
+  --shadow-xs:  0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm:  0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  --shadow-md:  0 3px 8px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+  --shadow-lg:  0 8px 20px -4px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl:  0 16px 32px -8px rgb(0 0 0 / 0.10), 0 8px 12px -6px rgb(0 0 0 / 0.05);
+  --shadow-2xl: 0 24px 48px -12px rgb(0 0 0 / 0.16);
+  --shadow-inner: inset 0 1px 3px 0 rgb(0 0 0 / 0.05);
+
+  /* Emerald glow for interactive elements */
+  --shadow-emerald: 0 0 0 3px hsl(158 64% 38% / 0.18);
+  --shadow-emerald-sm: 0 0 0 2px hsl(158 64% 38% / 0.14);
 }
 
 /* ─────────────────────────────────────────────
@@ -190,7 +224,7 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-sans);
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   font-feature-settings: "rlig" 1, "calt" 1, "cv02" 1, "cv03" 1, "cv04" 1;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -198,23 +232,23 @@ body {
 }
 
 /* ─────────────────────────────────────────────
-   SCROLLBAR — minimal, tasteful
+   SCROLLBAR — refined, minimal
    ───────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar        { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  {
-  background: hsl(var(--border-strong));
+  background: hsl(var(--border-strong) / 0.7);
   border-radius: 99px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.35);
+  background: hsl(var(--muted-foreground) / 0.4);
 }
 
 /* ─────────────────────────────────────────────
-   FOCUS RING — accessible, clean
+   FOCUS RING — emerald-tinted, accessible
    ───────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid hsl(var(--ring) / 0.6);
+  outline: 2px solid hsl(var(--ring) / 0.55);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
@@ -223,37 +257,56 @@ body {
    SELECTION
    ───────────────────────────────────────────── */
 ::selection {
-  background: hsl(var(--primary) / 0.15);
+  background: hsl(var(--primary) / 0.14);
   color: hsl(var(--foreground));
 }
 
-/* ─────────────────────────────────────────────
-   SIDEBAR SHELL
-   ───────────────────────────────────────────── */
-.sidebar-shell {
-  background-color: hsl(222 26% 12%);
-  border-right-color: hsl(220 18% 20%);
-  color: hsl(220 12% 62%);
-}
-.dark .sidebar-shell {
-  background-color: hsl(222 28% 7%);
-  border-right-color: hsl(220 18% 14%);
-  color: hsl(220 12% 58%);
+/* ═══════════════════════════════════════════════════════════════════
+   ICON RAIL — ultra-dark sidebar, always
+   ═══════════════════════════════════════════════════════════════════ */
+.rail-shell {
+  background-color: hsl(var(--rail-bg));
+  border-right-color: hsl(var(--rail-border));
+  color: hsl(var(--rail-fg));
 }
 
 /* ─────────────────────────────────────────────
-   SIDEBAR NAVIGATION LINKS
-   Design principle: active = filled pill; hover = ghost
+   RAIL NAV ITEMS
    ───────────────────────────────────────────── */
+.rail-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  color: hsl(var(--rail-fg));
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  position: relative;
+  flex-shrink: 0;
+}
+.rail-item:hover {
+  background: hsl(var(--rail-hover-bg));
+  color: hsl(220 14% 82%);
+}
+.rail-item.active {
+  background: hsl(var(--rail-active-bg));
+  color: hsl(var(--rail-fg-active));
+  box-shadow: 0 0 0 1px hsl(158 60% 30% / 0.4);
+}
+
+/* Legacy nav-item aliases (keeps older components working) */
 .nav-item {
   display: flex;
   align-items: center;
   gap: 9px;
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: 7px;
   font-size: 12.5px;
   font-weight: 500;
-  color: hsl(var(--sidebar-fg));
+  color: hsl(var(--rail-fg));
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
@@ -262,68 +315,67 @@ body {
   letter-spacing: -0.01em;
 }
 .nav-item:hover {
-  background: hsl(var(--sidebar-hover-bg));
-  color: hsl(220 14% 85%);
+  background: hsl(var(--rail-hover-bg));
+  color: hsl(220 14% 82%);
 }
 .nav-item.active {
-  background: hsl(var(--sidebar-active-bg));
-  color: hsl(var(--sidebar-active-fg));
+  background: hsl(var(--rail-active-bg));
+  color: hsl(var(--rail-fg-active));
   font-weight: 600;
 }
-.nav-item.active .nav-icon {
-  opacity: 1;
-}
-.nav-icon {
-  opacity: 0.55;
-  flex-shrink: 0;
-  transition: opacity 140ms ease;
-}
-.nav-item:hover .nav-icon {
-  opacity: 0.85;
-}
-.nav-item.active .nav-icon {
-  opacity: 1;
+.nav-icon { opacity: 0.55; flex-shrink: 0; transition: opacity 140ms ease; }
+.nav-item:hover .nav-icon  { opacity: 0.85; }
+.nav-item.active .nav-icon { opacity: 1; }
+
+/* Legacy sidebar-shell alias */
+.sidebar-shell {
+  background-color: hsl(var(--rail-bg));
+  border-right-color: hsl(var(--rail-border));
+  color: hsl(var(--rail-fg));
 }
 
-/* ─────────────────────────────────────────────
-   SKELETON LOADING ANIMATION
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   TOPBAR
+   ═══════════════════════════════════════════════════════════════════ */
+.topbar-shell {
+  background-color: hsl(var(--topbar-bg));
+  border-bottom-color: hsl(var(--topbar-border));
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SKELETON LOADING
+   ═══════════════════════════════════════════════════════════════════ */
 .skeleton {
   background: hsl(var(--muted));
   border-radius: var(--radius-md);
-  animation: skeleton-pulse 1.6s ease-in-out infinite;
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
 }
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 1; }
-  50%       { opacity: 0.45; }
+  50%       { opacity: 0.4; }
 }
 
-/* ─────────────────────────────────────────────
-   UTILITY — subtle divider
-   ───────────────────────────────────────────── */
-.divider {
-  height: 1px;
-  background: hsl(var(--border));
-}
-
-/* ─────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
    PAGE TRANSITIONS
-   ───────────────────────────────────────────── */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(4px); }
+   ═══════════════════════════════════════════════════════════════════ */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.page-enter {
-  animation: fade-in 200ms ease forwards;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
+.page-enter  { animation: fade-up 240ms cubic-bezier(0.16,1,0.3,1) forwards; }
+.fade-in     { animation: fade-in 200ms ease forwards; }
 
-/* ─────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════
    TYPOGRAPHY UTILITIES
-   ───────────────────────────────────────────── */
+   ═══════════════════════════════════════════════════════════════════ */
 .text-label {
   font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: hsl(var(--muted-foreground));
 }
@@ -331,55 +383,228 @@ body {
 .text-heading {
   font-size: 14px;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   color: hsl(var(--foreground));
   line-height: 1.3;
 }
 
 .text-page-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
   color: hsl(var(--foreground));
   line-height: 1.2;
 }
 
-/* ─────────────────────────────────────────────
-   CARD — consistent surface treatment
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════
+   CARD / SURFACE SYSTEM
+   ═══════════════════════════════════════════════════════════════════ */
 .surface {
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  border-radius: var(--radius-xl);
+  border-radius: 12px;
 }
 
-/* ─────────────────────────────────────────────
-   BADGE DOT COLORS — presence system
-   ───────────────────────────────────────────── */
-.dot-online  { background: hsl(142 72% 46%); }
-.dot-away    { background: hsl(36 96% 52%); }
-.dot-busy    { background: hsl(0 78% 60%); }
-.dot-offline { background: hsl(220 10% 50%); }
+.surface-raised {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+}
 
-/* ─────────────────────────────────────────────
-   AUTH LAYOUT BACKGROUND GRADIENT
-   ───────────────────────────────────────────── */
+.surface-flat {
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DIVIDERS
+   ═══════════════════════════════════════════════════════════════════ */
+.divider { height: 1px; background: hsl(var(--border)); }
+.divider-strong { height: 1px; background: hsl(var(--border-strong)); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PRESENCE DOTS
+   ═══════════════════════════════════════════════════════════════════ */
+.dot-online  { background: hsl(158 64% 44%); }
+.dot-away    { background: hsl(38 90% 52%); }
+.dot-busy    { background: hsl(4 78% 58%); }
+.dot-dnd     { background: hsl(270 60% 60%); }
+.dot-offline { background: hsl(220 10% 48%); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   AUTH LAYOUT
+   ═══════════════════════════════════════════════════════════════════ */
 .auth-bg {
   background:
-    radial-gradient(ellipse 80% 60% at 50% -10%, hsl(239 84% 60% / 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% -5%, hsl(158 64% 38% / 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 85% 90%, hsl(168 72% 36% / 0.05) 0%, transparent 60%),
     hsl(var(--background));
 }
 
-/* ─────────────────────────────────────────────
-   GLASS PANEL — used in auth/onboarding
-   ───────────────────────────────────────────── */
 .glass-panel {
-  background: hsl(0 0% 100% / 0.70);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid hsl(0 0% 100% / 0.60);
+  background: hsl(0 0% 100% / 0.80);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid hsl(0 0% 100% / 0.65);
+  box-shadow: 0 8px 32px -8px rgb(0 0 0 / 0.08), 0 2px 8px -2px rgb(0 0 0 / 0.05);
 }
 .dark .glass-panel {
-  background: hsl(222 22% 12% / 0.75);
-  border-color: hsl(220 16% 26% / 0.5);
+  background: hsl(222 22% 12% / 0.80);
+  border-color: hsl(220 16% 26% / 0.55);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   STAT CARDS — editorial number display
+   ═══════════════════════════════════════════════════════════════════ */
+.stat-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 12px;
+  padding: 20px 24px;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+}
+.stat-card:hover {
+  border-color: hsl(var(--border-strong));
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   INTERACTIVE PILL TAGS
+   ═══════════════════════════════════════════════════════════════════ */
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+.tag-emerald { background: hsl(158 64% 38% / 0.10); color: hsl(158 60% 30%); }
+.tag-amber   { background: hsl(38 90% 50% / 0.12);  color: hsl(30 80% 38%); }
+.tag-red     { background: hsl(4 78% 54% / 0.10);   color: hsl(4 68% 40%); }
+.tag-blue    { background: hsl(210 92% 50% / 0.10); color: hsl(210 80% 40%); }
+.tag-slate   { background: hsl(220 14% 90%);         color: hsl(220 10% 42%); }
+
+/* ═══════════════════════════════════════════════════════════════════
+   RAIL TOOLTIP (flyout label on hover)
+   ═══════════════════════════════════════════════════════════════════ */
+.rail-tooltip {
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: hsl(224 28% 14%);
+  color: hsl(220 14% 85%);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease, transform 120ms ease;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  z-index: 100;
+  border: 1px solid hsl(222 20% 20%);
+}
+.rail-tooltip::before {
+  content: "";
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-right-color: hsl(224 28% 14%);
+}
+.rail-item:hover .rail-tooltip,
+.rail-item:focus-visible .rail-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   ACTIVITY FEED ITEMS
+   ═══════════════════════════════════════════════════════════════════ */
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid hsl(var(--border) / 0.6);
+}
+.activity-item:last-child { border-bottom: none; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   METRIC NUMBER
+   ═══════════════════════════════════════════════════════════════════ */
+.metric-value {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: hsl(var(--foreground));
+}
+.metric-label {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  letter-spacing: -0.01em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   KANBAN COLUMN
+   ═══════════════════════════════════════════════════════════════════ */
+.kanban-col {
+  background: hsl(var(--muted) / 0.5);
+  border: 1px solid hsl(var(--border) / 0.7);
+  border-radius: 12px;
+}
+.kanban-card {
+  background: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  border-radius: 9px;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+  transition: box-shadow 150ms, border-color 150ms, transform 150ms;
+}
+.kanban-card:hover {
+  border-color: hsl(var(--border-strong));
+  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08);
+  transform: translateY(-1px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   PROGRESS TRACK
+   ═══════════════════════════════════════════════════════════════════ */
+.progress-track {
+  height: 4px;
+  background: hsl(var(--muted));
+  border-radius: 99px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: hsl(var(--primary));
+  transition: width 400ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   FORM FIELD SYSTEM
+   ═══════════════════════════════════════════════════════════════════ */
+.field-label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin-bottom: 5px;
+  letter-spacing: -0.01em;
+}
+.field-hint {
+  font-size: 11.5px;
+  color: hsl(var(--muted-foreground));
+  margin-top: 4px;
 }

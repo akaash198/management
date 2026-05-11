@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -31,7 +31,7 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const leftFeatures = [
-  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-indigo-400",  bg: "bg-indigo-500/10" },
+  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-emerald-400",  bg: "bg-emerald-600/10" },
   { icon: MessageSquare,label: "Real-time chat & voice calls",  color: "text-violet-400",  bg: "bg-violet-500/10" },
   { icon: BarChart3,    label: "Analytics & velocity reports",  color: "text-cyan-400",    bg: "bg-cyan-500/10"   },
   { icon: Shield,       label: "Role-based access control",     color: "text-emerald-400", bg: "bg-emerald-500/10"},
@@ -73,22 +73,22 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#06060e]">
+    <div className="min-h-screen flex bg-[#060d0a]">
 
       {/* ── Left panel ── */}
       <div className="hidden lg:flex lg:w-[46%] xl:w-[44%] flex-col justify-between p-14 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#08081a]" />
+        <div className="absolute inset-0 bg-[#070f0b]" />
         <div className="absolute inset-0 opacity-[0.025]" style={{
           backgroundImage: "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
           backgroundSize: "44px 44px",
         }} />
-        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full bg-violet-600/[0.12] blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full bg-indigo-600/[0.08] blur-[100px]" />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#06060e] to-transparent" />
+        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full bg-teal-500/[0.12] blur-[120px]" />
+        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full bg-emerald-600/[0.08] blur-[100px]" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#060d0a] to-transparent" />
 
         {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.4)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
             <Kanban size={16} className="text-white" />
           </span>
           <span className="text-[17px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
@@ -96,8 +96,8 @@ export default function RegisterPage() {
 
         {/* Hero copy */}
         <div className="relative space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[0.1] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-indigo-300">
-            <Sparkles size={10} className="text-indigo-400" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.1] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+            <Sparkles size={10} className="text-emerald-400" />
             Free forever for small teams
           </div>
           <div>
@@ -143,16 +143,16 @@ export default function RegisterPage() {
 
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="absolute inset-0 bg-[#09090f]" />
+        <div className="absolute inset-0 bg-[#07100c]" />
         <div className="absolute inset-0 opacity-[0.015]" style={{
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
           backgroundSize: "28px 28px",
         }} />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600/[0.05] blur-[100px]" />
+        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/[0.05] blur-[100px]" />
 
         {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
             <Kanban size={14} className="text-white" />
           </span>
           <span className="text-[16px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
@@ -207,7 +207,7 @@ export default function RegisterPage() {
                   autoComplete="name"
                   {...register("full_name")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-indigo-500/50 focus-visible:ring-indigo-500/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
                     errors.full_name && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -228,7 +228,7 @@ export default function RegisterPage() {
                   autoComplete="email"
                   {...register("email")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-indigo-500/50 focus-visible:ring-indigo-500/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
                     errors.email && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -249,7 +249,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-indigo-500/50 focus-visible:ring-indigo-500/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
                         errors.password && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -273,7 +273,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password_confirm")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-indigo-500/50 focus-visible:ring-indigo-500/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
                         errors.password_confirm && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -297,7 +297,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl bg-indigo-500 text-[14px] font-semibold text-white shadow-[0_0_24px_rgba(99,102,241,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all hover:bg-indigo-400 hover:shadow-[0_0_36px_rgba(99,102,241,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-semibold text-white shadow-[0_0_24px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all hover:bg-emerald-500 hover:shadow-[0_0_36px_rgba(16,185,129,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <><Loader2 size={14} className="animate-spin" /> Creating account…</>
@@ -319,7 +319,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors"
+              className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
             >
               Sign in
             </Link>
@@ -329,3 +329,4 @@ export default function RegisterPage() {
     </div>
   );
 }
+
