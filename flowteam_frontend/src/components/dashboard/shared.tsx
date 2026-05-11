@@ -282,16 +282,16 @@ export function MiniMetric({
 }: {
   label: string; value: string | number; tone: "neutral" | "success" | "warning" | "danger";
 }) {
-  const styles = {
-    neutral: "bg-muted/40 text-foreground border border-border/60",
-    success: "bg-primary/6 text-primary border border-primary/12",
-    warning: "bg-amber-50 text-amber-700 border border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/30",
-    danger:  "bg-destructive/5 text-destructive border border-destructive/12",
+  const valueColor = {
+    neutral: "text-foreground",
+    success: "text-primary",
+    warning: "text-amber-600 dark:text-amber-400",
+    danger:  "text-destructive",
   }[tone];
   return (
-    <div className={cn("rounded-xl px-3.5 py-3", styles)}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] opacity-60">{label}</p>
-      <p className="mt-1.5 text-[22px] font-semibold tracking-[-0.03em] leading-none">{value}</p>
+    <div className="rounded-xl border border-border/70 bg-card px-3.5 py-3">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">{label}</p>
+      <p className={cn("mt-1.5 text-[22px] font-semibold tracking-[-0.03em] leading-none", valueColor)}>{value}</p>
     </div>
   );
 }

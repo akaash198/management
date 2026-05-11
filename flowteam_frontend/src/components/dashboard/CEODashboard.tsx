@@ -198,21 +198,16 @@ function OrgStat({
   label: string; value: string | number; sub: string;
   tone: "neutral" | "success" | "warning";
 }) {
-  const bg = {
-    neutral: "border-white/60 bg-white/70 dark:border-white/8 dark:bg-white/4",
-    success: "border-primary/15 bg-primary/4",
-    warning: "border-amber-100 bg-amber-50/60 dark:border-amber-900/30 dark:bg-amber-950/30",
-  }[tone];
   const val = {
     neutral: "text-foreground",
     success: "text-primary",
-    warning: "text-amber-700 dark:text-amber-400",
+    warning: "text-amber-600 dark:text-amber-400",
   }[tone];
   return (
-    <div className={cn("rounded-xl border p-4", bg)}>
-      <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/70">{label}</p>
+    <div className="rounded-xl border border-white/60 bg-white/70 p-4 dark:border-white/8 dark:bg-white/4">
+      <p className="text-[10.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/60">{label}</p>
       <p className={cn("mt-2.5 text-[20px] font-semibold tracking-[-0.03em] leading-none", val)}>{value}</p>
-      <p className="mt-1.5 text-[11px] text-muted-foreground/60">{sub}</p>
+      <p className="mt-1.5 text-[11px] text-muted-foreground/50">{sub}</p>
     </div>
   );
 }
