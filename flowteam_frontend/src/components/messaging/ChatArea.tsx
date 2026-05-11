@@ -107,6 +107,7 @@ export function ChatArea({
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ callId: string; callType: 'audio' | 'video'; callerName: string } | null>(null);
   const callEventHandlerRef = useRef<((type: string, data: any) => void) | null>(null);
+  const incomingRingRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
   const queryClient = useQueryClient();
   const {
     messages,
@@ -519,6 +520,46 @@ export function ChatArea({
     }
   }, [channel.id, notificationKeywords, notificationLevel, onRefreshChannels]);
 
+  // Play incoming ring tone while an incoming call is pending
+  useEffect(() => {
+    if (!incomingCall) {
+      if (incomingRingRef.current) {
+        clearInterval(incomingRingRef.current.interval);
+        try { incomingRingRef.current.ctx.close(); } catch { /* ignore */ }
+        incomingRingRef.current = null;
+      }
+      return;
+    }
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx() as AudioContext;
+      const play = () => {
+        // Two-tone ring: 440 Hz then 480 Hz
+        [0, 0.2].forEach((offset, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.frequency.value = i === 0 ? 440 : 480;
+          gain.gain.setValueAtTime(0.25, ctx.currentTime + offset);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+          osc.start(ctx.currentTime + offset);
+          osc.stop(ctx.currentTime + offset + 0.18);
+        });
+      };
+      const interval = setInterval(play, 1200);
+      incomingRingRef.current = { ctx, interval };
+      play();
+    } catch { /* silent fallback */ }
+    return () => {
+      if (incomingRingRef.current) {
+        clearInterval(incomingRingRef.current.interval);
+        try { incomingRingRef.current.ctx.close(); } catch { /* ignore */ }
+        incomingRingRef.current = null;
+      }
+    };
+  }, [incomingCall]);
+
   const startCall = useCallback(async (type: 'audio' | 'video') => {
     setCallType(type);
     setCallOpen(true);
@@ -553,8 +594,12 @@ export function ChatArea({
   }, [aiEnabled, channel.id]);
 
   const declineIncomingCall = useCallback(() => {
+    if (incomingCall) {
+      // Tell the backend the call was declined so the caller gets a missed-call message
+      sendCallMessage('call.end', { call_id: incomingCall.callId, call_type: incomingCall.callType, was_answered: false });
+    }
     setIncomingCall(null);
-  }, []);
+  }, [incomingCall, sendCallMessage]);
 
   const createScheduledMessage = useCallback(async () => {
     const textToSchedule = (scheduleText.trim() || text.trim()).trim();
