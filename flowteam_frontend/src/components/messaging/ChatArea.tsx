@@ -140,6 +140,9 @@ export function ChatArea({
           return;
         }
       }
+      if (type === 'call.ended' || type === 'call.missed' || type === 'call_ended') {
+        setIncomingCall(null);
+      }
       callEventHandlerRef.current?.(type, data);
     },
   });

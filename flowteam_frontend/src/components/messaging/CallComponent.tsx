@@ -349,6 +349,9 @@ export function CallComponent({
           onClose();
         }, NO_ANSWER_TIMEOUT_MS);
         sendCallMessage('call.start', { call_type: callType });
+      } else {
+        // Acceptor: media ready, send join to trigger participant_joined on sender
+        sendCallMessage('call.join', { call_id: existingCallId });
       }
       // Acceptor: media ready, peer created when signal arrives
     })();
@@ -420,7 +423,12 @@ export function CallComponent({
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="p-0 overflow-hidden border-0 max-w-md w-full [&>button]:text-white" style={{ borderRadius: '20px' }}>
+      <DialogContent 
+        className="p-0 overflow-hidden border-0 max-w-md w-full [&>button]:hidden" 
+        style={{ borderRadius: '20px' }}
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <VisuallyHidden>
           <DialogTitle>{callType === 'video' ? 'Video' : 'Audio'} call with {remoteUserName}</DialogTitle>
         </VisuallyHidden>
@@ -464,7 +472,13 @@ export function CallComponent({
                   <video
                     key={userId}
                     ref={(el) => {
-                      if (el) { el.srcObject = stream; remoteVideoRefs.current.set(userId, el); }
+                      if (el) {
+                        remoteVideoRefs.current.set(userId, el);
+                        if (el.srcObject !== stream) {
+                          el.srcObject = stream;
+                          el.play().catch((e) => console.error("Playback failed", e));
+                        }
+                      }
                     }}
                     autoPlay
                     playsInline

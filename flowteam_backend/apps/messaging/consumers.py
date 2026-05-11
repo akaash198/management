@@ -189,10 +189,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if sys_msg:
                 await self.broadcast("message.new", sys_msg)
                 await self.push_channel_unread_events()
+                if not was_answered:
+                    await self.create_missed_call_notifications(payload.get("call_type", "audio"))
 
         elif event_type == "call.missed":
             # 30s timeout with no answer
-            await self.end_call(payload.get("call_id"))
+            call_id = payload.get("call_id")
+            await self.end_call(call_id)
+            await self.broadcast("call.ended", {"call_id": call_id})
             sys_msg = await self.create_system_message(
                 "call_missed",
                 payload.get("call_type", "audio"),
@@ -200,6 +204,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if sys_msg:
                 await self.broadcast("message.new", sys_msg)
                 await self.push_channel_unread_events()
+                await self.create_missed_call_notifications(payload.get("call_type", "audio"))
 
         elif event_type == "call.signal":
             # WebRTC signaling: offer, answer, ice_candidate
@@ -437,6 +442,32 @@ class ChatConsumer(AsyncWebsocketConsumer):
             .filter(models.Q(mute_until__isnull=True) | models.Q(mute_until__lt=now))
             .values_list("user_id", flat=True)
         )
+
+    @database_sync_to_async
+    def create_missed_call_notifications(self, call_type):
+        from .models import Notification
+        from .tasks import send_notification_ws
+        recipient_ids = ChannelMember.objects.filter(channel_id=self.channel_id).exclude(user_id=self.user.id).values_list("user_id", flat=True)
+        for user_id in recipient_ids:
+            notification = Notification.objects.create(
+                recipient_id=user_id,
+                type=f"missed_call",
+                title=f"Missed {call_type} call",
+                body=f"Missed a {call_type} call from {self.user.full_name}",
+                reference_type="channel",
+                reference_id=str(self.channel_id)
+            )
+            send_notification_ws.delay(str(user_id), str(notification.id))
+            try:
+                from apps.users.tasks import send_push_async
+                send_push_async.delay(
+                    str(user_id),
+                    notification.title,
+                    notification.body,
+                    f"/messages?channel={self.channel_id}"
+                )
+            except Exception:
+                pass
 
     @database_sync_to_async
     def start_call(self, call_type):
