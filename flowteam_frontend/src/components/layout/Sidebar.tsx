@@ -216,7 +216,7 @@ export function Sidebar() {
       <div className="flex h-[56px] shrink-0 items-center justify-center border-b" style={{ borderColor: "hsl(var(--rail-border))" }}>
         <div
           className="h-8 w-8 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: "hsl(158 64% 38%)" }}
+          style={{ background: "#82B4AA" }}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="white" />

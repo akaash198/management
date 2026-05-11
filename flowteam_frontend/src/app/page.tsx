@@ -159,8 +159,8 @@ export default function LandingPage() {
         <div className="relative z-10 mt-20 w-full max-w-5xl px-4">
           {/* Floating badge above */}
           <div className="absolute -top-5 left-1/2 z-20 -translate-x-1/2">
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/25 bg-[#06060e] px-4 py-1.5 text-[11px] font-semibold text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            <div className="inline-flex items-center gap-2 rounded-full border bg-[#06060e] px-4 py-1.5 text-[11px] font-semibold" style={{ borderColor: "rgba(130,180,170,0.25)", color: "#82B4AA", boxShadow: "0 0 20px rgba(130,180,170,0.15)" }}>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: "#82B4AA" }} />
               Live · 3 teammates online
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function LandingPage() {
       <section id="how" className="py-28 px-6 scroll-mt-28">
         <div className="mx-auto max-w-5xl">
           <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-400">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.08)", color: "#82B4AA" }}>
               How it works
             </div>
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">

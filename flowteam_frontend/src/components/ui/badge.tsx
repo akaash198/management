@@ -22,8 +22,8 @@ const badgeVariants = cva(
         /* Danger */
         destructive: "border-transparent bg-destructive/10 text-destructive",
 
-        /* Success / emerald */
-        success: "border-transparent bg-[hsl(158_64%_38%/0.10)] text-[hsl(158_58%_28%)]",
+        /* Success / pale teal */
+        success: "border-transparent bg-[hsl(170_22%_60%/0.14)] text-[hsl(170_22%_32%)]",
 
         /* Warning */
         warning: "border-transparent bg-[hsl(38_92%_50%/0.12)] text-[hsl(34_80%_34%)]",

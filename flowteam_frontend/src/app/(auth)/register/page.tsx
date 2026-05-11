@@ -31,10 +31,10 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const leftFeatures = [
-  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-emerald-400",  bg: "bg-emerald-600/10" },
-  { icon: MessageSquare,label: "Real-time chat & voice calls",  color: "text-violet-400",  bg: "bg-violet-500/10" },
-  { icon: BarChart3,    label: "Analytics & velocity reports",  color: "text-cyan-400",    bg: "bg-cyan-500/10"   },
-  { icon: Shield,       label: "Role-based access control",     color: "text-emerald-400", bg: "bg-emerald-500/10"},
+  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/10" },
+  { icon: MessageSquare,label: "Real-time chat & voice calls",  color: "text-[#9ECAC2]",  bg: "bg-[#82B4AA]/8"  },
+  { icon: BarChart3,    label: "Analytics & velocity reports",  color: "text-[#B0D4CE]",  bg: "bg-[#82B4AA]/7"  },
+  { icon: Shield,       label: "Role-based access control",     color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/8"  },
 ];
 
 export default function RegisterPage() {
@@ -82,13 +82,13 @@ export default function RegisterPage() {
           backgroundImage: "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
           backgroundSize: "44px 44px",
         }} />
-        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full bg-teal-500/[0.12] blur-[120px]" />
-        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full bg-emerald-600/[0.08] blur-[100px]" />
+        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full blur-[120px]" style={{ background: "rgba(130,180,170,0.12)" }} />
+        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full blur-[100px]" style={{ background: "rgba(130,180,170,0.08)" }} />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#060d0a] to-transparent" />
 
         {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(130,180,170,0.4)]" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
             <Kanban size={16} className="text-white" />
           </span>
           <span className="text-[17px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
@@ -96,14 +96,14 @@ export default function RegisterPage() {
 
         {/* Hero copy */}
         <div className="relative space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.1] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
-            <Sparkles size={10} className="text-emerald-400" />
+          <div className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.10)", color: "#82B4AA" }}>
+            <Sparkles size={10} style={{ color: "#82B4AA" }} />
             Free forever for small teams
           </div>
           <div>
             <h1 className="text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white">
               Everything your<br />
-              <span className="bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #82B4AA, #B0D4CE, #9EC8C2)" }}>
                 team needs.
               </span>
             </h1>
@@ -127,8 +127,8 @@ export default function RegisterPage() {
           <ul className="space-y-2">
             {["No credit card required", "Free plan forever for small teams", "Upgrade anytime, cancel anytime"].map((t) => (
               <li key={t} className="flex items-center gap-2.5 text-[13px] text-white/40">
-                <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-emerald-500/15">
-                  <Check size={9} className="text-emerald-400" strokeWidth={3} />
+                <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full" style={{ background: "rgba(130,180,170,0.15)" }}>
+                  <Check size={9} style={{ color: "#82B4AA" }} strokeWidth={3} />
                 </div>
                 {t}
               </li>
@@ -148,11 +148,11 @@ export default function RegisterPage() {
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
           backgroundSize: "28px 28px",
         }} />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/[0.05] blur-[100px]" />
+        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px]" style={{ background: "rgba(130,180,170,0.05)" }} />
 
         {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
             <Kanban size={14} className="text-white" />
           </span>
           <span className="text-[16px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
@@ -207,7 +207,7 @@ export default function RegisterPage() {
                   autoComplete="name"
                   {...register("full_name")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
                     errors.full_name && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -228,7 +228,7 @@ export default function RegisterPage() {
                   autoComplete="email"
                   {...register("email")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
                     errors.email && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -249,7 +249,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
                         errors.password && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -273,7 +273,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password_confirm")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-emerald-500/50 focus-visible:ring-emerald-500/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
                         errors.password_confirm && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -297,7 +297,8 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-semibold text-white shadow-[0_0_24px_rgba(16,185,129,0.4),inset_0_1px_0_rgba(255,255,255,0.12)] transition-all hover:bg-emerald-500 hover:shadow-[0_0_36px_rgba(16,185,129,0.6)] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ background: "#82B4AA", boxShadow: "0 0 24px rgba(130,180,170,0.40), inset 0 1px 0 rgba(255,255,255,0.12)" }}
               >
                 {loading ? (
                   <><Loader2 size={14} className="animate-spin" /> Creating account…</>
@@ -319,7 +320,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              className="font-semibold transition-colors" style={{ color: "#82B4AA" }}
             >
               Sign in
             </Link>

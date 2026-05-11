@@ -26,10 +26,10 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const leftFeatures = [
-  { icon: Kanban,        label: "Kanban & sprint boards",       color: "text-emerald-400", bg: "bg-emerald-500/10" },
-  { icon: MessageSquare, label: "Real-time chat & voice calls", color: "text-teal-400",    bg: "bg-teal-500/10"    },
-  { icon: BarChart3,     label: "Analytics & velocity reports", color: "text-cyan-400",    bg: "bg-cyan-500/10"    },
-  { icon: Shield,        label: "Role-based access control",    color: "text-emerald-300", bg: "bg-emerald-500/8"  },
+  { icon: Kanban,        label: "Kanban & sprint boards",       color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/10" },
+  { icon: MessageSquare, label: "Real-time chat & voice calls", color: "text-[#9ECAC2]",  bg: "bg-[#82B4AA]/8"  },
+  { icon: BarChart3,     label: "Analytics & velocity reports", color: "text-[#B0D4CE]",  bg: "bg-[#82B4AA]/7"  },
+  { icon: Shield,        label: "Role-based access control",    color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/8"  },
 ];
 
 export default function LoginClient() {
@@ -109,13 +109,13 @@ export default function LoginClient() {
           backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }} />
-        <div className="absolute -top-24 -left-24 h-[560px] w-[560px] rounded-full bg-emerald-600/[0.10] blur-[130px]" />
-        <div className="absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full bg-teal-500/[0.07] blur-[110px]" />
+        <div className="absolute -top-24 -left-24 h-[560px] w-[560px] rounded-full blur-[130px]" style={{ background: "rgba(130,180,170,0.10)" }} />
+        <div className="absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full blur-[110px]" style={{ background: "rgba(130,180,170,0.07)" }} />
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#060d0a] to-transparent" />
 
         {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-[0_0_24px_rgba(16,185,129,0.35)]">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_24px_rgba(130,180,170,0.35)]" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
             <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="text-white">
               <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" />
               <rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
@@ -128,14 +128,14 @@ export default function LoginClient() {
 
         {/* Hero copy */}
         <div className="relative space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-emerald-300">
+          <div className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.08)", color: "#82B4AA" }}>
             <Sparkles size={10} />
             Trusted by 5,000+ teams
           </div>
           <div>
             <h1 className="text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white">
               Your team,<br />
-              <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
+              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #82B4AA, #B0D4CE, #9EC8C2)" }}>
                 in perfect sync.
               </span>
             </h1>
@@ -161,7 +161,7 @@ export default function LoginClient() {
               {["A","B","C","D"].map((l, i) => (
                 <span key={l}
                   className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#070f0b] text-[10px] font-bold text-white"
-                  style={{ background: ["#10b981","#14b8a6","#06b6d4","#22c55e"][i] }}
+                  style={{ background: ["#82B4AA","#6A9E94","#9ECAC2","#B0D4CE"][i] }}
                 >
                   {l}
                 </span>
@@ -189,11 +189,11 @@ export default function LoginClient() {
           backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
           backgroundSize: "30px 30px",
         }} />
-        <div className="absolute left-1/2 top-1/3 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-600/[0.04] blur-[110px]" />
+        <div className="absolute left-1/2 top-1/3 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]" style={{ background: "rgba(130,180,170,0.04)" }} />
 
         {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-white">
               <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" />
               <rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
@@ -267,7 +267,7 @@ export default function LoginClient() {
                   autoComplete="email"
                   {...register("email")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-emerald-500/45 focus-visible:ring-emerald-500/15 focus-visible:bg-white/[0.06]",
+                    "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15 focus-visible:bg-white/[0.06]",
                     errors.email && "border-red-500/35"
                   )}
                 />
@@ -280,7 +280,7 @@ export default function LoginClient() {
                   <Label htmlFor="password" className="text-[11px] font-semibold uppercase tracking-[0.09em] text-white/30">
                     Password
                   </Label>
-                  <Link href="/forgot-password" className="text-[11px] font-semibold text-emerald-400/65 hover:text-emerald-300 transition-colors">
+                  <Link href="/forgot-password" className="text-[11px] font-semibold transition-colors" style={{ color: "rgba(130,180,170,0.65)" }}>
                     Forgot password?
                   </Link>
                 </div>
@@ -292,7 +292,7 @@ export default function LoginClient() {
                     autoComplete="current-password"
                     {...register("password")}
                     className={cn(
-                      "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] pr-10 text-white placeholder:text-white/18 focus-visible:border-emerald-500/45 focus-visible:ring-emerald-500/15",
+                      "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] pr-10 text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15",
                       errors.password && "border-red-500/35"
                     )}
                   />
@@ -316,12 +316,12 @@ export default function LoginClient() {
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => { setUseBackup(false); setBackupCode(""); }}
                         className={cn("rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all",
-                          !useBackup ? "bg-emerald-500/18 text-emerald-300" : "text-white/32 hover:text-white/55")}>
+                          !useBackup ? "bg-[rgba(130,180,170,0.15)] text-[#82B4AA]" : "text-white/32 hover:text-white/55")}>
                         OTP code
                       </button>
                       <button type="button" onClick={() => { setUseBackup(true); setOtpCode(""); }}
                         className={cn("rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all",
-                          useBackup ? "bg-emerald-500/18 text-emerald-300" : "text-white/32 hover:text-white/55")}>
+                          useBackup ? "bg-[rgba(130,180,170,0.15)] text-[#82B4AA]" : "text-white/32 hover:text-white/55")}>
                         Backup code
                       </button>
                     </div>
@@ -331,7 +331,7 @@ export default function LoginClient() {
                       <Label htmlFor="otp_code" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/30">6‑digit code</Label>
                       <Input id="otp_code" value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
                         inputMode="numeric" placeholder="123456"
-                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-emerald-500/45 focus-visible:ring-emerald-500/15" />
+                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15" />
                       <p className="text-[11px] text-white/22">From your authenticator app.</p>
                     </div>
                   ) : (
@@ -339,7 +339,7 @@ export default function LoginClient() {
                       <Label htmlFor="backup_code" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/30">Backup code</Label>
                       <Input id="backup_code" value={backupCode} onChange={(e) => setBackupCode(e.target.value)}
                         placeholder="ABCD-EF12"
-                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-emerald-500/45 focus-visible:ring-emerald-500/15" />
+                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15" />
                       <p className="text-[11px] text-white/22">One‑time use code from 2FA setup.</p>
                     </div>
                   )}
@@ -350,7 +350,8 @@ export default function LoginClient() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 text-[14px] font-semibold text-white shadow-[0_0_28px_rgba(16,185,129,0.35),inset_0_1px_0_rgba(255,255,255,0.10)] transition-all hover:bg-emerald-500 hover:shadow-[0_0_40px_rgba(16,185,129,0.55)] disabled:opacity-45 disabled:cursor-not-allowed"
+                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-45 disabled:cursor-not-allowed"
+              style={{ background: "#82B4AA", boxShadow: "0 0 28px rgba(130,180,170,0.35), inset 0 1px 0 rgba(255,255,255,0.10)" }}
               >
                 {loading ? (
                   <><Loader2 size={14} className="animate-spin" /> Signing in…</>
@@ -363,7 +364,7 @@ export default function LoginClient() {
 
           <p className="text-center text-[13px] text-white/28">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-semibold text-emerald-400 hover:text-emerald-300 transition-colors">
+            <Link href="/register" className="font-semibold transition-colors" style={{ color: "#82B4AA" }}>
               Create one free
             </Link>
           </p>

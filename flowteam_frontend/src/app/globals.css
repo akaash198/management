@@ -3,7 +3,7 @@
 /* ═══════════════════════════════════════════════════════════════════
    FLOWTEAM DESIGN SYSTEM v2
    Direction: Clean light, editorial — Notion × Craft × Linear
-   Palette: Emerald / Teal primary — warm neutral base
+   Palette: Pale Teal primary #82B4AA — warm neutral base
    Sidebar: Ultra-dark icon rail with flyout
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -22,11 +22,11 @@
   --popover:            0 0% 100%;
   --popover-foreground: 220 22% 12%;
 
-  /* ── Brand — Emerald / Teal ── */
-  --primary:            158 64% 38%;       /* emerald-600 #17A96B */
+  /* ── Brand — Pale Teal #82B4AA ── */
+  --primary:            170 22% 60%;       /* pale teal #82B4AA */
   --primary-foreground: 0 0% 100%;
-  --primary-light:      158 80% 94%;       /* emerald-50 tint */
-  --primary-mid:        158 64% 46%;       /* emerald-500 */
+  --primary-light:      170 30% 93%;       /* pale teal tint */
+  --primary-mid:        170 22% 52%;       /* pale teal darker */
 
   /* ── Secondary ── */
   --secondary:          220 16% 95%;
@@ -36,14 +36,14 @@
   --muted:              220 14% 94%;
   --muted-foreground:   220 10% 52%;
 
-  /* ── Accent (teal-leaning for hover states) ── */
-  --accent:             168 72% 36%;       /* teal-600 */
+  /* ── Accent (deeper teal for hover states) ── */
+  --accent:             170 28% 48%;       /* teal, deeper than primary */
   --accent-foreground:  0 0% 100%;
 
   /* ── Semantic ── */
   --destructive:        4 78% 54%;
   --destructive-foreground: 0 0% 100%;
-  --success:            158 64% 38%;
+  --success:            170 22% 60%;
   --success-foreground: 0 0% 100%;
   --warning:            38 92% 50%;
   --warning-foreground: 28 30% 15%;
@@ -54,16 +54,16 @@
   --border:             220 14% 90%;
   --border-strong:      220 14% 80%;
   --input:              220 14% 90%;
-  --ring:               158 64% 38%;
+  --ring:               170 22% 60%;
 
   /* ── Sidebar — ultra dark, independent of light/dark mode ── */
   --rail-bg:            224 28% 9%;        /* #0E1118 near-black */
   --rail-fg:            220 14% 52%;       /* muted slate */
-  --rail-fg-active:     158 80% 72%;       /* emerald glow */
-  --rail-active-bg:     158 50% 18%;       /* deep emerald fill */
+  --rail-fg-active:     170 45% 72%;       /* pale teal glow */
+  --rail-active-bg:     170 30% 16%;       /* deep teal fill */
   --rail-hover-bg:      222 22% 16%;
   --rail-border:        222 20% 15%;
-  --rail-logo-fg:       158 80% 68%;
+  --rail-logo-fg:       170 45% 68%;
 
   /* ── Topbar ── */
   --topbar-bg:          0 0% 100%;
@@ -87,10 +87,10 @@
   --popover:            222 22% 13%;
   --popover-foreground: 210 18% 92%;
 
-  --primary:            158 60% 48%;
+  --primary:            170 22% 62%;
   --primary-foreground: 222 26% 9%;
-  --primary-light:      158 40% 16%;
-  --primary-mid:        158 58% 54%;
+  --primary-light:      170 20% 16%;
+  --primary-mid:        170 22% 70%;
 
   --secondary:          220 18% 17%;
   --secondary-foreground: 210 14% 72%;
@@ -98,12 +98,12 @@
   --muted:              220 18% 16%;
   --muted-foreground:   220 10% 52%;
 
-  --accent:             168 65% 44%;
+  --accent:             170 28% 50%;
   --accent-foreground:  222 26% 9%;
 
   --destructive:        4 68% 52%;
   --destructive-foreground: 0 0% 100%;
-  --success:            158 60% 48%;
+  --success:            170 22% 62%;
   --success-foreground: 0 0% 100%;
   --warning:            38 88% 54%;
   --warning-foreground: 0 0% 0%;
@@ -111,7 +111,7 @@
   --border:             220 16% 20%;
   --border-strong:      220 16% 28%;
   --input:              220 16% 20%;
-  --ring:               158 60% 48%;
+  --ring:               170 22% 62%;
 
   --topbar-bg:          222 22% 11%;
   --topbar-border:      220 16% 18%;
@@ -202,9 +202,9 @@
   --shadow-2xl: 0 24px 48px -12px rgb(0 0 0 / 0.16);
   --shadow-inner: inset 0 1px 3px 0 rgb(0 0 0 / 0.05);
 
-  /* Emerald glow for interactive elements */
-  --shadow-emerald: 0 0 0 3px hsl(158 64% 38% / 0.18);
-  --shadow-emerald-sm: 0 0 0 2px hsl(158 64% 38% / 0.14);
+  /* Pale teal glow for interactive elements */
+  --shadow-emerald: 0 0 0 3px hsl(170 22% 60% / 0.22);
+  --shadow-emerald-sm: 0 0 0 2px hsl(170 22% 60% / 0.16);
 }
 
 /* ─────────────────────────────────────────────
@@ -294,7 +294,7 @@ body {
 .rail-item.active {
   background: hsl(var(--rail-active-bg));
   color: hsl(var(--rail-fg-active));
-  box-shadow: 0 0 0 1px hsl(158 60% 30% / 0.4);
+  box-shadow: 0 0 0 1px hsl(170 22% 50% / 0.35);
 }
 
 /* Legacy nav-item aliases (keeps older components working) */
@@ -427,7 +427,7 @@ body {
 /* ═══════════════════════════════════════════════════════════════════
    PRESENCE DOTS
    ═══════════════════════════════════════════════════════════════════ */
-.dot-online  { background: hsl(158 64% 44%); }
+.dot-online  { background: hsl(170 22% 60%); }
 .dot-away    { background: hsl(38 90% 52%); }
 .dot-busy    { background: hsl(4 78% 58%); }
 .dot-dnd     { background: hsl(270 60% 60%); }
@@ -438,8 +438,8 @@ body {
    ═══════════════════════════════════════════════════════════════════ */
 .auth-bg {
   background:
-    radial-gradient(ellipse 70% 50% at 50% -5%, hsl(158 64% 38% / 0.07) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 30% at 85% 90%, hsl(168 72% 36% / 0.05) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 50% -5%, hsl(170 22% 60% / 0.07) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at 85% 90%, hsl(170 28% 48% / 0.05) 0%, transparent 60%),
     hsl(var(--background));
 }
 
@@ -483,7 +483,7 @@ body {
   font-weight: 500;
   letter-spacing: -0.01em;
 }
-.tag-emerald { background: hsl(158 64% 38% / 0.10); color: hsl(158 60% 30%); }
+.tag-teal    { background: hsl(170 22% 60% / 0.12); color: hsl(170 22% 35%); }
 .tag-amber   { background: hsl(38 90% 50% / 0.12);  color: hsl(30 80% 38%); }
 .tag-red     { background: hsl(4 78% 54% / 0.10);   color: hsl(4 68% 40%); }
 .tag-blue    { background: hsl(210 92% 50% / 0.10); color: hsl(210 80% 40%); }
