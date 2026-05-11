@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -149,23 +150,32 @@ function RailItem({
   badge?: number;
 }) {
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      className={cn(
-        "rail-item group",
-        active && "active"
-      )}
-    >
-      <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
-      {badge != null && badge > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground px-1 leading-none">
-          {badge > 99 ? "99+" : badge}
-        </span>
-      )}
-      {/* Flyout label */}
-      <span className="rail-tooltip">{label}</span>
-    </Link>
+    <TooltipPrimitive.Root delayDuration={300}>
+      <TooltipPrimitive.Trigger asChild>
+        <Link
+          href={href}
+          aria-label={label}
+          className={cn("rail-item", active && "active")}
+        >
+          <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
+          {badge != null && badge > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary text-[9px] font-bold text-primary-foreground px-1 leading-none">
+              {badge > 99 ? "99+" : badge}
+            </span>
+          )}
+        </Link>
+      </TooltipPrimitive.Trigger>
+      <TooltipPrimitive.Portal>
+        <TooltipPrimitive.Content
+          side="right"
+          sideOffset={12}
+          className="rail-radix-tooltip"
+        >
+          {label}
+          <TooltipPrimitive.Arrow className="fill-[hsl(224_28%_14%)]" width={8} height={5} />
+        </TooltipPrimitive.Content>
+      </TooltipPrimitive.Portal>
+    </TooltipPrimitive.Root>
   );
 }
 
@@ -205,6 +215,7 @@ export function Sidebar() {
       : pathname === href || pathname.startsWith(href + "/");
 
   return (
+    <TooltipPrimitive.Provider delayDuration={300} skipDelayDuration={100}>
     <aside
       className={cn(
         "flex flex-col shrink-0 h-screen overflow-hidden",
@@ -233,7 +244,7 @@ export function Sidebar() {
       </div>
 
       {/* ── Main nav ── */}
-      <nav className="flex-1 flex flex-col items-center gap-1 py-3 overflow-y-auto">
+      <nav className="flex-1 flex flex-col items-center gap-1 py-3">
         {NAV_MAIN.map((item) => (
           <RailItem
             key={item.href}
@@ -350,5 +361,6 @@ export function Sidebar() {
         </DropdownMenu>
       </div>
     </aside>
+    </TooltipPrimitive.Provider>
   );
 }
