@@ -41,8 +41,8 @@ services:
       DEBUG: "False"
       RUN_MIGRATIONS: "0"
       RUN_SEED_MESSAGING: "0"
-      USE_UVICORN: ${USE_UVICORN:-1}
-      UVICORN_WORKERS: ${UVICORN_WORKERS:-2}
+      USE_UVICORN: ${USE_UVICORN:-0}
+      UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       PORT: "8000"
     depends_on:
       postgres:
