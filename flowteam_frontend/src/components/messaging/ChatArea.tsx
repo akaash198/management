@@ -1354,7 +1354,7 @@ export function ChatArea({
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
           {/* Pill tab group */}
-          <div className="hidden sm:flex h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border">
+          <div className={cn("hidden h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border", searchOpen ? "xl:flex" : "sm:flex")}>
             <button
               type="button"
               onClick={() => setPinsOpen(true)}
@@ -1446,32 +1446,21 @@ export function ChatArea({
           </DropdownMenu>
 
           {/* Search inline */}
+          {/* Search inline */}
           {searchOpen && (
-            <div className="ml-1 hidden items-center gap-1.5 md:flex">
+            <div className="ml-1 hidden items-center gap-1.5 md:flex animate-in fade-in slide-in-from-right-2 duration-200">
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search messages…"
-                className="h-8 w-[180px] rounded-lg border-border bg-background text-[12px]"
+                className="h-8 w-[160px] lg:w-[220px] rounded-lg border-border bg-background text-[12px] focus-visible:ring-1 focus-visible:ring-primary/30"
+                autoFocus
               />
-              <select
-                value={searchSenderId}
-                onChange={(e) => setSearchSenderId(e.target.value)}
-                className="h-8 w-[140px] rounded-lg border border-border bg-background px-3 text-[12px]"
-                aria-label="Filter by sender" title="Filter by sender"
-              >
-                <option value="">All senders</option>
-                {(channelMembers ?? []).map((m) => (
-                  <option key={m.id} value={m.id}>{m.full_name}</option>
-                ))}
-              </select>
-              <Input type="date" value={searchDateFrom} onChange={(e) => setSearchDateFrom(e.target.value)}
-                className="h-8 w-[136px] rounded-lg border-border bg-background text-[12px]" aria-label="From" />
-              <Input type="date" value={searchDateTo} onChange={(e) => setSearchDateTo(e.target.value)}
-                className="h-8 w-[136px] rounded-lg border-border bg-background text-[12px]" aria-label="To" />
-              <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={() => applyDatePreset("today")}>Today</Button>
-              <Button variant="outline" size="sm" className="h-8 rounded-xl px-3 text-[11px]" onClick={() => applyDatePreset("last7")}>7d</Button>
-              <Button variant="ghost" size="sm" className="h-8 rounded-xl text-[11px] text-muted-foreground hover:bg-white hover:text-foreground" onClick={resetSearch}>Clear</Button>
+              {(searchSenderId || searchDateFrom || searchDateTo) && (
+                <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground" onClick={resetSearch}>
+                  Clear filters
+                </Button>
+              )}
             </div>
           )}
 
@@ -1482,8 +1471,11 @@ export function ChatArea({
             <Search size={14} />
           </Button>
           <Button variant="ghost" size="icon"
-            className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground md:hidden"
-            onClick={() => setSearchMobileOpen(true)} aria-label="Search filters"
+            className={cn(
+              "h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
+              !searchOpen && "md:hidden"
+            )}
+            onClick={() => setSearchMobileOpen(true)} aria-label="Search filters" title="Advanced search filters"
           >
             <SlidersHorizontal size={14} />
           </Button>
