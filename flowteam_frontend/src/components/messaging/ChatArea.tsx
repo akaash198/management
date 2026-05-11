@@ -1324,151 +1324,165 @@ export function ChatArea({
   return (
     <div className="relative flex-1 flex h-full flex-col overflow-hidden bg-background">
       {/* ── Header ── */}
-      <div className="z-10 flex h-[52px] shrink-0 items-center justify-between border-b border-border bg-card px-5 xl:pr-[348px]">
-        {/* Channel identity */}
-        <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-4">
-          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
-            {channel.is_private ? <Lock size={13} /> : <Hash size={13} />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2 min-w-0">
-              <h2 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-tight">
-                {channel.display_name}
-              </h2>
-              {directPeer ? (
-                <span className="inline-flex items-center gap-1 shrink-0 text-[11px] truncate">
-                  <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", directPeerIsOnline ? "bg-emerald-500" : "bg-amber-400")} />
-                  <span className={cn("truncate", directPeerIsOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500")}>
-                    {directPeerIsOnline ? "Online" : "Away"}
+      <div className="z-10 flex h-[52px] shrink-0 items-center border-b border-border bg-card px-5 xl:pr-[348px] gap-2 overflow-hidden">
+        {/* Channel identity — hide when search is open to reclaim space */}
+        {!searchOpen && (
+          <div className="flex items-center gap-2.5 min-w-0 shrink mr-2">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
+              {channel.is_private ? <Lock size={13} /> : <Hash size={13} />}
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <h2 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-tight max-w-[140px] lg:max-w-[200px]">
+                  {channel.display_name}
+                </h2>
+                {directPeer ? (
+                  <span className="inline-flex items-center gap-1 shrink-0 text-[11px]">
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", directPeerIsOnline ? "bg-emerald-500" : "bg-amber-400")} />
+                    <span className={cn(directPeerIsOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500")}>
+                      {directPeerIsOnline ? "Online" : "Away"}
+                    </span>
                   </span>
-                </span>
-              ) : channel.description ? (
-                <span className="hidden md:inline truncate text-[11px] text-muted-foreground/70 leading-tight">
-                  {channel.description}
-                </span>
-              ) : null}
+                ) : channel.description ? (
+                  <span className="hidden lg:inline truncate text-[11px] text-muted-foreground/70 leading-tight max-w-[120px]">
+                    {channel.description}
+                  </span>
+                ) : null}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* Spacer to push actions right when channel identity is visible */}
+        {!searchOpen && <div className="flex-1" />}
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {/* Pill tab group */}
-          <div className={cn("hidden h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border", searchOpen ? "hidden 2xl:flex" : "sm:flex")}>
-            <button
-              type="button"
-              onClick={() => setPinsOpen(true)}
-              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-              title="Pinned messages"
-            >
-              📌 {pins?.length ? pins.length : "Pins"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setSavedOpen(true)}
-              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-              title="Saved messages"
-            >
-              🔖 {saves?.length ? saves.length : "Saved"}
-            </button>
-            <button
-              type="button"
-              onClick={() => setScheduledOpen(true)}
-              className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-              title="Scheduled messages"
-            >
-              <Clock3 size={11} />
-              {scheduledMessages?.length ? scheduledMessages.length : "Scheduled"}
-            </button>
-            {aiEnabled && (
+          {/* Pill tab group — always hidden when search is open */}
+          {!searchOpen && (
+            <div className="hidden sm:flex h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border">
               <button
                 type="button"
-                onClick={() => void summarizeChannel()}
-                className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-                title="AI catch-up summary"
-                disabled={summarizingChannel}
+                onClick={() => setPinsOpen(true)}
+                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="Pinned messages"
               >
-                {summarizingChannel ? "…" : "Catch up"}
+                📌 {pins?.length ? pins.length : "Pins"}
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => startCall('audio')}
-              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-              title="Start audio call"
-            >
-              <Phone size={11} />
-              Call
-            </button>
-            <button
-              type="button"
-              onClick={() => startCall('video')}
-              className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-              title="Start video call"
-            >
-              <Video size={11} />
-              Video
-            </button>
-          </div>
-
-          {/* Divider */}
-          <div className="mx-1 hidden h-5 w-px bg-border/70 sm:block" />
-
-          {/* Mute */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon"
-                className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
-                aria-label={channel.is_muted ? "Muted" : "Mute"} title={channel.is_muted ? "Muted" : "Mute"}
+              <button
+                type="button"
+                onClick={() => setSavedOpen(true)}
+                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="Saved messages"
               >
-                {channel.is_muted ? <BellOff size={14} /> : <Bell size={14} />}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52">
-              {channel.is_muted ? (
-                <>
-                  <DropdownMenuItem onClick={() => void unmuteChannel()}>Unmute</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 60 })}>Mute 1 hour</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 8 * 60 })}>Mute 8 hours</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 24 * 60 })}>Mute 1 day</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ forever: true })}>Mute indefinitely</DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 60 })}>Mute 1 hour</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 8 * 60 })}>Mute 8 hours</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ minutes: 24 * 60 })}>Mute 1 day</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void muteChannel({ forever: true })}>Mute indefinitely</DropdownMenuItem>
-                </>
+                🔖 {saves?.length ? saves.length : "Saved"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setScheduledOpen(true)}
+                className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="Scheduled messages"
+              >
+                <Clock3 size={11} />
+                {scheduledMessages?.length ? scheduledMessages.length : "Scheduled"}
+              </button>
+              {aiEnabled && (
+                <button
+                  type="button"
+                  onClick={() => void summarizeChannel()}
+                  className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                  title="AI catch-up summary"
+                  disabled={summarizingChannel}
+                >
+                  {summarizingChannel ? "…" : "Catch up"}
+                </button>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Search inline */}
-          {/* Search inline */}
-          {searchOpen && (
-            <div className="ml-1 hidden items-center gap-1.5 md:flex animate-in fade-in slide-in-from-right-2 duration-200">
-              <Input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search messages…"
-                className="h-8 w-[160px] lg:w-[220px] rounded-lg border-border bg-background text-[12px] focus-visible:ring-1 focus-visible:ring-primary/30"
-                autoFocus
-              />
-              {(searchSenderId || searchDateFrom || searchDateTo) && (
-                <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground" onClick={resetSearch}>
-                  Clear filters
-                </Button>
-              )}
+              <button
+                type="button"
+                onClick={() => startCall('audio')}
+                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="Start audio call"
+              >
+                <Phone size={11} />
+                Call
+              </button>
+              <button
+                type="button"
+                onClick={() => startCall('video')}
+                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                title="Start video call"
+              >
+                <Video size={11} />
+                Video
+              </button>
             </div>
           )}
 
+          {/* Divider — only when pills are visible */}
+          {!searchOpen && <div className="mx-1 hidden h-5 w-px bg-border/70 sm:block" />}
+
+          {/* Mute */}
+          {!searchOpen && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon"
+                  className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
+                  aria-label={channel.is_muted ? "Muted" : "Mute"} title={channel.is_muted ? "Muted" : "Mute"}
+                >
+                  {channel.is_muted ? <BellOff size={14} /> : <Bell size={14} />}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                {channel.is_muted ? (
+                  <>
+                    <DropdownMenuItem onClick={() => void unmuteChannel()}>Unmute</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 60 })}>Mute 1 hour</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 8 * 60 })}>Mute 8 hours</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 24 * 60 })}>Mute 1 day</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ forever: true })}>Mute indefinitely</DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 60 })}>Mute 1 hour</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 8 * 60 })}>Mute 8 hours</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ minutes: 24 * 60 })}>Mute 1 day</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void muteChannel({ forever: true })}>Mute indefinitely</DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+        </div>
+
+        {/* Search section — when open, it takes all remaining space */}
+        {searchOpen && (
+          <div className="flex flex-1 items-center gap-1.5 animate-in fade-in slide-in-from-right-2 duration-200">
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search messages…"
+              className="h-8 flex-1 max-w-[320px] rounded-lg border-border bg-background text-[12px] focus-visible:ring-1 focus-visible:ring-primary/30"
+              autoFocus
+            />
+            {(searchSenderId || searchDateFrom || searchDateTo) && (
+              <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground shrink-0" onClick={resetSearch}>
+                Clear filters
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Right-side icon buttons — always visible */}
+        <div className="flex items-center gap-1 shrink-0">
           <Button variant="ghost" size="icon"
-            className="hidden h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground md:inline-flex"
+            className={cn(
+              "h-8 w-8 rounded-xl border text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
+              searchOpen ? "border-primary/30 bg-primary/5 text-primary" : "border-transparent"
+            )}
             onClick={() => setSearchOpen((v) => !v)} aria-label="Search" title="Search"
           >
-            <Search size={14} />
+            {searchOpen ? <X size={14} /> : <Search size={14} />}
           </Button>
           <Button variant="ghost" size="icon"
             className={cn(
