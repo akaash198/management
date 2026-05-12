@@ -246,44 +246,49 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div data-reveal className="lp-reveal relative">
-            <div className="relative z-10 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_60px_120px_-18px_rgba(0,0,0,0.75)] overflow-hidden">
+          <div data-reveal className="lp-reveal relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-blue-500/20 rounded-[38px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            
+            <div className="relative z-10 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_60px_120px_-18px_rgba(0,0,0,0.8)] overflow-hidden">
               <ProductDemo view={demoView} onViewChange={setDemoView} />
             </div>
 
-            <div className="hidden md:block absolute -top-8 md:-top-10 -right-4 md:-right-6 z-20 p-3 md:p-4 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "0s" }}>
+            <div className="hidden md:block absolute -top-12 -right-10 z-20 p-3 md:p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "0s" }}>
               <div className="flex items-center gap-3">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-emerald-500 flex items-center justify-center font-black text-[11px] md:text-[13px]">JD</div>
-                <div className="hidden sm:block">
-                  <div className="text-[12px] font-black">James joined</div>
-                  <div className="text-[10px] text-white/55">#delivery • thread reply</div>
-                </div>
-              </div>
-            </div>
-            <div className="hidden md:block absolute -bottom-4 md:-bottom-6 -left-4 md:-left-8 z-20 p-3 md:p-4 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "1.5s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-blue-500 flex items-center justify-center"><Kanban size={16} /></div>
-                <div className="hidden sm:block">
-                  <div className="text-[12px] font-black">Sprint ready</div>
-                  <div className="text-[10px] text-white/55">12 tasks moved • 3 blockers</div>
-                </div>
-              </div>
-            </div>
-            <div className="hidden lg:block absolute top-1/2 -left-14 z-20 p-3 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "0.9s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-[#6264A7] flex items-center justify-center"><Video size={18} /></div>
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center font-black text-white text-[11px] md:text-[13px] shadow-lg shadow-emerald-500/20">JD</div>
                 <div>
-                  <div className="text-[12px] font-black">Meeting started</div>
-                  <div className="text-[10px] text-white/55">Sprint review • 4 participants</div>
+                  <div className="text-[12px] font-black text-white">James joined</div>
+                  <div className="text-[10px] text-white/50">#delivery • thread reply</div>
                 </div>
               </div>
             </div>
-            <div className="hidden lg:block absolute top-[60%] -right-12 z-20 p-3 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "2.2s" }}>
+            
+            <div className="hidden md:block absolute -bottom-10 -left-12 z-20 p-3 md:p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "1.5s" }}>
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-[#611f69] flex items-center justify-center"><MessageSquare size={18} /></div>
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><Kanban size={16} /></div>
                 <div>
-                  <div className="text-[12px] font-black">New message</div>
-                  <div className="text-[10px] text-white/55">@ava mentioned you in #engineering</div>
+                  <div className="text-[12px] font-black text-white">Sprint ready</div>
+                  <div className="text-[10px] text-white/50">12 tasks moved • 3 blockers</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="hidden lg:block absolute top-[15%] -left-20 z-20 p-3 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "0.9s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6264A7] to-[#4e508a] flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"><Video size={18} /></div>
+                <div>
+                  <div className="text-[12px] font-black text-white">Meeting started</div>
+                  <div className="text-[10px] text-white/50">Sprint review • 4 participants</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="hidden lg:block absolute bottom-[25%] -right-16 z-20 p-3 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "2.2s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#611f69] to-[#4d1854] flex items-center justify-center text-white shadow-lg shadow-purple-500/20"><MessageSquare size={18} /></div>
+                <div>
+                  <div className="text-[12px] font-black text-white">New message</div>
+                  <div className="text-[10px] text-white/50">@ava mentioned you in #engineering</div>
                 </div>
               </div>
             </div>
@@ -1083,24 +1088,63 @@ function ChatBubble({ name, tag, text, highlight }: { name: string; tag: string;
 }
 
 function DemoProjects() {
+  const columns = [
+    { 
+      title: "Backlog", 
+      color: "from-[#0052CC]/25",
+      tasks: [
+        { title: "SSO Integration", tag: "High", owner: "SC", progress: 0 },
+        { title: "Dark mode support", tag: "Low", owner: "JW", progress: 0 },
+      ]
+    },
+    { 
+      title: "In Progress", 
+      color: "from-[#611f69]/25",
+      tasks: [
+        { title: "Mobile UI Polish", tag: "Medium", owner: "AP", progress: 65 },
+        { title: "API Documentation", tag: "High", owner: "SC", progress: 30 },
+        { title: "Video reliability", tag: "High", owner: "ER", progress: 85 },
+      ]
+    },
+    { 
+      title: "Done", 
+      color: "from-emerald-500/25",
+      tasks: [
+        { title: "Landing page V1", tag: "High", owner: "AP", progress: 100 },
+        { title: "User auth flow", tag: "High", owner: "JW", progress: 100 },
+      ]
+    },
+  ];
+
   return (
     <div className="grid grid-cols-3 gap-3">
-      {[
-        { title: "Backlog", color: "from-[#0052CC]/25" },
-        { title: "In Progress", color: "from-[#611f69]/25" },
-        { title: "Done", color: "from-emerald-500/25" },
-      ].map((col) => (
-        <div key={col.title} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
-          <div className={cn("px-3 py-2 text-[11px] font-black text-white/60 bg-gradient-to-r", col.color, "to-transparent border-b border-white/10")}>
+      {columns.map((col) => (
+        <div key={col.title} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden flex flex-col">
+          <div className={cn("px-3 py-2 text-[11px] font-black text-white/70 bg-gradient-to-r", col.color, "to-transparent border-b border-white/10 flex items-center justify-between")}>
             {col.title}
+            <span className="text-[10px] opacity-60">{col.tasks.length}</span>
           </div>
-          <div className="p-3 space-y-2">
-            {Array.from({ length: col.title === "In Progress" ? 3 : 2 }).map((_, i) => (
-              <div key={i} className="rounded-lg border border-white/10 bg-black/20 p-3">
-                <div className="text-[12px] font-black text-white mb-1">Task {i + 1}</div>
-                <div className="text-[11px] text-white/55">Owner • ETA • Priority</div>
-                <div className="mt-2 h-2 rounded-full bg-white/10 overflow-hidden">
-                  <div className="h-full bg-indigo-400/70" style={{ width: `${35 + i * 18}%` }} />
+          <div className="p-2 space-y-2">
+            {col.tasks.map((task, i) => (
+              <div key={i} className="rounded-lg border border-white/5 bg-white/[0.05] p-2.5 shadow-sm">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="text-[11px] font-bold text-white leading-tight">{task.title}</div>
+                  <div className={cn(
+                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
+                    task.tag === "High" ? "bg-red-500/20 text-red-300" : task.tag === "Medium" ? "bg-amber-500/20 text-amber-300" : "bg-blue-500/20 text-blue-300"
+                  )}>
+                    {task.tag}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-auto">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-5 w-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] font-black text-white/80">
+                      {task.owner}
+                    </div>
+                  </div>
+                  <div className="w-12 h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className={cn("h-full transition-all duration-1000", task.progress === 100 ? "bg-emerald-400" : "bg-indigo-400")} style={{ width: `${task.progress}%` }} />
+                  </div>
                 </div>
               </div>
             ))}
