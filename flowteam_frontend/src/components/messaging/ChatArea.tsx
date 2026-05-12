@@ -123,7 +123,7 @@ export function ChatArea({
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('flowteam_starred');
+      const raw = localStorage.getItem('cowrk_starred');
       const ids = raw ? JSON.parse(raw) : [];
       setIsStarred(Array.isArray(ids) && ids.includes(channel.id));
     } catch {
@@ -135,7 +135,7 @@ export function ChatArea({
     setIsStarred(prev => {
       const next = !prev;
       try {
-        const raw = localStorage.getItem('flowteam_starred');
+        const raw = localStorage.getItem('cowrk_starred');
         let ids = raw ? JSON.parse(raw) : [];
         if (!Array.isArray(ids)) ids = [];
         if (next) {
@@ -143,7 +143,7 @@ export function ChatArea({
         } else {
           ids = ids.filter((id: string) => id !== channel.id);
         }
-        localStorage.setItem('flowteam_starred', JSON.stringify(ids));
+        localStorage.setItem('cowrk_starred', JSON.stringify(ids));
         onRefreshChannels?.(); // Refresh sidebar to show in Starred section
       } catch {}
       return next;

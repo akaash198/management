@@ -927,7 +927,7 @@ function StepEmailDomain({
               <div className="space-y-2">
                 <p className="text-xs text-amber-600 dark:text-amber-500">{verificationInstructions}</p>
                 <div className="rounded-lg bg-amber-100 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800 px-3 py-2 font-mono text-xs break-all select-all">
-                  flowteam-verification={verificationToken}
+                  cowrk-verification={verificationToken}
                 </div>
               </div>
               <Button

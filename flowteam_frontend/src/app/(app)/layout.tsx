@@ -123,7 +123,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 href="/dashboard"
                 className="font-semibold text-muted-foreground/40 hover:text-muted-foreground transition-colors tracking-tight shrink-0 select-none"
               >
-                flowteam
+                cowrk
               </Link>
               {crumbs.map((crumb, i) => (
                 <span key={i} className="flex items-center gap-1.5 min-w-0">

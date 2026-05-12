@@ -62,7 +62,7 @@ export function ChatSidebar({
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [showMuted, setShowMuted] = useState(true);
   const [starredIds, setStarredIds] = useState<Set<string>>(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('flowteam_starred') || '[]')); } catch { return new Set(); }
+    try { return new Set(JSON.parse(localStorage.getItem('cowrk_starred') || '[]')); } catch { return new Set(); }
   });
   const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({ starred: true, channels: true, private: true, dm: true });
   const [sortMode, setSortMode] = useState<'recent' | 'alpha' | 'unread'>('recent');
@@ -154,7 +154,7 @@ export function ChatSidebar({
     setStarredIds(prev => {
       const next = new Set(prev);
       if (next.has(channelId)) next.delete(channelId); else next.add(channelId);
-      localStorage.setItem('flowteam_starred', JSON.stringify([...next]));
+      localStorage.setItem('cowrk_starred', JSON.stringify([...next]));
       return next;
     });
   };

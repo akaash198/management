@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -88,10 +88,10 @@ export default function RegisterPage() {
 
         {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(130,180,170,0.4)]" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
-            <Kanban size={16} className="text-white" />
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(130,180,170,0.4)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
+            CW
           </span>
-          <span className="text-[17px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
+          <span className="text-[17px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
         </div>
 
         {/* Hero copy */}
@@ -137,7 +137,7 @@ export default function RegisterPage() {
         </div>
 
         <p className="relative text-[11px] text-white/20 tracking-wide">
-          © 2026 FlowTeam Inc. · <a href="#" className="hover:text-white/40 transition-colors">Privacy</a> · <a href="#" className="hover:text-white/40 transition-colors">Terms</a>
+          © 2026 Cowrk Inc. · <a href="#" className="hover:text-white/40 transition-colors">Privacy</a> · <a href="#" className="hover:text-white/40 transition-colors">Terms</a>
         </p>
       </div>
 
@@ -152,10 +152,10 @@ export default function RegisterPage() {
 
         {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
-            <Kanban size={14} className="text-white" />
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-[13px] tracking-tighter">
+            CW
           </span>
-          <span className="text-[16px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
+          <span className="text-[16px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
         </div>
 
         <div className="relative w-full max-w-[420px] space-y-6">

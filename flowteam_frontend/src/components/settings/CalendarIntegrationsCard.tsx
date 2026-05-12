@@ -91,7 +91,7 @@ export function CalendarIntegrationsCard({ teamId }: { teamId: string | null }) 
               <Calendar className="h-4 w-4" />
               Calendar Sync
             </CardTitle>
-            <CardDescription>Connect Google Calendar or Outlook to display external events inside FlowTeam.</CardDescription>
+            <CardDescription>Connect Google Calendar or Outlook to display external events inside Cowrk.</CardDescription>
           </div>
           <Button variant="outline" size="sm" className="gap-2" onClick={refresh} disabled={loading || !teamId}>
             <RefreshCw className="h-3.5 w-3.5" />
@@ -163,7 +163,7 @@ export function CalendarIntegrationsCard({ teamId }: { teamId: string | null }) 
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Two-way sync (creating/updating events in external calendars) is coming next. For now, FlowTeam can display your connected external
+          Two-way sync (creating/updating events in external calendars) is coming next. For now, Cowrk can display your connected external
           events on the Calendar page.
         </p>
       </CardContent>

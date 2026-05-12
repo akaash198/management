@@ -122,7 +122,7 @@ export default function LandingPage() {
 
           {/* Sub */}
           <p className="mx-auto mb-10 max-w-lg text-[1.05rem] leading-[1.7] text-white/45">
-            FlowTeam unifies Kanban, real-time chat, sprint planning, and team analytics
+            Cowrk unifies Kanban, real-time chat, sprint planning, and team analytics
             — so your team can move fast without breaking things.
           </p>
 
@@ -172,7 +172,7 @@ export default function LandingPage() {
               <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
               <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
               <div className="ml-4 flex h-5 w-52 items-center justify-center rounded-md bg-white/[0.05] text-[10px] text-white/20">
-                app.flowteam.io/projects/alpha
+                app.cowrk.io/projects/alpha
               </div>
               <div className="ml-auto flex items-center gap-2">
                 <div className="flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-[9px] text-white/30">
@@ -191,8 +191,8 @@ export default function LandingPage() {
               <div className="flex w-44 shrink-0 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-4">
                 {/* Team name */}
                 <div className="mb-4 flex items-center gap-2 px-1">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-black text-white">F</div>
-                  <span className="text-[11px] font-bold text-white/70">FlowTeam</span>
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-black text-white tracking-tighter">CW</div>
+                  <span className="text-[11px] font-bold text-white/70">Cowrk</span>
                 </div>
                 {/* Nav groups */}
                 <div className="space-y-0.5 text-[10px]">
@@ -387,7 +387,7 @@ export default function LandingPage() {
               4.9 from 2,000+ reviews
             </div>
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Teams love FlowTeam
+              Teams love Cowrk
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
@@ -406,7 +406,7 @@ export default function LandingPage() {
               See the difference
             </div>
             <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              FlowTeam vs the alternatives
+              Cowrk vs the alternatives
             </h2>
             <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-white/38">
               One workspace that replaces Jira, Slack, and Notion — without the integrations tax.
@@ -588,7 +588,7 @@ export default function LandingPage() {
       <footer className="border-t border-white/[0.06] px-6 py-10">
         <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 md:flex-row">
           <Logo />
-          <p className="text-[12px] text-white/20">© 2026 FlowTeam Inc. All rights reserved.</p>
+          <p className="text-[12px] text-white/20">© 2026 Cowrk Inc. All rights reserved.</p>
           <div className="flex gap-6 text-[12px] text-white/25">
             {["Privacy", "Terms", "Status", "Contact"].map((item) => (
               <a key={item} href="#" className="transition-colors hover:text-white/60">
@@ -609,10 +609,10 @@ export default function LandingPage() {
 function Logo() {
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.5)]">
-        <Kanban size={15} className="text-white" />
+      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.5)] font-black text-white text-[13px] tracking-tighter">
+        CW
       </div>
-      <span className="text-[15px] font-bold tracking-[-0.025em] text-white">FlowTeam</span>
+      <span className="text-[15px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
     </div>
   );
 }
@@ -1125,7 +1125,7 @@ function TestimonialCard({
 
 function ComparisonTable() {
   const cols = [
-    { key: "flowteam", label: "FlowTeam", highlight: true },
+    { key: "cowrk", label: "Cowrk", highlight: true },
     { key: "jira",     label: "Jira",     highlight: false },
     { key: "notion",   label: "Notion",   highlight: false },
     { key: "asana",    label: "Asana",    highlight: false },

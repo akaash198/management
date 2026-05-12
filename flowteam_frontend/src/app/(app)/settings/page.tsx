@@ -101,7 +101,7 @@ const NOTIFICATION_OPTIONS: { key: NotificationKey; label: string; description: 
   { key: "weekly_digest", label: "Weekly Digest", description: "A weekly summary of team activity" },
 ];
 
-const NOTIF_STORAGE_KEY = "flowteam_notif_prefs";
+const NOTIF_STORAGE_KEY = "cowrk_notif_prefs";
 
 function loadNotifPrefs(): Record<NotificationKey, boolean> {
   try {
@@ -710,7 +710,7 @@ export default function SettingsPage() {
                 <div>
                   <p className="text-sm font-medium">Browser notifications</p>
                   <p className="text-xs text-muted-foreground">
-                    Get OS-level alerts when FlowTeam is in the background.
+                    Get OS-level alerts when Cowrk is in the background.
                   </p>
                 </div>
                 <button

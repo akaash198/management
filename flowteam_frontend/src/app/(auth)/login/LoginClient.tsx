@@ -115,15 +115,10 @@ export default function LoginClient() {
 
         {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_24px_rgba(130,180,170,0.35)]" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
-            <svg width="16" height="16" viewBox="0 0 14 14" fill="none" className="text-white">
-              <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" />
-              <rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
-              <rect x="1.5" y="8" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
-              <rect x="8" y="8" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.35" />
-            </svg>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_24px_rgba(130,180,170,0.35)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
+            CW
           </span>
-          <span className="text-[17px] font-bold tracking-[-0.03em] text-white">flowteam</span>
+          <span className="text-[17px] font-bold tracking-[-0.03em] text-white">cowrk</span>
         </div>
 
         {/* Hero copy */}
@@ -134,13 +129,13 @@ export default function LoginClient() {
           </div>
           <div>
             <h1 className="text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white">
-              Your team,<br />
+              Work together,<br />
               <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #82B4AA, #B0D4CE, #9EC8C2)" }}>
-                in perfect sync.
+                ship together.
               </span>
             </h1>
             <p className="mt-5 text-[15px] leading-[1.7] text-white/38 max-w-sm">
-              Projects, tasks, messages, and analytics — unified in one professional workspace.
+              The unified workspace for high-performance teams to collaborate and deliver.
             </p>
           </div>
 
@@ -174,7 +169,7 @@ export default function LoginClient() {
         </div>
 
         <p className="relative text-[11px] text-white/18 tracking-wide">
-          © 2026 FlowTeam Inc.
+          © 2026 Cowrk Inc.
           {" · "}<a href="#" className="hover:text-white/38 transition-colors">Privacy</a>
           {" · "}<a href="#" className="hover:text-white/38 transition-colors">Terms</a>
         </p>
@@ -193,15 +188,10 @@ export default function LoginClient() {
 
         {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl" style={{ background: "linear-gradient(135deg, #82B4AA, #6A9E94)" }}>
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-white">
-              <rect x="1.5" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" />
-              <rect x="8" y="1.5" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
-              <rect x="1.5" y="8" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.7" />
-              <rect x="8" y="8" width="4.5" height="4.5" rx="1.2" fill="currentColor" opacity="0.35" />
-            </svg>
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-[13px] tracking-tighter">
+            CW
           </span>
-          <span className="text-[16px] font-bold tracking-[-0.03em] text-white">flowteam</span>
+          <span className="text-[16px] font-bold tracking-[-0.03em] text-white">cowrk</span>
         </div>
 
         <div className="relative w-full max-w-[380px] space-y-6">

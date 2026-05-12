@@ -150,7 +150,7 @@ export const aiFeatures = [
 
 export const testimonials = [
   {
-    quote: "We replaced Jira, Slack, and Notion with FlowTeam. Our team actually enjoys standup now because the AI briefing does most of the talking.",
+    quote: "We replaced Jira, Slack, and Notion with Cowrk. Our team actually enjoys standup now because the AI briefing does most of the talking.",
     name: "Marcus Webb",
     role: "CTO",
     company: "Luminary Labs",
@@ -176,18 +176,18 @@ export const testimonials = [
 ] as const;
 
 export const comparisons = [
-  { feature: "Kanban + sprints", flowteam: true, jira: true, notion: false, asana: true },
-  { feature: "Real-time messaging", flowteam: true, jira: false, notion: false, asana: false },
-  { feature: "Built-in video meetings", flowteam: true, jira: false, notion: false, asana: false },
-  { feature: "AI daily briefing", flowteam: true, jira: false, notion: false, asana: false },
-  { feature: "AI sprint planner", flowteam: true, jira: false, notion: false, asana: false },
-  { feature: "Project health score", flowteam: true, jira: false, notion: false, asana: false },
-  { feature: "Client portal (no login)", flowteam: true, jira: false, notion: true, asana: false },
-  { feature: "GitHub PR → task linking", flowteam: true, jira: true, notion: false, asana: false },
-  { feature: "Browser push notifications", flowteam: true, jira: false, notion: false, asana: true },
-  { feature: "Google OAuth sign-in", flowteam: true, jira: true, notion: true, asana: true },
-  { feature: "Free plan (real features)", flowteam: true, jira: false, notion: true, asana: false },
-  { feature: "Audit log on all paid plans", flowteam: true, jira: false, notion: false, asana: false },
+  { feature: "Kanban + sprints", cowrk: true, jira: true, notion: false, asana: true },
+  { feature: "Real-time messaging", cowrk: true, jira: false, notion: false, asana: false },
+  { feature: "Built-in video meetings", cowrk: true, jira: false, notion: false, asana: false },
+  { feature: "AI daily briefing", cowrk: true, jira: false, notion: false, asana: false },
+  { feature: "AI sprint planner", cowrk: true, jira: false, notion: false, asana: false },
+  { feature: "Project health score", cowrk: true, jira: false, notion: false, asana: false },
+  { feature: "Client portal (no login)", cowrk: true, jira: false, notion: true, asana: false },
+  { feature: "GitHub PR → task linking", cowrk: true, jira: true, notion: false, asana: false },
+  { feature: "Browser push notifications", cowrk: true, jira: false, notion: false, asana: true },
+  { feature: "Google OAuth sign-in", cowrk: true, jira: true, notion: true, asana: true },
+  { feature: "Free plan (real features)", cowrk: true, jira: false, notion: true, asana: false },
+  { feature: "Audit log on all paid plans", cowrk: true, jira: false, notion: false, asana: false },
 ] as const;
 
 export const pricing = [
@@ -262,8 +262,8 @@ export const pricing = [
 
 export const faqs = [
   {
-    q: "Is FlowTeam a Jira replacement, a Slack replacement, or both?",
-    a: "Both. FlowTeam combines project management (Kanban, sprints, milestones, analytics) with real-time messaging and meetings in one workspace — so your decisions and your work live in the same place.",
+    q: "Is Cowrk a Jira replacement, a Slack replacement, or both?",
+    a: "Both. Cowrk combines project management (Kanban, sprints, milestones, analytics) with real-time messaging and meetings in one workspace — so your decisions and your work live in the same place.",
   },
   {
     q: "What's actually included in the Free plan?",
@@ -279,14 +279,14 @@ export const faqs = [
   },
   {
     q: "Can we link GitHub pull requests to tasks?",
-    a: "Yes. Connect a GitHub repo to a project via OAuth (scope: repo). FlowTeam registers a webhook and automatically links PRs to tasks when the PR title or body contains a reference like #42 or #WEB-42.",
+    a: "Yes. Connect a GitHub repo to a project via OAuth (scope: repo). Cowrk registers a webhook and automatically links PRs to tasks when the PR title or body contains a reference like #42 or #WEB-42.",
   },
   {
     q: "Do yearly plans save money?",
     a: "Yes — about 20%. Pro drops from €29/mo to €23/mo billed annually (€276/yr). AI drops from €69/mo to €55/mo billed annually (€660/yr).",
   },
   {
-    q: "Can I run FlowTeam for multiple separate teams?",
+    q: "Can I run Cowrk for multiple separate teams?",
     a: "Yes. Each workspace is fully isolated — its own members, projects, channels, meetings, and audit trail. There is no cross-workspace data leakage.",
   },
   {

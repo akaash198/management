@@ -162,15 +162,10 @@ export default function CompanyInvitePage() {
         {/* ── Logo ── */}
         <div className="flex justify-center mb-2">
           <div className="flex items-center gap-2">
-            <span className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
-              <svg width="14" height="14" viewBox="0 0 10 10" fill="none">
-                <rect x="1" y="1" width="3.5" height="3.5" rx="0.75" fill="white" />
-                <rect x="5.5" y="1" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.7" />
-                <rect x="1" y="5.5" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.7" />
-                <rect x="5.5" y="5.5" width="3.5" height="3.5" rx="0.75" fill="white" opacity="0.4" />
-              </svg>
+            <span className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-[12px] tracking-tighter">
+              CW
             </span>
-            <span className="text-lg font-bold tracking-tight">flowteam</span>
+            <span className="text-lg font-bold tracking-tight">cowrk</span>
           </div>
         </div>
 

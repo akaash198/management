@@ -114,7 +114,7 @@ export function SlackWebhooksCard({
           Slack Webhooks
         </CardTitle>
         <CardDescription>
-          Send FlowTeam events to Slack using Incoming Webhooks. Delivery is retried via an outbox worker.
+          Send Cowrk events to Slack using Incoming Webhooks. Delivery is retried via an outbox worker.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

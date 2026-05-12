@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: { default: "FlowTeam", template: "%s · FlowTeam" },
-  description: "The professional team management platform",
+  title: { default: "Cowrk", template: "%s · Cowrk" },
+  description: "Work together, ship together.",
   icons: { icon: "/favicon.ico" },
 };
 

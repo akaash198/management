@@ -49,7 +49,7 @@ export function TwoFactorCard() {
   const [newBackupCodes, setNewBackupCodes] = useState<string[] | null>(null);
 
   const email = user?.email ?? "";
-  const issuer = useMemo(() => "FlowTeam", []);
+  const issuer = useMemo(() => "Cowrk", []);
 
   useEffect(() => {
     const run = async () => {
