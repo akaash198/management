@@ -369,7 +369,7 @@ function ProjectCard({
             </div>
             <span className={cn(
               "flex items-center gap-1 text-[11px] font-medium",
-              (project.overdue_count ?? 0) > 0 ? "text-amber-600" : "text-emerald-600"
+              (project.overdue_count ?? 0) > 0 ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"
             )}>
               {(project.overdue_count ?? 0) > 0 ? (
                 <><AlertTriangle size={11} /> {project.overdue_count} overdue</>

@@ -163,7 +163,7 @@ export default function CalendarPage() {
         allDay: true,
         backgroundColor: `${t.project_color}33`,
         borderColor: t.project_color,
-        textColor: "#1e293b",
+        textColor: "var(--color-foreground)",
         extendedProps: { ...t, kind: "task" },
       }));
 
@@ -173,9 +173,9 @@ export default function CalendarPage() {
       start: m.starts_at,
       end: m.ends_at,
       allDay: false,
-      backgroundColor: "rgba(99, 102, 241, 0.14)",
-      borderColor: "rgba(99, 102, 241, 0.6)",
-      textColor: "#1e293b",
+      backgroundColor: "rgba(124, 255, 203, 0.14)",
+      borderColor: "rgba(124, 255, 203, 0.55)",
+      textColor: "var(--color-foreground)",
       extendedProps: { ...m, kind: "meeting" },
     }));
 
@@ -185,9 +185,9 @@ export default function CalendarPage() {
       start: e.start,
       end: e.end,
       allDay: false,
-      backgroundColor: "rgba(16, 185, 129, 0.12)",
-      borderColor: "rgba(16, 185, 129, 0.55)",
-      textColor: "#1e293b",
+      backgroundColor: "rgba(124, 255, 203, 0.08)",
+      borderColor: "rgba(124, 255, 203, 0.35)",
+      textColor: "var(--color-foreground)",
       editable: false,
       extendedProps: { ...e, kind: "external" },
     }));
@@ -534,15 +534,15 @@ function CalendarEvent({ event }: { event: any }) {
   }
 
   const priorityColors: Record<string, string> = {
-    urgent: "bg-red-500",
-    high: "bg-orange-500",
-    normal: "bg-blue-500",
-    low: "bg-slate-400",
+    urgent: "bg-red-500 dark:bg-red-400",
+    high: "bg-orange-500 dark:bg-orange-400",
+    normal: "bg-blue-500 dark:bg-blue-400",
+    low: "bg-slate-400 dark:bg-slate-500",
   };
 
   return (
     <div className="flex items-center gap-1 px-1 py-0.5 w-full overflow-hidden">
-      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", priorityColors[props.priority] ?? "bg-slate-400")} />
+      <div className={cn("w-1.5 h-1.5 rounded-full shrink-0", priorityColors[props.priority] ?? "bg-slate-400 dark:bg-slate-500")} />
       <span className="text-[10px] font-semibold truncate leading-tight">{event.title}</span>
     </div>
   );

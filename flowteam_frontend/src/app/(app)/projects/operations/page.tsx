@@ -150,8 +150,8 @@ export default function ProjectOperationsPage() {
 
   return (
     <div className="p-6 max-w-[1500px] mx-auto space-y-6">
-      <section className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,#f5f3ff_0%,#ffffff_45%,#f0fdf4_100%)] p-6">
-        <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700">
+      <section className="rounded-[24px] border border-border bg-[linear-gradient(135deg,var(--color-card)_0%,var(--color-background)_45%,var(--color-muted)_100%)] p-6">
+        <Badge variant="outline" className="border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-400">
           Operations hub
         </Badge>
         <h1 className="mt-3 text-[26px] font-semibold tracking-tight">Approvals, reporting, docs, notifications, automation, and client access</h1>
@@ -223,7 +223,7 @@ export default function ProjectOperationsPage() {
                     <Badge variant="outline">{item.verb}</Badge>
                   </div>
                   <p className="mt-1 text-[12px] text-muted-foreground">{item.project_name} • {item.actor?.full_name || "System"}</p>
-                  <pre className="mt-2 whitespace-pre-wrap text-[11px] text-slate-500">{JSON.stringify(item.detail, null, 2)}</pre>
+                  <pre className="mt-2 whitespace-pre-wrap text-[11px] text-muted-foreground">{JSON.stringify(item.detail, null, 2)}</pre>
                 </div>
               ))}
             </div>

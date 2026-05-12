@@ -178,7 +178,7 @@ export default function MeetingsPage() {
       </Card>
 
       {nextUp && (
-        <Card className="border-primary/20 bg-[linear-gradient(135deg,rgba(99,102,241,0.12),rgba(99,102,241,0.03)_55%,rgba(255,255,255,0.9)_100%)]">
+        <Card className="border-accent/20 bg-[linear-gradient(135deg,rgba(124,255,203,0.12),rgba(124,255,203,0.03)_55%,var(--color-card)_100%)]">
           <CardHeader>
             <CardTitle className="flex items-center justify-between gap-3">
               <span className="flex items-center gap-2">

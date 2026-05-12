@@ -306,10 +306,10 @@ export default function ProjectPlanningPage() {
 
   return (
     <div className="p-6 max-w-[1480px] mx-auto space-y-6">
-      <section className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,#fff7ed_0%,#ffffff_40%,#eef4ff_100%)] p-6">
+      <section className="rounded-[24px] border border-border bg-[linear-gradient(135deg,var(--color-card)_0%,var(--color-background)_45%,var(--color-muted)_100%)] p-6">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700">
+            <Badge variant="outline" className="border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400">
               Planning hub
             </Badge>
             <h1 className="mt-3 text-[26px] font-semibold tracking-tight">Sprint, roadmap, templates, recurring work, and workload</h1>
@@ -678,7 +678,7 @@ export default function ProjectPlanningPage() {
                     <TableCell>{row.overdue_tasks}</TableCell>
                     <TableCell>{row.planned_hours}</TableCell>
                     <TableCell>{row.capacity_hours}</TableCell>
-                    <TableCell className={row.imbalance > 0 ? "text-amber-700 font-medium" : "text-emerald-700"}>
+                    <TableCell className={row.imbalance > 0 ? "text-amber-700 dark:text-amber-400 font-medium" : "text-emerald-700 dark:text-emerald-400"}>
                       {row.imbalance.toFixed(1)}
                     </TableCell>
                   </TableRow>
