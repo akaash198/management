@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import api from "@/lib/api";
 import { User, ApiResponse } from "@/types";
-import { setTokens, clearTokens } from "@/lib/auth";
+import { clearTokens } from "@/lib/auth";
 
 interface AuthState {
   user: User | null;
@@ -14,7 +14,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isLoading: false,
       setUser: (user) => set({ user }),
@@ -25,9 +25,14 @@ export const useAuthStore = create<AuthState>()(
           if (res.data.success) {
             set({ user: res.data.data });
           }
-        } catch (error) {
-          console.error("Failed to fetch user", error);
-          set({ user: null });
+        } catch (error: any) {
+          const status = error?.response?.status;
+          if (status === 401) {
+            // Genuine auth failure — tokens are gone, must re-login.
+            set({ user: null });
+          }
+          // For network errors, 5xx, etc. keep the existing user so transient
+          // outages don't force a logout.
         } finally {
           set({ isLoading: false });
         }
