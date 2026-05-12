@@ -38,6 +38,7 @@ import {
 import { formatDistanceToNowStrict } from "date-fns";
 import { MentionAutocomplete } from "./MentionAutocomplete";
 import { AIButton } from "@/components/ai/AIButton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAIStore } from "@/store/ai";
 
 type SearchPreset = {
@@ -106,7 +107,52 @@ export function ChatArea({
   const [callType, setCallType] = useState<'audio' | 'video'>('audio');
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<{ callId: string; callType: 'audio' | 'video'; callerName: string } | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsTab, setDetailsTab] = useState<string>("about");
+  const [memberSearch, setMemberSearch] = useState("");
+  const [isStarred, setIsStarred] = useState(false);
   const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('flowteam_starred');
+      const ids = raw ? JSON.parse(raw) : [];
+      setIsStarred(Array.isArray(ids) && ids.includes(channel.id));
+    } catch {
+      setIsStarred(false);
+    }
+  }, [channel.id]);
+
+  const toggleStar = useCallback(() => {
+    setIsStarred(prev => {
+      const next = !prev;
+      try {
+        const raw = localStorage.getItem('flowteam_starred');
+        let ids = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(ids)) ids = [];
+        if (next) {
+          if (!ids.includes(channel.id)) ids.push(channel.id);
+        } else {
+          ids = ids.filter((id: string) => id !== channel.id);
+        }
+        localStorage.setItem('flowteam_starred', JSON.stringify(ids));
+        onRefreshChannels?.(); // Refresh sidebar to show in Starred section
+      } catch {}
+      return next;
+    });
+  }, [channel.id, onRefreshChannels]);
+
+  const leaveChannel = useCallback(async () => {
+    if (!confirm(`Are you sure you want to leave ${channel.display_name}?`)) return;
+    try {
+      await api.post(`/messaging/channels/${channel.id}/leave/`);
+      toast.success("Left channel");
+      onRefreshChannels?.();
+      // Redirect to general or another channel
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to leave channel"));
+    }
+  }, [channel.id, channel.display_name, onRefreshChannels]);
 
   const stopIncomingRingtone = useCallback(() => {
     if (ringtoneRef.current) {
@@ -704,6 +750,14 @@ export function ChatArea({
       return res.data.data ?? [];
     },
     enabled: (addMembersOpen || channel.is_private) && !!activeTeamId,
+  });
+  const { data: channelMembers, isLoading: membersLoading } = useQuery<TeamMember[]>({
+    queryKey: ["channel-members", channel.id],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TeamMember[]>>(`/messaging/channels/${channel.id}/members/`);
+      return res.data.data ?? [];
+    },
+    enabled: detailsOpen || searchOpen,
   });
   const directPeerTeamMember = useMemo(
     () => (channel.is_private ? (teamMembers ?? []).find((tm) => tm.user.id === directPeer?.id) ?? null : null),
@@ -1374,21 +1428,16 @@ export function ChatArea({
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <h2 className="truncate text-[14px] font-semibold tracking-[-0.01em] text-foreground leading-tight max-w-[140px] lg:max-w-[200px]">
+                <h2 className="truncate text-[15px] font-bold tracking-tight text-foreground leading-tight">
                   {channel.display_name}
                 </h2>
-                {directPeer ? (
-                  <span className="inline-flex items-center gap-1 shrink-0 text-[11px]">
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", directPeerIsOnline ? "bg-emerald-500" : "bg-amber-400")} />
-                    <span className={cn(directPeerIsOnline ? "text-emerald-600 dark:text-emerald-400" : "text-amber-500")}>
-                      {directPeerIsOnline ? "Online" : "Away"}
-                    </span>
-                  </span>
-                ) : channel.description ? (
-                  <span className="hidden lg:inline truncate text-[11px] text-muted-foreground/70 leading-tight max-w-[120px]">
-                    {channel.description}
-                  </span>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => setDetailsOpen(true)}
+                  className="rounded-full p-1 hover:bg-muted transition-colors"
+                >
+                  <ChevronDown size={14} className="text-muted-foreground" />
+                </button>
               </div>
             </div>
           </div>
@@ -1398,64 +1447,63 @@ export function ChatArea({
         {!searchOpen && <div className="flex-1" />}
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Member stack & Huddle — Slack style */}
+          {!searchOpen && (
+            <div className="flex items-center gap-3">
+              {/* Member Avatars */}
+              <button
+                onClick={() => { setDetailsTab("members"); setDetailsOpen(true); }}
+                className="group flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 px-2 py-1 transition-all hover:bg-muted/50 hover:border-border"
+              >
+                <div className="flex -space-x-1.5 overflow-hidden">
+                  {(channelMembers ?? []).slice(0, 3).map((m, i) => (
+                    <Avatar key={m.id} className="h-5 w-5 border border-background ring-1 ring-background">
+                      <AvatarImage src={m.user.avatar || ""} />
+                      <AvatarFallback className="text-[7px]">{(m.user.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </div>
+                <span className="text-[11px] font-semibold text-muted-foreground group-hover:text-foreground">
+                  {channel.member_count ?? (channelMembers ?? []).length}
+                </span>
+              </button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => startCall('audio')}
+                className="h-8 rounded-lg bg-muted/30 border-border/50 hover:bg-muted/50 text-[11px] font-semibold gap-1.5 px-3"
+              >
+                <Phone size={12} className="opacity-70" />
+                Huddle
+              </Button>
+            </div>
+          )}
+
+          {!searchOpen && <div className="mx-1 h-5 w-px bg-border/70" />}
+
           {/* Pill tab group — always hidden when search is open */}
           {!searchOpen && (
-            <div className="hidden sm:flex h-7 items-stretch rounded-lg border border-border overflow-hidden divide-x divide-border">
-              <button
-                type="button"
+            <div className="hidden sm:flex h-8 items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setPinsOpen(true)}
-                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60"
                 title="Pinned messages"
               >
-                📌 {pins?.length ? pins.length : "Pins"}
-              </button>
-              <button
-                type="button"
+                <Clock3 size={14} className="rotate-[-135deg]" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => setSavedOpen(true)}
-                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
+                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60"
                 title="Saved messages"
               >
-                🔖 {saves?.length ? saves.length : "Saved"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setScheduledOpen(true)}
-                className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-                title="Scheduled messages"
-              >
-                <Clock3 size={11} />
-                {scheduledMessages?.length ? scheduledMessages.length : "Scheduled"}
-              </button>
-              {aiEnabled && (
-                <button
-                  type="button"
-                  onClick={() => void summarizeChannel()}
-                  className="hidden lg:flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-                  title="AI catch-up summary"
-                  disabled={summarizingChannel}
-                >
-                  {summarizingChannel ? "…" : "Catch up"}
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => startCall('audio')}
-                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-                title="Start audio call"
-              >
-                <Phone size={11} />
-                Call
-              </button>
-              <button
-                type="button"
-                onClick={() => startCall('video')}
-                className="flex items-center gap-1 px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors whitespace-nowrap"
-                title="Start video call"
-              >
-                <Video size={11} />
-                Video
-              </button>
+                <Info size={14} />
+              </Button>
             </div>
           )}
 
@@ -1547,14 +1595,11 @@ export function ChatArea({
           <div className="mx-1 h-5 w-px bg-border/70" />
 
           <Button variant="ghost" size="icon"
-            className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setMembersOpen(true)} aria-label="Members" title="Members"
-          >
-            <Users size={14} />
-          </Button>
-          <Button variant="ghost" size="icon"
-            className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
-            onClick={() => setInfoOpen(true)} aria-label="Info" title="Info"
+            className={cn(
+              "h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
+              detailsOpen && "bg-muted text-foreground border-border/70"
+            )}
+            onClick={() => setDetailsOpen(prev => !prev)} aria-label="Details" title="Details"
           >
             <Info size={14} />
           </Button>
@@ -3028,6 +3073,175 @@ export function ChatArea({
         remoteUserName={directPeer?.full_name ?? incomingCall?.callerName ?? channel.display_name}
         remoteUserAvatar={directPeer?.avatar ?? undefined}
       />
+      {/* ── Channel Details Sheet ── */}
+      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <SheetContent side="right" className="w-[380px] sm:w-[520px] p-0 flex flex-col">
+          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="p-6 border-b border-border">
+              <SheetHeader className="mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-6 w-6 items-center justify-center rounded border border-primary/20 bg-primary/10 text-primary">
+                    {channel.is_private ? <Lock size={12} /> : <Hash size={12} />}
+                  </div>
+                  <SheetTitle className="text-xl font-bold">{channel.display_name}</SheetTitle>
+                </div>
+              </SheetHeader>
+
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]" onClick={toggleStar}>
+                   <Star size={12} className={cn(isStarred ? "fill-amber-400 text-amber-400" : "")} />
+                   Star
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]">
+                      <Bell size={12} />
+                      {channel.is_muted ? "Muted" : "All new posts"}
+                      <ChevronDown size={10} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    <DropdownMenuItem onClick={() => void muteChannel({ forever: true })}>Mute channel</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>All new posts</DropdownMenuItem>
+                    <DropdownMenuItem>Mentions only</DropdownMenuItem>
+                    <DropdownMenuItem>Nothing</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]" onClick={() => startCall('audio')}>
+                   <Phone size={12} />
+                   Huddle
+                </Button>
+              </div>
+            </div>
+
+            <Tabs value={detailsTab} onValueChange={setDetailsTab} className="flex-1 flex flex-col min-h-0">
+              <div className="px-6 border-b border-border">
+                <TabsList className="h-10 bg-transparent p-0 gap-6">
+                  {["about", "members", "tabs", "integrations", "settings"].map((t) => (
+                    <TabsTrigger
+                      key={t}
+                      value={t}
+                      className="relative h-10 rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2 pt-2 text-[13px] font-medium text-muted-foreground shadow-none transition-none data-[state=active]:border-primary data-[state=active]:text-foreground data-[state=active]:shadow-none capitalize"
+                    >
+                      {t}{t === 'members' && ` ${channel.member_count ?? (channelMembers ?? []).length}`}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6">
+                <TabsContent value="about" className="m-0 space-y-6">
+                  <div>
+                    <h3 className="text-[13px] font-bold mb-2">Description</h3>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                      {channel.description || "No description set."}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-border p-4 bg-muted/20">
+                    <div className="space-y-3">
+                       <div className="flex justify-between items-center text-[12px]">
+                          <span className="text-muted-foreground">Created by</span>
+                          <span className="font-medium">{channel.created_by?.full_name || "System"}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[12px]">
+                          <span className="text-muted-foreground">Created on</span>
+                          <span className="font-medium">{channel.created_at ? new Date(channel.created_at).toLocaleDateString() : "Unknown"}</span>
+                       </div>
+                       <div className="flex justify-between items-center text-[12px]">
+                          <span className="text-muted-foreground">Channel ID</span>
+                          <span className="font-mono text-[10px]">{channel.id}</span>
+                       </div>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="members" className="m-0 space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      placeholder="Find members"
+                      value={memberSearch}
+                      onChange={(e) => setMemberSearch(e.target.value)}
+                      className="pl-9 h-9 bg-muted/20 border-border/50 text-[13px]"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => setAddMembersOpen(true)}
+                    className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-muted/50 transition-colors"
+                  >
+                    <div className="flex h-8 w-8 items-center justify-center rounded bg-primary/10 text-primary">
+                      <Plus size={16} />
+                    </div>
+                    <span className="text-[14px] font-medium">Add people</span>
+                  </button>
+
+                  <div className="space-y-1">
+                    {(channelMembers ?? [])
+                      .filter(m => m.user.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                      .map((m) => {
+                        const isOnline = onlineUserIds.has(m.user.id);
+                        return (
+                          <div key={m.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/30 group">
+                            <div className="flex items-center gap-3 min-w-0">
+                               <div className="relative">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={m.user.avatar || ""} />
+                                    <AvatarFallback>{m.user.full_name[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <span className={cn(
+                                    "absolute bottom-0 right-0 h-2 w-2 rounded-full border border-background",
+                                    isOnline ? "bg-emerald-500" : "bg-transparent border-muted-foreground/30"
+                                  )} />
+                               </div>
+                               <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[14px] font-medium truncate">{m.user.full_name}</span>
+                                    {m.user.id === user?.id && <span className="text-[12px] text-muted-foreground">(you)</span>}
+                                  </div>
+                                  <div className="text-[12px] text-muted-foreground truncate">{m.user.full_name}</div>
+                               </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="settings" className="m-0 space-y-6">
+                   <div className="space-y-2">
+                      <h3 className="text-[13px] font-bold text-destructive">Danger Zone</h3>
+                      <div className="rounded-xl border border-destructive/20 p-4 bg-destructive/5 space-y-4">
+                         <div className="flex items-center justify-between">
+                            <div>
+                               <p className="text-[13px] font-semibold">Leave channel</p>
+                               <p className="text-[11px] text-muted-foreground">You can rejoin later if it's public.</p>
+                            </div>
+                            <Button variant="destructive" size="sm" className="h-8 px-4" onClick={() => void leaveChannel()}>
+                               Leave
+                            </Button>
+                         </div>
+                      </div>
+                   </div>
+                </TabsContent>
+
+                <TabsContent value="tabs" className="m-0 py-12 text-center text-muted-foreground">
+                   <div className="flex flex-col items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+                         <Plus size={20} />
+                      </div>
+                      <div className="space-y-1">
+                         <p className="text-[14px] font-medium text-foreground">Add a tab</p>
+                         <p className="text-[12px] max-w-[200px]">Keep links, files, and more right at the top of this channel.</p>
+                      </div>
+                   </div>
+                </TabsContent>
+              </div>
+            </Tabs>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

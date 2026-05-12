@@ -89,6 +89,8 @@ class ChannelSerializer(serializers.ModelSerializer):
     mute_until = serializers.SerializerMethodField()
     notification_level = serializers.SerializerMethodField()
     notification_keywords = serializers.SerializerMethodField()
+    member_count = serializers.SerializerMethodField()
+    created_by = SlimUserSerializer(read_only=True)
 
     class Meta:
         model = Channel
@@ -105,6 +107,9 @@ class ChannelSerializer(serializers.ModelSerializer):
             "mute_until",
             "notification_level",
             "notification_keywords",
+            "member_count",
+            "created_at",
+            "created_by",
         ]
 
     def validate(self, attrs):
@@ -148,6 +153,12 @@ class ChannelSerializer(serializers.ModelSerializer):
         membership = obj.memberships.filter(user=user).first()
         if not membership or not membership.mute_until:
             return None
+        return membership.mute_until.isoformat()
+
+    def get_member_count(self, obj):
+        return obj.memberships.count()
+
+    def get_notification_level(self, obj):
         if membership.mute_until <= timezone.now():
             return None
         return membership.mute_until.isoformat()

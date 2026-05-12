@@ -13,6 +13,8 @@ export interface Channel {
   notification_level?: "all" | "mentions" | "mute";
   notification_keywords?: string[];
   member_count?: number;
+  created_at?: string;
+  created_by?: SlimUser;
 }
 
 export interface Attachment {
