@@ -31,8 +31,12 @@ async function tryRefreshToken(): Promise<boolean> {
       return false;
     }
     const body = await res.json();
-    if (body?.success && body?.data?.access) {
-      setTokens(body.data.access, refresh);
+    // Handle both wrapped { success, data: { access, refresh } }
+    // and raw simplejwt { access, refresh } response shapes.
+    const access: string | undefined = body?.data?.access ?? body?.access;
+    const newRefresh: string | undefined = body?.data?.refresh ?? body?.refresh ?? refresh;
+    if (access) {
+      setTokens(access, newRefresh ?? refresh);
       return true;
     }
     return false;

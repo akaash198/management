@@ -44,23 +44,27 @@ api.interceptors.response.use(
             { refresh: refreshToken }
           );
 
-          if (response.data.success) {
-            const { access } = response.data.data;
-            setTokens(access, refreshToken);
+          // Handle both wrapped { success, data: { access, refresh } }
+          // and raw simplejwt { access, refresh } response shapes.
+          const body = response.data;
+          const access: string | undefined =
+            body?.data?.access ?? body?.access;
+          const newRefresh: string | undefined =
+            body?.data?.refresh ?? body?.refresh ?? refreshToken;
+
+          if (access) {
+            setTokens(access, newRefresh ?? refreshToken);
             originalRequest.headers.Authorization = `Bearer ${access}`;
             return api(originalRequest);
           }
-        } catch (refreshError) {
-          clearTokens();
-          if (typeof window !== "undefined") {
-            window.location.href = "/login";
-          }
+        } catch {
+          // Refresh failed — force re-login.
         }
-      } else {
-        clearTokens();
-        if (typeof window !== "undefined") {
-          window.location.href = "/login";
-        }
+      }
+
+      clearTokens();
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
       }
     }
 
