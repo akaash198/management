@@ -701,7 +701,8 @@ body {
   transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
-.lp-reveal.is-visible {
+.lp-reveal.is-visible,
+.is-visible .lp-reveal {
   opacity: 1;
   transform: translateY(0);
 }
@@ -712,7 +713,8 @@ body {
   transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
-.lp-reveal-left.is-visible {
+.lp-reveal-left.is-visible,
+.is-visible .lp-reveal-left {
   opacity: 1;
   transform: translateX(0);
 }
@@ -723,7 +725,8 @@ body {
   transition: opacity 700ms cubic-bezier(0.16, 1, 0.3, 1), transform 700ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
 }
-.lp-reveal-right.is-visible {
+.lp-reveal-right.is-visible,
+.is-visible .lp-reveal-right {
   opacity: 1;
   transform: translateX(0);
 }
