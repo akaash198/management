@@ -151,7 +151,8 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
             projectId={projectId}
             tasks={tasksByColumn[column.id]?.filter(t => 
               t.title.toLowerCase().includes(searchTerm.toLowerCase())
-            ) || []} 
+            ) || []}
+            allColumns={columns}
           />
         ))}
         
@@ -190,7 +191,7 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
       </div>
 
       <DragOverlay>
-        {activeTask ? <TaskCard task={activeTask} isOverlay /> : null}
+        {activeTask ? <TaskCard task={activeTask} isOverlay columns={columns} /> : null}
       </DragOverlay>
     </DndContext>
   );

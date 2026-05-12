@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import { Task, TaskDetail, TaskFilters, TaskMutationInput, TaskMutationPatch } from "@/types/task";
+import { Task, TaskDetail, TaskFilters, TaskMutationInput, TaskMutationPatch, TaskWatcher } from "@/types/task";
 import { ApiResponse } from "@/types";
 import { toast } from "sonner";
 
@@ -95,6 +95,46 @@ export const useMoveTask = () => {
     onError: () => {
       toast.error("Failed to move task. Please try again.");
     },
+  });
+};
+
+export const useTaskWatchers = (taskId: string) => {
+  return useQuery({
+    queryKey: ["task-watchers", taskId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TaskWatcher[]>>(`/tasks/${taskId}/watchers/`);
+      return res.data.data ?? [];
+    },
+    enabled: !!taskId,
+  });
+};
+
+export const useAddWatcher = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskId: string) => {
+      const res = await api.post<ApiResponse<TaskWatcher>>(`/tasks/${taskId}/watchers/`);
+      return res.data.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["task-watchers", data?.task] });
+      toast.success("Now watching this task");
+    },
+    onError: () => { toast.error("Failed to watch task"); },
+  });
+};
+
+export const useRemoveWatcher = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ taskId, watcherId }: { taskId: string; watcherId: string }) => {
+      await api.delete(`/tasks/${taskId}/watchers/${watcherId}/`);
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["task-watchers", variables.taskId] });
+      toast.success("Stopped watching this task");
+    },
+    onError: () => { toast.error("Failed to remove watcher"); },
   });
 };
 

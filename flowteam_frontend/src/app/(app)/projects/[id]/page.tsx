@@ -355,7 +355,7 @@ export default function ProjectBoardPage() {
         <KanbanBoard projectId={id} searchTerm={search} />
       </div>
 
-      {taskId && <TaskDetailPanel key={taskId} taskId={taskId} projectId={id} />}
+      {taskId && <TaskDetailPanel key={taskId} taskId={taskId} projectId={id} columns={project.columns || []} />}
 
       <CreateTaskModal
         open={isTaskModalOpen}

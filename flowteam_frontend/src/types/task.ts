@@ -112,3 +112,10 @@ export interface TaskMutationInput {
 }
 
 export type TaskMutationPatch = Partial<TaskMutationInput>;
+
+export interface TaskWatcher {
+  id: string;
+  task: string;
+  user: SlimUser;
+  created_at: string;
+}

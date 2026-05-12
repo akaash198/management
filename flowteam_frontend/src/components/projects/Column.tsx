@@ -26,9 +26,10 @@ interface ColumnProps {
   column: ColumnType;
   projectId: string;
   tasks: Task[];
+  allColumns?: ColumnType[];
 }
 
-export function Column({ column, projectId, tasks }: ColumnProps) {
+export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const createTask = useCreateTask();
@@ -94,7 +95,7 @@ export function Column({ column, projectId, tasks }: ColumnProps) {
           strategy={verticalListSortingStrategy}
         >
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} />
+            <TaskCard key={task.id} task={task} columns={allColumns} />
           ))}
         </SortableContext>
         

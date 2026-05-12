@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   ArrowUpRight,
+  CheckCircle2,
   CheckSquare,
   Filter,
   FolderKanban,
@@ -21,7 +22,6 @@ import { useDeleteTask, useTasks } from "@/hooks/useTasks";
 import { useBulkUpdateTasks, useCreateSavedIssueView, useSavedIssueViews, useSprints } from "@/hooks/usePlanning";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ProjectIssueModal } from "@/components/projects/ProjectIssueModal";
@@ -146,54 +146,54 @@ export default function ProjectIssuesPage() {
 
   return (
     <div className="p-6 max-w-[1480px] mx-auto space-y-6">
-      <section className="rounded-[24px] border border-slate-200 bg-[linear-gradient(135deg,#f8fafc_0%,#eef4ff_45%,#ffffff_100%)] p-6 shadow-sm">
+      <section className="surface p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-3">
-            <Badge variant="outline" className="border-sky-200 bg-sky-50 text-sky-700">
+            <span className="tag tag-mint">
               Jira-style delivery view
-            </Badge>
+            </span>
             <div>
-              <h1 className="text-[24px] font-semibold tracking-tight">Project issues</h1>
+              <h1 className="text-heading text-[22px] font-bold">Project issues</h1>
               <p className="mt-1 max-w-3xl text-[13px] leading-6 text-muted-foreground">
                 A single issue navigator across active projects with saved views, bulk actions, sprint assignment, and issue relationships.
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button asChild variant="outline" size="sm" className="h-8 text-[12px]">
+              <Button asChild variant="secondary" size="sm" className="h-8 text-[12px]">
                 <Link href="/projects">
                   <FolderKanban className="mr-1.5 h-3.5 w-3.5" />
                   Back to projects
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="h-8 text-[12px]">
+              <Button asChild variant="secondary" size="sm" className="h-8 text-[12px]">
                 <Link href="/projects/planning">
                   <LayoutPanelTop className="mr-1.5 h-3.5 w-3.5" />
                   Planning hub
                 </Link>
               </Button>
               {activeTeam && (
-                <Badge variant="outline" className="h-8 border-border bg-card px-3 text-[12px] font-medium text-foreground">
+                <span className="inline-flex h-8 items-center rounded-md border border-border bg-card/50 px-3 text-[12px] font-medium text-muted-foreground">
                   Team: {activeTeam.name}
-                </Badge>
+                </span>
               )}
             </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[520px]">
-            <SummaryCard label="Visible issues" value={stats.total} tone="default" />
-            <SummaryCard label="Urgent" value={stats.urgent} tone="danger" />
-            <SummaryCard label="Overdue" value={stats.overdue} tone="warning" />
-            <SummaryCard label="Unassigned" value={stats.unassigned} tone="muted" />
+            <StatCard label="Visible issues" value={stats.total} />
+            <StatCard label="Urgent" value={stats.urgent} accent="error" />
+            <StatCard label="Overdue" value={stats.overdue} accent="warning" />
+            <StatCard label="Unassigned" value={stats.unassigned} accent="muted" />
           </div>
         </div>
       </section>
 
-      <section className="rounded-[22px] border border-border bg-card">
-        <div className="border-b border-border px-5 py-4">
+      <section className="surface overflow-hidden">
+        <div className="border-b border-border px-6 py-4">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h2 className="text-[18px] font-semibold">Issue navigator</h2>
-              <p className="mt-1 text-[12px] text-muted-foreground">
+              <h2 className="text-[16px] font-semibold tracking-tight">Issue navigator</h2>
+              <p className="mt-0.5 text-[12px] text-muted-foreground">
                 Filter like Jira, save views for reuse, and batch-edit issues into the right sprint or workflow column.
               </p>
             </div>
@@ -202,14 +202,14 @@ export default function ProjectIssuesPage() {
               <select
                 defaultValue=""
                 onChange={(event) => applySavedView(event.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-3 text-[12px]"
+                className="h-8 rounded-lg border border-border bg-card px-3 text-[12px] text-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300"
               >
                 <option value="">Open saved view</option>
                 {savedViews.map((view) => (
                   <option key={view.id} value={view.id}>{view.name}</option>
                 ))}
               </select>
-              <Button variant="outline" size="sm" className="h-8 text-[12px]" onClick={() => void handleSaveView()}>
+              <Button variant="secondary" size="sm" className="h-8 text-[12px]" onClick={() => void handleSaveView()}>
                 <Save className="mr-1.5 h-3.5 w-3.5" />
                 Save current view
               </Button>
@@ -221,79 +221,84 @@ export default function ProjectIssuesPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 border-b border-border px-5 py-4 lg:grid-cols-[1.4fr_repeat(6,minmax(0,1fr))]">
+        <div className="grid gap-3 border-b border-border px-6 py-4 lg:grid-cols-[1.4fr_repeat(6,minmax(0,1fr))]">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground/60" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search summary or description" className="pl-9 text-[13px]" />
           </div>
-          <select value={projectId} onChange={(event) => setProjectId(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          <FilterSelect value={projectId} onChange={(e) => setProjectId(e.target.value)}>
             <option value="">All projects</option>
             {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-          </select>
-          <select value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          </FilterSelect>
+          <FilterSelect value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}>
             <option value="all">All workflow states</option>
             <option value="open">Open issues</option>
             <option value="done">Done issues</option>
-          </select>
-          <select value={priority} onChange={(event) => setPriority(event.target.value as PriorityFilter)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          </FilterSelect>
+          <FilterSelect value={priority} onChange={(e) => setPriority(e.target.value as PriorityFilter)}>
             <option value="all">All priorities</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
             <option value="normal">Normal</option>
             <option value="low">Low</option>
-          </select>
-          <select value={due} onChange={(event) => setDue(event.target.value as DueFilter)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          </FilterSelect>
+          <FilterSelect value={due} onChange={(e) => setDue(e.target.value as DueFilter)}>
             <option value="all">Any due date</option>
             <option value="overdue">Overdue</option>
             <option value="today">Due today</option>
             <option value="this_week">Due this week</option>
-          </select>
-          <select value={sprintId} onChange={(event) => setSprintId(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          </FilterSelect>
+          <FilterSelect value={sprintId} onChange={(e) => setSprintId(e.target.value)}>
             <option value="">All sprints</option>
             {sprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-          </select>
-          <select value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-[13px]">
+          </FilterSelect>
+          <FilterSelect value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
             <option value="">All assignees</option>
             {teamMembers.map((member) => <option key={member.user.id} value={member.user.id}>{member.user.full_name}</option>)}
-          </select>
+          </FilterSelect>
         </div>
 
-        <div className="flex flex-col gap-3 border-b border-border px-5 py-3 text-[12px] text-muted-foreground xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-col gap-3 border-b border-border px-6 py-3 text-[12px] text-muted-foreground xl:flex-row xl:items-center xl:justify-between">
           <div className="inline-flex items-center gap-2">
             <Filter className="h-3.5 w-3.5" />
             {activeFiltersCount > 0 ? `${activeFiltersCount} filters active` : "No filters applied"}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="h-8 px-3 text-[12px]">
-              <CheckSquare className="mr-1.5 h-3.5 w-3.5" />
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 text-[11px] font-medium text-muted-foreground">
+              <CheckSquare className="h-3.5 w-3.5" />
               {selectedTaskIds.length} selected
-            </Badge>
-            <select value={bulkPriority} onChange={(event) => setBulkPriority(event.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-[12px]">
+            </span>
+            <FilterSelect value={bulkPriority} onChange={(e) => setBulkPriority(e.target.value)} className="h-8 text-[11px]">
               <option value="">Bulk priority</option>
               <option value="urgent">Urgent</option>
               <option value="high">High</option>
               <option value="normal">Normal</option>
               <option value="low">Low</option>
-            </select>
-            <select value={bulkSprintId} onChange={(event) => setBulkSprintId(event.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-[12px]">
+            </FilterSelect>
+            <FilterSelect value={bulkSprintId} onChange={(e) => setBulkSprintId(e.target.value)} className="h-8 text-[11px]">
               <option value="">Move to sprint</option>
               {sprints.map((sprint) => <option key={sprint.id} value={sprint.id}>{sprint.name}</option>)}
-            </select>
-            <select value={bulkColumnId} onChange={(event) => setBulkColumnId(event.target.value)} className="h-8 rounded-md border border-input bg-background px-3 text-[12px]">
+            </FilterSelect>
+            <FilterSelect value={bulkColumnId} onChange={(e) => setBulkColumnId(e.target.value)} className="h-8 text-[11px]">
               <option value="">Move to column</option>
               {(selectedProjectDetail?.columns ?? []).map((column) => (
                 <option key={column.id} value={column.id}>{column.name}</option>
               ))}
-            </select>
-            <Button variant="outline" size="sm" className="h-8 text-[12px]" onClick={() => void handleBulkApply()} disabled={selectedTaskIds.length === 0 || bulkUpdateTasks.isPending}>
+            </FilterSelect>
+            <Button variant="secondary" size="sm" className="h-8 text-[11px]" onClick={() => void handleBulkApply()} disabled={selectedTaskIds.length === 0 || bulkUpdateTasks.isPending}>
               Apply bulk update
             </Button>
+            <BulkMarkComplete
+              selectedIds={selectedTaskIds}
+              doneColumnId={selectedProjectDetail?.columns.find((c) => c.is_done_column)?.id ?? null}
+              onClearSelection={() => setSelectedTaskIds([])}
+            />
             {activeFiltersCount > 0 && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 text-[12px]"
+                className="h-8 text-[11px]"
                 onClick={() => {
                   setSearch("");
                   setProjectId("");
@@ -312,12 +317,13 @@ export default function ProjectIssuesPage() {
 
         <div className="overflow-x-auto">
           <div className="min-w-[1320px]">
-            <div className="grid grid-cols-[48px_110px_1.8fr_170px_120px_120px_150px_150px_170px] gap-3 border-b border-border bg-muted/35 px-5 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="grid grid-cols-[48px_110px_1.8fr_170px_120px_120px_150px_150px_170px] gap-3 border-b border-border bg-muted/30 px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <div>
                 <input
                   type="checkbox"
                   checked={allVisibleSelected}
                   onChange={(event) => setSelectedTaskIds(event.target.checked ? tasks.map((task) => task.id) : [])}
+                  className="accent-primary"
                 />
               </div>
               <div>Issue</div>
@@ -331,9 +337,9 @@ export default function ProjectIssuesPage() {
             </div>
 
             {projectsLoading || tasksLoading ? (
-              <div className="px-5 py-12 text-center text-[13px] text-muted-foreground">Loading issues...</div>
+              <div className="px-6 py-16 text-center text-[13px] text-muted-foreground">Loading issues...</div>
             ) : tasks.length === 0 ? (
-              <div className="px-5 py-12 text-center">
+              <div className="px-6 py-16 text-center">
                 <p className="text-[14px] font-medium text-foreground">No issues match the current filters.</p>
                 <p className="mt-1 text-[12px] text-muted-foreground">Try widening the filters or create a new issue.</p>
               </div>
@@ -370,12 +376,25 @@ export default function ProjectIssuesPage() {
   );
 }
 
-function SummaryCard({ label, value, tone }: { label: string; value: number; tone: "default" | "danger" | "warning" | "muted" }) {
+function StatCard({ label, value, accent }: { label: string; value: number; accent?: "error" | "warning" | "muted" }) {
+  const borderColor = accent === "error" ? "border-destructive/30" : accent === "warning" ? "border-warning/30" : accent === "muted" ? "border-border" : "border-primary/20";
   return (
-    <div className={cn("rounded-[18px] border p-4", tone === "default" && "border-sky-200 bg-sky-50/60", tone === "danger" && "border-rose-200 bg-rose-50/70", tone === "warning" && "border-amber-200 bg-amber-50/80", tone === "muted" && "border-slate-200 bg-white")}>
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">{label}</p>
-      <p className="mt-2 text-[26px] font-semibold tracking-tight">{value}</p>
+    <div className={cn("rounded-xl border bg-card p-4 shadow-md", borderColor)}>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className={cn("mt-2 text-[24px] font-bold tracking-tight", accent === "error" && "text-destructive", accent === "warning" && "text-warning", !accent && "text-primary")}>{value}</p>
     </div>
+  );
+}
+
+function FilterSelect({ value, onChange, children, className }: { value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; children: React.ReactNode; className?: string }) {
+  return (
+    <select
+      value={value}
+      onChange={onChange}
+      className={cn("h-9 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none transition-all duration-300", className)}
+    >
+      {children}
+    </select>
   );
 }
 
@@ -393,15 +412,15 @@ function IssueRow({
   onDelete: () => void;
 }) {
   return (
-    <div className="grid grid-cols-[48px_110px_1.8fr_170px_120px_120px_150px_150px_170px] gap-3 border-b border-border px-5 py-4 text-[13px] last:border-b-0 hover:bg-muted/20">
-      <div><input type="checkbox" checked={selected} onChange={(event) => onSelect(event.target.checked)} /></div>
-      <div className="font-semibold text-primary">FT-{task.id.split("-")[0]}</div>
+    <div className="grid grid-cols-[48px_110px_1.8fr_170px_120px_120px_150px_150px_170px] gap-3 border-b border-border px-6 py-4 text-[13px] last:border-b-0 hover:bg-muted/20 transition-colors">
+      <div><input type="checkbox" checked={selected} onChange={(event) => onSelect(event.target.checked)} className="accent-primary" /></div>
+      <div className="font-semibold text-primary/80">FT-{task.id.split("-")[0]}</div>
       <div className="min-w-0">
         <p className="truncate font-medium text-foreground">{task.title}</p>
         <div className="mt-1 flex items-center gap-2 text-[11px] text-muted-foreground">
           <span className="uppercase">{task.issue_type || "task"}</span>
           {task.is_overdue && (
-            <span className="inline-flex items-center gap-1 text-amber-700">
+            <span className="inline-flex items-center gap-1 text-warning">
               <AlertTriangle className="h-3 w-3" />
               Overdue
             </span>
@@ -414,30 +433,71 @@ function IssueRow({
           <span className="truncate text-foreground">{task.project_name || task.project}</span>
         </div>
       </div>
-      <div><Badge variant="outline" className="border-border bg-background text-[11px] font-medium">{task.column_name || "Unknown"}</Badge></div>
       <div>
-              <Badge variant="outline" className={cn("text-[11px] font-semibold uppercase", task.priority === "urgent" && "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-400", task.priority === "high" && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400", task.priority === "normal" && "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-400", task.priority === "low" && "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-400")}>
-          {task.priority}
-        </Badge>
+        <span className="inline-flex items-center rounded-md border border-border bg-muted/50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground">
+          {task.column_name || "Unknown"}
+        </span>
+      </div>
+      <div>
+        <PriorityBadge priority={task.priority} />
       </div>
       <div className="text-muted-foreground">{task.sprint_name || "Backlog"}</div>
       <div className="truncate text-muted-foreground">{task.assignee?.full_name || "Unassigned"}</div>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" className="h-8 px-2 text-[12px]" onClick={onEdit}>
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground" onClick={onEdit}>
           <SquarePen className="mr-1.5 h-3.5 w-3.5" />
           Edit
         </Button>
-        <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
+        <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:text-foreground">
           <Link href={`/projects/${task.project}?task=${task.id}`}>
             Open
             <ArrowUpRight className="ml-1.5 h-3.5 w-3.5" />
           </Link>
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 px-2 text-[12px] text-destructive" onClick={onDelete}>
+        <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-destructive hover:text-destructive" onClick={onDelete}>
           <Trash2 className="mr-1.5 h-3.5 w-3.5" />
           Delete
         </Button>
       </div>
     </div>
+  );
+}
+
+function BulkMarkComplete({ selectedIds, doneColumnId, onClearSelection }: { selectedIds: string[]; doneColumnId: string | null; onClearSelection: () => void }) {
+  const bulkUpdateTasks = useBulkUpdateTasks();
+
+  const handleMarkComplete = async () => {
+    if (!doneColumnId || selectedIds.length === 0) return;
+    await bulkUpdateTasks.mutateAsync({ task_ids: selectedIds, updates: { column: doneColumnId } });
+    onClearSelection();
+  };
+
+  if (!doneColumnId) return null;
+
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      className="h-8 text-[11px] text-success hover:text-success border-success/20 hover:border-success/40"
+      onClick={() => void handleMarkComplete()}
+      disabled={selectedIds.length === 0 || bulkUpdateTasks.isPending}
+    >
+      <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+      {bulkUpdateTasks.isPending ? "Completing..." : `Mark ${selectedIds.length} complete`}
+    </Button>
+  );
+}
+
+function PriorityBadge({ priority }: { priority: string }) {
+  const styles: Record<string, string> = {
+    urgent: "border-destructive/30 bg-destructive/10 text-destructive",
+    high: "border-warning/30 bg-warning/10 text-warning",
+    normal: "border-info/30 bg-info/10 text-info",
+    low: "border-border bg-muted/50 text-muted-foreground",
+  };
+  return (
+    <span className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase", styles[priority] || styles.low)}>
+      {priority}
+    </span>
   );
 }
