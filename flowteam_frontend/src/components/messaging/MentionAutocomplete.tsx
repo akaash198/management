@@ -55,6 +55,7 @@ export function MentionAutocomplete({
   onSubmit,
   inputRef,
   onPaste,
+  onKeyDown,
 }: MentionAutocompleteProps) {
   const [suggestions, setSuggestions] = useState<MentionSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import { extractEmbedsFromText, type EmbedItem } from "@/lib/embeds";
-import { ExternalLink, Github, Play, FileText, Globe } from "lucide-react";
+import { ExternalLink, GitBranch, Play, FileText, Globe } from "lucide-react";
 
 export function RichEmbeds({ text, limit = 2 }: { text: string; limit?: number }) {
   const embeds = extractEmbedsFromText(text, limit);
@@ -93,7 +93,7 @@ function EmbedCard({ item }: { item: EmbedItem }) {
         className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:bg-muted/30 shadow-sm"
       >
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#24292f]/10 dark:bg-white/10 text-foreground mt-0.5">
-          <Github size={16} />
+          <GitBranch size={16} />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors truncate">

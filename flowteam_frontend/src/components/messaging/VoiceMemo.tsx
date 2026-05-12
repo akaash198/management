@@ -183,7 +183,7 @@ export function VoiceMemoPlayer({ url, duration }: { url: string; duration?: num
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const animRef = useRef<number>();
+  const animRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     const audio = new Audio(url);

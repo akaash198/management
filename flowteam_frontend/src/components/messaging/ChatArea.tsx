@@ -1249,7 +1249,12 @@ export function ChatArea({
   const handleSendThread = () => {
     if (!threadRoot) return;
     if (!threadText.trim() && pendingAttachments.length === 0) return;
-    const ok = sendMessage(applySlashCommand(expandEmojiShortcodes(threadText)), threadRoot.id, pendingAttachments);
+    const parsedText = applySlashCommand(expandEmojiShortcodes(threadText));
+    if (parsedText === null) {
+      setThreadText("");
+      return;
+    }
+    const ok = sendMessage(parsedText, threadRoot.id, pendingAttachments);
     if (!ok) {
       toast.error(connectionState === "connected" ? "Failed to send message" : "Disconnected. Reconnecting…");
       return;
@@ -1949,7 +1954,7 @@ export function ChatArea({
                   <button
                     type="button"
                     className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
-                    onClick={() => scrollToMessage(firstUnreadId, { highlight: true })}
+                    onClick={() => scrollToMessage(firstUnreadId)}
                   >
                     <ArrowDown size={14} />
                     Jump to new messages
