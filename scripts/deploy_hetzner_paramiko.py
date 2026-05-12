@@ -176,15 +176,18 @@ def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode:
 def _sftp_put_file(sftp: paramiko.SFTPClient, local_path: str, remote_path: str, mode: int = 0o644) -> None:
     tmp_path = remote_path + ".tmp"
     last_err = None
+    with open(local_path, "rb") as lf:
+        data = lf.read()
     for attempt in range(3):
         try:
-            # Cleanup any stale partial uploads
             try:
                 sftp.remove(tmp_path)
             except IOError:
                 pass
-
-            sftp.put(local_path, tmp_path, confirm=True)
+            # Use sftp.file() (write via handle) instead of sftp.put() to avoid
+            # the confirm=True size-mismatch false-positive on some SSH servers.
+            with sftp.file(tmp_path, "wb") as rf:
+                rf.write(data)
             sftp.chmod(tmp_path, mode)
             sftp.posix_rename(tmp_path, remote_path)
             return
