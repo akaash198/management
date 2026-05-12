@@ -151,3 +151,5 @@ export interface TypingUser {
   user_name: string;
   is_typing: boolean;
 }
+
+export type SidebarViewType = "all" | "unreads" | "threads" | "drafts";

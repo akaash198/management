@@ -1,6 +1,6 @@
 "use client";
 
-import { Channel } from "@/types/messaging";
+import { Channel, SidebarViewType } from "@/types/messaging";
 import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Inbox, Lock, MessageSquare, MessagesSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive, ArrowDownUp, Compass } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,9 @@ import { usePresenceStore } from "@/store/presence";
 interface ChatSidebarProps {
   channels: Channel[];
   selectedId: string;
+  activeView: SidebarViewType;
   onSelect: (channel: Channel) => void;
+  onViewChange: (view: SidebarViewType) => void;
   isLoading?: boolean;
   teamId?: string;
   onRefreshChannels?: () => void;
@@ -55,7 +57,7 @@ function isDmChannel(channel: Channel) {
 }
 
 export function ChatSidebar({
-  channels, selectedId, onSelect, isLoading, teamId,
+  channels, selectedId, activeView, onSelect, onViewChange, isLoading, teamId,
   onStartDirectMessage, onCreateChannel, onlineUserIds, onRefreshChannels,
 }: ChatSidebarProps) {
   const [query, setQuery] = useState("");
@@ -399,10 +401,16 @@ export function ChatSidebar({
         <div className="mb-2 space-y-0.5 px-2">
           <button
             type="button"
-            onClick={() => setUnreadOnly(true)}
-            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+            onClick={() => {
+              setUnreadOnly(true);
+              onViewChange("unreads");
+            }}
+            className={cn(
+              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
+              activeView === "unreads" ? "bg-primary/10 text-primary font-semibold" : ""
+            )}
           >
-            <Inbox size={13} className="opacity-60 shrink-0" />
+            <Inbox size={13} className={cn("shrink-0", activeView === "unreads" ? "opacity-100" : "opacity-60")} />
             <span className="flex-1 text-left">All Unreads</span>
             {unreadTotal > 0 && (
               <span className="h-4 min-w-[16px] rounded-full bg-[hsl(239_84%_60%)] text-white text-[9px] font-bold flex items-center justify-center px-1 leading-none">
@@ -412,18 +420,30 @@ export function ChatSidebar({
           </button>
           <button
             type="button"
-            onClick={() => toast.info("Threads view coming soon")}
-            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+            onClick={() => {
+              setUnreadOnly(false);
+              onViewChange("threads");
+            }}
+            className={cn(
+              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
+              activeView === "threads" ? "bg-primary/10 text-primary font-semibold" : ""
+            )}
           >
-            <MessagesSquare size={13} className="opacity-60 shrink-0" />
+            <MessagesSquare size={13} className={cn("shrink-0", activeView === "threads" ? "opacity-100" : "opacity-60")} />
             <span className="flex-1 text-left">Threads</span>
           </button>
           <button
             type="button"
-            onClick={() => toast.info("Drafts view coming soon")}
-            className="nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md"
+            onClick={() => {
+              setUnreadOnly(false);
+              onViewChange("drafts");
+            }}
+            className={cn(
+              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
+              activeView === "drafts" ? "bg-primary/10 text-primary font-semibold" : ""
+            )}
           >
-            <Pencil size={13} className="opacity-60 shrink-0" />
+            <Pencil size={13} className={cn("shrink-0", activeView === "drafts" ? "opacity-100" : "opacity-60")} />
             <span className="flex-1 text-left">Drafts &amp; Sent</span>
           </button>
         </div>

@@ -3,8 +3,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { ChatSidebar } from "@/components/messaging/ChatSidebar";
 import { ChatArea } from "@/components/messaging/ChatArea";
+import { SpecialViews } from "@/components/messaging/SpecialViews";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Channel } from "@/types/messaging";
+import { Channel, SidebarViewType } from "@/types/messaging";
 import api from "@/lib/api";
 import { MessageSquare } from "lucide-react";
 import { useTeamStore } from "@/store/team";
@@ -17,9 +18,11 @@ export default function MessagingPage() {
   const router       = useRouter();
   const pathname     = usePathname();
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [activeView, setActiveView]           = useState<SidebarViewType>("all");
   const [channels, setChannels]               = useState<Channel[]>([]);
   const [isLoading, setIsLoading]             = useState(true);
   const channelId      = searchParams.get("channel");
+  const viewId         = searchParams.get("view") as SidebarViewType | null;
   const focusMessageId = searchParams.get("message");
   const { activeTeamId } = useTeamStore();
   const selectedChannelIdRef = useRef<string>("");
@@ -37,11 +40,18 @@ export default function MessagingPage() {
       if (res.data.success) {
         const data: Channel[] = res.data.data;
         setChannels(data);
-        if (channelId) {
+        if (viewId && ["unreads", "threads", "drafts"].includes(viewId)) {
+          setActiveView(viewId);
+          setSelectedChannel(null);
+        } else if (channelId) {
           const active = data.find((c) => c.id === channelId);
-          if (active) setSelectedChannel(active);
+          if (active) {
+            setSelectedChannel(active);
+            setActiveView("all");
+          }
         } else if (data.length > 0 && !selectedChannelIdRef.current) {
           setSelectedChannel(data[0]);
+          setActiveView("all");
           router.replace(`${pathname}?channel=${data[0].id}`);
         }
       }
@@ -133,17 +143,34 @@ export default function MessagingPage() {
 
   const handleSelect = useCallback((channel: Channel) => {
     setSelectedChannel(channel);
+    setActiveView("all");
     router.replace(`${pathname}?channel=${channel.id}`);
     setChannels((prev) => prev.map((c) => (c.id === channel.id ? { ...c, unread_count: 0 } : c)));
     void markChannelRead(channel.id);
   }, [markChannelRead, pathname, router]);
+
+  const handleViewChange = useCallback((view: SidebarViewType) => {
+    setActiveView(view);
+    if (view !== "all") {
+      setSelectedChannel(null);
+      router.replace(`${pathname}?view=${view}`);
+    } else {
+      // If switching back to "all", maybe pick the last selected or first channel
+      if (!selectedChannel && channels.length > 0) {
+        setSelectedChannel(channels[0]);
+        router.replace(`${pathname}?channel=${channels[0].id}`);
+      }
+    }
+  }, [channels, pathname, router, selectedChannel]);
 
   return (
     <div className="flex h-full overflow-hidden bg-background">
       <ChatSidebar
         channels={channels}
         selectedId={selectedChannel?.id || ""}
+        activeView={activeView}
         onSelect={handleSelect}
+        onViewChange={handleViewChange}
         isLoading={isLoading}
         teamId={activeTeamId ?? ""}
         onRefreshChannels={refreshChannels}
@@ -152,7 +179,9 @@ export default function MessagingPage() {
         onlineUserIds={onlineUserIds}
       />
 
-      {selectedChannel ? (
+      {activeView !== "all" ? (
+        <SpecialViews view={activeView} onRefreshChannels={refreshChannels} />
+      ) : selectedChannel ? (
         <ChatArea
           channel={selectedChannel}
           focusMessageId={focusMessageId}
