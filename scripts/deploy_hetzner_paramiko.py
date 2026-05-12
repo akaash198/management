@@ -44,6 +44,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--deploy-sha", default=None)
 
     parser.add_argument("--bootstrap-ufw", action="store_true", help="Configure UFW to allow only SSH + 80/tcp.")
+    parser.add_argument("--prune", action="store_true", help="Run docker system prune -af before uploading to free disk space.")
     parser.add_argument("--upload", action="store_true", help="Upload docker-compose.prod.yml and Caddyfile.")
     parser.add_argument("--deploy", action="store_true", help="Run docker compose pull/migrate/up.")
 
@@ -226,8 +227,8 @@ def main() -> int:
         print("Missing SSH key material", file=sys.stderr)
         return 2
 
-    if not (args.upload or args.write_env_prod or args.bootstrap_ufw or args.deploy):
-        print("Nothing to do: pass at least one of --upload, --write-env-prod, --bootstrap-ufw, --deploy", file=sys.stderr)
+    if not (args.upload or args.write_env_prod or args.bootstrap_ufw or args.deploy or args.prune):
+        print("Nothing to do: pass at least one of --upload, --write-env-prod, --bootstrap-ufw, --prune, --deploy", file=sys.stderr)
         return 2
 
     local_compose = os.path.join("deploy", "docker-compose.prod.yml")
@@ -246,6 +247,18 @@ def main() -> int:
 
     with _connect(args.host, args.user, ssh_key_text) as client:
         _ensure_dir(client, args.deploy_path)
+
+        # Always report disk usage so CI logs show available space.
+        _, df_out, _ = _run(client, "df -h /")
+        print(f"Disk usage:\n{df_out.strip()}")
+
+        if args.prune:
+            print("Pruning unused Docker images, containers, networks and build cache...")
+            code, out, err = _run(client, "docker system prune -af --volumes 2>&1 || docker system prune -af 2>&1")
+            if out:
+                print(out.strip())
+            _, df_out, _ = _run(client, "df -h /")
+            print(f"Disk usage after prune:\n{df_out.strip()}")
 
         if args.upload:
             _upload_file(client, local_compose, posixpath.join(args.deploy_path, "docker-compose.prod.yml"))

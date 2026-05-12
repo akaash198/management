@@ -105,6 +105,7 @@ jobs:
             --ssh-key-file hetzner_key \
             --deploy-path "${{ env.DEPLOY_PATH }}" \
             --server-ip "${HETZNER_HOST}" \
+            --prune \
             --upload \
             --write-env-prod \
             --bootstrap-ufw \
