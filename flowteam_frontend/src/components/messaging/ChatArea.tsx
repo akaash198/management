@@ -61,12 +61,16 @@ export function ChatArea({
   onRefreshChannels,
   onStartDirectMessage,
   onlineUserIds,
+  acceptedCallId,
+  onClearAcceptedCall,
 }: {
   channel: Channel;
   focusMessageId?: string | null;
   onRefreshChannels?: () => void;
   onStartDirectMessage?: (userId: string) => void;
   onlineUserIds?: Set<string>;
+  acceptedCallId?: string | null;
+  onClearAcceptedCall?: () => void;
 }) {
   const { user } = useAuthStore();
   const { activeTeamId, fetchTeams, teams } = useTeamStore();
@@ -109,8 +113,13 @@ export function ChatArea({
   const [savingNotificationPrefs, setSavingNotificationPrefs] = useState(false);
   const [callOpen, setCallOpen] = useState(false);
   const [callType, setCallType] = useState<'audio' | 'video'>('audio');
-  const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
-  const [incomingCall, setIncomingCall] = useState<{ callId: string; callType: 'audio' | 'video'; callerName: string } | null>(null);
+
+  useEffect(() => {
+    if (acceptedCallId) {
+      setCallOpen(true);
+    }
+  }, [acceptedCallId]);
+
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsTab, setDetailsTab] = useState<string>("about");
   const [memberSearch, setMemberSearch] = useState("");
@@ -162,47 +171,7 @@ export function ChatArea({
     }
   }, [channel.id, channel.display_name, onRefreshChannels]);
 
-  const stopIncomingRingtone = useCallback(() => {
-    if (ringtoneRef.current) {
-      clearInterval(ringtoneRef.current.interval);
-      try { ringtoneRef.current.ctx.close(); } catch {}
-      ringtoneRef.current = null;
-    }
-  }, []);
-
-  const startIncomingRingtone = useCallback(() => {
-    stopIncomingRingtone();
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx() as AudioContext;
-      const play = () => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        // Slack-like two-tone ring
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.4); // C#
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.8);
-      };
-      ringtoneRef.current = { ctx, interval: setInterval(play, 1500) };
-      play();
-    } catch {}
-  }, [stopIncomingRingtone]);
-
-  useEffect(() => {
-    if (incomingCall) {
-      startIncomingRingtone();
-    } else {
-      stopIncomingRingtone();
-    }
-    return () => stopIncomingRingtone();
-  }, [incomingCall, startIncomingRingtone, stopIncomingRingtone]);
   const callEventHandlerRef = useRef<((type: string, data: any) => void) | null>(null);
-  const incomingRingRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
   const queryClient = useQueryClient();
   const {
     messages,
@@ -223,21 +192,7 @@ export function ChatArea({
   } = useChatSocket(channel.id, {
     currentUser: user ? { id: user.id, full_name: user.full_name, avatar: user.avatar_url ?? null } : null,
     onCallEvent: (type, data) => {
-      if ((type === 'call.started' || type === 'call_started') && !callOpen) {
-        // Someone else started a call — show incoming call prompt
-        const startedById = data?.started_by?.id ?? data?.started_by;
-        if (startedById && String(startedById) !== String(user?.id)) {
-          setIncomingCall({
-            callId: data?.id,
-            callType: data?.call_type ?? 'audio',
-            callerName: data?.started_by?.full_name ?? 'Someone',
-          });
-          return;
-        }
-      }
-      if (type === 'call.ended' || type === 'call.missed' || type === 'call_ended') {
-        setIncomingCall(null);
-      }
+      // call.started/missed/ended are handled globally by MessagingPage now.
       callEventHandlerRef.current?.(type, data);
     },
   });
@@ -655,58 +610,14 @@ export function ChatArea({
     }
   }, [channel.id, notificationKeywords, notificationLevel, onRefreshChannels]);
 
-  // Play incoming ring tone while an incoming call is pending
-  useEffect(() => {
-    if (!incomingCall) {
-      if (incomingRingRef.current) {
-        clearInterval(incomingRingRef.current.interval);
-        try { incomingRingRef.current.ctx.close(); } catch { /* ignore */ }
-        incomingRingRef.current = null;
-      }
-      return;
-    }
-    try {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx() as AudioContext;
-      const play = () => {
-        // Two-tone ring: 440 Hz then 480 Hz
-        [0, 0.2].forEach((offset, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.frequency.value = i === 0 ? 440 : 480;
-          gain.gain.setValueAtTime(0.25, ctx.currentTime + offset);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
-          osc.start(ctx.currentTime + offset);
-          osc.stop(ctx.currentTime + offset + 0.18);
-        });
-      };
-      const interval = setInterval(play, 1200);
-      incomingRingRef.current = { ctx, interval };
-      play();
-    } catch { /* silent fallback */ }
-    return () => {
-      if (incomingRingRef.current) {
-        clearInterval(incomingRingRef.current.interval);
-        try { incomingRingRef.current.ctx.close(); } catch { /* ignore */ }
-        incomingRingRef.current = null;
-      }
-    };
-  }, [incomingCall]);
+
 
   const startCall = useCallback(async (type: 'audio' | 'video') => {
     setCallType(type);
     setCallOpen(true);
   }, []);
 
-  const acceptIncomingCall = useCallback(() => {
-    if (!incomingCall) return;
-    setCallType(incomingCall.callType);
-    setAcceptedCallId(incomingCall.callId);
-    setCallOpen(true);
-    setIncomingCall(null);
-  }, [incomingCall]);
+
 
   const summarizeChannel = useCallback(async () => {
     if (!aiEnabled) {
@@ -727,13 +638,7 @@ export function ChatArea({
     }
   }, [aiEnabled, channel.id]);
 
-  const declineIncomingCall = useCallback(() => {
-    if (incomingCall) {
-      // Tell the backend the call was declined so the caller gets a missed-call message
-      sendCallMessage('call.end', { call_id: incomingCall.callId, call_type: incomingCall.callType, was_answered: false });
-    }
-    setIncomingCall(null);
-  }, [incomingCall, sendCallMessage]);
+
 
   const createScheduledMessage = useCallback(async () => {
     const textToSchedule = (scheduleText.trim() || text.trim()).trim();
@@ -3081,32 +2986,16 @@ export function ChatArea({
         </SheetContent>
       </Sheet>
 
-      {/* Incoming Call Banner */}
-      {incomingCall && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-border bg-background shadow-xl px-5 py-4">
-          <div className="flex flex-col">
-            <span className="text-sm font-semibold">{incomingCall.callerName}</span>
-            <span className="text-xs text-muted-foreground">Incoming {incomingCall.callType} call…</span>
-          </div>
-          <Button size="sm" variant="default" className="bg-green-600 hover:bg-green-700 text-white" onClick={acceptIncomingCall}>
-            Accept
-          </Button>
-          <Button size="sm" variant="destructive" onClick={declineIncomingCall}>
-            Decline
-          </Button>
-        </div>
-      )}
-
       {/* Call Component */}
       <CallComponent
         channelId={channel.id}
         isOpen={callOpen}
-        onClose={() => { setCallOpen(false); setAcceptedCallId(null); }}
+        onClose={() => { setCallOpen(false); onClearAcceptedCall?.(); }}
         callType={callType}
         sendCallMessage={sendCallMessage}
         onCallEventRef={callEventHandlerRef}
         existingCallId={acceptedCallId}
-        remoteUserName={directPeer?.full_name ?? incomingCall?.callerName ?? channel.display_name}
+        remoteUserName={directPeer?.full_name ?? channel.display_name}
         remoteUserAvatar={directPeer?.avatar ?? undefined}
       />
       {/* ── Channel Details Modal ── */}

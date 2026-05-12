@@ -310,17 +310,23 @@ export function useNotificationSocket(onNewNotification?: (n: Notification) => v
   return { connectionState, markRead };
 }
 
-export function useChannelEventsSocket(onUnread?: (channelId: string, increment: number) => void) {
+export function useChannelEventsSocket(
+  onUnread?: (channelId: string, increment: number) => void,
+  onCallEvent?: (type: string, data: any) => void
+) {
   const handleMessage = useCallback(
     (event: SocketEvent) => {
-      if (event.type !== "channel.unread") return;
-      const payload = event.data as { channel_id?: unknown; increment?: unknown };
-      const channelId = typeof payload.channel_id === "string" ? payload.channel_id : "";
-      const increment = typeof payload.increment === "number" ? payload.increment : 1;
-      if (!channelId) return;
-      onUnread?.(channelId, increment);
+      if (event.type === "channel.unread") {
+        const payload = event.data as { channel_id?: unknown; increment?: unknown };
+        const channelId = typeof payload.channel_id === "string" ? payload.channel_id : "";
+        const increment = typeof payload.increment === "number" ? payload.increment : 1;
+        if (!channelId) return;
+        onUnread?.(channelId, increment);
+      } else if (["call.started", "call.ended", "call.missed"].includes(event.type)) {
+        onCallEvent?.(event.type, event.data);
+      }
     },
-    [onUnread]
+    [onUnread, onCallEvent]
   );
 
   const { connectionState } = useWebSocket(

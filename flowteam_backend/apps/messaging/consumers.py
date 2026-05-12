@@ -158,6 +158,17 @@ class ChatConsumer(AsyncWebsocketConsumer):
             call = await self.start_call(payload.get("call_type", "audio"))
             if call:
                 await self.broadcast("call.started", call)
+                # Also notify all members via their personal channel event sockets
+                # so they ring even if they aren't currently viewing this specific channel.
+                recipient_ids = await self.get_channel_member_user_ids_excluding_self()
+                for uid in recipient_ids:
+                    await self.channel_layer.group_send(
+                        f"channels_{uid}",
+                        {
+                            "type": "call.started",
+                            "data": call,
+                        },
+                    )
 
         elif event_type == "call.join":
             # join_call with no call_id joins the latest active call in the channel
@@ -440,6 +451,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             ChannelMember.objects.filter(channel_id=self.channel_id)
             .exclude(user_id=self.user.id)
             .filter(models.Q(mute_until__isnull=True) | models.Q(mute_until__lt=now))
+            .values_list("user_id", flat=True)
+        )
+
+    @database_sync_to_async
+    def get_channel_member_user_ids_excluding_self(self):
+        return list(
+            ChannelMember.objects.filter(channel_id=self.channel_id)
+            .exclude(user_id=self.user.id)
             .values_list("user_id", flat=True)
         )
 

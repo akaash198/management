@@ -11,254 +11,193 @@ import {
   BarChart3,
   Users,
   Bot,
+  Hash,
+  LayoutDashboard,
+  Kanban,
+  Layers,
+  Activity,
+  Lock,
+  Globe,
+  Clock,
+  Briefcase,
+  Monitor,
+  Code,
+  Megaphone,
+  Building2,
 } from "lucide-react";
 
-export const meetingHighlights = [
+export const navItems = [
+  { 
+    label: "Product", 
+    href: "#",
+    children: [
+      { label: "Chat", description: "Real-time messaging & threads", icon: MessageSquare },
+      { label: "Projects", description: "Kanban, sprints & roadmaps", icon: Kanban },
+      { label: "Meetings", description: "HD video calls & scheduling", icon: Video },
+      { label: "Integrations", description: "Connect your favorite tools", icon: Zap },
+    ]
+  },
+  { 
+    label: "Solutions", 
+    href: "#",
+    children: [
+      { label: "For Startups", description: "Scale fast with agile tools", icon: Zap },
+      { label: "For Enterprise", description: "Security & compliance at scale", icon: Building2 },
+      { label: "For Remote Teams", description: "Stay connected anywhere", icon: Globe },
+    ]
+  },
+  { label: "Pricing", href: "#pricing" },
+  { label: "Resources", href: "#", children: [
+    { label: "Documentation", href: "#" },
+    { label: "Tutorials", href: "#" },
+    { label: "Community", href: "#" },
+  ]},
+];
+
+export const coreFeatures = [
   {
+    id: "communication",
+    title: "Communication Hub",
+    icon: MessageSquare,
+    description: "Connect your team with real-time messaging, structured threads, and expressive reactions.",
+    features: ["Channels & DMs", "Structured Threads", "Emoji Reactions", "File Sharing", "User Mentions"],
+    accent: "#611f69", // Slack Purple
+    gradient: "from-[#611f69]/20 to-transparent",
+    image: "/mockups/chat.png"
+  },
+  {
+    id: "projects",
+    title: "Project Powerhouse",
+    icon: Kanban,
+    description: "Manage complex projects with ease using agile boards, automated workflows, and visual roadmaps.",
+    features: ["Sprint Planning", "Kanban Boards", "Custom Workflows", "Visual Roadmaps", "Automation"],
+    accent: "#0052CC", // Jira Blue
+    gradient: "from-[#0052CC]/20 to-transparent",
+    image: "/mockups/projects.png"
+  },
+  {
+    id: "collaboration",
+    title: "Seamless Collaboration",
     icon: Video,
-    eyebrow: "Instant",
-    title: "Start a meeting now",
-    description: "Launch an instant meeting for your team and keep the chat context together.",
-    bullets: ["One-click start", "Attendee selection", "Meeting-linked channel"],
-    accent: "cyan",
-  },
-  {
-    icon: CalendarDays,
-    eyebrow: "Scheduled",
-    title: "Schedule ahead",
-    description: "Plan meetings for later, set duration, and keep a clean calendar view for your team.",
-    bullets: ["Schedule date & time", "Duration + status", "Search meetings"],
-    accent: "indigo",
-  },
-  {
-    icon: MessageSquare,
-    eyebrow: "Follow-up",
-    title: "Turn decisions into tasks",
-    description: "Capture outcomes and move directly into execution with tasks, comments, and notifications.",
-    bullets: ["Link work to conversations", "Mentions + notifications", "Saved messages & pins"],
-    accent: "violet",
-  },
-] as const;
+    description: "Meet face-to-face from anywhere with crystal-clear video calls and interactive screen sharing.",
+    features: ["HD Video Calls", "Screen Sharing", "Meeting Recordings", "Calendar Sync", "Grid View"],
+    accent: "#6264A7", // Teams Purple
+    gradient: "from-[#6264A7]/20 to-transparent",
+    image: "/mockups/meetings.png"
+  }
+];
 
-export const securityHighlights = [
-  {
-    icon: Shield,
-    eyebrow: "RBAC",
-    title: "Team + project permissions",
-    description:
-      "CEO/Admin manage team settings and members. Managers invite employees. Employees focus on delivery with clear boundaries.",
-    bullets: ["Protected CEO role", "Capability-driven UI", "Project-level roles"],
-    accent: "indigo",
-  },
-  {
-    icon: CheckCircle2,
-    eyebrow: "Audit",
-    title: "Audit logs & retention",
-    description:
-      "Track sensitive actions across your workspace to support reviews, compliance, and incident response workflows.",
-    bullets: ["Tamper-resistant event trail", "Export-friendly formats", "365-day retention"],
-    accent: "emerald",
-  },
-  {
-    icon: Zap,
-    eyebrow: "Auth",
-    title: "Hardened sign-in",
-    description:
-      "Modern auth with Google OAuth, rate limiting, 2FA, and secure session handling as your team grows.",
-    bullets: ["Google OAuth one-click sign-in", "Two-factor authentication", "Refresh-token rotation"],
-    accent: "rose",
-  },
-] as const;
+export const integrations = [
+  { name: "GitHub", icon: "github" },
+  { name: "Figma", icon: "figma" },
+  { name: "Google Workspace", icon: "google" },
+  { name: "Salesforce", icon: "salesforce" },
+  { name: "Confluence", icon: "confluence" },
+  { name: "Slack", icon: "slack" },
+  { name: "Jira", icon: "jira" },
+  { name: "Teams", icon: "teams" },
+];
 
-export const rbacRoles = [
+export const useCases = [
   {
-    role: "CEO",
-    subtitle: "Owns the workspace. Full control over team settings, membership, and sensitive operations.",
-    bullets: ["Delete team", "Promote/demote roles (including CEO)", "Approve sensitive changes"],
-    accent: "indigo",
+    id: "software",
+    label: "Software Teams",
+    title: "Build & Ship Faster",
+    description: "Connect your code directly to your tasks and discussions.",
+    icon: Code,
+    features: ["Git integration", "Code reviews", "CI/CD alerts"],
+    image: "/usecases/software.png"
   },
   {
-    role: "Admin",
-    subtitle: "Runs operations. Manages team settings and people without taking over ownership.",
-    bullets: ["Manage members (except CEO)", "Change non-CEO roles", "Manage integrations/settings"],
-    accent: "violet",
+    id: "marketing",
+    label: "Marketing Teams",
+    title: "Campaign Management",
+    description: "Organize creative assets and coordinate global launches.",
+    icon: Megaphone,
+    features: ["Asset management", "Editorial calendars", "Stakeholder reviews"],
+    image: "/usecases/marketing.png"
   },
   {
-    role: "Manager",
-    subtitle: "Delivers outcomes. Organizes work and meetings, and onboards employees into the team.",
-    bullets: ["Invite employees", "Create/schedule meetings", "Create projects (team policy)"],
-    accent: "cyan",
-  },
-  {
-    role: "Member",
-    subtitle: "Executes work. Contributes to projects, messages, meetings, and task delivery.",
-    bullets: ["Create/update tasks", "Chat + mentions + threads", "Join meetings & calls"],
-    accent: "emerald",
-  },
-] as const;
+    id: "enterprise",
+    label: "Enterprise",
+    title: "Global Scale",
+    description: "Security and compliance built for the world's largest organizations.",
+    icon: Building2,
+    features: ["SSO & SCIM", "Data residency", "Advanced audit logs"],
+    image: "/usecases/enterprise.png"
+  }
+];
 
-export const aiFeatures = [
-  {
-    icon: Brain,
-    title: "Daily Briefing",
-    description: "Every morning, get a personalised summary of overdue tasks, what's due today, and your meeting schedule — before you open a single tab.",
-    stat: "10 min saved",
-    statLabel: "per person daily",
-    accent: "indigo",
-  },
-  {
-    icon: Sparkles,
-    title: "Focus Recommendations",
-    description: "AI ranks your open tasks by urgency, blocking status, and due date so you always know exactly what to work on next.",
-    stat: "No more",
-    statLabel: "prioritisation meetings",
-    accent: "violet",
-  },
-  {
-    icon: FileText,
-    title: "Auto Task Descriptions",
-    description: "Type a task title and click one button. AI writes the full description, acceptance criteria, and suggested subtasks instantly.",
-    stat: "5–10 min",
-    statLabel: "saved per task",
-    accent: "cyan",
-  },
-  {
-    icon: MessageSquare,
-    title: "Channel Catch-Me-Up",
-    description: "Back from a meeting or holiday? One click summarises the last 48 hours of any channel into decisions, blockers, and open questions.",
-    stat: "20 min",
-    statLabel: "saved per absence",
-    accent: "emerald",
-  },
-  {
-    icon: BarChart3,
-    title: "Project Health Score",
-    description: "A 0–100 score with risk factors and recommended actions. Computed nightly, available on demand. Never be surprised by a failing project.",
-    stat: "Catch risks",
-    statLabel: "before they ship",
-    accent: "amber",
-  },
-  {
-    icon: Bot,
-    title: "AI Automation Builder",
-    description: "Describe a rule in plain English — \"when a bug is created, assign it to Alex and post to #incidents\" — and AI builds it for you.",
-    stat: "Zero",
-    statLabel: "manual rule configuration",
-    accent: "rose",
-  },
-] as const;
-
-export const testimonials = [
-  {
-    quote: "We replaced Jira, Slack, and Notion with Cowrk. Our team actually enjoys standup now because the AI briefing does most of the talking.",
-    name: "Marcus Webb",
-    role: "CTO",
-    company: "Luminary Labs",
-    avatar: "MW",
-    avatarColor: "bg-indigo-500",
-  },
-  {
-    quote: "The sprint retrospective generator alone saves me two hours every two weeks. The insights are better than what I was writing manually.",
-    name: "Priya Nair",
-    role: "Engineering Manager",
-    company: "Stackr.io",
-    avatar: "PN",
-    avatarColor: "bg-violet-500",
-  },
-  {
-    quote: "Client reporting used to take 45 minutes per project per week. Now I click one button and it's done in seconds. Our clients love the format.",
-    name: "Sofia Andreou",
-    role: "Founder",
-    company: "Craft Studio",
-    avatar: "SA",
-    avatarColor: "bg-cyan-500",
-  },
-] as const;
-
-export const comparisons = [
-  { feature: "Kanban + sprints", cowrk: true, jira: true, notion: false, asana: true },
-  { feature: "Real-time messaging", cowrk: true, jira: false, notion: false, asana: false },
-  { feature: "Built-in video meetings", cowrk: true, jira: false, notion: false, asana: false },
-  { feature: "AI daily briefing", cowrk: true, jira: false, notion: false, asana: false },
-  { feature: "AI sprint planner", cowrk: true, jira: false, notion: false, asana: false },
-  { feature: "Project health score", cowrk: true, jira: false, notion: false, asana: false },
-  { feature: "Client portal (no login)", cowrk: true, jira: false, notion: true, asana: false },
-  { feature: "GitHub PR → task linking", cowrk: true, jira: true, notion: false, asana: false },
-  { feature: "Browser push notifications", cowrk: true, jira: false, notion: false, asana: true },
-  { feature: "Google OAuth sign-in", cowrk: true, jira: true, notion: true, asana: true },
-  { feature: "Free plan (real features)", cowrk: true, jira: false, notion: true, asana: false },
-  { feature: "Audit log on all paid plans", cowrk: true, jira: false, notion: false, asana: false },
-] as const;
+export const stats = [
+  { label: "Active Users", value: "10M+" },
+  { label: "Countries", value: "150+" },
+  { label: "Uptime", value: "99.9%" },
+  { label: "Rating", value: "4.8★" },
+];
 
 export const pricing = [
   {
     name: "Free",
-    monthlyPrice: "€0",
-    yearlyPrice: "€0",
-    priceSuffix: "forever",
-    subtitle: "For small teams getting started",
-    limit: "Up to 5 members · 3 projects",
-    bullets: [
-      "Kanban boards + custom columns",
-      "Real-time messaging & DMs",
-      "Meetings + calendar",
-      "Sprint planning & milestones",
-      "Time tracking & approvals",
-      "In-app + browser push notifications",
-      "Client portal (read-only links)",
-      "CSV / XLSX / PDF export",
-      "Google Sign-In (OAuth)",
-      "2FA + audit log",
-    ],
-    cta: { label: "Get started free", href: "/register" },
+    price: "€0",
+    period: "forever",
+    description: "Basic chat + limited boards for individuals.",
+    features: ["Unlimited DMs", "5 public channels", "3 project boards", "Standard security"],
+    cta: "Start Free",
+    popular: false,
   },
   {
-    name: "Pro",
-    monthlyPrice: "€29",
-    yearlyPrice: "€23",
-    priceSuffix: "per workspace / mo",
-    subtitle: "For growing teams that need scale",
-    limit: "Up to 50 members · Unlimited projects",
-    bullets: [
-      "Everything in Free",
-      "50 team members",
-      "Unlimited projects",
-      "Advanced analytics & velocity reports",
-      "Automation rules",
-      "Slack webhook integration",
-      "GitHub repo integration per project",
-      "Priority email support",
-    ],
-    highlight: true,
-    badge: "Most popular",
-    cta: { label: "Start Pro free trial", href: "/register" },
+    name: "Professional",
+    price: "€12",
+    period: "per user/mo",
+    description: "Complete toolkit for growing teams.",
+    features: ["Everything in Free", "Unlimited channels", "Unlimited boards", "Custom workflows", "HD Video (up to 50)"],
+    cta: "Get Started",
+    popular: true,
   },
   {
-    name: "AI",
-    monthlyPrice: "€69",
-    yearlyPrice: "€55",
-    priceSuffix: "per workspace / mo",
-    subtitle: "For teams that want to move faster with AI",
-    limit: "Up to 50 members · Unlimited projects",
-    bullets: [
-      "Everything in Pro",
-      "AI Daily Briefing",
-      "AI Focus Recommendations",
-      "Auto task descriptions & labels",
-      "Channel catch-me-up summaries",
-      "Sprint AI planner & retrospectives",
-      "Workload balancer",
-      "Project health score (0–100)",
-      "Meeting action item extractor",
-      "AI automation builder",
-      "AI client report generator",
-      "Weekly AI status reports",
-    ],
-    badge: "Best value",
-    accentColor: "violet" as const,
-    cta: { label: "Start AI free trial", href: "/register" },
+    name: "Enterprise",
+    price: "Custom",
+    period: "contact sales",
+    description: "Advanced controls and dedicated support.",
+    features: ["Everything in Pro", "SAML SSO", "Data residency", "Audit logs", "Dedicated manager"],
+    cta: "Contact Sales",
+    popular: false,
   },
-] as const;
+];
+
+export const testimonials = [
+  {
+    quote: "Cowrk has completely transformed how our engineering and product teams collaborate. It's the best of three worlds.",
+    name: "Sarah Chen",
+    role: "VP of Engineering",
+    company: "TechFlow",
+    avatar: "SC",
+    metric: "40% faster shipping"
+  },
+  {
+    quote: "The integration between chat and task management is seamless. We no longer lose decisions in message history.",
+    name: "James Wilson",
+    role: "Product Director",
+    company: "GlobalScale",
+    avatar: "JW",
+    metric: "2.5h saved weekly"
+  },
+  {
+    quote: "Security was our #1 concern. Cowrk's enterprise features gave us the peace of mind we needed to move our entire org.",
+    name: "Elena Rodriguez",
+    role: "CISO",
+    company: "BankSafe",
+    avatar: "ER",
+    metric: "Zero compliance issues"
+  },
+];
+
+export const securityBadges = [
+  { name: "SOC 2 Type II", icon: "ShieldCheck" },
+  { name: "GDPR Compliant", icon: "Lock" },
+  { name: "HIPAA Ready", icon: "Activity" },
+  { name: "ISO 27001", icon: "CheckCircle" },
+];
 
 export const faqs = [
   {
@@ -267,30 +206,6 @@ export const faqs = [
   },
   {
     q: "What's actually included in the Free plan?",
-    a: "The Free plan gives you full access to Kanban boards, real-time chat, meetings, sprints, milestones, time tracking, the client portal, and Google sign-in — for up to 5 members and 3 projects. No credit card required, no feature nerfing.",
+    a: "The Free plan gives you full access to Kanban boards, real-time chat, meetings, sprints, milestones, time tracking, the client portal, and Google sign-in — for up to 5 members and 3 projects.",
   },
-  {
-    q: "What does the AI plan add over Pro?",
-    a: "The AI plan adds 12 AI features powered by Claude (Anthropic): daily briefing, focus recommendations, auto task descriptions, channel catch-me-up, sprint planner, workload balancer, project health score, retrospective generator, meeting action items, AI automation builder, weekly status reports, and client report generator.",
-  },
-  {
-    q: "How does RBAC work?",
-    a: "Team roles (CEO/Admin/Manager/Member) control workspace-level actions. Project roles control access inside each project. CEO is protected — only another CEO can change it. Every role change is logged.",
-  },
-  {
-    q: "Can we link GitHub pull requests to tasks?",
-    a: "Yes. Connect a GitHub repo to a project via OAuth (scope: repo). Cowrk registers a webhook and automatically links PRs to tasks when the PR title or body contains a reference like #42 or #WEB-42.",
-  },
-  {
-    q: "Do yearly plans save money?",
-    a: "Yes — about 20%. Pro drops from €29/mo to €23/mo billed annually (€276/yr). AI drops from €69/mo to €55/mo billed annually (€660/yr).",
-  },
-  {
-    q: "Can I run Cowrk for multiple separate teams?",
-    a: "Yes. Each workspace is fully isolated — its own members, projects, channels, meetings, and audit trail. There is no cross-workspace data leakage.",
-  },
-  {
-    q: "Do you support 2FA and browser push notifications?",
-    a: "Yes on both. 2FA uses TOTP (Google Authenticator, Authy, 1Password). Browser push uses the Web Push / VAPID standard — Chrome, Edge, Firefox, and Safari 16.4+ are supported.",
-  },
-] as const;
+];

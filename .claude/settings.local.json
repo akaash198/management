@@ -30,7 +30,9 @@
       "Bash(Get-ChildItem -Path \"d:\\\\management\\\\flowteam_frontend\\\\src\" -Recurse -Directory)",
       "Bash(Select-Object FullName)",
       "Bash(Format-List)",
-      "PowerShell(cd d:\\\\management\\\\flowteam_frontend; git add src/app/globals.css src/app/page.tsx src/app/\\(auth\\)/login/LoginClient.tsx src/app/\\(auth\\)/register/page.tsx src/components/layout/Sidebar.tsx src/components/ui/badge.tsx; git status --short)"
+      "PowerShell(cd d:\\\\management\\\\flowteam_frontend; git add src/app/globals.css src/app/page.tsx src/app/\\(auth\\)/login/LoginClient.tsx src/app/\\(auth\\)/register/page.tsx src/components/layout/Sidebar.tsx src/components/ui/badge.tsx; git status --short)",
+      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.continue\\\\config.json\")",
+      "PowerShell(Test-Path \"$env:USERPROFILE\\\\.continue\"; Get-ChildItem \"$env:USERPROFILE\\\\.continue\" -ErrorAction SilentlyContinue)"
     ],
     "additionalDirectories": [
       "d:\\management\\flowteam_frontend\\src\\app\\(auth)\\company-invite"

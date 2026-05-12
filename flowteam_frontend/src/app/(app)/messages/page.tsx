@@ -6,15 +6,18 @@ import { ChatArea } from "@/components/messaging/ChatArea";
 import { SpecialViews } from "@/components/messaging/SpecialViews";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Channel, SidebarViewType } from "@/types/messaging";
+import { useAuthStore } from "@/store/auth";
 import api from "@/lib/api";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Phone } from "lucide-react";
 import { useTeamStore } from "@/store/team";
 import { useChannelEventsSocket, useTeamPresenceSocket } from "@/hooks/useMessaging";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { Button } from "@/components/ui/button";
 
 export default function MessagingPage() {
-  const searchParams = useSearchParams();
+  const { user }         = useAuthStore();
+  const searchParams     = useSearchParams();
   const router       = useRouter();
   const pathname     = usePathname();
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
@@ -27,6 +30,14 @@ export default function MessagingPage() {
   const { activeTeamId } = useTeamStore();
   const selectedChannelIdRef = useRef<string>("");
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [incomingCall, setIncomingCall] = useState<{ 
+    callId: string; 
+    channelId: string;
+    callType: 'audio' | 'video'; 
+    callerName: string 
+  } | null>(null);
+  const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
+  const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
 
   useEffect(() => {
     selectedChannelIdRef.current = selectedChannel?.id ?? "";
@@ -120,14 +131,87 @@ export default function MessagingPage() {
     }
   }, [activeTeamId, markChannelRead, pathname, router]);
 
-  useChannelEventsSocket((incomingId, increment) => {
-    setChannels((prev) => prev.map((c) => {
-      if (c.id !== incomingId) return c;
-      if (c.is_muted) return c;
-      if (selectedChannelIdRef.current === incomingId) return { ...c, unread_count: 0 };
-      return { ...c, unread_count: Math.max(0, (c.unread_count || 0) + increment) };
-    }));
-  });
+  const stopIncomingRingtone = useCallback(() => {
+    if (ringtoneRef.current) {
+      clearInterval(ringtoneRef.current.interval);
+      try { ringtoneRef.current.ctx.close(); } catch {}
+      ringtoneRef.current = null;
+    }
+  }, []);
+
+  const startIncomingRingtone = useCallback(() => {
+    stopIncomingRingtone();
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtx() as AudioContext;
+      const play = () => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(440, ctx.currentTime);
+        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.4);
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.8);
+      };
+      ringtoneRef.current = { ctx, interval: setInterval(play, 1500) };
+      play();
+    } catch {}
+  }, [stopIncomingRingtone]);
+
+  useEffect(() => {
+    if (incomingCall) startIncomingRingtone();
+    else stopIncomingRingtone();
+    return () => stopIncomingRingtone();
+  }, [incomingCall, startIncomingRingtone, stopIncomingRingtone]);
+
+  useChannelEventsSocket(
+    (incomingId, increment) => {
+      setChannels((prev) => prev.map((c) => {
+        if (c.id !== incomingId) return c;
+        if (c.is_muted) return c;
+        if (selectedChannelIdRef.current === incomingId) return { ...c, unread_count: 0 };
+        return { ...c, unread_count: Math.max(0, (c.unread_count || 0) + increment) };
+      }));
+    },
+    (type, data) => {
+      if (type === "call.started") {
+        const startedBy = data?.started_by?.id ?? data?.started_by;
+        if (startedBy && String(startedBy) !== String(user?.id)) {
+          setIncomingCall({
+            callId: data.id,
+            channelId: data.channel?.id ?? data.channel,
+            callType: data.call_type ?? "audio",
+            callerName: data.started_by?.full_name ?? "Someone",
+          });
+        }
+      } else if (type === "call.ended" || type === "call.missed") {
+        setIncomingCall(null);
+      }
+    }
+  );
+
+  const acceptCall = useCallback(() => {
+    if (!incomingCall) return;
+    const { channelId, callId } = incomingCall;
+    const target = channels.find(c => c.id === channelId);
+    if (target) {
+      setSelectedChannel(target);
+      setActiveView("all");
+      setAcceptedCallId(callId);
+      router.replace(`${pathname}?channel=${channelId}`);
+    } else {
+      // If channel not in list, we might need to fetch it or just toast error
+      toast.error("Could not find the channel for this call.");
+    }
+    setIncomingCall(null);
+  }, [incomingCall, channels, router, pathname]);
+
+  const declineCall = useCallback(() => {
+    setIncomingCall(null);
+  }, []);
 
   useTeamPresenceSocket(
     activeTeamId,
@@ -188,6 +272,8 @@ export default function MessagingPage() {
           onRefreshChannels={refreshChannels}
           onStartDirectMessage={startDirectMessage}
           onlineUserIds={onlineUserIds}
+          acceptedCallId={acceptedCallId}
+          onClearAcceptedCall={() => setAcceptedCallId(null)}
         />
       ) : (
         <div className="flex-1 flex items-center justify-center bg-background">
@@ -207,6 +293,25 @@ export default function MessagingPage() {
                   : "Pick a channel or direct message from the sidebar."}
               </p>
             </div>
+          </div>
+        </div>
+      )}
+      {incomingCall && (
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-4 rounded-2xl border border-indigo-500/30 bg-background shadow-2xl p-4 animate-in slide-in-from-bottom-8 duration-500">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
+            <Phone size={24} className="animate-pulse" />
+          </div>
+          <div className="flex flex-col pr-4">
+            <span className="text-[14px] font-bold text-foreground">{incomingCall.callerName}</span>
+            <span className="text-[12px] text-muted-foreground uppercase tracking-wide font-medium">Incoming {incomingCall.callType} call…</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4" onClick={acceptCall}>
+              Accept
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-xl border-red-500/20 hover:bg-red-500/5 hover:text-red-400" onClick={declineCall}>
+              Decline
+            </Button>
           </div>
         </div>
       )}

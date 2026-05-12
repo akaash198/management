@@ -1,1446 +1,618 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { aiFeatures, comparisons, faqs, meetingHighlights, pricing, rbacRoles, securityHighlights, testimonials } from "./landingContent";
+import { useState, useEffect } from "react";
+import { 
+  coreFeatures, 
+  navItems, 
+  integrations, 
+  useCases, 
+  stats, 
+  pricing, 
+  testimonials, 
+  securityBadges,
+  faqs 
+} from "./landingContent";
 import {
   ArrowRight,
-  BarChart3,
-  Bell,
-  CalendarDays,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardList,
-  GitBranch,
-  Globe,
-  Kanban,
-  LayoutDashboard,
-  MessageSquare,
+  ChevronDown,
   Play,
-  Quote,
-  Shield,
-  Sparkles,
-  Star,
-  Timer,
-  TrendingUp,
+  Check,
+  MessageSquare,
   Users,
-  Video,
+  Calendar,
+  Globe,
+  Shield,
+  Star,
+  Plus,
+  ArrowUpRight,
+  Menu,
   X,
   Zap,
+  CheckCircle2,
+  Lock,
+  Activity,
+  ArrowDown,
+  Quote,
+  Kanban,
+  Video,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /* ─────────────────────────────────────────────
-   LANDING PAGE
+   LANDING PAGE REDESIGN
+   Direction: Slack vibrancy × Jira professionalism × Teams enterprise
    ───────────────────────────────────────────── */
+
 export default function LandingPage() {
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#06060e] text-white overflow-x-hidden">
-
-      {/* ── Nav ─────────────────────────────────── */}
-      <header className="fixed inset-x-0 top-0 z-50">
-        <div className="mx-auto mt-4 flex max-w-6xl items-center justify-between rounded-2xl border border-white/[0.08] bg-[#0a0a16]/90 px-5 py-3 backdrop-blur-2xl shadow-[0_8px_32px_rgba(0,0,0,0.4)] mx-4 lg:mx-auto">
-          <Logo />
-          <nav className="hidden items-center gap-1 md:flex">
-            {[
-              { label: "Features", href: "#features" },
-              { label: "AI", href: "#ai" },
-              { label: "Meetings", href: "#meetings" },
-              { label: "Security", href: "#security" },
-              { label: "Pricing", href: "#pricing" },
-              { label: "FAQ", href: "#faq" },
-            ].map((item) => (
-              <a
-                key={item.label}
-                href={item.href}
-                className="rounded-lg px-3.5 py-2 text-[13px] font-medium text-white/45 transition-all hover:bg-white/[0.06] hover:text-white"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2">
-            <Link
-              href="/login"
-              className="hidden rounded-lg px-3.5 py-2 text-[13px] font-medium text-white/50 transition-all hover:bg-white/[0.06] hover:text-white md:block"
-            >
-              Sign in
-            </Link>
-            <Link href="/register">
-              <button className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-indigo-500 px-4 text-[13px] font-semibold text-white shadow-[0_0_20px_rgba(99,102,241,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all hover:bg-indigo-400 hover:shadow-[0_0_32px_rgba(99,102,241,0.7)]">
-                Get started free
-                <ArrowRight size={12} />
-              </button>
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Hero ────────────────────────────────── */}
-      <section className="relative flex min-h-screen flex-col items-center justify-center px-6 pt-24 text-center">
-
-        {/* Background */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          {/* Primary glow */}
-          <div className="absolute left-1/2 top-[-10%] h-[800px] w-[1000px] -translate-x-1/2 rounded-full bg-indigo-600/[0.15] blur-[140px]" />
-          {/* Secondary accents */}
-          <div className="absolute left-[15%] top-[30%] h-[500px] w-[500px] rounded-full bg-violet-700/[0.1] blur-[120px]" />
-          <div className="absolute right-[15%] top-[25%] h-[400px] w-[400px] rounded-full bg-cyan-600/[0.08] blur-[100px]" />
-          {/* Noise / grid */}
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage:
-                "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
-              backgroundSize: "48px 48px",
-            }}
-          />
-          {/* Radial vignette */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,transparent_0%,#06060e_70%)]" />
-        </div>
-
-        <div className="relative z-10 mx-auto max-w-4xl">
-          {/* Eyebrow badge */}
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-indigo-500/25 bg-indigo-500/[0.12] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-300 shadow-[0_0_24px_rgba(99,102,241,0.15)]">
-            <Sparkles size={10} className="text-indigo-400" />
-            The Modern Team OS
-            <span className="ml-1 rounded-full bg-indigo-500/30 px-2 py-0.5 text-[10px] font-bold text-indigo-200">
-              v2.0
-            </span>
-          </div>
-
-          {/* Headline */}
-          <h1 className="mb-6 text-[clamp(3rem,7.5vw,5.5rem)] font-black leading-[1.02] tracking-[-0.04em]">
-            <span className="text-white">Ship faster.</span>
-            <br />
-            <span
-              className="bg-gradient-to-r from-indigo-400 via-violet-300 to-cyan-400 bg-clip-text text-transparent"
-              style={{ WebkitTextStroke: "0px" }}
-            >
-              Stay aligned.
-            </span>
-          </h1>
-
-          {/* Sub */}
-          <p className="mx-auto mb-10 max-w-lg text-[1.05rem] leading-[1.7] text-white/45">
-            Cowrk unifies Kanban, real-time chat, sprint planning, and team analytics
-            — so your team can move fast without breaking things.
-          </p>
-
-          {/* CTAs */}
-          <div className="mb-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/register">
-              <button className="group inline-flex h-13 items-center gap-2.5 rounded-2xl bg-indigo-500 px-8 text-[15px] font-semibold text-white shadow-[0_0_40px_rgba(99,102,241,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all hover:scale-[1.03] hover:bg-indigo-400 hover:shadow-[0_0_56px_rgba(99,102,241,0.7)]">
-                Start for free
-                <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </Link>
-            <Link href="/login">
-              <button className="inline-flex h-13 items-center gap-2.5 rounded-2xl border border-white/[0.1] bg-white/[0.04] px-8 text-[15px] font-semibold text-white/65 backdrop-blur-sm transition-all hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white">
-                <Play size={13} className="fill-current" />
-                Watch demo
-              </button>
-            </Link>
-          </div>
-
-          {/* Trust signals */}
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <p className="text-[12px] text-white/25">No credit card required</p>
-            <span className="hidden text-white/15 sm:block">·</span>
-            <div className="flex items-center gap-1">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={11} className="fill-amber-400 text-amber-400" />
-              ))}
-              <span className="ml-1.5 text-[12px] text-white/30">4.9 from 2,000+ reviews</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Hero mockup */}
-        <div className="relative z-10 mt-20 w-full max-w-5xl px-4">
-          {/* Floating badge above */}
-          <div className="absolute -top-5 left-1/2 z-20 -translate-x-1/2">
-            <div className="inline-flex items-center gap-2 rounded-full border bg-[#06060e] px-4 py-1.5 text-[11px] font-semibold" style={{ borderColor: "rgba(130,180,170,0.25)", color: "#82B4AA", boxShadow: "0 0 20px rgba(130,180,170,0.15)" }}>
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full" style={{ background: "#82B4AA" }} />
-              Live · 3 teammates online
-            </div>
-          </div>
-
-          <div className="relative overflow-hidden rounded-3xl border border-white/[0.09] bg-[#0d0d1c] shadow-[0_60px_120px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]">
-            {/* Window chrome */}
-            <div className="flex h-10 items-center gap-2 border-b border-white/[0.06] bg-white/[0.02] px-5">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-              <div className="ml-4 flex h-5 w-52 items-center justify-center rounded-md bg-white/[0.05] text-[10px] text-white/20">
-                app.cowrk.io/projects/alpha
-              </div>
-              <div className="ml-auto flex items-center gap-2">
-                <div className="flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-[9px] text-white/30">
-                  <Bell size={9} /> Notifications
-                </div>
-                <div className="h-5 w-5 rounded-full bg-indigo-500/40 ring-1 ring-indigo-400/40 text-[8px] flex items-center justify-center text-white/60 font-bold">A</div>
-                <div className="h-5 w-5 rounded-full bg-violet-500/40 ring-1 ring-violet-400/40 text-[8px] flex items-center justify-center text-white/60 font-bold">J</div>
-                <div className="h-5 w-5 rounded-full bg-cyan-500/40 ring-1 ring-cyan-400/40 text-[8px] flex items-center justify-center text-white/60 font-bold">S</div>
-              </div>
-            </div>
-
-            {/* App body */}
-            <div className="flex h-[420px]">
-
-              {/* Left sidebar */}
-              <div className="flex w-44 shrink-0 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-4">
-                {/* Team name */}
-                <div className="mb-4 flex items-center gap-2 px-1">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-[9px] font-black text-white tracking-tighter">CW</div>
-                  <span className="text-[11px] font-bold text-white/70">Cowrk</span>
-                </div>
-                {/* Nav groups */}
-                <div className="space-y-0.5 text-[10px]">
-                  {[
-                    { icon: LayoutDashboard, label: "Dashboard", active: false },
-                    { icon: Kanban,          label: "Projects",  active: true  },
-                    { icon: MessageSquare,   label: "Messages",  active: false },
-                    { icon: Video,           label: "Meetings",  active: false },
-                    { icon: BarChart3,       label: "Analytics", active: false },
-                    { icon: Shield,          label: "Security",  active: false },
-                  ].map(({ icon: I, label, active }) => (
-                    <div key={label} className={`flex items-center gap-2 rounded-lg px-2 py-1.5 font-medium transition-colors ${active ? "bg-indigo-500/15 text-indigo-300" : "text-white/35 hover:text-white/55"}`}>
-                      <I size={11} className={active ? "text-indigo-400" : ""} />
-                      {label}
-                    </div>
-                  ))}
-                </div>
-                {/* Sprint chip */}
-                <div className="mt-4 border-t border-white/[0.06] pt-4">
-                  <p className="mb-2 px-1 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/20">Active Sprint</p>
-                  <div className="rounded-lg border border-indigo-500/20 bg-indigo-500/[0.08] px-2.5 py-2">
-                    <p className="text-[10px] font-semibold text-indigo-300">Sprint 4</p>
-                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/[0.07]">
-                      <div className="h-full w-[62%] rounded-full bg-indigo-500" />
-                    </div>
-                    <p className="mt-1 text-[9px] text-white/25">62% · 5 days left</p>
-                  </div>
-                </div>
-                {/* AI briefing chip */}
-                <div className="mt-3 rounded-lg border border-violet-500/20 bg-violet-500/[0.07] px-2.5 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <Sparkles size={9} className="text-violet-400" />
-                    <p className="text-[10px] font-semibold text-violet-300">AI Briefing</p>
-                    <span className="ml-auto h-1.5 w-1.5 animate-pulse rounded-full bg-violet-400" />
-                  </div>
-                  <p className="mt-1 text-[9px] leading-[1.4] text-white/30">3 tasks due today · 1 blocker</p>
-                </div>
-              </div>
-
-              {/* Main Kanban area */}
-              <div className="flex flex-1 flex-col overflow-hidden">
-                {/* Toolbar */}
-                <div className="flex items-center gap-2 border-b border-white/[0.06] bg-white/[0.01] px-4 py-2.5">
-                  <span className="text-[11px] font-bold text-white/60">Alpha · Sprint 4</span>
-                  <span className="rounded-full bg-indigo-500/15 px-2 py-0.5 text-[9px] font-bold text-indigo-300">In Progress</span>
-                  <div className="ml-auto flex items-center gap-2">
-                    <div className="flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-[9px] text-white/35">
-                      <GitBranch size={9} /> main ↑2 PRs
-                    </div>
-                    <div className="h-6 w-px bg-white/[0.07]" />
-                    <div className="flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.04] px-2 py-1 text-[9px] text-white/35">
-                      <Timer size={9} /> 14h logged
-                    </div>
-                  </div>
-                </div>
-                {/* Kanban columns */}
-                <div className="flex flex-1 gap-2.5 overflow-x-auto p-3.5">
-                  {mockColumns.map((col) => (
-                    <MockColumn key={col.title} {...col} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Right chat panel */}
-              <div className="flex w-52 shrink-0 flex-col border-l border-white/[0.06] bg-white/[0.015]">
-                {/* Chat header */}
-                <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-3 py-2.5">
-                  <MessageSquare size={10} className="text-cyan-400" />
-                  <span className="text-[10px] font-semibold text-white/55">#alpha-dev</span>
-                  <span className="ml-auto h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                </div>
-                {/* Messages */}
-                <div className="flex-1 space-y-2.5 overflow-y-auto px-3 py-3">
-                  {[
-                    { avatar: "A", color: "bg-indigo-500/50", name: "Alex",  msg: "Auth PR is up, tagging for review 👀",       time: "9:02" },
-                    { avatar: "J", color: "bg-violet-500/50", name: "Jamie", msg: "On it. Also blocked on the API rate limit spec", time: "9:05" },
-                    { avatar: "S", color: "bg-cyan-500/50",   name: "Sara",  msg: "Spec is in #backend-docs, linking it now",    time: "9:06" },
-                    { avatar: "A", color: "bg-indigo-500/50", name: "Alex",  msg: "Sprint 4 retro — who's running it?",          time: "9:11" },
-                    { avatar: "J", color: "bg-violet-500/50", name: "Jamie", msg: "AI can draft it 🤖 one sec",                  time: "9:12" },
-                  ].map((m, i) => (
-                    <div key={i} className="flex gap-1.5">
-                      <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[8px] font-bold text-white ${m.color}`}>{m.avatar}</div>
-                      <div>
-                        <div className="flex items-baseline gap-1.5">
-                          <span className="text-[9px] font-semibold text-white/60">{m.name}</span>
-                          <span className="text-[8px] text-white/20">{m.time}</span>
-                        </div>
-                        <p className="text-[9px] leading-[1.5] text-white/38">{m.msg}</p>
+    <div className="flex min-h-screen flex-col bg-[#050508] text-white overflow-x-hidden selection:bg-indigo-500/30">
+      
+      {/* ── Navigation ────────────────────────────────── */}
+      <nav className={cn(
+        "fixed inset-x-0 top-0 z-[100] transition-all duration-500",
+        isScrolled ? "bg-black/60 backdrop-blur-xl border-b border-white/10 py-3" : "bg-transparent py-6"
+      )}>
+        <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
+          <div className="flex items-center gap-10">
+            <Logo />
+            <div className="hidden lg:flex items-center gap-8">
+              {navItems.map((item) => (
+                <div key={item.label} className="group relative">
+                  <button className="flex items-center gap-1 text-[14px] font-medium text-white/70 hover:text-white transition-colors">
+                    {item.label}
+                    {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />}
+                  </button>
+                  {item.children && (
+                    <div className="absolute top-full left-[-20px] pt-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-300">
+                      <div className="w-[280px] rounded-2xl border border-white/10 bg-[#0a0a10]/95 backdrop-blur-2xl p-4 shadow-2xl">
+                        {item.children.map((child: any) => (
+                          <Link key={child.label} href="#" className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group/item">
+                            {child.icon && <child.icon size={20} className="text-indigo-400 mt-1" />}
+                            <div>
+                              <div className="text-[14px] font-semibold text-white">{child.label}</div>
+                              <div className="text-[12px] text-white/50">{child.description}</div>
+                            </div>
+                          </Link>
+                        ))}
                       </div>
                     </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="hidden sm:block text-[14px] font-medium text-white/70 hover:text-white transition-colors">
+              Sign In
+            </Link>
+            <Link href="/register">
+              <button className="px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-[14px] font-bold text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-105 active:scale-95">
+                Get Started Free
+              </button>
+            </Link>
+            <button className="lg:hidden text-white/70" onClick={() => setMobileMenuOpen(true)}>
+              <Menu size={24} />
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* ── Mobile Menu Overlay ────────────────────────── */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[200] bg-black/95 backdrop-blur-2xl flex flex-col p-8 animate-in fade-in duration-300">
+          <div className="flex items-center justify-between mb-12">
+            <Logo />
+            <button onClick={() => setMobileMenuOpen(false)}><X size={28} /></button>
+          </div>
+          <div className="space-y-8">
+            {navItems.map(item => (
+              <div key={item.label}>
+                <div className="text-2xl font-bold mb-4">{item.label}</div>
+                {item.children && (
+                  <div className="space-y-4 pl-4 border-l border-white/10">
+                    {item.children.map((child: any) => (
+                      <div key={child.label} className="text-lg text-white/60">{child.label}</div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-auto flex flex-col gap-4">
+            <Link href="/register" className="w-full py-4 rounded-2xl bg-indigo-600 text-center font-bold text-lg">Get Started Free</Link>
+            <Link href="/login" className="w-full py-4 rounded-2xl border border-white/10 text-center font-bold text-lg">Sign In</Link>
+          </div>
+        </div>
+      )}
+
+      {/* ── Hero Section ─────────────────────────────── */}
+      <section className="relative pt-40 pb-24 lg:pt-56 lg:pb-40 overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] h-[1000px] pointer-events-none opacity-40">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,#611f69_0%,#0052CC_30%,#6264A7_60%,transparent_100%)]" />
+        </div>
+        
+        <div className="mx-auto max-w-7xl px-6 relative z-10 grid lg:grid-cols-2 gap-16 items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-4 py-1.5 text-[12px] font-bold text-indigo-300 mb-8 animate-in slide-in-from-bottom-4 duration-700">
+              <Zap size={14} className="fill-indigo-300" />
+              10M+ teams collaborate daily
+            </div>
+            <h1 className="text-[clamp(2.5rem,5vw,5rem)] font-black leading-[1.05] tracking-tight mb-8 animate-in slide-in-from-bottom-6 duration-1000">
+              Where Teams <span className="text-indigo-400">Plan</span>, <br />
+              <span className="text-violet-400">Communicate</span>, <br />
+              and <span className="text-cyan-400">Deliver</span>.
+            </h1>
+            <p className="text-[18px] lg:text-[20px] text-white/50 leading-relaxed mb-10 max-w-xl animate-in slide-in-from-bottom-8 duration-1000">
+              Unite your workflow with real-time chat, agile project tracking, and seamless video collaboration in one workspace.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center gap-4 animate-in slide-in-from-bottom-10 duration-1000">
+              <Link href="/register">
+                <button className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-[16px] font-black text-white shadow-2xl shadow-indigo-500/40 flex items-center justify-center gap-2 group transition-all hover:scale-105 active:scale-95">
+                  Start Free Trial
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                </button>
+              </Link>
+              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-[16px] font-black text-white flex items-center justify-center gap-2 transition-all">
+                <Play size={18} className="fill-white" />
+                Watch Demo
+              </button>
+            </div>
+            
+            <div className="mt-12 flex items-center gap-8 text-white/30">
+              <div className="flex -space-x-3">
+                {[1,2,3,4].map(i => (
+                  <div key={i} className="h-10 w-10 rounded-full border-2 border-black bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white">JD</div>
+                ))}
+                <div className="h-10 w-10 rounded-full border-2 border-black bg-white/10 flex items-center justify-center text-[10px] font-bold text-white">+5k</div>
+              </div>
+              <div className="text-[13px] font-medium">Joined by the world's most innovative teams</div>
+            </div>
+          </div>
+          
+          <div className="relative group perspective-1000 animate-in slide-in-from-right-12 duration-1000">
+            {/* Animated Mockup Container */}
+            <div className="relative z-20 rounded-3xl border border-white/10 bg-[#0d0d1c] shadow-[0_64px_128px_-16px_rgba(0,0,0,0.7)] overflow-hidden transform group-hover:rotate-x-1 group-hover:rotate-y-[-1deg] transition-transform duration-700">
+              <div className="flex h-10 items-center gap-2 border-b border-white/5 bg-white/2 px-5">
+                <div className="flex gap-1.5">
+                  <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                  <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                  <div className="h-3 w-3 rounded-full bg-[#28c840]" />
+                </div>
+                <div className="ml-4 h-6 w-1/2 rounded-md bg-white/5 flex items-center justify-center text-[10px] text-white/20 font-mono">app.cowrk.io</div>
+              </div>
+              <img 
+                src="file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_hero_mockup_1778590467130.png" 
+                alt="Cowrk Interface"
+                className="w-full aspect-[4/3] object-cover"
+              />
+            </div>
+            
+            {/* Floating Elements */}
+            <div className="absolute -top-10 -right-10 z-30 p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl animate-float">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-green-500 flex items-center justify-center font-bold">JD</div>
+                <div>
+                  <div className="text-[12px] font-bold">James Davis</div>
+                  <div className="text-[10px] text-white/50">Joined #engineering</div>
+                </div>
+              </div>
+            </div>
+            <div className="absolute -bottom-6 -left-12 z-30 p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl animate-float" style={{ animationDelay: "1.5s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-lg bg-indigo-500 flex items-center justify-center"><CheckCircle2 size={24} /></div>
+                <div>
+                  <div className="text-[12px] font-bold">Sprint Beta Complete</div>
+                  <div className="text-[10px] text-white/50">12 tasks delivered today</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Stats Bar ────────────────────────────────── */}
+      <section className="py-12 border-y border-white/5 bg-white/[0.02]">
+        <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.map(stat => (
+            <div key={stat.label} className="text-center">
+              <div className="text-3xl lg:text-4xl font-black text-white mb-2">{stat.value}</div>
+              <div className="text-[13px] font-bold text-white/30 uppercase tracking-widest">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Features Grid (Tri-Split) ─────────────────── */}
+      <section className="py-32 lg:py-48 px-6 bg-[#050508]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-24 max-w-3xl mx-auto">
+            <h2 className="text-4xl lg:text-6xl font-black mb-8">Unified Workspace. <br /> Unlimited Potential.</h2>
+            <p className="text-xl text-white/50">Ditch the tool overload. One platform for everything your team needs to stay in flow.</p>
+          </div>
+          
+          <div className="grid lg:grid-cols-3 gap-8">
+            {coreFeatures.map((feature, idx) => (
+              <div key={feature.id} className="group relative rounded-3xl border border-white/5 bg-white/[0.02] p-8 hover:bg-white/[0.04] transition-all duration-500 overflow-hidden">
+                {/* Accent Glow */}
+                <div className={cn("absolute -top-24 -right-24 w-64 h-64 blur-[100px] opacity-0 group-hover:opacity-30 transition-opacity duration-700 bg-[var(--accent)]")} style={{ "--accent": feature.accent } as any} />
+                
+                <div className="relative z-10">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl mb-8 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-xl" style={{ backgroundColor: feature.accent }}>
+                    <feature.icon size={28} />
+                  </div>
+                  <h3 className="text-2xl font-black mb-4">{feature.title}</h3>
+                  <p className="text-white/50 mb-8 leading-relaxed">{feature.description}</p>
+                  
+                  <ul className="space-y-4 mb-10">
+                    {feature.features.map(f => (
+                      <li key={f} className="flex items-center gap-3 text-[14px] font-medium text-white/70">
+                        <div className="h-5 w-5 rounded-full bg-white/5 flex items-center justify-center"><Check size={12} className="text-indigo-400" /></div>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                <div className="relative mt-auto pt-4 translate-y-4 group-hover:translate-y-0 transition-transform duration-700">
+                  <img 
+                    src={
+                      feature.id === "communication" ? "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_chat_feature_1778590483995.png" :
+                      feature.id === "projects" ? "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_project_feature_1778590501481.png" :
+                      "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_meeting_feature_1778590517690.png"
+                    } 
+                    alt={feature.title}
+                    className="rounded-t-2xl border border-white/10 shadow-2xl transition-all group-hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Unified Workflow (Idea to Delivery) ────────── */}
+      <section className="py-32 lg:py-48 px-6 bg-black relative overflow-hidden">
+        {/* Background Animation */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-[conic-gradient(from_0deg_at_50%_50%,#611f69_0deg,#0052CC_120deg,#6264A7_240deg,#611f69_360deg)] animate-[spin_20s_linear_infinite]" />
+          <div className="absolute inset-0 bg-black backdrop-blur-3xl" />
+        </div>
+
+        <div className="mx-auto max-w-7xl relative z-10">
+          <div className="text-center mb-24">
+            <div className="text-indigo-400 font-bold uppercase tracking-widest text-[13px] mb-4">From Idea to Delivery</div>
+            <h2 className="text-4xl lg:text-6xl font-black mb-8 text-white">One Unified Workflow.</h2>
+          </div>
+          
+          <div className="grid lg:grid-cols-4 gap-6 items-start relative">
+            {/* Connecting Line */}
+            <div className="hidden lg:block absolute top-[60px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-white/10 to-transparent z-0" />
+            
+            {[
+              { step: 1, title: "Discuss", desc: "Team ideates in channels & threads", icon: MessageSquare, accent: "#611f69" },
+              { step: 2, title: "Plan", desc: "Instantly convert decisions to tasks", icon: Kanban, accent: "#0052CC" },
+              { step: 3, title: "Review", desc: "Meet face-to-face to refine goals", icon: Video, accent: "#6264A7" },
+              { step: 4, title: "Deliver", desc: "Ship with confidence & track results", icon: CheckCircle2, accent: "#10b981" }
+            ].map((node, i) => (
+              <div key={node.step} className="relative z-10 flex flex-col items-center text-center p-8 rounded-3xl glass border border-white/5 hover:border-white/20 transition-all duration-500 group">
+                <div className="h-16 w-16 rounded-2xl flex items-center justify-center mb-8 shadow-2xl group-hover:scale-110 transition-transform duration-500" style={{ backgroundColor: node.accent }}>
+                  <node.icon size={32} />
+                </div>
+                <div className="text-white/30 font-bold mb-2">Step {node.step}</div>
+                <h4 className="text-2xl font-black mb-3">{node.title}</h4>
+                <p className="text-white/50 text-[14px] leading-relaxed">{node.desc}</p>
+                {i < 3 && <ArrowRight size={24} className="lg:hidden mt-8 text-white/20" />}
+              </div>
+            ))}
+          </div>
+          
+          <div className="mt-32 p-12 rounded-[40px] border border-white/10 bg-white/[0.01] backdrop-blur-sm grid lg:grid-cols-3 gap-16 items-center">
+            <div className="lg:col-span-1">
+              <h3 className="text-3xl font-black mb-6">Real-time Efficiency.</h3>
+              <p className="text-white/50 mb-8">See how teams using Cowrk outperform their peers across every key metric.</p>
+              <Link href="/register" className="text-indigo-400 font-bold flex items-center gap-2 hover:gap-3 transition-all">
+                Learn more about productivity gains <ArrowRight size={16} />
+              </Link>
+            </div>
+            <div className="lg:col-span-2 grid grid-cols-2 gap-8">
+              {[
+                { label: "Productivity Increase", value: "+32%" },
+                { label: "Meeting Time Saved", value: "4.5h/wk" },
+                { label: "Communication Latency", value: "-60%" },
+                { label: "Team Morale Score", value: "4.9/5" }
+              ].map(metric => (
+                <div key={metric.label} className="p-6 rounded-2xl bg-white/[0.03] border border-white/5">
+                  <div className="text-3xl font-black text-white mb-1">{metric.value}</div>
+                  <div className="text-[12px] font-bold text-white/30 uppercase tracking-widest">{metric.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Integrations Section ──────────────────────── */}
+      <section className="py-32 lg:py-48 px-6 bg-[#050508]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-24 max-w-3xl mx-auto">
+            <h2 className="text-4xl lg:text-6xl font-black mb-8">Your Workflow, <br /> Unified.</h2>
+            <p className="text-xl text-white/50">Cowrk plays nicely with the tools you already use every day.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-24">
+            {integrations.map(int => (
+              <div key={int.name} className="h-32 flex flex-col items-center justify-center rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] transition-all group grayscale hover:grayscale-0">
+                <img src={`https://cdn.simpleicons.org/${int.icon}/ffffff`} alt={int.name} className="h-10 mb-3 opacity-30 group-hover:opacity-100 transition-opacity" />
+                <span className="text-[12px] font-bold text-white/20 group-hover:text-white transition-colors">{int.name}</span>
+              </div>
+            ))}
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <p className="text-white/40 font-medium mb-8 uppercase tracking-widest text-[12px]">And 1,000+ more via API & Webhooks</p>
+            <button className="px-10 py-4 rounded-2xl border border-white/10 hover:bg-white/5 font-black transition-all">Explore Marketplace</button>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Use Case Tabs ────────────────────────────── */}
+      <section className="py-32 lg:py-48 px-6 bg-black">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+            <div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-12">Built for every <br /> type of team.</h2>
+              <div className="space-y-6">
+                {useCases.map((uc) => (
+                  <button key={uc.id} className="w-full p-8 rounded-3xl border border-white/5 bg-white/[0.02] hover:bg-white/[0.04] text-left transition-all group flex items-start gap-6">
+                    <div className="h-12 w-12 rounded-xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
+                      <uc.icon size={24} />
+                    </div>
+                    <div>
+                      <div className="text-xl font-black mb-2">{uc.label}</div>
+                      <div className="text-white/50 text-[14px]">{uc.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="relative">
+              <div className="rounded-[40px] overflow-hidden border border-white/10 shadow-3xl bg-[#0a0a16]">
+                <img src="file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_hero_mockup_1778590467130.png" alt="Use Case Demo" className="w-full" />
+              </div>
+              {/* Floating Testimonial */}
+              <div className="absolute -bottom-12 -left-12 max-w-sm p-8 rounded-3xl glass-dark border border-white/10 shadow-2xl">
+                <Quote size={32} className="text-indigo-400 mb-6 opacity-40" />
+                <p className="text-[15px] font-medium leading-relaxed mb-6 italic">"Cowrk is the first tool that actually keeps our remote team on the same page without endless sync meetings."</p>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center font-bold">SM</div>
+                  <div>
+                    <div className="text-[13px] font-bold">Sarah Miller</div>
+                    <div className="text-[11px] text-white/40">Head of Growth, Acme Corp</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Pricing ─────────────────────────────────── */}
+      <section id="pricing" className="py-32 lg:py-48 px-6 bg-[#050508]">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-24">
+            <h2 className="text-4xl lg:text-6xl font-black mb-8">Transparent Pricing.</h2>
+            <div className="flex items-center justify-center gap-6 mt-12">
+              <span className={cn("text-[14px] font-bold transition-colors", billingCycle === "monthly" ? "text-white" : "text-white/40")}>Monthly</span>
+              <button 
+                onClick={() => setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")}
+                className="w-14 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/30 p-1 relative transition-all"
+              >
+                <div className={cn("h-6 w-6 rounded-full bg-indigo-500 transition-all", billingCycle === "annual" ? "translate-x-6" : "translate-x-0")} />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className={cn("text-[14px] font-bold transition-colors", billingCycle === "annual" ? "text-white" : "text-white/40")}>Annually</span>
+                <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 text-[10px] font-black uppercase tracking-wider">Save 20%</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 items-start">
+            {pricing.map(tier => (
+              <div key={tier.name} className={cn(
+                "relative flex flex-col p-8 rounded-[32px] border transition-all duration-500",
+                tier.popular ? "bg-[#0a0a16] border-indigo-500/30 shadow-2xl scale-[1.02] lg:scale-[1.05]" : "bg-white/[0.01] border-white/5 hover:border-white/20"
+              )}>
+                {tier.popular && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-indigo-600 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-500/40">
+                    Most Popular
+                  </div>
+                )}
+                <div className="text-xl font-black mb-2">{tier.name}</div>
+                <div className="flex items-baseline gap-1 mb-2">
+                  <span className="text-4xl font-black">{tier.price}</span>
+                  <span className="text-white/40 text-[14px]">{tier.period}</span>
+                </div>
+                <p className="text-[13px] text-white/50 mb-8 h-10">{tier.description}</p>
+                
+                <Link href="/register" className="mb-10">
+                  <button className={cn(
+                    "w-full py-4 rounded-2xl font-black transition-all",
+                    tier.popular ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20" : "bg-white/5 hover:bg-white/10 text-white border border-white/10"
+                  )}>
+                    {tier.cta}
+                  </button>
+                </Link>
+                
+                <div className="space-y-4">
+                  {tier.features.map(f => (
+                    <div key={f} className="flex items-start gap-3 text-[13px] font-medium text-white/60">
+                      <Check size={16} className="text-indigo-400 shrink-0 mt-0.5" />
+                      {f}
+                    </div>
                   ))}
                 </div>
-                {/* AI catch-me-up */}
-                <div className="border-t border-white/[0.06] bg-violet-500/[0.05] px-3 py-2.5">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Sparkles size={8} className="text-violet-400" />
-                    <span className="text-[9px] font-semibold text-violet-300">AI Catch-me-up</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── Security & Trust ──────────────────────────── */}
+      <section className="py-32 lg:py-48 px-6 bg-black">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-24 items-center">
+            <div>
+              <div className="text-violet-400 font-bold uppercase tracking-widest text-[13px] mb-4">Enterprise Grade Security</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-8">Trusted by the world's <br /> most secure orgs.</h2>
+              <p className="text-xl text-white/50 mb-12">Cowrk is built on a foundation of security and compliance, with features designed to keep your data protected at every level.</p>
+              
+              <div className="grid grid-cols-2 gap-8">
+                {[
+                  { title: "SSO & SCIM", desc: "SAML 2.0 & Okta support" },
+                  { title: "End-to-End", desc: "AES-256 data encryption" },
+                  { title: "Audit Logs", desc: "Full action history logs" },
+                  { title: "24/7 Support", desc: "Dedicated success managers" }
+                ].map(item => (
+                  <div key={item.title}>
+                    <div className="text-[15px] font-black mb-1">{item.title}</div>
+                    <div className="text-[12px] text-white/40">{item.desc}</div>
                   </div>
-                  <p className="text-[8px] leading-[1.5] text-white/30">Auth PR open · API blocked · retro drafted by AI</p>
-                </div>
-                {/* Input */}
-                <div className="border-t border-white/[0.06] px-3 py-2">
-                  <div className="flex items-center gap-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] px-2.5 py-1.5">
-                    <span className="flex-1 text-[9px] text-white/20">Message #alpha-dev…</span>
-                    <Zap size={9} className="text-white/20" />
+                ))}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-6">
+              {securityBadges.map(badge => (
+                <div key={badge.name} className="p-10 rounded-[32px] glass-dark border border-white/5 flex flex-col items-center text-center group hover:bg-white/[0.05] transition-all">
+                  <div className="h-16 w-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    {badge.icon === "ShieldCheck" ? <Shield size={32} /> : badge.icon === "Lock" ? <Lock size={32} /> : badge.icon === "Activity" ? <Activity size={32} /> : <CheckCircle2 size={32} />}
                   </div>
+                  <div className="text-lg font-black">{badge.name}</div>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-
-          {/* Glow beneath mockup */}
-          <div className="absolute -bottom-20 left-1/2 h-40 w-2/3 -translate-x-1/2 rounded-full bg-indigo-600/15 blur-3xl" />
-        </div>
-      </section>
-
-      {/* ── Social proof bar ────────────────────── */}
-      <section className="relative py-16">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-950/[0.08] to-transparent" />
-        <div className="relative mx-auto max-w-5xl px-6">
-          <p className="mb-10 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/20">
-            Trusted by high-velocity teams worldwide
-          </p>
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            {stats.map((s) => (
-              <StatCard key={s.label} {...s} />
-            ))}
           </div>
         </div>
       </section>
 
-      {/* ── Features grid ───────────────────────── */}
-      <section id="features" className="py-32 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-20 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-400">
-              Everything in one place
-            </div>
-            <h2 className="mb-4 text-[clamp(2rem,4vw,3.2rem)] font-black tracking-[-0.035em] text-white">
-              Built for teams that move fast
-            </h2>
-            <p className="mx-auto max-w-md text-[15px] leading-relaxed text-white/35">
-              Every tool your team needs, perfectly integrated — no more tab switching or context loss.
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {features.map((f, i) => (
-              <FeatureCard key={f.title} {...f} featured={i === 0} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── AI Features ─────────────────────────── */}
-      <section id="ai" className="py-32 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-20 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/25 bg-violet-500/[0.10] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300 shadow-[0_0_24px_rgba(139,92,246,0.15)]">
-              <Sparkles size={10} className="text-violet-400" />
-              Powered by Claude AI
-            </div>
-            <h2 className="mb-4 text-[clamp(2rem,4vw,3.2rem)] font-black tracking-[-0.035em] text-white">
-              Your team's AI co-pilot
-            </h2>
-            <p className="mx-auto max-w-lg text-[15px] leading-relaxed text-white/38">
-              12 AI features that eliminate the busywork — briefings, summaries, prioritisation, and automation — all included in the AI plan.
-            </p>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {aiFeatures.map((f) => (
-              <AiFeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-          <div className="mt-10 flex flex-col items-center gap-4">
-            <Link href="/register">
-              <button className="group inline-flex h-12 items-center gap-2.5 rounded-2xl bg-violet-500 px-8 text-[14px] font-semibold text-white shadow-[0_0_36px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all hover:scale-[1.03] hover:bg-violet-400 hover:shadow-[0_0_52px_rgba(139,92,246,0.6)]">
-                Start AI free trial
-                <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+      {/* ── Final CTA ────────────────────────────────── */}
+      <section className="py-32 px-6">
+        <div className="mx-auto max-w-7xl relative rounded-[60px] overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#611f69] via-[#0052CC] to-[#6264A7] opacity-90" />
+          <div className="relative z-10 px-8 py-24 lg:py-32 text-center max-w-4xl mx-auto">
+            <h2 className="text-4xl lg:text-7xl font-black mb-8 text-white tracking-tight">Ready to transform how your team works?</h2>
+            <p className="text-xl lg:text-2xl text-white/80 mb-12">Join 10,000+ teams shipping faster and staying aligned with Cowrk.</p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link href="/register" className="w-full sm:w-auto">
+                <button className="w-full px-12 py-5 rounded-2xl bg-white text-indigo-900 text-[18px] font-black shadow-2xl hover:scale-105 active:scale-95 transition-all">
+                  Get Started Free
+                </button>
+              </Link>
+              <button className="w-full sm:w-auto px-12 py-5 rounded-2xl border border-white/20 bg-black/20 backdrop-blur-sm text-white text-[18px] font-black hover:bg-black/40 transition-all">
+                Schedule Demo
               </button>
-            </Link>
-            <p className="text-[12px] text-white/25">14-day trial · No card required · Cancel any time</p>
+            </div>
+            <div className="mt-8 text-white/50 text-[14px] font-medium flex flex-wrap items-center justify-center gap-6">
+              <span className="flex items-center gap-1.5"><Check size={16} /> No credit card required</span>
+              <span className="flex items-center gap-1.5"><Check size={16} /> 14-day free trial</span>
+              <span className="flex items-center gap-1.5"><Check size={16} /> Cancel anytime</span>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ── Testimonials ─────────────────────────── */}
-      <section className="py-24 px-6">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-14 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-300">
-              <Star size={10} className="fill-amber-400 text-amber-400" />
-              4.9 from 2,000+ reviews
+      {/* ── Footer ─────────────────────────────────── */}
+      <footer className="pt-24 pb-12 px-6 border-t border-white/5 bg-[#050508]">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-12 mb-24">
+            <div className="col-span-2 lg:col-span-1">
+              <Logo className="mb-8" />
+              <p className="text-[14px] text-white/40 leading-relaxed max-w-[200px]">The modern all-in-one OS for team collaboration and project management.</p>
             </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Teams love Cowrk
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <TestimonialCard key={t.name} {...t} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Competitor comparison ────────────────── */}
-      <section className="py-24 px-6">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.03] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
-              See the difference
+            <div>
+              <h5 className="text-[14px] font-black mb-6 uppercase tracking-widest text-white/30">Product</h5>
+              <ul className="space-y-4 text-[14px] text-white/60">
+                <li><Link href="#" className="hover:text-white transition-colors">Chat & Channels</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Kanban Boards</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Video Meetings</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Automations</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Integrations</Link></li>
+              </ul>
             </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Cowrk vs the alternatives
-            </h2>
-            <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed text-white/38">
-              One workspace that replaces Jira, Slack, and Notion — without the integrations tax.
-            </p>
-          </div>
-          <ComparisonTable />
-        </div>
-      </section>
-
-      {/* ── Workflow steps ──────────────────────── */}
-      <section id="how" className="py-28 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.08)", color: "#82B4AA" }}>
-              How it works
+            <div>
+              <h5 className="text-[14px] font-black mb-6 uppercase tracking-widest text-white/30">Solutions</h5>
+              <ul className="space-y-4 text-[14px] text-white/60">
+                <li><Link href="#" className="hover:text-white transition-colors">Software Development</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Marketing Teams</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Remote Orgs</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Startups</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Enterprise</Link></li>
+              </ul>
             </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Up and running in minutes
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {steps.map((step, i) => (
-              <StepCard key={step.title} step={step} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Roles section ───────────────────────── */}
-      <section id="roles" className="py-28 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-500/20 bg-violet-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-400">
-              For every role
+            <div>
+              <h5 className="text-[14px] font-black mb-6 uppercase tracking-widest text-white/30">Company</h5>
+              <ul className="space-y-4 text-[14px] text-white/60">
+                <li><Link href="#" className="hover:text-white transition-colors">About Us</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Careers</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Press Kit</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Privacy Policy</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              </ul>
             </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              One tool, every perspective
-            </h2>
-          </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {roles.map((r) => (
-              <RoleCard key={r.title} {...r} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* â”€â”€ Meetings & calendar â”€â”€ */}
-      <section id="meetings" className="py-28 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-500/20 bg-cyan-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-cyan-300">
-              Meetings, without the chaos
+            <div>
+              <h5 className="text-[14px] font-black mb-6 uppercase tracking-widest text-white/30">Connect</h5>
+              <ul className="space-y-4 text-[14px] text-white/60">
+                <li><Link href="#" className="hover:text-white transition-colors">Twitter (X)</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">LinkedIn</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">Discord</Link></li>
+                <li><Link href="#" className="hover:text-white transition-colors">GitHub</Link></li>
+              </ul>
             </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Instant calls + scheduled meetings
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-white/38">
-              Start a meeting in one click, schedule ahead, keep attendees in sync, and link conversations to the work.
-            </p>
           </div>
-
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {meetingHighlights.map((item) => (
-              <DetailCard key={item.title} {...item} />
-            ))}
-          </div>
-
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/register">
-              <button className="group inline-flex h-11 items-center gap-2 rounded-2xl bg-cyan-500 px-6 text-[13px] font-semibold text-white shadow-[0_0_28px_rgba(6,182,212,0.35),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all hover:bg-cyan-400 hover:shadow-[0_0_42px_rgba(6,182,212,0.45)]">
-                Try meetings
-                <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-              </button>
-            </Link>
-            <Link href="/calendar">
-              <button className="inline-flex h-11 items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.04] px-6 text-[13px] font-semibold text-white/55 transition-all hover:border-white/20 hover:text-white">
-                View calendar
-                <CalendarDays size={14} />
-              </button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* â”€â”€ Security & RBAC â”€â”€ */}
-      <section id="security" className="py-28 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-6xl">
-          <div className="mb-16 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-500/20 bg-rose-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-rose-300">
-              Security by default
-            </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Company-style roles & access control
-            </h2>
-            <p className="mx-auto mt-3 max-w-3xl text-[15px] leading-relaxed text-white/38">
-              Clear authority boundaries for CEO/Admin/Manager/Employee, project-level permissions, and audit trails for accountability.
-            </p>
-          </div>
-
-          <div className="grid gap-3 lg:grid-cols-3">
-            {securityHighlights.map((item) => (
-              <DetailCard key={item.title} {...item} />
-            ))}
-          </div>
-
-          <div className="mt-10 grid gap-3 md:grid-cols-2">
-            {rbacRoles.map((r) => (
-              <RbacRoleCard key={r.role} {...r} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Pricing ── */}
-      <PricingSection />
-
-      {/* â”€â”€ FAQ â”€â”€ */}
-      <section id="faq" className="py-28 px-6 scroll-mt-28">
-        <div className="mx-auto max-w-5xl">
-          <div className="mb-14 text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/[0.10] bg-white/[0.03] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">
-              Answers
-            </div>
-            <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-              Frequently asked questions
-            </h2>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {faqs.map((f) => (
-              <FaqCard key={f.q} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA banner ──────────────────────────── */}
-      <section className="px-6 py-28">
-        <div className="relative mx-auto max-w-3xl overflow-hidden rounded-[2rem] border border-white/[0.09] p-1">
-          {/* Gradient border effect */}
-          <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-br from-indigo-500/25 via-violet-500/10 to-cyan-500/15 opacity-60" />
-          <div className="relative overflow-hidden rounded-[1.75rem] bg-[#0d0d1c] px-10 py-14 text-center">
-            {/* Inner glows */}
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute left-1/2 top-0 h-72 w-72 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-500/20 blur-3xl" />
-              <div className="absolute bottom-0 left-1/4 h-48 w-48 rounded-full bg-violet-500/10 blur-2xl" />
-              <div className="absolute bottom-0 right-1/4 h-48 w-48 rounded-full bg-cyan-500/8 blur-2xl" />
-            </div>
-            <div className="relative z-10 space-y-6">
-              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-400/10 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-300">
-                <Zap size={10} className="fill-indigo-400 text-indigo-400" />
-                Free to start · No card needed
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 pt-12 border-t border-white/5">
+            <div className="text-[12px] text-white/20">© 2026 Cowrk Technologies Inc. All rights reserved.</div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-[12px] text-white/40">
+                <div className="h-2 w-2 rounded-full bg-green-500" />
+                All Systems Operational
               </div>
-              <h2 className="text-[clamp(2rem,4vw,3.2rem)] font-black tracking-[-0.035em] text-white">
-                Ready to reach peak flow?
-              </h2>
-              <p className="mx-auto max-w-sm text-[15px] leading-relaxed text-white/40">
-                Join teams that deliver faster, communicate clearly, and never lose track of what matters.
-              </p>
-              <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
-                <Link href="/register">
-                  <button className="group inline-flex h-13 items-center gap-2.5 rounded-2xl bg-indigo-500 px-8 text-[15px] font-semibold text-white shadow-[0_0_40px_rgba(99,102,241,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] transition-all hover:scale-[1.03] hover:bg-indigo-400 hover:shadow-[0_0_56px_rgba(99,102,241,0.7)]">
-                    Create your workspace
-                    <ArrowRight size={15} className="transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                </Link>
-                <Link href="/login">
-                  <button className="inline-flex h-13 items-center gap-2 rounded-2xl border border-white/[0.1] bg-white/[0.04] px-8 text-[15px] font-semibold text-white/55 transition-all hover:border-white/20 hover:text-white">
-                    Sign in instead
-                  </button>
-                </Link>
-              </div>
+              <div className="h-4 w-[1px] bg-white/10" />
+              <button className="text-[12px] text-white/40 flex items-center gap-1.5 hover:text-white transition-colors">
+                <Globe size={14} /> English (US)
+              </button>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Footer ──────────────────────────────── */}
-      <footer className="border-t border-white/[0.06] px-6 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-5 md:flex-row">
-          <Logo />
-          <p className="text-[12px] text-white/20">© 2026 Cowrk Inc. All rights reserved.</p>
-          <div className="flex gap-6 text-[12px] text-white/25">
-            {["Privacy", "Terms", "Status", "Contact"].map((item) => (
-              <a key={item} href="#" className="transition-colors hover:text-white/60">
-                {item}
-              </a>
-            ))}
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
 
-/* ─────────────────────────────────────────────
-   SUB-COMPONENTS
-   ───────────────────────────────────────────── */
-
-function Logo() {
+function Logo({ className }: { className?: string }) {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.5)] font-black text-white text-[13px] tracking-tighter">
-        CW
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-indigo-600 shadow-xl shadow-indigo-500/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+        <span className="relative text-[18px] font-black text-white tracking-tighter">CW</span>
       </div>
-      <span className="text-[15px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
+      <span className="text-[20px] font-black tracking-tighter text-white">COWRK</span>
     </div>
   );
 }
-
-function StatCard({ value, label, icon: Icon, trend }: { value: string; label: string; icon?: React.ElementType; trend?: string }) {
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6 text-center transition-all hover:border-white/[0.12] hover:bg-white/[0.05]">
-      <p className="text-[2.2rem] font-black tracking-[-0.04em] text-white">{value}</p>
-      {trend && (
-        <div className="mx-auto mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
-          <TrendingUp size={9} />
-          {trend}
-        </div>
-      )}
-      <p className="mt-1.5 text-[12px] text-white/30">{label}</p>
-    </div>
-  );
-}
-
-function FeatureCard({
-  icon: Icon,
-  title,
-  description,
-  color,
-  glow,
-  featured,
-}: {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  color: string;
-  glow: string;
-  featured?: boolean;
-}) {
-  return (
-    <div className={`group relative overflow-hidden rounded-2xl border p-6 transition-all hover:scale-[1.01] ${
-      featured
-        ? "border-indigo-500/20 bg-gradient-to-br from-indigo-500/[0.08] to-violet-500/[0.04] md:col-span-2 lg:col-span-1"
-        : "border-white/[0.07] bg-white/[0.03] hover:border-white/[0.13] hover:bg-white/[0.05]"
-    }`}>
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{
-          background: `radial-gradient(350px circle at 30% 0%, ${glow} 0%, transparent 70%)`,
-        }}
-      />
-      <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl ${color} ring-1 ring-white/[0.08]`}>
-        <Icon size={19} />
-      </div>
-      <h3 className="mb-2 text-[15px] font-semibold text-white">{title}</h3>
-      <p className="text-[13px] leading-[1.65] text-white/38">{description}</p>
-      <div className="mt-4 flex items-center gap-1 text-[12px] font-medium text-indigo-400/0 transition-all group-hover:text-indigo-400">
-        Learn more <ChevronRight size={11} />
-      </div>
-    </div>
-  );
-}
-
-function StepCard({
-  step,
-  index,
-}: {
-  step: { number: string; title: string; description: string; icon: React.ElementType };
-  index: number;
-}) {
-  const Icon = step.icon;
-  const colors = [
-    "from-indigo-500/20 to-indigo-500/5 border-indigo-500/20 text-indigo-300",
-    "from-violet-500/20 to-violet-500/5 border-violet-500/20 text-violet-300",
-    "from-cyan-500/20 to-cyan-500/5 border-cyan-500/20 text-cyan-300",
-    "from-emerald-500/20 to-emerald-500/5 border-emerald-500/20 text-emerald-300",
-  ];
-  const [gradFrom, gradTo, borderColor, textColor] = colors[index].split(" ");
-
-  return (
-    <div className="relative rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6 transition-all hover:border-white/[0.12] hover:bg-white/[0.05]">
-      <div className={`mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl border bg-gradient-to-br ${colors[index]}`}>
-        <Icon size={20} />
-      </div>
-      <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-white/20">
-        Step {step.number}
-      </div>
-      <h3 className="mb-2 text-[15px] font-bold text-white">{step.title}</h3>
-      <p className="text-[13px] leading-[1.65] text-white/38">{step.description}</p>
-    </div>
-  );
-}
-
-function RoleCard({
-  emoji,
-  title,
-  subtitle,
-  perks,
-  accent,
-  gradientClass,
-}: {
-  emoji: string;
-  title: string;
-  subtitle: string;
-  perks: string[];
-  accent: string;
-  gradientClass: string;
-}) {
-  return (
-    <div className={`group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:border-white/[0.14] hover:bg-white/[0.05]`}>
-      <div className={`pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100 ${gradientClass}`} />
-      <div className="relative z-10">
-        <div className="mb-5 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/[0.08] bg-white/[0.05] text-2xl">
-            {emoji}
-          </div>
-          <div>
-            <p className="text-[15px] font-bold text-white">{title}</p>
-            <p className="text-[12px] text-white/30">{subtitle}</p>
-          </div>
-        </div>
-        <ul className="space-y-2.5">
-          {perks.map((perk) => (
-            <li key={perk} className="flex items-start gap-2.5 text-[13px] text-white/45">
-              <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${accent}`} />
-              {perk}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function accentToStyle(accent: string) {
-  switch (accent) {
-    case "cyan":
-      return { pill: "border-cyan-500/20 bg-cyan-500/[0.10] text-cyan-300", glow: "rgba(6,182,212,0.12)" };
-    case "rose":
-      return { pill: "border-rose-500/20 bg-rose-500/[0.10] text-rose-300", glow: "rgba(244,63,94,0.12)" };
-    case "emerald":
-      return { pill: "border-emerald-500/20 bg-emerald-500/[0.10] text-emerald-300", glow: "rgba(16,185,129,0.12)" };
-    case "amber":
-      return { pill: "border-amber-500/20 bg-amber-500/[0.10] text-amber-300", glow: "rgba(245,158,11,0.12)" };
-    case "violet":
-      return { pill: "border-violet-500/20 bg-violet-500/[0.10] text-violet-300", glow: "rgba(139,92,246,0.12)" };
-    default:
-      return { pill: "border-indigo-500/20 bg-indigo-500/[0.10] text-indigo-300", glow: "rgba(99,102,241,0.12)" };
-  }
-}
-
-function DetailCard({
-  icon: Icon,
-  eyebrow,
-  title,
-  description,
-  bullets,
-  accent = "indigo",
-}: {
-  icon: React.ElementType;
-  eyebrow: string;
-  title: string;
-  description: string;
-  bullets: readonly string[];
-  accent?: string;
-}) {
-  const style = accentToStyle(accent);
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:border-white/[0.14] hover:bg-white/[0.05]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: `radial-gradient(420px circle at 25% 0%, ${style.glow} 0%, transparent 70%)` }}
-      />
-      <div className="relative z-10">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${style.pill}`}>
-            <Icon size={12} />
-            {eyebrow}
-          </div>
-        </div>
-        <h3 className="text-[16px] font-bold text-white">{title}</h3>
-        <p className="mt-2 text-[13px] leading-[1.65] text-white/40">{description}</p>
-        <ul className="mt-4 space-y-2">
-          {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-2.5 text-[13px] text-white/45">
-              <CheckCircle2 size={14} className="mt-0.5 shrink-0 text-white/55" />
-              {b}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
-function RbacRoleCard({
-  role,
-  subtitle,
-  bullets,
-  accent = "indigo",
-}: {
-  role: string;
-  subtitle: string;
-  bullets: readonly string[];
-  accent?: string;
-}) {
-  const style = accentToStyle(accent);
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${style.pill}`}>
-            {role}
-          </div>
-          <p className="mt-2 text-[13px] text-white/40">{subtitle}</p>
-        </div>
-        <div className="h-10 w-10 rounded-2xl border border-white/[0.10] bg-white/[0.04] flex items-center justify-center">
-          <Shield size={16} className="text-white/65" />
-        </div>
-      </div>
-      <ul className="mt-4 space-y-2">
-        {bullets.map((b) => (
-          <li key={b} className="text-[13px] text-white/45 flex items-start gap-2.5">
-            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-white/35" />
-            {b}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function PricingSection() {
-  const [yearly, setYearly] = useState(false);
-
-  return (
-    <section id="pricing" className="py-28 px-6 scroll-mt-28">
-      <div className="mx-auto max-w-6xl">
-        {/* Header */}
-        <div className="mb-14 text-center">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-indigo-500/20 bg-indigo-500/[0.08] px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-300">
-            Start free, scale later
-          </div>
-          <h2 className="text-[clamp(2rem,4vw,3rem)] font-black tracking-[-0.035em] text-white">
-            Simple plans for real teams
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-white/38">
-            Pick a plan that fits your team. Upgrade when you need more members, projects, or AI.
-          </p>
-
-          {/* Billing toggle */}
-          <div className="mt-8 inline-flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-1.5">
-            <button
-              onClick={() => setYearly(false)}
-              className={[
-                "rounded-xl px-5 py-2 text-[13px] font-semibold transition-all",
-                !yearly
-                  ? "bg-white/[0.10] text-white shadow-sm"
-                  : "text-white/35 hover:text-white/60",
-              ].join(" ")}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setYearly(true)}
-              className={[
-                "inline-flex items-center gap-2 rounded-xl px-5 py-2 text-[13px] font-semibold transition-all",
-                yearly
-                  ? "bg-white/[0.10] text-white shadow-sm"
-                  : "text-white/35 hover:text-white/60",
-              ].join(" ")}
-            >
-              Yearly
-              <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300">
-                Save 20%
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* Cards */}
-        <div className="grid gap-4 lg:grid-cols-3">
-          {pricing.map((tier) => (
-            <PricingCard key={tier.name} {...tier} yearly={yearly} />
-          ))}
-        </div>
-
-        {/* Fine print */}
-        <div className="mt-8 flex flex-col items-center gap-3 text-center">
-          <p className="text-[12px] text-white/25">
-            All plans include Google OAuth sign-in, 2FA, audit log access, and browser push notifications.
-            Yearly plans billed annually. Cancel any time.
-          </p>
-          <div className="flex items-center gap-6 text-[12px] text-white/20">
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={11} className="text-emerald-400/60" /> No credit card for Free</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={11} className="text-emerald-400/60" /> Cancel any time</span>
-            <span className="flex items-center gap-1.5"><CheckCircle2 size={11} className="text-emerald-400/60" /> Data export on all plans</span>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PricingCard({
-  name,
-  monthlyPrice,
-  yearlyPrice,
-  priceSuffix,
-  subtitle,
-  limit,
-  bullets,
-  highlight,
-  badge,
-  accentColor,
-  cta,
-  yearly,
-}: {
-  name: string;
-  monthlyPrice: string;
-  yearlyPrice: string;
-  priceSuffix: string;
-  subtitle: string;
-  limit: string;
-  bullets: readonly string[];
-  highlight?: boolean;
-  badge?: string;
-  accentColor?: "violet";
-  cta: { label: string; href: string };
-  yearly: boolean;
-}) {
-  const isViolet = accentColor === "violet";
-  const displayPrice = yearly ? yearlyPrice : monthlyPrice;
-
-  const cardClass = [
-    "relative flex flex-col overflow-hidden rounded-2xl border p-7 transition-all",
-    isViolet
-      ? "border-violet-500/25 bg-gradient-to-br from-violet-500/[0.10] to-indigo-500/[0.05]"
-      : highlight
-      ? "border-indigo-500/25 bg-gradient-to-br from-indigo-500/[0.10] to-violet-500/[0.05]"
-      : "border-white/[0.08] bg-white/[0.03] hover:border-white/[0.13] hover:bg-white/[0.05]",
-  ].join(" ");
-
-  const badgePillClass = isViolet
-    ? "border-violet-400/30 bg-violet-400/10 text-violet-200"
-    : "border-indigo-400/25 bg-indigo-400/10 text-indigo-200";
-
-  const ctaBtnClass = isViolet
-    ? "bg-violet-500 text-white shadow-[0_0_30px_rgba(139,92,246,0.45),inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-violet-400"
-    : highlight
-    ? "bg-indigo-500 text-white shadow-[0_0_30px_rgba(99,102,241,0.45),inset_0_1px_0_rgba(255,255,255,0.15)] hover:bg-indigo-400"
-    : "border border-white/[0.10] bg-white/[0.04] text-white/70 hover:border-white/20 hover:text-white";
-
-  const checkClass = isViolet
-    ? "text-violet-400"
-    : highlight
-    ? "text-indigo-400"
-    : "text-emerald-400";
-
-  return (
-    <div className={cardClass}>
-      {/* Glow */}
-      {(highlight || isViolet) && (
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            background: isViolet
-              ? "radial-gradient(500px circle at 50% -30%, rgba(139,92,246,0.15) 0%, transparent 70%)"
-              : "radial-gradient(500px circle at 50% -30%, rgba(99,102,241,0.15) 0%, transparent 70%)",
-          }}
-        />
-      )}
-
-      {/* Badge */}
-      {badge && (
-        <div className={`absolute right-4 top-4 rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.14em] ${badgePillClass}`}>
-          {badge}
-        </div>
-      )}
-
-      <div className="relative z-10 flex flex-1 flex-col">
-        {/* Plan name + subtitle */}
-        <div>
-          <h3 className="text-[17px] font-black tracking-[-0.02em] text-white">{name}</h3>
-          <p className="mt-1 text-[12px] text-white/35">{subtitle}</p>
-        </div>
-
-        {/* Price */}
-        <div className="mt-6 flex items-end gap-2">
-          <div className="text-[38px] font-black leading-none tracking-[-0.04em] text-white">
-            {displayPrice}
-          </div>
-          {displayPrice !== "€0" && (
-            <div className="pb-1 text-[12px] leading-snug text-white/30">
-              {yearly ? "/mo, billed yearly" : `/${priceSuffix}`}
-            </div>
-          )}
-        </div>
-        {displayPrice === "€0" && (
-          <p className="mt-1 text-[12px] text-white/30">forever free</p>
-        )}
-        {yearly && displayPrice !== "€0" && (
-          <p className="mt-1 text-[11px] text-emerald-400/70">
-            You save {name === "Pro" ? "€72" : "€168"}/yr vs monthly
-          </p>
-        )}
-
-        {/* Limit pill */}
-        <div className="mt-4 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-white/40">
-          <Users size={10} />
-          {limit}
-        </div>
-
-        {/* Feature list */}
-        <ul className="mt-6 flex-1 space-y-2.5">
-          {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-2.5 text-[13px] text-white/50">
-              <CheckCircle2 size={14} className={`mt-0.5 shrink-0 ${checkClass}`} />
-              {b}
-            </li>
-          ))}
-        </ul>
-
-        {/* CTA */}
-        <div className="mt-7">
-          <Link href={cta.href}>
-            <button className={`group inline-flex h-11 w-full items-center justify-center gap-2 rounded-2xl px-5 text-[13px] font-semibold transition-all ${ctaBtnClass}`}>
-              {cta.label}
-              <ArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-            </button>
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FaqCard({ q, a }: { q: string; a: string }) {
-  return (
-    <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:border-white/[0.14] hover:bg-white/[0.05]">
-      <p className="text-[14px] font-bold text-white">{q}</p>
-      <p className="mt-2 text-[13px] leading-[1.65] text-white/40">{a}</p>
-    </div>
-  );
-}
-
-function AiFeatureCard({
-  icon: Icon,
-  title,
-  description,
-  stat,
-  statLabel,
-  accent = "indigo",
-}: {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  stat: string;
-  statLabel: string;
-  accent?: string;
-}) {
-  const style = accentToStyle(accent);
-  return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:border-white/[0.14] hover:bg-white/[0.05]">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
-        style={{ background: `radial-gradient(380px circle at 25% 0%, ${style.glow} 0%, transparent 70%)` }}
-      />
-      <div className="relative z-10">
-        <div className={`mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border ${style.pill} ring-1 ring-white/[0.06]`}>
-          <Icon size={18} />
-        </div>
-        <h3 className="mb-2 text-[15px] font-bold text-white">{title}</h3>
-        <p className="text-[13px] leading-[1.65] text-white/40">{description}</p>
-        <div className="mt-5 flex items-end gap-1.5 border-t border-white/[0.06] pt-5">
-          <span className="text-[22px] font-black leading-none tracking-[-0.03em] text-white">{stat}</span>
-          <span className="pb-0.5 text-[11px] text-white/35">{statLabel}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TestimonialCard({
-  quote,
-  name,
-  role,
-  company,
-  avatar,
-  avatarColor,
-}: {
-  quote: string;
-  name: string;
-  role: string;
-  company: string;
-  avatar: string;
-  avatarColor: string;
-}) {
-  return (
-    <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.03] p-7 transition-all hover:border-white/[0.14] hover:bg-white/[0.05]">
-      <Quote size={28} className="mb-4 shrink-0 text-white/10" />
-      <p className="flex-1 text-[14px] leading-[1.75] text-white/55">{quote}</p>
-      <div className="mt-6 flex items-center gap-3 border-t border-white/[0.06] pt-5">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white ${avatarColor}`}>
-          {avatar}
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold text-white">{name}</p>
-          <p className="text-[11px] text-white/35">{role} · {company}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ComparisonTable() {
-  const cols = [
-    { key: "cowrk", label: "Cowrk", highlight: true },
-    { key: "jira",     label: "Jira",     highlight: false },
-    { key: "notion",   label: "Notion",   highlight: false },
-    { key: "asana",    label: "Asana",    highlight: false },
-  ] as const;
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-white/[0.08]">
-      {/* Header */}
-      <div className="grid grid-cols-5 border-b border-white/[0.08] bg-white/[0.02]">
-        <div className="col-span-2 px-6 py-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-white/30">
-          Feature
-        </div>
-        {cols.map((col) => (
-          <div
-            key={col.key}
-            className={`px-4 py-4 text-center text-[12px] font-bold ${
-              col.highlight ? "text-indigo-300" : "text-white/35"
-            }`}
-          >
-            {col.highlight && (
-              <span className="mr-1.5 inline-flex h-1.5 w-1.5 rounded-full bg-indigo-400" />
-            )}
-            {col.label}
-          </div>
-        ))}
-      </div>
-      {/* Rows */}
-      {comparisons.map((row, i) => (
-        <div
-          key={row.feature}
-          className={`grid grid-cols-5 border-b border-white/[0.05] transition-colors hover:bg-white/[0.02] ${
-            i % 2 === 0 ? "" : "bg-white/[0.015]"
-          }`}
-        >
-          <div className="col-span-2 px-6 py-3.5 text-[13px] text-white/55">{row.feature}</div>
-          {cols.map((col) => {
-            const val = row[col.key as keyof typeof row] as boolean;
-            return (
-              <div key={col.key} className="flex items-center justify-center px-4 py-3.5">
-                {val ? (
-                  <CheckCircle2
-                    size={16}
-                    className={col.highlight ? "text-indigo-400" : "text-white/30"}
-                  />
-                ) : (
-                  <X size={14} className="text-white/15" />
-                )}
-              </div>
-            );
-          })}
-        </div>
-      ))}
-      {/* Footer CTA */}
-      <div className="flex items-center justify-between bg-white/[0.02] px-6 py-4">
-        <p className="text-[12px] text-white/25">
-          All features included on the Free plan — no gatekeeping.
-        </p>
-        <Link href="/register">
-          <button className="inline-flex h-8 items-center gap-1.5 rounded-xl bg-indigo-500 px-4 text-[12px] font-semibold text-white transition-all hover:bg-indigo-400">
-            Try free
-            <ArrowRight size={11} />
-          </button>
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function MockColumn({
-  title,
-  color,
-  tasks,
-}: {
-  title: string;
-  color: string;
-  tasks: { label: string; priority: string; tag: string }[];
-}) {
-  return (
-    <div className="w-44 shrink-0 rounded-xl border border-white/[0.07] bg-white/[0.03] p-2.5">
-      <div className="mb-2.5 flex items-center gap-1.5">
-        <div className={`h-1.5 w-1.5 rounded-full ${color}`} />
-        <p className="text-[10px] font-semibold text-white/50">{title}</p>
-        <span className="ml-auto rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[9px] font-bold text-white/20">
-          {tasks.length}
-        </span>
-      </div>
-      <div className="space-y-1.5">
-        {tasks.map((task) => (
-          <div
-            key={task.label}
-            className="rounded-lg border border-white/[0.06] bg-white/[0.04] p-2 transition-colors hover:border-white/[0.1] hover:bg-white/[0.06]"
-          >
-            <p className="text-[10px] font-medium leading-snug text-white/70">{task.label}</p>
-            <div className="mt-1.5 flex items-center justify-between gap-1">
-              <span
-                className={`rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase ${priorityClasses[task.priority as keyof typeof priorityClasses]}`}
-              >
-                {task.priority}
-              </span>
-              <span className="rounded-md bg-white/[0.06] px-1.5 py-0.5 text-[8px] text-white/30">
-                {task.tag}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────
-   DATA
-   ───────────────────────────────────────────── */
-
-const priorityClasses = {
-  urgent: "bg-red-500/15 text-red-300",
-  high:   "bg-amber-500/15 text-amber-300",
-  normal: "bg-indigo-500/15 text-indigo-300",
-  low:    "bg-emerald-500/15 text-emerald-300",
-};
-
-const mockColumns = [
-  {
-    title: "Backlog",
-    color: "bg-white/20",
-    tasks: [
-      { label: "Research competitors", priority: "low",    tag: "Research" },
-      { label: "API rate-limit design", priority: "normal", tag: "Backend" },
-    ],
-  },
-  {
-    title: "In Progress",
-    color: "bg-indigo-400",
-    tasks: [
-      { label: "Fix login redirect bug", priority: "urgent", tag: "Auth" },
-      { label: "Sprint 3 planning",      priority: "high",   tag: "PM" },
-    ],
-  },
-  {
-    title: "Review",
-    color: "bg-amber-400",
-    tasks: [
-      { label: "Dashboard redesign",  priority: "high",   tag: "Design" },
-      { label: "Write unit tests",    priority: "normal", tag: "QA" },
-    ],
-  },
-  {
-    title: "Done ✓",
-    color: "bg-emerald-400",
-    tasks: [
-      { label: "User auth flow",      priority: "normal", tag: "Auth" },
-      { label: "Deploy staging env",  priority: "low",    tag: "DevOps" },
-    ],
-  },
-];
-
-const stats = [
-  { value: "10k+",  label: "Active users",       trend: "+24% this month" },
-  { value: "98%",   label: "Uptime SLA",          trend: "30-day average" },
-  { value: "4.9★",  label: "User rating",         trend: "2,000+ reviews" },
-  { value: "<100ms", label: "Avg response time",  trend: "p95 latency" },
-];
-
-const features = [
-  {
-    icon: LayoutDashboard,
-    title: "Smart Dashboard",
-    description:
-      "Personal command center with priority radar, delivery velocity, and saved workspace lenses.",
-    color: "bg-indigo-500/15 text-indigo-300",
-    glow: "rgba(99,102,241,0.1)",
-  },
-  {
-    icon: Kanban,
-    title: "Kanban Boards",
-    description:
-      "Drag-and-drop Kanban with custom columns, sub-tasks, task links, and real-time sync.",
-    color: "bg-violet-500/15 text-violet-300",
-    glow: "rgba(139,92,246,0.1)",
-  },
-  {
-    icon: MessageSquare,
-    title: "Real-time Messaging",
-    description:
-      "Channels, threads, reactions, voice calls, file sharing, and @mentions — all in one place.",
-    color: "bg-cyan-500/15 text-cyan-300",
-    glow: "rgba(6,182,212,0.1)",
-  },
-  {
-    icon: Video,
-    title: "Meetings & Calendar",
-    description:
-      "Create instant meetings or schedule ahead with attendees, join links, and a calendar view for your team.",
-    color: "bg-sky-500/15 text-sky-300",
-    glow: "rgba(14,165,233,0.1)",
-  },
-  {
-    icon: GitBranch,
-    title: "Sprint Planning",
-    description:
-      "Sprints, milestones, roadmaps, workload analysis, and backlog management built in.",
-    color: "bg-emerald-500/15 text-emerald-300",
-    glow: "rgba(16,185,129,0.1)",
-  },
-  {
-    icon: BarChart3,
-    title: "Analytics & Reports",
-    description:
-      "Delivery velocity, burn-down charts, member performance, and exportable reports.",
-    color: "bg-amber-500/15 text-amber-300",
-    glow: "rgba(245,158,11,0.1)",
-  },
-  {
-    icon: Shield,
-    title: "Roles & Audit",
-    description:
-      "Fine-grained permissions per project, time-limited roles, and a tamper-proof audit log.",
-    color: "bg-rose-500/15 text-rose-300",
-    glow: "rgba(244,63,94,0.1)",
-  },
-  {
-    icon: Timer,
-    title: "Time Tracking",
-    description:
-      "Built-in timer and manual log per task. See estimated vs actual hours at a glance.",
-    color: "bg-sky-500/15 text-sky-300",
-    glow: "rgba(14,165,233,0.1)",
-  },
-  {
-    icon: Bell,
-    title: "Smart Notifications",
-    description:
-      "In-app and email notifications with digest mode, per-channel muting, and keyword alerts.",
-    color: "bg-fuchsia-500/15 text-fuchsia-300",
-    glow: "rgba(217,70,239,0.1)",
-  },
-  {
-    icon: Globe,
-    title: "Client Portal",
-    description:
-      "Share selected columns and documents with external clients — no account required.",
-    color: "bg-teal-500/15 text-teal-300",
-    glow: "rgba(20,184,166,0.1)",
-  },
-];
-
-const steps = [
-  {
-    number: "01",
-    title: "Create your workspace",
-    description:
-      "Register, name your team, and invite your colleagues in under two minutes.",
-    icon: Users,
-  },
-  {
-    number: "02",
-    title: "Set up your first project",
-    description:
-      "Pick a template or start from scratch. Add columns that match your workflow.",
-    icon: Kanban,
-  },
-  {
-    number: "03",
-    title: "Assign and track work",
-    description:
-      "Create tasks, set priorities and due dates, log time, and move cards across the board.",
-    icon: ClipboardList,
-  },
-  {
-    number: "04",
-    title: "Ship with confidence",
-    description:
-      "Use sprints, milestones, and velocity metrics to deliver on time — every sprint.",
-    icon: Zap,
-  },
-];
-
-const roles = [
-  {
-    emoji: "🏢",
-    title: "Executives & CEOs",
-    subtitle: "See the full picture",
-    accent: "text-indigo-400",
-    gradientClass: "bg-gradient-to-br from-indigo-500/[0.07] to-transparent",
-    perks: [
-      "Cross-team delivery velocity",
-      "Approval workflows & sign-offs",
-      "Audit log for compliance",
-      "Super-admin platform control",
-    ],
-  },
-  {
-    emoji: "🎯",
-    title: "Project Managers",
-    subtitle: "Plan and deliver",
-    accent: "text-violet-400",
-    gradientClass: "bg-gradient-to-br from-violet-500/[0.07] to-transparent",
-    perks: [
-      "Sprint planning & roadmaps",
-      "Workload balancing",
-      "Milestone tracking",
-      "Recurring task automation",
-    ],
-  },
-  {
-    emoji: "👩‍💻",
-    title: "Developers & Teams",
-    subtitle: "Focus on the work",
-    accent: "text-cyan-400",
-    gradientClass: "bg-gradient-to-br from-cyan-500/[0.07] to-transparent",
-    perks: [
-      "Kanban board with subtasks",
-      "Time tracking per task",
-      "Real-time team chat",
-      "Issue navigator with bulk actions",
-    ],
-  },
-];

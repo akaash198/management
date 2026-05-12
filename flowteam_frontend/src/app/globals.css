@@ -115,6 +115,11 @@
 
   --topbar-bg:          222 22% 11%;
   --topbar-border:      220 16% 18%;
+
+  /* ── Brand Palette Extensions ── */
+  --slack-purple:       290 55% 26%;       /* #611f69 */
+  --jira-blue:          216 100% 40%;      /* #0052CC */
+  --teams-purple:       238 29% 52%;       /* #6264A7 */
 }
 
 /* ─────────────────────────────────────────────
@@ -163,6 +168,15 @@
   /* Topbar */
   --color-topbar-bg:     hsl(var(--topbar-bg));
   --color-topbar-border: hsl(var(--topbar-border));
+
+  /* Brand Palette */
+  --color-slack:         hsl(var(--slack-purple));
+  --color-jira:          hsl(var(--jira-blue));
+  --color-teams:         hsl(var(--teams-purple));
+
+  /* Animations */
+  --animate-float:       float 3s ease-in-out infinite;
+  --animate-pulse-slow:  pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   /* ── Radius scale ── */
   --radius-2xs: 2px;
@@ -596,3 +610,41 @@ body {
   color: hsl(var(--muted-foreground));
   margin-top: 4px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LANDING PAGE UTILITIES
+   ═══════════════════════════════════════════════════════════════════ */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  
+  .glass-dark {
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .text-gradient {
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .gradient-border {
+    position: relative;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(to right, #611f69, #0052CC, #6264A7);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
