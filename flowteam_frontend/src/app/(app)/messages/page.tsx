@@ -248,7 +248,7 @@ export default function MessagingPage() {
   }, [channels, pathname, router, selectedChannel]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-background">
+    <div className="flex h-full overflow-hidden bg-white">
       <ChatSidebar
         channels={channels}
         selectedId={selectedChannel?.id || ""}
@@ -276,23 +276,34 @@ export default function MessagingPage() {
           onClearAcceptedCall={() => setAcceptedCallId(null)}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-background">
-          <div className="max-w-sm space-y-4 rounded-xl border border-border bg-card px-8 py-10 text-center shadow-sm">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg border border-primary/20 bg-primary/10">
-              <MessageSquare size={22} className="text-primary/60" />
+        <div className="flex-1 flex items-center justify-center bg-white relative overflow-hidden">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-50 blur-[120px] rounded-full pointer-events-none" />
+          
+          <div className="relative z-10 max-w-sm space-y-8 p-12 rounded-[32px] border border-slate-100 bg-white/40 backdrop-blur-xl text-center shadow-xl shadow-slate-200/50">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-2xl shadow-indigo-500/20">
+              <MessageSquare size={32} className="text-white" />
             </div>
-            <div>
-              <h2 className="text-[15px] font-semibold">
-                {isLoading ? "Loading…" : "No channel selected"}
+            <div className="space-y-3">
+              <h2 className="text-[20px] font-black tracking-tight text-slate-900">
+                {isLoading ? "Fetching workspace…" : "Ready for focus?"}
               </h2>
-              <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
+              <p className="text-[14px] text-slate-500 leading-relaxed">
                 {isLoading
-                  ? "Fetching your channels…"
+                  ? "We're setting up your workspace environment. One moment."
                   : channels.length === 0
-                  ? "No channels found. Create one to get started."
-                  : "Pick a channel or direct message from the sidebar."}
+                  ? "Your team hasn't created any channels yet. Start the conversation!"
+                  : "Select a channel or teammate from the sidebar to start collaborating."}
               </p>
             </div>
+            {!isLoading && channels.length === 0 && (
+              <Button 
+                onClick={() => router.push('/onboarding')} 
+                className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"
+              >
+                Create First Channel
+              </Button>
+            )}
           </div>
         </div>
       )}

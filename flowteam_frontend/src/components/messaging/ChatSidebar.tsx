@@ -271,33 +271,37 @@ export function ChatSidebar({
   return (
     <div className="flex h-full w-[272px] shrink-0 flex-col border-r sidebar-shell">
       {/* ── Header ── */}
-      <div className="shrink-0 border-b border-[hsl(220_18%_20%)] px-4 pt-4 pb-3 space-y-3">
+      <div className="shrink-0 px-4 pt-5 pb-5 space-y-4 sidebar-header">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>Workspace Inbox</div>
-            <span className="mt-0.5 block text-[15px] font-bold tracking-[-0.02em] text-white">Messages</span>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Workspace Inbox</div>
+            <h2 className="mt-1 text-[18px] font-black tracking-tight text-white">Messages</h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-md hover:bg-[hsl(220_18%_18%)]"
-                style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+                className="h-8 w-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/50 transition-all"
                 aria-label="New conversation"
               >
-                <Plus size={14} />
+                <Plus size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={() => setDmOpen(true)}>New direct message</DropdownMenuItem>
-              <DropdownMenuSeparator />
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl">
+              <DropdownMenuItem onClick={() => setDmOpen(true)} className="rounded-xl py-2.5">
+                <MessageSquare size={16} className="mr-2 text-indigo-400" />
+                New direct message
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
               <DropdownMenuItem
+                className="rounded-xl py-2.5"
                 onClick={() => {
                   if (!onCreateChannel) { toast.error("Channel creation is not available"); return; }
                   setChannelOpen(true);
                 }}
               >
+                <Hash size={16} className="mr-2 text-violet-400" />
                 New channel
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -307,39 +311,33 @@ export function ChatSidebar({
         <div className="flex items-center justify-between">
           <button
             onClick={() => setStatusOpen(true)}
-            className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-[hsl(220_18%_20%)] max-w-[180px]"
-            style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+            className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-white/5 max-w-[180px] text-white/50 hover:text-white"
           >
             <span className="shrink-0">{customStatus?.emoji || "💬"}</span>
             <span className="truncate">{customStatus?.text || "Set status"}</span>
           </button>
         </div>
 
-        <div className="relative">
-          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2" style={{ color: "hsl(var(--sidebar-fg-muted))" }} />
+        <div className="relative group">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/20 group-focus-within:text-indigo-400 transition-colors" />
           <input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search… (Ctrl+K)"
-            className="h-8 w-full rounded-md border pl-8 pr-3 text-[12px] outline-none focus:ring-1 transition-colors"
-            style={{
-              borderColor: "hsl(var(--sidebar-border))",
-              background: "hsl(var(--sidebar-hover-bg))",
-              color: "hsl(var(--sidebar-fg))",
-            }}
+            placeholder="Jump to conversation… (Ctrl+K)"
+            className="h-10 w-full rounded-xl border border-white/5 bg-white/[0.03] pl-10 pr-3 text-[13px] text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/30 transition-all"
           />
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 pt-1">
           <button
             type="button"
             onClick={() => setUnreadOnly((v) => !v)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all",
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
               unreadOnly
-                ? "border-indigo-500 bg-indigo-500/20 text-indigo-300"
-                : "border-transparent bg-[hsl(220_18%_18%)] text-[hsl(220_10%_55%)] hover:bg-[hsl(220_18%_22%)]"
+                ? "bg-indigo-500/30 text-white"
+                : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
             )}
             aria-pressed={unreadOnly}
           >
@@ -348,7 +346,7 @@ export function ChatSidebar({
             {unreadTotal > 0 && (
               <span className={cn(
                 "ml-0.5 rounded-full px-1.5 py-px text-[9px] font-bold",
-                unreadOnly ? "bg-indigo-400/30 text-indigo-200" : "bg-[hsl(239_84%_60%)] text-white"
+                unreadOnly ? "bg-white/20 text-white" : "bg-indigo-600 text-white"
               )}>
                 {unreadTotal > 99 ? "99+" : unreadTotal}
               </span>
@@ -358,38 +356,32 @@ export function ChatSidebar({
             type="button"
             onClick={() => setShowMuted((v) => !v)}
             className={cn(
-              "inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-medium transition-all",
+              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
               !showMuted
-                ? "border-amber-500 bg-amber-500/10 text-amber-400"
-                : "border-transparent bg-[hsl(220_18%_18%)] text-[hsl(220_10%_55%)] hover:bg-[hsl(220_18%_22%)]"
+                ? "bg-amber-500/20 text-amber-300"
+                : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
             )}
             aria-pressed={!showMuted}
             title={showMuted ? "Showing muted — click to hide" : "Hiding muted — click to show"}
           >
             <EyeOff size={11} />
-            {showMuted ? "Muted on" : "Muted off"}
+            {showMuted ? "Muted" : "Muted"}
           </button>
-          {/* Sort dropdown */}
+          <div className="flex-1" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-md border border-transparent bg-[hsl(220_18%_18%)] px-2 py-1 text-[11px] font-medium text-[hsl(220_10%_55%)] hover:bg-[hsl(220_18%_22%)] transition-all"
+                className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-[11px] font-medium text-white/40 hover:bg-white/10 transition-all"
                 title="Sort channels"
               >
                 <ArrowDownUp size={10} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => setSortMode('recent')} className={cn(sortMode === 'recent' && "font-semibold text-primary")}>
-                Most recent
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortMode('alpha')} className={cn(sortMode === 'alpha' && "font-semibold text-primary")}>
-                Alphabetical
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setSortMode('unread')} className={cn(sortMode === 'unread' && "font-semibold text-primary")}>
-                Most unread
-              </DropdownMenuItem>
+            <DropdownMenuContent align="end" className="w-40 p-2 rounded-xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl">
+              <DropdownMenuItem onClick={() => setSortMode('recent')} className="rounded-lg">Most recent</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortMode('alpha')} className="rounded-lg">Alphabetical</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setSortMode('unread')} className="rounded-lg">Most unread</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -398,7 +390,7 @@ export function ChatSidebar({
       {/* ── Channel list ── */}
       <ScrollArea className="flex-1 py-2">
         {/* ── Quick links ── */}
-        <div className="mb-2 space-y-0.5 px-2">
+        <div className="mb-2 space-y-1 px-2">
           <button
             type="button"
             onClick={() => {
@@ -406,18 +398,24 @@ export function ChatSidebar({
               onViewChange("unreads");
             }}
             className={cn(
-              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
-              activeView === "unreads" ? "bg-primary/10 text-primary font-semibold" : ""
+              "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
+              activeView === "unreads" 
+                ? "bg-indigo-50 text-indigo-700 font-bold" 
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
-            <Inbox size={13} className={cn("shrink-0", activeView === "unreads" ? "opacity-100" : "opacity-60")} />
+            <Inbox size={15} className={cn(
+              "shrink-0 transition-colors", 
+              activeView === "unreads" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
+            )} />
             <span className="flex-1 text-left">All Unreads</span>
             {unreadTotal > 0 && (
-              <span className="h-4 min-w-[16px] rounded-full bg-[hsl(239_84%_60%)] text-white text-[9px] font-bold flex items-center justify-center px-1 leading-none">
+              <span className="h-5 min-w-[20px] rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center px-1.5 leading-none shadow-lg shadow-indigo-500/20">
                 {unreadTotal > 99 ? "99+" : unreadTotal}
               </span>
             )}
           </button>
+          
           <button
             type="button"
             onClick={() => {
@@ -425,13 +423,19 @@ export function ChatSidebar({
               onViewChange("threads");
             }}
             className={cn(
-              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
-              activeView === "threads" ? "bg-primary/10 text-primary font-semibold" : ""
+              "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
+              activeView === "threads" 
+                ? "bg-violet-50 text-violet-700 font-bold" 
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
-            <MessagesSquare size={13} className={cn("shrink-0", activeView === "threads" ? "opacity-100" : "opacity-60")} />
+            <MessagesSquare size={15} className={cn(
+              "shrink-0 transition-colors", 
+              activeView === "threads" ? "text-violet-600" : "text-slate-400 group-hover:text-slate-600"
+            )} />
             <span className="flex-1 text-left">Threads</span>
           </button>
+          
           <button
             type="button"
             onClick={() => {
@@ -439,16 +443,21 @@ export function ChatSidebar({
               onViewChange("drafts");
             }}
             className={cn(
-              "nav-item w-full flex items-center gap-2.5 px-2.5 py-1.5 text-[12px] rounded-md transition-all",
-              activeView === "drafts" ? "bg-primary/10 text-primary font-semibold" : ""
+              "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
+              activeView === "drafts" 
+                ? "bg-cyan-50 text-cyan-700 font-bold" 
+                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
             )}
           >
-            <Pencil size={13} className={cn("shrink-0", activeView === "drafts" ? "opacity-100" : "opacity-60")} />
+            <Pencil size={15} className={cn(
+              "shrink-0 transition-colors", 
+              activeView === "drafts" ? "text-cyan-600" : "text-slate-400 group-hover:text-slate-600"
+            )} />
             <span className="flex-1 text-left">Drafts &amp; Sent</span>
           </button>
         </div>
 
-        <div className="mx-3 mb-2 h-px bg-[hsl(220_18%_20%)]" />
+        <div className="mx-3 mb-2 h-px bg-slate-100" />
 
         {/* ── Starred ── */}
         {starredChannels.length > 0 && (
@@ -801,14 +810,15 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="group/sec flex items-center px-2 pt-2 pb-0.5">
+    <div className="group/sec flex items-center px-3 pt-4 pb-1">
       <button
         type="button"
         onClick={() => onToggle(sectionKey)}
-        className="flex flex-1 items-center gap-1 rounded px-1 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors hover:bg-[hsl(220_18%_18%)]"
-        style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+        className="flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 transition-colors hover:text-slate-600"
       >
-        {isOpen ? <ChevronDown size={11} className="shrink-0 opacity-60" /> : <ChevronRight size={11} className="shrink-0 opacity-60" />}
+        <span className="shrink-0 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
+          <ChevronDown size={12} />
+        </span>
         {icon && <span className="shrink-0">{icon}</span>}
         {label}
       </button>
@@ -816,11 +826,10 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
         <button
           type="button"
           onClick={onAdd}
-          className="h-5 w-5 flex items-center justify-center rounded opacity-0 group-hover/sec:opacity-60 hover:!opacity-100 hover:bg-[hsl(220_18%_18%)] transition-all"
-          style={{ color: "hsl(var(--sidebar-fg-muted))" }}
+          className="h-6 w-6 flex items-center justify-center rounded-lg opacity-0 group-hover/sec:opacity-40 hover:!opacity-100 hover:bg-slate-100 transition-all text-slate-500"
           title={`Add to ${label}`}
         >
-          <Plus size={12} />
+          <Plus size={14} />
         </button>
       )}
     </div>
@@ -828,7 +837,7 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
 }
 
 function SkeletonRow() {
-  return <div className="mx-1 h-[52px] rounded-lg animate-pulse mb-0.5" style={{ background: "hsl(var(--sidebar-hover-bg))" }} />;
+  return <div className="mx-1 h-[52px] rounded-xl animate-pulse mb-1 bg-slate-100" />;
 }
 
 function ChannelRow({
@@ -859,100 +868,97 @@ function ChannelRow({
     <button
       onClick={() => onSelect(channel)}
       className={cn(
-        "nav-item group w-full flex items-center gap-2.5 px-2.5 py-2 text-[12.5px] rounded-md",
-        active && "active"
+        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
+        active 
+          ? "bg-indigo-50 text-indigo-700 font-bold" 
+          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
       )}
       style={{ whiteSpace: "normal", alignItems: "flex-start" }}
     >
       {/* Icon */}
-      <div className="mt-[3px] shrink-0">
+      <div className="mt-[3.5px] shrink-0">
         {channel.is_private ? (
-          <Lock size={13} className="opacity-60" />
+          <Lock size={14} className={cn("transition-colors", active ? "text-indigo-600" : "text-slate-400")} />
         ) : (
-          <Hash size={13} className="opacity-60" />
+          <Hash size={14} className={cn("transition-colors", active ? "text-indigo-600" : "text-slate-400")} />
         )}
       </div>
 
       {/* Name + preview */}
       <div className="min-w-0 flex-1 text-left overflow-hidden">
         <div className="flex items-center gap-1 min-w-0">
-          <span className={cn("truncate font-medium", hasUnread && "font-semibold text-white")}>
+          <span className={cn("truncate font-medium transition-colors", active ? "text-indigo-900" : hasUnread ? "font-bold text-slate-900" : "text-slate-600")}>
             {channel.display_name}
           </span>
-          {channel.is_muted && <BellOff size={9} className="shrink-0 opacity-35" />}
+          {channel.is_muted && <BellOff size={10} className="shrink-0 text-slate-300" />}
         </div>
         {channel.last_message?.text && (
-          <p className="mt-0.5 text-[11px] leading-[1.35] opacity-55 line-clamp-1 break-words">
+          <p className={cn(
+            "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
+            active ? "text-indigo-600/70" : "text-slate-400"
+          )}>
             {channel.last_message.text}
           </p>
         )}
       </div>
 
       {/* Right side: time + badge + menu */}
-      <div className="shrink-0 flex flex-col items-end gap-1 ml-1">
+      <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
         {channel.last_message?.created_at && (
-          <span className="text-[10px] opacity-45 whitespace-nowrap">
+          <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
             {formatMessageTime(channel.last_message.created_at)}
           </span>
         )}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {hasUnread && (
-            <span className="h-4 min-w-[16px] rounded-full bg-[hsl(239_84%_60%)] text-white text-[9px] font-bold flex items-center justify-center px-1 leading-none">
+            <span className="h-4.5 min-w-[18px] rounded-full bg-indigo-500 text-white text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-lg shadow-indigo-500/20">
               {channel.unread_count > 99 ? "99+" : channel.unread_count}
             </span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <span
-                role="button"
+              <button
+                type="button"
                 aria-label="Channel actions"
                 className={cn(
-                  "inline-flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity",
-                  "group-hover:opacity-60 hover:!opacity-100",
-                  active && "opacity-50"
+                  "inline-flex h-6 w-6 items-center justify-center rounded-lg opacity-0 transition-all",
+                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-slate-100",
+                  active && "opacity-20"
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal size={13} />
-              </span>
+                <MoreHorizontal size={14} className="text-slate-600" />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={() => onSelect(channel)}>Open</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)}>
-                <Star size={14} className={cn("mr-2 opacity-70", starred && "fill-amber-400 text-amber-400")} />
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onSelect(channel)} className="rounded-xl py-2.5">Open Channel</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)} className="rounded-xl py-2.5">
+                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-white/40")} />
                 {starred ? "Unstar" : "Star channel"}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void onMarkRead(channel.id)}>
-                <CheckCircle2 size={14} className="mr-2 opacity-70" /> Mark read
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">
+                <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void onMarkUnread(channel)}>
-                <BellRing size={14} className="mr-2 opacity-70" /> Mark unread
+              <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
+                <BellRing size={16} className="mr-2 text-indigo-400" /> Mark unread
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-white/5" />
               {channel.is_muted ? (
-                <DropdownMenuItem onClick={() => void onUnmute(channel.id)}>
-                  <Bell size={14} className="mr-2 opacity-70" /> Unmute
+                <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
+                  <Bell size={16} className="mr-2 text-indigo-400" /> Unmute
                 </DropdownMenuItem>
               ) : (
-                <>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 60 })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 1 hour
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 8 * 60 })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 8 hours
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { forever: true })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute indefinitely
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>
+                   <BellOff size={16} className="mr-2 text-white/40" /> Mute...
+                </DropdownMenuItem>
               )}
               {onLeave && (
                 <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => void onLeave(channel.id)} className="text-destructive focus:text-destructive">
-                    <LogOut size={14} className="mr-2 opacity-70" /> Leave channel
+                  <DropdownMenuSeparator className="bg-white/5" />
+                  <DropdownMenuItem onClick={() => void onLeave(channel.id)} className="rounded-xl py-2.5 text-red-400 focus:text-red-400">
+                    <LogOut size={16} className="mr-2 text-red-400" /> Leave channel
                   </DropdownMenuItem>
                 </>
               )}
@@ -993,99 +999,96 @@ function DmRow({
     <button
       onClick={() => onSelect(channel)}
       className={cn(
-        "nav-item group w-full flex items-center gap-2.5 px-2.5 py-2 text-[12.5px] rounded-md",
-        active && "active"
+        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
+        active 
+          ? "bg-indigo-50 text-indigo-700 font-bold" 
+          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
       )}
       style={{ whiteSpace: "normal", alignItems: "flex-start" }}
     >
       {/* Avatar with presence */}
-      <div className="relative shrink-0">
-        <Avatar className="h-6 w-6">
+      <div className="relative shrink-0 mt-0.5">
+        <Avatar className="h-7 w-7 border border-slate-100">
           <AvatarImage src="" />
-          <AvatarFallback className="text-[9px] bg-[hsl(220_18%_22%)] text-[hsl(220_14%_65%)]">
+          <AvatarFallback className="text-[10px] bg-indigo-500/10 text-indigo-600 font-bold">
             {(channel.display_name?.[0] ?? "?").toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <span className={cn(
-          "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-[1.5px] ring-[hsl(222_26%_12%)]",
-          online ? "bg-emerald-500" : "bg-[hsl(220_10%_40%)]"
+          "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white",
+          online ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-slate-200"
         )} />
       </div>
 
       {/* Name + preview */}
       <div className="min-w-0 flex-1 text-left overflow-hidden">
         <div className="flex items-center gap-1 min-w-0">
-          <span className={cn("truncate font-medium", hasUnread && "font-semibold text-white")}>
+          <span className={cn("truncate font-medium transition-colors", active ? "text-indigo-900" : hasUnread ? "font-bold text-slate-900" : "text-slate-600")}>
             {channel.display_name}
           </span>
-          {channel.is_muted && <BellOff size={9} className="shrink-0 opacity-35" />}
+          {channel.is_muted && <BellOff size={10} className="shrink-0 text-slate-300" />}
         </div>
         {channel.last_message?.text && (
-          <p className="mt-0.5 text-[11px] leading-[1.35] opacity-55 line-clamp-1 break-words">
+          <p className={cn(
+            "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
+            active ? "text-indigo-600/70" : "text-slate-400"
+          )}>
             {channel.last_message.text}
           </p>
         )}
       </div>
 
       {/* Right side: time + badge + menu */}
-      <div className="shrink-0 flex flex-col items-end gap-1 ml-1">
+      <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
         {channel.last_message?.created_at && (
-          <span className="text-[10px] opacity-45 whitespace-nowrap">
+          <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
             {formatMessageTime(channel.last_message.created_at)}
           </span>
         )}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-2">
           {hasUnread && (
-            <span className="h-4 min-w-[16px] rounded-full bg-[hsl(239_84%_60%)] text-white text-[9px] font-bold flex items-center justify-center px-1 leading-none">
+            <span className="h-4.5 min-w-[18px] rounded-full bg-indigo-500 text-white text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-lg shadow-indigo-500/20">
               {channel.unread_count > 99 ? "99+" : channel.unread_count}
             </span>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <span
-                role="button"
+              <button
+                type="button"
                 aria-label="Conversation actions"
                 className={cn(
-                  "inline-flex h-5 w-5 items-center justify-center rounded opacity-0 transition-opacity",
-                  "group-hover:opacity-60 hover:!opacity-100",
-                  active && "opacity-50"
+                  "inline-flex h-6 w-6 items-center justify-center rounded-lg opacity-0 transition-all",
+                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-white/10",
+                  active && "opacity-20"
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal size={13} />
-              </span>
+                <MoreHorizontal size={14} />
+              </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-              <DropdownMenuItem onClick={() => onSelect(channel)}>Open</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)}>
-                <Star size={14} className={cn("mr-2 opacity-70", starred && "fill-amber-400 text-amber-400")} />
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+              <DropdownMenuItem onClick={() => onSelect(channel)} className="rounded-xl py-2.5">Open Chat</DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)} className="rounded-xl py-2.5">
+                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-white/40")} />
                 {starred ? "Unstar" : "Star conversation"}
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => void onMarkRead(channel.id)}>
-                <CheckCircle2 size={14} className="mr-2 opacity-70" /> Mark read
+              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">
+                <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void onMarkUnread(channel)}>
-                <BellRing size={14} className="mr-2 opacity-70" /> Mark unread
+              <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
+                <BellRing size={16} className="mr-2 text-indigo-400" /> Mark unread
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
+              <DropdownMenuSeparator className="bg-white/5" />
               {channel.is_muted ? (
-                <DropdownMenuItem onClick={() => void onUnmute(channel.id)}>
-                  <Bell size={14} className="mr-2 opacity-70" /> Unmute
+                <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
+                  <Bell size={16} className="mr-2 text-indigo-400" /> Unmute
                 </DropdownMenuItem>
               ) : (
-                <>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 60 })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 1 hour
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { minutes: 8 * 60 })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute 8 hours
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void onMute(channel.id, { forever: true })}>
-                    <BellOff size={14} className="mr-2 opacity-70" /> Mute indefinitely
-                  </DropdownMenuItem>
-                </>
+                <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>
+                   <BellOff size={16} className="mr-2 text-white/40" /> Mute...
+                </DropdownMenuItem>
               )}
             </DropdownMenuContent>
           </DropdownMenu>

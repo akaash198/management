@@ -40,7 +40,7 @@ export function SpecialViews({ view, onRefreshChannels }: SpecialViewsProps) {
   if (view === "all") return null;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-background p-6">
+    <div className="flex-1 flex flex-col items-center justify-center bg-white p-6">
       <div className="max-w-md w-full space-y-6 text-center animate-in fade-in zoom-in duration-300">
         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
           {content.icon}

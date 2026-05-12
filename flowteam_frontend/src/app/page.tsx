@@ -1,95 +1,152 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { 
-  coreFeatures, 
-  navItems, 
-  integrations, 
-  useCases, 
-  stats, 
-  pricing, 
-  testimonials, 
+import { useEffect, useMemo, useState } from "react";
+import {
+  apiFeatures,
+  appFeatures,
+  caseStudies,
+  coreFeatures,
+  customerLogos,
+  faqs,
+  integrations,
+  navItems,
+  pricing,
   securityBadges,
-  faqs 
+  stats,
+  testimonials,
+  useCases,
 } from "./landingContent";
 import {
+  Activity,
+  Apple,
   ArrowRight,
-  ChevronDown,
-  Play,
   Check,
-  MessageSquare,
-  Users,
-  Calendar,
+  CheckCircle2,
+  ChevronDown,
   Globe,
-  Shield,
-  Star,
-  Plus,
-  ArrowUpRight,
+  Kanban,
+  Lock,
   Menu,
+  MessageSquare,
+  Play,
+  Quote,
+  Shield,
+  Smartphone,
+  Star,
+  Terminal,
+  Video,
   X,
   Zap,
-  CheckCircle2,
-  Lock,
-  Activity,
-  ArrowDown,
-  Quote,
-  Kanban,
-  Video,
-  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-/* ─────────────────────────────────────────────
-   LANDING PAGE REDESIGN v2 (Ultra-Premium)
-   Direction: High-fidelity Slack × Jira × Teams
-   ───────────────────────────────────────────── */
+type BillingCycle = "monthly" | "annual";
+type DemoView = "chat" | "projects" | "meetings";
 
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("annual");
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
+  const [demoView, setDemoView] = useState<DemoView>("chat");
+  const [activeUseCaseId, setActiveUseCaseId] = useState(useCases[0]?.id ?? "software");
+  const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
+
+    const id = window.setInterval(() => {
+      setDemoView((prev) => (prev === "chat" ? "projects" : prev === "projects" ? "meetings" : "chat"));
+    }, 4500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    const prefersReduced =
+      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
+
+    const id = window.setInterval(() => {
+      setTestimonialIndex((i) => (i + 1) % testimonials.length);
+    }, 6500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReduced) return;
+
+    const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (!els.length) return;
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            (entry.target as HTMLElement).classList.add("is-visible");
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: "40px" }
+    );
+
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  const activeUseCase = useMemo(() => useCases.find((u) => u.id === activeUseCaseId) ?? useCases[0], [activeUseCaseId]);
+  const activeTestimonial = testimonials[testimonialIndex] ?? testimonials[0];
+  const priceForCycle = (raw: string) => {
+    if (billingCycle === "monthly") return raw;
+    if (!raw.startsWith("$")) return raw;
+    const n = Number(raw.slice(1));
+    if (!Number.isFinite(n) || n === 0) return raw;
+    const discounted = Math.max(1, Math.round(n * 0.8));
+    return `$${discounted}`;
+  };
+
   return (
-    <div className="flex min-h-screen flex-col bg-[#020205] text-white overflow-x-hidden selection:bg-indigo-500/30 grainy">
-      
-      {/* ── Navigation ────────────────────────────────── */}
-      <nav className={cn(
-        "fixed inset-x-0 top-0 z-[100] transition-all duration-700",
-        isScrolled ? "bg-black/40 backdrop-blur-2xl border-b border-white/[0.05] py-3" : "bg-transparent py-8"
-      )}>
+    <div className="flex min-h-screen flex-col bg-white text-slate-900 overflow-x-hidden selection:bg-indigo-500/30">
+      <nav
+        className={cn(
+          "fixed inset-x-0 top-0 z-[100] transition-all duration-300",
+          isScrolled ? "bg-[#07070c]/70 backdrop-blur-xl py-3 border-b border-white/5" : "bg-transparent py-6"
+        )}
+      >
         <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
-          <div className="flex items-center gap-12">
+          <div className="flex items-center gap-6 lg:gap-10">
             <Logo />
-            <div className="hidden lg:flex items-center gap-10">
+            <div className="hidden lg:flex items-center gap-6 xl:gap-8">
               {navItems.map((item) => (
                 <div key={item.label} className="group relative">
-                  <button className="flex items-center gap-1.5 text-[14px] font-semibold text-white/60 hover:text-white transition-all">
+                  <button className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors">
                     {item.label}
-                    {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-500 opacity-40" />}
+                    {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />}
                   </button>
                   {item.children && (
-                    <div className="absolute top-full left-[-24px] pt-5 opacity-0 translate-y-3 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-500">
-                      <div className="w-[320px] rounded-[24px] border border-white/[0.08] bg-[#08080f]/98 backdrop-blur-3xl p-5 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)]">
-                        <div className="grid gap-2">
-                          {item.children.map((child: any) => (
-                            <Link key={child.label} href="#" className="flex items-start gap-4 p-3.5 rounded-2xl hover:bg-white/[0.04] transition-all group/item">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/[0.03] border border-white/[0.05] text-indigo-400 group-hover/item:scale-110 group-hover/item:bg-indigo-500/10 transition-all">
-                                {child.icon && <child.icon size={20} />}
-                              </div>
-                              <div>
-                                <div className="text-[14px] font-bold text-white mb-0.5">{child.label}</div>
-                                <div className="text-[12px] text-white/40 leading-snug">{child.description}</div>
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
+                    <div className="absolute top-full left-[-18px] pt-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200">
+                      <div className="w-[300px] rounded-2xl border border-white/10 bg-[#0b0b12]/95 backdrop-blur-2xl p-2 shadow-2xl">
+                        {item.children.map((child: any) => (
+                          <Link key={child.label} href="#" className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group/item">
+                            {child.icon && <child.icon size={20} className="text-indigo-300 mt-1" />}
+                            <div>
+                              <div className="text-[14px] font-semibold text-white">{child.label}</div>
+                              <div className="text-[12px] text-white/50">{child.description}</div>
+                            </div>
+                          </Link>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -97,127 +154,136 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          
-          <div className="flex items-center gap-5">
-            <Link href="/login" className="hidden sm:block text-[14px] font-bold text-white/50 hover:text-white transition-all">
+
+          <div className="flex items-center gap-4">
+            <Link href="/login" className="hidden sm:block text-[14px] font-medium text-white/70 hover:text-white transition-colors">
               Sign In
             </Link>
-            <Link href="/register">
-              <button className="relative px-7 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-[14px] font-black text-white shadow-[0_20px_40px_-8px_rgba(79,70,229,0.4)] transition-all hover:scale-105 active:scale-95 overflow-hidden group">
-                <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Link href="/register" className="hidden sm:block">
+              <button className="px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-[14px] font-bold text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
                 Get Started Free
               </button>
             </Link>
-            <button className="lg:hidden text-white/70" onClick={() => setMobileMenuOpen(true)}>
+            <button className="lg:hidden text-white/80" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
               <Menu size={24} />
             </button>
           </div>
         </div>
       </nav>
 
-      {/* ── Hero Section ─────────────────────────────── */}
-      <section className="relative pt-44 pb-32 lg:pt-64 lg:pb-48 overflow-hidden">
-        {/* Deep Nebula Gradients */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[140%] h-[1200px] pointer-events-none">
-          <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] rounded-full bg-[#611f69]/20 blur-[140px] animate-pulse-slow" />
-          <div className="absolute top-[5%] right-[15%] w-[500px] h-[500px] rounded-full bg-[#0052CC]/15 blur-[120px] animate-pulse-slow" style={{ animationDelay: '1s' }} />
-          <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-indigo-600/[0.08] blur-[160px]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,transparent_0%,#020205_80%)]" />
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-[200] bg-[#050508]/95 backdrop-blur-2xl flex flex-col p-8">
+          <div className="flex items-center justify-between mb-10">
+            <Logo />
+            <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-white/80">
+              <X size={28} />
+            </button>
+          </div>
+          <div className="space-y-8 text-white">
+            {navItems.map((item) => (
+              <div key={item.label}>
+                <div className="text-2xl font-black mb-4">{item.label}</div>
+                {item.children && (
+                  <div className="space-y-4 pl-4 border-l border-white/10">
+                    {item.children.map((child: any) => (
+                      <div key={child.label} className="text-lg text-white/60">
+                        {child.label}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="mt-auto flex flex-col gap-4">
+            <Link href="/register" className="w-full py-4 rounded-2xl bg-indigo-600 text-center font-black text-lg text-white">
+              Get Started Free
+            </Link>
+            <Link href="/login" className="w-full py-4 rounded-2xl border border-white/10 text-center font-black text-lg text-white">
+              Sign In
+            </Link>
+          </div>
         </div>
-        
-        <div className="mx-auto max-w-7xl px-6 relative z-10 grid lg:grid-cols-2 gap-20 items-center">
-          <div className="text-center lg:text-left">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] backdrop-blur-md px-5 py-2 text-[12px] font-black uppercase tracking-[0.15em] text-indigo-300 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-              <Sparkles size={14} className="text-amber-400" />
-              The Future of Team OS
-              <div className="ml-2 h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+      )}
+
+      <section className="relative pt-28 sm:pt-32 pb-16 lg:pt-56 lg:pb-40 px-6 bg-[#050508] text-white overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -top-44 left-1/2 -translate-x-1/2 w-[1600px] h-[1000px] opacity-60 bg-[radial-gradient(circle_at_50%_0%,rgba(97,31,105,0.6)_0%,rgba(0,82,204,0.35)_35%,rgba(98,100,167,0.25)_55%,transparent_75%)]" />
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_0%_40%,rgba(97,31,105,0.35),transparent_55%),radial-gradient(circle_at_100%_55%,rgba(0,82,204,0.28),transparent_55%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[#050508]" />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-0 lg:px-6 relative z-10 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+          <div data-reveal className="lp-reveal">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[12px] font-bold text-white/80 mb-8">
+              <Zap size={14} className="text-indigo-300" />
+              10M+ teams collaborate daily
             </div>
-            
-            <h1 className="text-[clamp(3rem,6vw,6rem)] font-black leading-[0.98] tracking-[-0.04em] mb-10 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-100">
-              <span className="text-white">Where Teams</span><br />
-              <span className="text-gradient-purple">Communicate</span>, <br />
-              <span className="text-gradient-blue">Plan</span> & <span className="text-indigo-400">Deliver</span>.
+            <h1 className="text-[clamp(2.6rem,5vw,5.2rem)] font-black leading-[1.03] tracking-tight mb-7">
+              Where Teams{" "}
+              <span className="text-gradient bg-gradient-to-r from-[#611f69] via-[#0052CC] to-[#6264A7]">Plan</span>,{" "}
+              Communicate, and Deliver
             </h1>
-            
-            <p className="text-[20px] lg:text-[22px] text-white/45 leading-relaxed mb-12 max-w-xl mx-auto lg:mx-0 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-              The only platform that unites Slack-style chat, Jira-style project tracking, and Teams-style video into one fluid workspace.
+            <p className="text-[18px] lg:text-[20px] text-white/55 leading-relaxed mb-10 max-w-xl">
+              Unite your workflow with real-time chat, agile project tracking, and seamless video collaboration—built for modern enterprises.
             </p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-5 animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
+            <div className="flex flex-col sm:flex-row items-center gap-4">
               <Link href="/register" className="w-full sm:w-auto">
-                <button className="w-full sm:w-auto px-10 py-5 rounded-[22px] bg-indigo-600 hover:bg-indigo-500 text-[17px] font-black text-white shadow-[0_24px_48px_-12px_rgba(79,70,229,0.5)] flex items-center justify-center gap-3 group transition-all hover:scale-[1.03] active:scale-95">
+                <button className="w-full px-8 py-4 rounded-2xl bg-[#611f69] hover:bg-[#6c2576] text-[16px] font-black text-white shadow-2xl shadow-[#611f69]/30 flex items-center justify-center gap-2 group transition-all hover:translate-y-[-1px] active:translate-y-[0px]">
                   Start Free Trial
-                  <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform" />
+                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
-              <button className="w-full sm:w-auto px-10 py-5 rounded-[22px] border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.08] text-[17px] font-black text-white/80 flex items-center justify-center gap-3 backdrop-blur-xl transition-all hover:text-white">
+              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/12 bg-white/5 hover:bg-white/10 text-[16px] font-black text-white flex items-center justify-center gap-2 transition-all">
                 <Play size={18} className="fill-white" />
                 Watch Demo
               </button>
             </div>
-            
-            <div className="mt-16 flex flex-col items-center lg:items-start gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-400">
-              <div className="flex -space-x-3">
-                {[1,2,3,4,5].map(i => (
-                  <div key={i} className="h-11 w-11 rounded-full border-[3px] border-[#020205] bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-[11px] font-black text-white shadow-xl">CW</div>
-                ))}
-                <div className="h-11 w-11 rounded-full border-[3px] border-[#020205] bg-white/[0.08] flex items-center justify-center text-[11px] font-black text-white/40 backdrop-blur-sm">+10k</div>
-              </div>
-              <div className="text-[13px] font-bold text-white/30 uppercase tracking-widest flex items-center gap-2">
-                <span className="h-1 w-8 bg-white/10 rounded-full" />
-                Trusted by 10M+ innovative users
-              </div>
+            <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/40 text-[12px] lg:text-[13px] font-medium">
+              <span className="inline-flex items-center gap-2"><Check size={14} /> No credit card required</span>
+              <span className="inline-flex items-center gap-2"><Check size={14} /> 14-day free trial</span>
+              <span className="inline-flex items-center gap-2"><Check size={14} /> WCAG-friendly UI</span>
             </div>
           </div>
-          
-          <div className="relative group perspective-2000 animate-in fade-in slide-in-from-right-16 duration-1200">
-            {/* Ultra-Premium Glass Mockup */}
-            <div className="relative z-20 rounded-[32px] border border-white/[0.12] bg-[#0a0a14]/60 backdrop-blur-md shadow-[0_80px_160px_-32px_rgba(0,0,0,0.9)] overflow-hidden transform-gpu group-hover:rotate-y-[-2deg] group-hover:rotate-x-1 transition-all duration-1000 ease-out">
-              <div className="flex h-12 items-center gap-2.5 border-b border-white/[0.06] bg-white/[0.03] px-6">
-                <div className="flex gap-2">
-                  <div className="h-3.5 w-3.5 rounded-full bg-[#ff5f57] shadow-[0_0_10px_rgba(255,95,87,0.3)]" />
-                  <div className="h-3.5 w-3.5 rounded-full bg-[#febc2e] shadow-[0_0_10px_rgba(254,188,46,0.3)]" />
-                  <div className="h-3.5 w-3.5 rounded-full bg-[#28c840] shadow-[0_0_10px_rgba(40,200,64,0.3)]" />
-                </div>
-                <div className="ml-6 h-7 w-64 rounded-full bg-white/[0.05] border border-white/[0.05] flex items-center px-4 text-[11px] text-white/30 font-medium">
-                  app.cowrk.io/project/velocity-sprint
-                </div>
-              </div>
-              <div className="relative aspect-[16/10] overflow-hidden">
-                <img 
-                  src="file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_hero_mockup_1778590467130.png" 
-                  alt="Cowrk Workspace"
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a14]/40 to-transparent" />
-              </div>
+
+          <div data-reveal className="lp-reveal relative">
+            <div className="relative z-10 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_60px_120px_-18px_rgba(0,0,0,0.75)] overflow-hidden">
+              <ProductDemo view={demoView} onViewChange={setDemoView} />
             </div>
-            
-            {/* Floating Context Cards */}
-            <div className="absolute -top-12 -right-12 z-30 p-5 rounded-2xl glass-dark border border-white/[0.1] shadow-2xl animate-float">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="h-12 w-12 rounded-full bg-indigo-500 flex items-center justify-center font-black text-[14px]">JD</div>
-                  <div className="absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full bg-green-500 border-2 border-[#0a0a14]" />
-                </div>
-                <div>
-                  <div className="text-[14px] font-black">Julian Chen</div>
-                  <div className="text-[11px] text-white/40">Typing in #product-sync...</div>
+
+            <div className="hidden md:block absolute -top-8 md:-top-10 -right-4 md:-right-6 z-20 p-3 md:p-4 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "0s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-emerald-500 flex items-center justify-center font-black text-[11px] md:text-[13px]">JD</div>
+                <div className="hidden sm:block">
+                  <div className="text-[12px] font-black">James joined</div>
+                  <div className="text-[10px] text-white/55">#delivery • thread reply</div>
                 </div>
               </div>
             </div>
-            
-            <div className="absolute -bottom-10 -left-16 z-30 p-6 rounded-2xl glass-dark border border-white/[0.1] shadow-2xl animate-float" style={{ animationDelay: "1.5s" }}>
-              <div className="flex items-center gap-5">
-                <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-[#0052CC] to-[#00A3BF] flex items-center justify-center shadow-lg shadow-blue-500/20">
-                  <Kanban size={32} />
+            <div className="hidden md:block absolute -bottom-4 md:-bottom-6 -left-4 md:-left-8 z-20 p-3 md:p-4 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "1.5s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-blue-500 flex items-center justify-center"><Kanban size={16} /></div>
+                <div className="hidden sm:block">
+                  <div className="text-[12px] font-black">Sprint ready</div>
+                  <div className="text-[10px] text-white/55">12 tasks moved • 3 blockers</div>
                 </div>
+              </div>
+            </div>
+            <div className="hidden lg:block absolute top-1/2 -left-14 z-20 p-3 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "0.9s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-[#6264A7] flex items-center justify-center"><Video size={18} /></div>
                 <div>
-                  <div className="text-[15px] font-black mb-0.5">Sprint Goal Reached</div>
-                  <div className="text-[11px] text-white/40">24 tasks completed ahead of schedule</div>
+                  <div className="text-[12px] font-black">Meeting started</div>
+                  <div className="text-[10px] text-white/55">Sprint review • 4 participants</div>
                 </div>
-                <div className="ml-4 h-8 w-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-400">
-                  <Plus size={16} />
+              </div>
+            </div>
+            <div className="hidden lg:block absolute top-[60%] -right-12 z-20 p-3 rounded-2xl glass-dark shadow-2xl lp-float" style={{ animationDelay: "2.2s" }}>
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-[#611f69] flex items-center justify-center"><MessageSquare size={18} /></div>
+                <div>
+                  <div className="text-[12px] font-black">New message</div>
+                  <div className="text-[10px] text-white/55">@ava mentioned you in #engineering</div>
                 </div>
               </div>
             </div>
@@ -225,123 +291,32 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Unified Workspace Section ────────────────── */}
-      <section className="py-40 lg:py-60 px-6 relative bg-[#020205]">
+      <section className="py-12 border-y border-slate-100 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {stats.map((stat) => (
+            <div key={stat.label} className="text-center" data-reveal>
+              <div className="lp-reveal">
+                <div className="text-3xl lg:text-4xl font-black text-slate-900 mb-2">{stat.value}</div>
+                <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="py-16 lg:py-20 px-6 bg-white border-b border-slate-100">
         <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-32 max-w-3xl mx-auto">
-            <div className="text-indigo-400 font-black uppercase tracking-[0.2em] text-[12px] mb-6">One Workspace</div>
-            <h2 className="text-[clamp(2.5rem,5vw,5rem)] font-black leading-tight mb-10 text-white tracking-tight">
-              Unified Workspace. <br /> 
-              <span className="text-white/40">Unlimited Potential.</span>
-            </h2>
-            <p className="text-[20px] text-white/45 max-w-2xl mx-auto">Ditch the tab-switching fatigue. Bring your team, your tasks, and your meetings into one high-performance interface.</p>
-          </div>
-          
-          <div className="grid lg:grid-cols-3 gap-10">
-            {coreFeatures.map((feature) => (
-              <div key={feature.id} className="group relative rounded-[40px] border border-white/[0.05] bg-white/[0.01] p-10 hover:bg-white/[0.03] transition-all duration-700 overflow-hidden">
-                {/* Dynamic Aura */}
-                <div 
-                  className="absolute -top-32 -right-32 w-80 h-80 blur-[120px] opacity-0 group-hover:opacity-20 transition-all duration-1000" 
-                  style={{ backgroundColor: feature.accent }} 
-                />
-                
-                <div className="relative z-10">
-                  <div 
-                    className="inline-flex h-16 w-16 items-center justify-center rounded-2xl mb-10 transition-all duration-700 group-hover:scale-110 group-hover:rotate-6 shadow-[0_12px_24px_-4px_rgba(0,0,0,0.5)]" 
-                    style={{ backgroundColor: feature.accent }}
-                  >
-                    <feature.icon size={32} />
-                  </div>
-                  <h3 className="text-3xl font-black mb-5 tracking-tight">{feature.title}</h3>
-                  <p className="text-white/40 text-[16px] leading-relaxed mb-10">{feature.description}</p>
-                  
-                  <ul className="space-y-5 mb-12">
-                    {feature.features.map(f => (
-                      <li key={f} className="flex items-center gap-4 text-[15px] font-bold text-white/70">
-                        <div className="h-6 w-6 rounded-full bg-white/[0.05] border border-white/[0.05] flex items-center justify-center text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-all">
-                          <Check size={14} strokeWidth={3} />
-                        </div>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                
-                <div className="relative mt-auto pt-8 translate-y-12 group-hover:translate-y-0 transition-all duration-1000 ease-out opacity-40 group-hover:opacity-100">
-                  <img 
-                    src={
-                      feature.id === "communication" ? "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_chat_feature_1778590483995.png" :
-                      feature.id === "projects" ? "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_project_feature_1778590501481.png" :
-                      "file:///C:/Users/akaas/.gemini/antigravity/brain/69a09468-70fa-4500-ae49-2566a1c8fa3c/cowrk_meeting_feature_1778590517690.png"
-                    } 
-                    alt={feature.title}
-                    className="rounded-t-[32px] border-t border-x border-white/10 shadow-[0_20px_40px_rgba(0,0,0,0.5)] grayscale group-hover:grayscale-0 transition-all duration-700"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Workflow Diagram Section ────────────────── */}
-      <section className="py-40 lg:py-60 px-6 bg-black relative overflow-hidden">
-        <div className="mx-auto max-w-7xl relative z-10">
-          <div className="text-center mb-32">
-            <div className="text-indigo-400 font-black uppercase tracking-[0.3em] text-[12px] mb-8">End-to-End Execution</div>
-            <h2 className="text-[clamp(2.5rem,5vw,5.5rem)] font-black leading-tight mb-8 text-white tracking-tighter">One Unified Workflow.</h2>
-            <p className="text-[20px] text-white/40 max-w-xl mx-auto leading-relaxed">From the first brainstorm to the final delivery, data flows seamlessly between every module.</p>
-          </div>
-          
-          <div className="grid lg:grid-cols-4 gap-8 relative">
-            {/* Connecting SVG Path (Dynamic Feel) */}
-            <svg className="hidden lg:block absolute top-[60px] left-[10%] w-[80%] h-1 z-0 opacity-20" viewBox="0 0 1000 1">
-              <line x1="0" y1="0.5" x2="1000" y2="0.5" stroke="white" strokeWidth="2" strokeDasharray="8 12" />
-            </svg>
-            
-            {[
-              { step: 1, title: "Ideate", desc: "Collaborate in real-time channels", icon: MessageSquare, accent: "#611f69" },
-              { step: 2, title: "Convert", desc: "Turn chats into trackable tasks", icon: Kanban, accent: "#0052CC" },
-              { step: 3, title: "Huddle", desc: "Meet to align on blockers", icon: Video, accent: "#6264A7" },
-              { step: 4, title: "Deliver", desc: "Ship faster with AI assistance", icon: CheckCircle2, accent: "#10b981" }
-            ].map((node, i) => (
-              <div key={node.step} className="relative z-10 flex flex-col items-center text-center p-10 rounded-[32px] glass border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.15] transition-all duration-700 group">
-                <div 
-                  className="h-20 w-20 rounded-[24px] flex items-center justify-center mb-10 shadow-2xl group-hover:scale-110 group-hover:-rotate-3 transition-all duration-500" 
-                  style={{ backgroundColor: node.accent }}
+          <p className="text-center text-[12px] font-black uppercase tracking-widest text-slate-400 mb-10">
+            Trusted by teams at Fortune 500 companies
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6" data-reveal>
+            <div className="lp-reveal flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
+              {customerLogos.map((name) => (
+                <div
+                  key={name}
+                  className="text-[16px] font-black text-slate-300 hover:text-slate-400 transition-colors tracking-tight select-none"
                 >
-                  <node.icon size={36} />
-                </div>
-                <div className="text-white/25 font-black uppercase tracking-widest text-[11px] mb-3">Phase {node.step}</div>
-                <h4 className="text-2xl font-black mb-4 tracking-tight">{node.title}</h4>
-                <p className="text-white/40 text-[15px] leading-relaxed mb-6">{node.desc}</p>
-                
-                {/* Step indicator dot */}
-                <div className="mt-auto h-2 w-2 rounded-full bg-white/10 group-hover:bg-indigo-500 group-hover:scale-150 transition-all" />
-              </div>
-            ))}
-          </div>
-          
-          <div className="mt-32 p-16 rounded-[48px] border border-white/[0.08] bg-white/[0.01] backdrop-blur-xl grid lg:grid-cols-3 gap-20 items-center">
-            <div className="lg:col-span-1">
-              <h3 className="text-[36px] font-black leading-tight mb-8">Performance <br /> that speaks.</h3>
-              <p className="text-white/40 text-[18px] leading-relaxed mb-10">Teams moving to Cowrk report a dramatic decrease in "work about work" within the first 30 days.</p>
-              <Link href="/register" className="inline-flex items-center gap-3 text-indigo-400 font-black hover:gap-5 transition-all text-[16px]">
-                View Productivity Report <ArrowRight size={20} />
-              </Link>
-            </div>
-            <div className="lg:col-span-2 grid sm:grid-cols-2 gap-10">
-              {[
-                { label: "Efficiency Boost", value: "+32%", sub: "Avg across 5k+ teams" },
-                { label: "Meeting Reduction", value: "4.5h", sub: "Saved per user / week" },
-                { label: "Decisions Logged", value: "85%", sub: "Higher visibility rate" },
-                { label: "Developer Velocity", value: "+40%", sub: "Shipping speedup" }
-              ].map(metric => (
-                <div key={metric.label} className="p-8 rounded-[24px] bg-white/[0.03] border border-white/[0.05] hover:bg-white/[0.05] transition-all">
-                  <div className="text-4xl font-black text-white mb-2">{metric.value}</div>
-                  <div className="text-[13px] font-black text-white/50 uppercase tracking-widest mb-2">{metric.label}</div>
-                  <div className="text-[12px] text-white/30">{metric.sub}</div>
+                  {name}
                 </div>
               ))}
             </div>
@@ -349,25 +324,39 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Testimonials Carousel (Premium Style) ────────── */}
-      <section className="py-40 lg:py-60 px-6 bg-[#020205]">
+      <section className="py-20 lg:py-40 px-6 bg-white">
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-3 gap-12">
-            {testimonials.map((t, idx) => (
-              <div key={idx} className="relative p-12 rounded-[40px] border border-white/[0.05] bg-white/[0.01] flex flex-col items-start hover:bg-white/[0.03] transition-all duration-700">
-                <Quote size={48} className="text-indigo-500 opacity-20 mb-10" />
-                <p className="text-[18px] lg:text-[20px] font-bold leading-relaxed mb-12 text-white/80">"{t.quote}"</p>
-                
-                <div className="mt-auto flex items-center gap-5 pt-8 border-t border-white/[0.05] w-full">
-                  <div className="h-14 w-14 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center font-black text-lg">
-                    {t.avatar}
+          <div className="text-center mb-14 lg:mb-24 max-w-3xl mx-auto" data-reveal>
+            <div className="lp-reveal">
+              <h2 className="text-[clamp(2rem,5vw,3.75rem)] font-black mb-6 text-slate-900">All-in-one. Actually unified.</h2>
+              <p className="text-[16px] lg:text-xl text-slate-500">
+                Slack-style communication, Jira-grade planning, and Teams-ready collaboration — in one workspace your enterprise can standardize on.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-8">
+            {coreFeatures.map((feature) => (
+              <div key={feature.id} data-reveal className="lp-reveal group relative rounded-3xl border border-slate-100 bg-white p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 overflow-hidden">
+                <div className="absolute -top-28 -right-28 w-72 h-72 blur-[90px] opacity-0 group-hover:opacity-15 transition-opacity duration-500" style={{ background: feature.accent }} />
+                <div className="relative z-10">
+                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl mb-8 shadow-xl text-white" style={{ backgroundColor: feature.accent }}>
+                    <feature.icon size={28} />
                   </div>
-                  <div>
-                    <div className="text-[16px] font-black text-white">{t.name}</div>
-                    <div className="text-[13px] text-white/40">{t.role}, {t.company}</div>
-                  </div>
-                  <div className="ml-auto px-4 py-2 rounded-full bg-green-500/10 text-green-400 text-[11px] font-black uppercase tracking-widest">
-                    {t.metric}
+                  <h3 className="text-2xl font-black mb-3 text-slate-900">{feature.title}</h3>
+                  <p className="text-slate-500 mb-8 leading-relaxed">{feature.description}</p>
+                  <ul className="space-y-4">
+                    {feature.features.map((f) => (
+                      <li key={f} className="flex items-center gap-3 text-[14px] font-medium text-slate-700">
+                        <div className="h-5 w-5 rounded-full bg-slate-50 flex items-center justify-center">
+                          <Check size={12} className="text-indigo-600" />
+                        </div>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-10 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    {feature.id === "communication" ? <MiniChat accent={feature.accent} /> : feature.id === "projects" ? <MiniBoard accent={feature.accent} /> : <MiniMeeting accent={feature.accent} />}
                   </div>
                 </div>
               </div>
@@ -376,65 +365,204 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Pricing Section (High Contrast) ──────────────── */}
-      <section id="pricing" className="py-40 lg:py-60 px-6 bg-black relative">
-        <div className="mx-auto max-w-7xl relative z-10">
-          <div className="text-center mb-32">
-            <h2 className="text-[clamp(2.5rem,5vw,5rem)] font-black tracking-tighter mb-10">Simple, Scaling Pricing.</h2>
-            
-            <div className="flex items-center justify-center gap-8 mt-16">
-              <span className={cn("text-[15px] font-black transition-all", billingCycle === "monthly" ? "text-white" : "text-white/30")}>Billed Monthly</span>
-              <button 
-                onClick={() => setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")}
-                className="w-18 h-10 rounded-full bg-white/[0.05] border border-white/[0.1] p-1.5 relative transition-all"
-              >
-                <div className={cn("h-6 w-6 rounded-full bg-indigo-500 shadow-[0_0_15px_rgba(99,102,241,0.6)] transition-all", billingCycle === "annual" ? "translate-x-8" : "translate-x-0")} />
-              </button>
-              <div className="flex items-center gap-3">
-                <span className={cn("text-[15px] font-black transition-all", billingCycle === "annual" ? "text-white" : "text-white/30")}>Billed Annually</span>
-                <span className="px-3 py-1 rounded-full bg-green-500/15 text-green-400 text-[11px] font-black uppercase tracking-widest">Save 25%</span>
+      <section className="py-24 lg:py-40 px-6 bg-[#050508] text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-30">
+          <div className="absolute -top-60 left-1/2 -translate-x-1/2 w-[1300px] h-[900px] bg-[radial-gradient(circle_at_50%_10%,rgba(0,82,204,0.35),transparent_60%)]" />
+          <div className="absolute -bottom-60 left-1/2 -translate-x-1/2 w-[1300px] h-[900px] bg-[radial-gradient(circle_at_50%_90%,rgba(97,31,105,0.25),transparent_60%)]" />
+        </div>
+
+        <div className="mx-auto max-w-7xl relative">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            <div data-reveal className="lp-reveal">
+              <div className="text-indigo-300 font-black uppercase tracking-widest text-[12px] mb-4">From idea to delivery</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-6">One unified workflow.</h2>
+              <p className="text-lg lg:text-xl text-white/55">
+                Discuss in chat, turn decisions into work, review in meetings, and ship — with context preserved across every step.
+              </p>
+            </div>
+
+            <div data-reveal className="lp-reveal rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 lg:p-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                {[
+                  { step: 1, title: "Discuss", desc: "Threads keep decisions searchable and scoped.", icon: Quote },
+                  { step: 2, title: "Plan", desc: "Create tasks straight from messages.", icon: CheckCircle2 },
+                  { step: 3, title: "Review", desc: "Meet with agenda + recordings attached.", icon: Video },
+                  { step: 4, title: "Deliver", desc: "Progress updates roll up automatically.", icon: Activity },
+                ].map((node) => (
+                  <div key={node.step} className="rounded-2xl border border-white/10 bg-black/20 p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="text-[12px] font-black text-white/60 uppercase tracking-widest">Step {node.step}</div>
+                      <node.icon size={18} className="text-indigo-300" />
+                    </div>
+                    <div className="text-xl font-black mb-2">{node.title}</div>
+                    <div className="text-white/55 text-[13px] leading-relaxed">{node.desc}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-          
-          <div className="grid md:grid-cols-3 gap-10 items-start">
-            {pricing.map(tier => (
-              <div key={tier.name} className={cn(
-                "relative flex flex-col p-12 rounded-[48px] border transition-all duration-700",
-                tier.popular 
-                  ? "bg-[#080812] border-indigo-500/40 shadow-[0_48px_96px_-16px_rgba(0,0,0,0.8)] scale-[1.05] z-20" 
-                  : "bg-white/[0.01] border-white/[0.05] hover:border-white/[0.15] z-10"
-              )}>
+
+          <div data-reveal className="lp-reveal mt-14 lg:mt-20 grid lg:grid-cols-3 gap-6">
+            {[
+              { label: "Productivity increase", value: "+32%" },
+              { label: "Meeting time saved", value: "4.5h/wk" },
+              { label: "Fewer tool switches", value: "-60%" },
+            ].map((metric) => (
+              <div key={metric.label} className="p-8 rounded-3xl border border-white/10 bg-white/[0.03]">
+                <div className="text-3xl font-black mb-1">{metric.value}</div>
+                <div className="text-[12px] font-black text-white/40 uppercase tracking-widest">{metric.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-14 lg:mb-20 max-w-3xl mx-auto" data-reveal>
+            <div className="lp-reveal">
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Works with the tools you already love.</h2>
+              <p className="text-lg lg:text-xl text-slate-500">Connect, automate, and keep your ecosystem — without sacrificing a unified workflow.</p>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" data-reveal>
+            {integrations.map((int) => (
+              <div key={int.name} className="lp-reveal rounded-3xl border border-slate-100 bg-white p-5 md:p-6 hover:shadow-xl hover:shadow-slate-100 transition-all">
+                <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-indigo-600 mb-4">
+                  <int.icon size={20} />
+                </div>
+                <div className="text-[14px] md:text-[15px] font-black text-slate-900 mb-1">{int.name}</div>
+                <div className="text-[12px] md:text-[13px] text-slate-500 leading-relaxed">{int.blurb}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-12 flex flex-col items-center" data-reveal>
+            <div className="lp-reveal">
+              <p className="text-slate-400 font-black mb-6 uppercase tracking-widest text-[12px]">And 1,000+ more via API & webhooks</p>
+              <button className="px-10 py-4 rounded-2xl border border-slate-200 hover:bg-slate-50 font-black transition-all">Explore integrations</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            <div data-reveal className="lp-reveal">
+              <h2 className="text-4xl lg:text-6xl font-black mb-10 text-slate-900">Solutions for every team.</h2>
+              <div className="space-y-4">
+                {useCases.map((uc) => (
+                  <button
+                    key={uc.id}
+                    onClick={() => setActiveUseCaseId(uc.id)}
+                    className={cn(
+                      "w-full p-6 rounded-3xl border text-left transition-all flex items-start gap-5",
+                      activeUseCaseId === uc.id ? "border-indigo-200 bg-indigo-50/40 shadow-lg shadow-indigo-500/10" : "border-slate-100 bg-white hover:bg-slate-50"
+                    )}
+                  >
+                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", activeUseCaseId === uc.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-indigo-600")}>
+                      <uc.icon size={22} />
+                    </div>
+                    <div>
+                      <div className="text-[16px] font-black mb-1 text-slate-900">{uc.label}</div>
+                      <div className="text-[13px] text-slate-500 leading-relaxed">{uc.description}</div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div data-reveal className="lp-reveal rounded-[24px] lg:rounded-[36px] overflow-hidden border border-slate-100 bg-slate-50 p-6 lg:p-8 shadow-2xl shadow-slate-200">
+              <div className="flex items-start justify-between gap-6">
+                <div>
+                  <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-3">{activeUseCase?.label}</div>
+                  <div className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">{activeUseCase?.title}</div>
+                  <div className="text-slate-500 mb-6">{activeUseCase?.description}</div>
+                  <div className="space-y-3">
+                    {activeUseCase?.features.map((f) => (
+                      <div key={f} className="flex items-center gap-3 text-[13px] font-medium text-slate-700">
+                        <Check size={16} className="text-indigo-600" /> {f}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-white border border-slate-100 items-center justify-center text-indigo-600 shrink-0">
+                  {activeUseCase?.icon ? <activeUseCase.icon size={20} /> : <Globe size={20} />}
+                </div>
+              </div>
+
+              <div className="mt-10 rounded-3xl border border-slate-100 bg-white p-6">
+                <UseCasePreview id={activeUseCaseId} />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-slate-50" id="pricing">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-14 lg:mb-20" data-reveal>
+            <div className="lp-reveal">
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Pricing that scales.</h2>
+              <p className="text-lg lg:text-xl text-slate-500">Start free, then upgrade as your team standardizes and scales.</p>
+              <div className="flex items-center justify-center gap-6 mt-10">
+                <span className={cn("text-[14px] font-black transition-colors", billingCycle === "monthly" ? "text-slate-900" : "text-slate-400")}>Monthly</span>
+                <button
+                  onClick={() => setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")}
+                  className="w-14 h-8 rounded-full bg-slate-200 border border-slate-300 p-1 relative transition-all"
+                  aria-label="Toggle billing cycle"
+                >
+                  <div className={cn("h-6 w-6 rounded-full bg-indigo-600 shadow-md transition-all", billingCycle === "annual" ? "translate-x-6" : "translate-x-0")} />
+                </button>
+                <div className="flex items-center gap-2">
+                  <span className={cn("text-[14px] font-black transition-colors", billingCycle === "annual" ? "text-slate-900" : "text-slate-400")}>Annually</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider">Save 20%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
+            {pricing.map((tier) => (
+              <div
+                key={tier.name}
+                data-reveal
+                className={cn(
+                  "lp-reveal relative flex flex-col p-8 rounded-[32px] border transition-all duration-300",
+                  tier.popular ? "bg-white border-indigo-200 shadow-2xl shadow-indigo-500/10 lg:scale-[1.02]" : "bg-white/70 border-slate-100 hover:border-slate-200"
+                )}
+              >
                 {tier.popular && (
-                  <div className="absolute -top-5 left-1/2 -translate-x-1/2 px-6 py-2 rounded-full bg-indigo-600 text-[12px] font-black uppercase tracking-widest text-white shadow-2xl">
-                    Most Popular Choice
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-indigo-600 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-500/40">
+                    Most Popular
                   </div>
                 )}
-                
-                <div className="text-2xl font-black mb-4 tracking-tight">{tier.name}</div>
-                <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-6xl font-black tracking-tighter">{tier.price}</span>
-                  <span className="text-white/30 text-[16px] font-medium">{tier.period}</span>
+                <div className="text-xl font-black mb-2 text-slate-900">{tier.name}</div>
+                <div className="flex items-baseline gap-2 mb-2">
+                  <span className="text-4xl font-black text-slate-900">{priceForCycle(tier.price)}</span>
+                  <span className="text-slate-400 text-[14px]">
+                    {billingCycle === "annual" && tier.price.startsWith("$") && tier.price !== "$0" ? "per user/mo (billed annually)" : tier.period}
+                  </span>
                 </div>
-                <p className="text-[15px] text-white/40 mb-12 h-12 leading-relaxed">{tier.description}</p>
-                
-                <Link href="/register" className="mb-12">
-                  <button className={cn(
-                    "w-full py-5 rounded-2xl text-[17px] font-black transition-all active:scale-95",
-                    tier.popular 
-                      ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/30" 
-                      : "bg-white/[0.05] hover:bg-white/[0.1] text-white border border-white/[0.1]"
-                  )}>
+                <p className="text-[13px] text-slate-500 mb-8 min-h-10">{tier.description}</p>
+
+                <Link href="/register" className="mb-10">
+                  <button
+                    className={cn(
+                      "w-full py-4 rounded-2xl font-black transition-all",
+                      tier.popular ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
+                    )}
+                  >
                     {tier.cta}
                   </button>
                 </Link>
-                
-                <div className="space-y-6">
-                  {tier.features.map(f => (
-                    <div key={f} className="flex items-start gap-4 text-[14px] font-bold text-white/60">
-                      <div className="h-5 w-5 rounded-full bg-indigo-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Check size={12} strokeWidth={4} className="text-indigo-400" />
-                      </div>
+
+                <div className="space-y-4">
+                  {tier.features.map((f) => (
+                    <div key={f} className="flex items-start gap-3 text-[13px] font-medium text-slate-600">
+                      <Check size={16} className="text-indigo-600 shrink-0 mt-0.5" />
                       {f}
                     </div>
                   ))}
@@ -445,37 +573,121 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Security Section (Enterprise Focus) ────────── */}
-      <section className="py-40 lg:py-60 px-6 bg-[#020205]">
+      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
         <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-32 items-center">
-            <div>
-              <div className="text-violet-400 font-black uppercase tracking-[0.2em] text-[12px] mb-8">Security & Compliance</div>
-              <h2 className="text-[clamp(2.5rem,4.5vw,4.5rem)] font-black leading-tight mb-10 tracking-tighter">Trusted by the <br /> most secure orgs.</h2>
-              <p className="text-[20px] text-white/40 mb-16 leading-relaxed">We protect your most sensitive data with military-grade encryption and rigorous compliance standards.</p>
-              
-              <div className="grid sm:grid-cols-2 gap-12">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div data-reveal className="lp-reveal">
+              <div className="text-indigo-700 font-black uppercase tracking-widest text-[12px] mb-4">Social proof</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Loved by teams that ship.</h2>
+              <p className="text-lg lg:text-xl text-slate-500 mb-10">Quotes your execs can forward and your ICs will actually agree with.</p>
+
+              <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: activeTestimonial.stars ?? 5 }).map((_, i) => (
+                      <Star key={i} size={16} className="text-amber-400 fill-amber-400" />
+                    ))}
+                  </div>
+                  <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{activeTestimonial.metric}</div>
+                </div>
+                <Quote size={34} className="text-indigo-600 opacity-15 mb-4" />
+                <p className="text-[16px] font-medium leading-relaxed text-slate-800 mb-6">{activeTestimonial.quote}</p>
+                <div className="flex items-center gap-4">
+                  <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white">
+                    {activeTestimonial.avatar}
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-black text-slate-900">{activeTestimonial.name}</div>
+                    <div className="text-[12px] text-slate-400">
+                      {activeTestimonial.role} • {activeTestimonial.company}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex items-center gap-2">
+                  {testimonials.map((_, i) => (
+                    <button
+                      key={i}
+                      className={cn("h-2.5 rounded-full transition-all", i === testimonialIndex ? "w-8 bg-indigo-600" : "w-2.5 bg-slate-200 hover:bg-slate-300")}
+                      onClick={() => setTestimonialIndex(i)}
+                      aria-label={`Show testimonial ${i + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div data-reveal className="lp-reveal rounded-[24px] lg:rounded-[36px] border border-slate-100 bg-slate-50 p-6 lg:p-10">
+              <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-4">Proof points</div>
+              <div className="grid grid-cols-2 gap-6">
                 {[
-                  { title: "SAML SSO", desc: "Enterprise-wide auth with Okta, Azure AD, or Google" },
-                  { title: "Data Isolation", desc: "Physically separated data storage per workspace" },
-                  { title: "Network Security", desc: "Cloudflare-protected DDoS and WAF security" },
-                  { title: "Admin Controls", desc: "Granular RBAC and IP-based access restrictions" }
-                ].map(item => (
-                  <div key={item.title}>
-                    <div className="text-[17px] font-black mb-2 tracking-tight">{item.title}</div>
-                    <div className="text-[13px] text-white/35 leading-relaxed">{item.desc}</div>
+                  { value: "10M+", label: "Active users" },
+                  { value: "150+", label: "Countries" },
+                  { value: "99.9%", label: "Uptime" },
+                  { value: "4.8★", label: "Average rating" },
+                ].map((p) => (
+                  <div key={p.label} className="rounded-3xl border border-slate-100 bg-white p-6">
+                    <div className="text-2xl font-black text-slate-900">{p.value}</div>
+                    <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest mt-1">{p.label}</div>
                   </div>
                 ))}
               </div>
+              <div className="mt-10 flex items-center gap-3 text-slate-500 text-[13px]">
+                <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-indigo-600">
+                  <Shield size={18} />
+                </div>
+                <div>
+                  <div className="font-black text-slate-900">Enterprise-ready from day one</div>
+                  <div className="text-slate-500">SSO, audit logs, encryption, and admin controls.</div>
+                </div>
+              </div>
             </div>
-            
-            <div className="grid grid-cols-2 gap-8">
-              {securityBadges.map(badge => (
-                <div key={badge.name} className="p-12 rounded-[48px] glass-dark border border-white/[0.05] flex flex-col items-center text-center group hover:bg-white/[0.08] hover:border-white/[0.15] transition-all duration-700">
-                  <div className="h-20 w-20 rounded-3xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-8 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-xl">
-                    {badge.icon === "ShieldCheck" ? <Shield size={40} /> : badge.icon === "Lock" ? <Lock size={40} /> : badge.icon === "Activity" ? <Activity size={40} /> : <CheckCircle2 size={40} />}
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-16 max-w-3xl mx-auto" data-reveal>
+            <div className="lp-reveal">
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Customer success stories.</h2>
+              <p className="text-lg lg:text-xl text-slate-500">Real results from teams that made the switch to FlowTeam.</p>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8" data-reveal>
+            <div className="lp-reveal grid md:grid-cols-3 gap-8 md:col-span-3">
+              {caseStudies.map((cs) => (
+                <div key={cs.company} className="group rounded-3xl border border-slate-100 bg-white p-6 lg:p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg">
+                      {cs.logo}
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-black uppercase tracking-wider">{cs.industry}</span>
                   </div>
-                  <div className="text-[20px] font-black tracking-tight">{badge.name}</div>
+                  <div className="text-2xl font-black text-slate-900 mb-4">{cs.metric}</div>
+                  <p className="text-[14px] text-slate-600 leading-relaxed mb-6">&ldquo;{cs.quote}&rdquo;</p>
+                  <div className="pt-6 border-t border-slate-100">
+                    <div className="grid grid-cols-2 gap-4 mb-6">
+                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Before</div>
+                        <div className="text-[12px] text-slate-700 leading-relaxed">{cs.before}</div>
+                      </div>
+                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
+                        <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">After</div>
+                        <div className="text-[12px] text-emerald-800 leading-relaxed">{cs.after}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white text-[12px]">
+                        {cs.logo}
+                      </div>
+                      <div>
+                        <div className="text-[13px] font-black text-slate-900">{cs.executive}</div>
+                        <div className="text-[12px] text-slate-400">{cs.role}, {cs.company}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -483,86 +695,615 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Final CTA (Big Orb Design) ────────────────── */}
-      <section className="py-40 px-6 bg-black relative overflow-hidden">
-        <div className="mx-auto max-w-7xl relative rounded-[80px] overflow-hidden group">
-          {/* Immersive Background */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#611f69] via-[#0052CC] to-[#6264A7] opacity-90 transition-transform duration-1000 group-hover:scale-110" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-white/10 blur-[150px] rounded-full animate-pulse-slow" />
-          
-          <div className="relative z-10 px-8 py-32 lg:py-48 text-center max-w-4xl mx-auto">
-            <h2 className="text-[clamp(2.5rem,6vw,6rem)] font-black mb-10 text-white tracking-tighter leading-[0.95]">Ready to transform <br /> how you work?</h2>
-            <p className="text-[22px] lg:text-[26px] text-white/80 font-medium mb-16 leading-relaxed">Join 10,000+ teams shipping faster and staying aligned with Cowrk.</p>
-            
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <Link href="/register" className="w-full sm:w-auto">
-                <button className="w-full px-14 py-6 rounded-2xl bg-white text-indigo-900 text-[20px] font-black shadow-[0_32px_64px_-12px_rgba(0,0,0,0.5)] hover:scale-105 active:scale-95 transition-all">
-                  Get Started Free
-                </button>
-              </Link>
-              <button className="w-full sm:w-auto px-14 py-6 rounded-2xl border border-white/20 bg-black/20 backdrop-blur-md text-white text-[20px] font-black hover:bg-black/40 transition-all">
-                Schedule Demo
-              </button>
+      <section className="py-24 lg:py-40 px-6 bg-[#050508] text-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div data-reveal className="lp-reveal">
+              <div className="text-indigo-300 font-black uppercase tracking-widest text-[12px] mb-4">Security & compliance</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-6">Enterprise-grade trust.</h2>
+              <p className="text-lg lg:text-xl text-white/55 mb-10">
+                SSO, encryption, and governance controls designed for regulated teams — without compromising the UX your team will actually use.
+              </p>
+
+              <div className="grid grid-cols-2 gap-6">
+                {[
+                  { title: "SSO & SCIM", desc: "SAML 2.0 + automated provisioning", icon: Lock },
+                  { title: "Encryption", desc: "AES-256 at rest, TLS in transit", icon: Shield },
+                  { title: "Audit Logs", desc: "Full action history for governance", icon: Activity },
+                  { title: "Availability", desc: "99.9% uptime target", icon: Globe },
+                ].map((item) => (
+                  <div key={item.title} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-indigo-200">
+                        <item.icon size={18} />
+                      </div>
+                      <div className="font-black">{item.title}</div>
+                    </div>
+                    <div className="text-[13px] text-white/55">{item.desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <div className="mt-16 flex flex-wrap items-center justify-center gap-10 text-white/60 text-[15px] font-bold">
-              <span className="flex items-center gap-2"><Check size={20} className="text-white/40" /> No credit card required</span>
-              <span className="flex items-center gap-2"><Check size={20} className="text-white/40" /> 14-day free trial</span>
-              <span className="flex items-center gap-2"><Check size={20} className="text-white/40" /> Cancel anytime</span>
+
+            <div data-reveal className="lp-reveal grid grid-cols-2 gap-6">
+              {securityBadges.map((badge) => (
+                <div key={badge.name} className="p-8 rounded-[28px] glass-dark border border-white/10 flex flex-col items-center text-center hover:bg-white/[0.05] transition-all">
+                  <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 text-indigo-300 flex items-center justify-center mb-5">
+                    {badge.icon === "ShieldCheck" ? <Shield size={28} /> : badge.icon === "Lock" ? <Lock size={28} /> : badge.icon === "Activity" ? <Activity size={28} /> : <CheckCircle2 size={28} />}
+                  </div>
+                  <div className="text-[14px] font-black">{badge.name}</div>
+                </div>
+              ))}
+              <div className="col-span-2 rounded-[28px] border border-white/10 bg-gradient-to-r from-[#611f69]/20 via-[#0052CC]/20 to-[#6264A7]/20 p-8">
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <div className="text-[12px] font-black uppercase tracking-widest text-white/55 mb-2">Admin controls</div>
+                    <div className="text-2xl font-black mb-2">Centralized governance</div>
+                    <div className="text-white/55 text-[13px] leading-relaxed">
+                      Manage access, policies, and compliance requirements across chat, projects, and meetings — from one console.
+                    </div>
+                  </div>
+                  <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 shrink-0">
+                    <Lock size={18} />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ── Footer ─────────────────────────────────── */}
-      <footer className="pt-32 pb-16 px-6 border-t border-white/[0.05] bg-[#020205]">
+      <section className="py-24 lg:py-40 px-6 bg-slate-50 border-y border-slate-100">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-16 mb-32">
-            <div className="col-span-2 lg:col-span-2">
-              <Logo className="mb-10" />
-              <p className="text-[15px] text-white/35 leading-relaxed max-w-xs">The modern all-in-one operating system for team collaboration, task delivery, and remote execution.</p>
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+            <div data-reveal className="lp-reveal">
+              <div className="text-indigo-600 font-black uppercase tracking-widest text-[12px] mb-4">Developer API</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Build on FlowTeam.</h2>
+              <p className="text-lg lg:text-xl text-slate-500 mb-8">Extend, integrate, and automate with our developer platform. RESTful APIs, webhooks, and SDKs for every major language.</p>
+              <div className="space-y-5">
+                {apiFeatures.map((f) => (
+                  <div key={f.title} className="flex items-start gap-4">
+                    <div className="h-8 w-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
+                      <Check size={16} className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="text-[14px] font-black text-slate-900">{f.title}</div>
+                      <div className="text-[13px] text-slate-500">{f.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button className="mt-10 px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center gap-2 transition-all">
+                <Terminal size={18} />
+                Explore API Docs
+              </button>
             </div>
-            {['Product', 'Solutions', 'Company', 'Social'].map((category) => (
-              <div key={category}>
-                <h5 className="text-[13px] font-black mb-8 uppercase tracking-[0.2em] text-white/20">{category}</h5>
-                <ul className="space-y-5 text-[15px] font-bold text-white/50">
-                  <li><Link href="#" className="hover:text-white transition-all">Chat & Messaging</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-all">Project Boards</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-all">Video Huddles</Link></li>
-                  <li><Link href="#" className="hover:text-white transition-all">Automations</Link></li>
-                </ul>
+            <div data-reveal className="lp-reveal rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
+              <div className="rounded-2xl bg-[#050508] text-white p-4 md:p-6 font-mono text-[12px] md:text-[13px] leading-relaxed overflow-x-auto whitespace-nowrap md:whitespace-normal">
+                <div className="text-emerald-400 mb-3">// Create a task from a message</div>
+                <div className="text-white/80">POST<span className="text-indigo-300"> /api/v1/tasks</span></div>
+                <div className="text-white/60">{"{"}</div>
+                <div className="pl-4 text-white/60">&ldquo;channel_id&rdquo;: <span className="text-amber-300">&ldquo;C01ABC123&rdquo;</span>,</div>
+                <div className="pl-4 text-white/60">&ldquo;message_id&rdquo;: <span className="text-amber-300">&ldquo;m_abc123&rdquo;</span>,</div>
+                <div className="pl-4 text-white/60">&ldquo;title&rdquo;: <span className="text-amber-300">&ldquo;Update onboarding flow&rdquo;</span>,</div>
+                <div className="pl-4 text-white/60">&ldquo;assignee_id&rdquo;: <span className="text-amber-300">&ldquo;U02XYZ&rdquo;</span>,</div>
+                <div className="pl-4 text-white/60">&ldquo;priority&rdquo;: <span className="text-amber-300">&ldquo;high&rdquo;</span></div>
+                <div className="text-white/60">{"}"}</div>
+                <div className="mt-4 pt-4 border-t border-white/10 text-white/50 text-[12px]">
+                  <span className="text-emerald-400">// Response 201</span> Task created from message. Linked in thread.
+                </div>
               </div>
-            ))}
+            </div>
           </div>
-          
-          <div className="flex flex-col md:flex-row items-center justify-between gap-10 pt-16 border-t border-white/[0.05]">
-            <div className="text-[13px] font-bold text-white/20">© 2026 Cowrk Technologies Inc. All rights reserved. Built with ❤️ for remote teams.</div>
-            <div className="flex items-center gap-8">
-              <div className="flex items-center gap-3 text-[13px] font-black text-white/30">
-                <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
-                System Active
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-white border-b border-slate-100">
+        <div className="mx-auto max-w-7xl">
+          <div className="text-center mb-14 max-w-3xl mx-auto" data-reveal>
+            <div className="lp-reveal">
+              <div className="text-indigo-600 font-black uppercase tracking-widest text-[12px] mb-4">Mobile App</div>
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Your workspace in your pocket.</h2>
+              <p className="text-lg lg:text-xl text-slate-500">Stay connected, review tasks, and join meetings from anywhere with native iOS and Android apps.</p>
+            </div>
+          </div>
+          <div className="grid lg:grid-cols-2 gap-16 items-center" data-reveal>
+            <div className="lp-reveal">
+              <div className="grid grid-cols-2 gap-6">
+                {appFeatures.map((f) => (
+                  <div key={f.title} className="rounded-2xl border border-slate-100 bg-white p-6">
+                    <Smartphone size={24} className="text-indigo-600 mb-3" />
+                    <div className="text-[15px] font-black text-slate-900 mb-1">{f.title}</div>
+                    <div className="text-[13px] text-slate-500 leading-relaxed">{f.desc}</div>
+                  </div>
+                ))}
               </div>
-              <div className="h-5 w-[1px] bg-white/[0.08]" />
-              <button className="text-[13px] font-black text-white/30 flex items-center gap-2 hover:text-white transition-all">
-                <Globe size={16} /> EN-US
+            </div>
+            <div className="lp-reveal flex flex-col items-start">
+              <div className="rounded-3xl border border-slate-100 bg-slate-50 p-8 w-full">
+                <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-4">Download the app</div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <button className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all">
+                    <Apple size={24} />
+                    <div className="text-left">
+                      <div className="text-[10px] text-white/60">Download on the</div>
+                      <div className="text-[16px] font-black">App Store</div>
+                    </div>
+                  </button>
+                  <button className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all">
+                    <Smartphone size={24} />
+                    <div className="text-left">
+                      <div className="text-[10px] text-white/60">Get it on</div>
+                      <div className="text-[16px] font-black">Google Play</div>
+                    </div>
+                  </button>
+                </div>
+                <div className="mt-6 flex items-center gap-2 text-[13px] text-slate-500">
+                  <Check size={16} className="text-emerald-500" /> Free with your FlowTeam account
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 lg:py-40 px-6 bg-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid lg:grid-cols-2 gap-16 items-start">
+            <div data-reveal className="lp-reveal">
+              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Frequently asked questions.</h2>
+              <p className="text-lg lg:text-xl text-slate-500">Fast answers for procurement, IT, and the team shipping the work.</p>
+            </div>
+            <div data-reveal className="lp-reveal space-y-4">
+              {faqs.map((f, idx) => {
+                const open = openFaq === idx;
+                return (
+                  <button
+                    key={f.q}
+                    className={cn("w-full text-left rounded-3xl border px-6 py-5 transition-all", open ? "border-indigo-200 bg-indigo-50/40" : "border-slate-100 bg-white hover:bg-slate-50")}
+                    onClick={() => setOpenFaq(open ? null : idx)}
+                    aria-expanded={open}
+                  >
+                    <div className="flex items-center justify-between gap-6">
+                      <div className="text-[15px] font-black text-slate-900">{f.q}</div>
+                      <div className={cn("h-8 w-8 rounded-full border flex items-center justify-center transition-all", open ? "border-indigo-200 bg-white text-indigo-600" : "border-slate-200 bg-white text-slate-500")}>
+                        {open ? <X size={14} /> : <ChevronDown size={14} />}
+                      </div>
+                    </div>
+                    {open && <div className="mt-3 text-[13px] text-slate-600 leading-relaxed">{f.a}</div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="py-24 px-6">
+        <div className="mx-auto max-w-7xl relative rounded-[24px] lg:rounded-[56px] overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#611f69] via-[#0052CC] to-[#6264A7] opacity-95" />
+          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(255,255,255,0.2),transparent_60%)]" />
+          <div className="relative z-10 px-5 sm:px-8 py-16 lg:py-24 text-center max-w-4xl mx-auto text-white">
+            <h2 className="text-4xl lg:text-6xl font-black mb-6 tracking-tight">Ready to transform how your team works?</h2>
+            <p className="text-lg lg:text-xl text-white/85 mb-10">
+              Start free in minutes, or schedule a demo for security + procurement workflows.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <div className="w-full sm:w-[360px]">
+                <input
+                  placeholder="Work email"
+                  className="w-full px-5 py-4 rounded-2xl bg-white/95 text-slate-900 placeholder:text-slate-400 font-semibold outline-none focus:ring-4 focus:ring-white/30"
+                />
+              </div>
+              <Link href="/register" className="w-full sm:w-auto">
+                <button className="w-full px-10 py-4 rounded-2xl bg-black/90 hover:bg-black text-white text-[16px] font-black shadow-2xl transition-all">
+                  Start Free
+                </button>
+              </Link>
+              <button className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm text-white text-[16px] font-black hover:bg-white/15 transition-all">
+                Schedule a Demo
+              </button>
+            </div>
+            <div className="mt-6 text-white/70 text-[13px] font-semibold flex flex-wrap items-center justify-center gap-6">
+              <span className="flex items-center gap-2"><Check size={16} /> No credit card required</span>
+              <span className="flex items-center gap-2"><Check size={16} /> Cancel anytime</span>
+              <span className="flex items-center gap-2"><Check size={16} /> Enterprise onboarding</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="pt-20 pb-12 px-6 border-t border-white/5 bg-[#050508] text-white">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10 mb-16">
+            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
+              <Logo className="mb-6" />
+              <p className="text-[13px] text-white/50 leading-relaxed max-w-[260px]">
+                FlowTeam is the all-in-one platform for planning, communication, and delivery — built for modern enterprises.
+              </p>
+            </div>
+            <FooterCol title="Product" items={["Chat", "Projects", "Meetings", "Integrations", "Security"]} />
+            <FooterCol title="Solutions" items={["Startups", "Remote", "Enterprise", "Agile teams", "Operations"]} />
+            <FooterCol title="Resources" items={["Docs", "Tutorials", "Community", "Status", "Support"]} />
+            <FooterCol title="Company" items={["About", "Careers", "Press", "Contact", "Legal"]} />
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-white/10">
+            <div className="text-[12px] text-white/30">© 2026 FlowTeam. All rights reserved.</div>
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-[12px] text-white/50">
+                <div className="h-2 w-2 rounded-full bg-emerald-400" />
+                All Systems Operational
+              </div>
+              <div className="h-4 w-[1px] bg-white/10" />
+              <button className="text-[12px] text-white/50 flex items-center gap-2 hover:text-white transition-colors">
+                <Globe size={14} /> English (US)
               </button>
             </div>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
 
+function FooterCol({ title, items }: { title: string; items: string[] }) {
+  return (
+    <div>
+      <h5 className="text-[12px] font-black mb-5 uppercase tracking-widest text-white/35">{title}</h5>
+      <ul className="space-y-3 text-[13px] text-white/60">
+        {items.map((i) => (
+          <li key={i}>
+            <Link href="#" className="hover:text-white transition-colors">
+              {i}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
 function Logo({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-3.5", className)}>
-      <div className="relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-[14px] bg-indigo-600 shadow-[0_12px_24px_-4px_rgba(79,70,229,0.5)]">
-        <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent" />
-        <span className="relative text-[20px] font-black text-white tracking-tighter">CW</span>
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#611f69] via-[#0052CC] to-[#6264A7] shadow-xl shadow-indigo-500/20">
+        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
+        <span className="relative text-[18px] font-black text-white tracking-tighter">FT</span>
       </div>
-      <span className="text-[22px] font-black tracking-[-0.05em] text-white uppercase">Cowrk</span>
+      <span className="text-[20px] font-black tracking-tight text-white">FlowTeam</span>
+    </div>
+  );
+}
+
+function ProductDemo({ view, onViewChange }: { view: DemoView; onViewChange: (v: DemoView) => void }) {
+  const tabs: Array<{ id: DemoView; label: string; icon: any; color: string }> = [
+    { id: "chat", label: "Chat", icon: Quote, color: "#611f69" },
+    { id: "projects", label: "Boards", icon: CheckCircle2, color: "#0052CC" },
+    { id: "meetings", label: "Meetings", icon: Video, color: "#6264A7" },
+  ];
+
+  return (
+    <div>
+      <div className="flex items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-white/10 bg-black/30">
+        <div className="hidden sm:flex items-center gap-2 text-white/60 text-[12px] font-black uppercase tracking-widest">
+          Live product view
+        </div>
+        <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => onViewChange(t.id)}
+              className={cn(
+                "px-2 md:px-3 py-1.5 rounded-full text-[12px] font-black transition-all flex items-center gap-1.5",
+                view === t.id ? "bg-white text-slate-900" : "text-white/70 hover:text-white"
+              )}
+            >
+              <t.icon size={14} />
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-6">
+        <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/20">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-black/30">
+            <div className="flex gap-1.5">
+              <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+              <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+            </div>
+            <div className="ml-3 text-[11px] text-white/45 font-mono">flowteam.app</div>
+          </div>
+
+          <div className="p-4 md:p-6">
+            {view === "chat" ? <DemoChat /> : view === "projects" ? <DemoProjects /> : <DemoMeetings />}
+          </div>
+        </div>
+
+        <div className="mt-3 md:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] md:text-[12px] text-white/55">
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+            <span className="font-semibold">Real-time updates</span>
+          </div>
+          <div className="font-semibold">Switches automatically</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DemoChat() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] md:grid-cols-[160px_1fr] gap-3 md:gap-4">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="text-[11px] font-black uppercase tracking-widest text-white/45 mb-3">Channels</div>
+        {["# delivery", "# engineering", "# design", "# launches"].map((c, i) => (
+          <div key={c} className={cn("px-3 py-2 rounded-lg text-[12px] font-semibold", i === 0 ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5")}>
+            {c}
+          </div>
+        ))}
+      </div>
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <div className="text-[13px] font-black text-white"># delivery</div>
+            <div className="text-[11px] text-white/45">Decisions + tasks in one thread</div>
+          </div>
+          <div className="flex items-center gap-2 text-white/45 text-[11px] font-semibold">
+            <Check size={14} className="text-emerald-400" />
+            Synced
+          </div>
+        </div>
+        <div className="space-y-3">
+          <ChatBubble name="Ava" tag="@ava" text="We should ship the onboarding improvements in Sprint 14." />
+          <ChatBubble name="Noah" tag="@noah" text="Agreed — I created tasks for copy + checklist updates." highlight />
+          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+            <div className="text-[11px] font-black text-white/60 mb-2">Thread</div>
+            <div className="text-[12px] text-white/70">Decision: Ship in Sprint 14 • Owner: @noah</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({ name, tag, text, highlight }: { name: string; tag: string; text: string; highlight?: boolean }) {
+  return (
+    <div className={cn("rounded-xl border p-3", highlight ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/10 bg-white/[0.02]")}>
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-[12px] font-black text-white">{name} <span className="text-white/45 font-semibold">{tag}</span></div>
+        <div className="text-[10px] text-white/35 font-semibold">2m</div>
+      </div>
+      <div className="text-[12px] text-white/75 leading-relaxed">{text}</div>
+    </div>
+  );
+}
+
+function DemoProjects() {
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {[
+        { title: "Backlog", color: "from-[#0052CC]/25" },
+        { title: "In Progress", color: "from-[#611f69]/25" },
+        { title: "Done", color: "from-emerald-500/25" },
+      ].map((col) => (
+        <div key={col.title} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden">
+          <div className={cn("px-3 py-2 text-[11px] font-black text-white/60 bg-gradient-to-r", col.color, "to-transparent border-b border-white/10")}>
+            {col.title}
+          </div>
+          <div className="p-3 space-y-2">
+            {Array.from({ length: col.title === "In Progress" ? 3 : 2 }).map((_, i) => (
+              <div key={i} className="rounded-lg border border-white/10 bg-black/20 p-3">
+                <div className="text-[12px] font-black text-white mb-1">Task {i + 1}</div>
+                <div className="text-[11px] text-white/55">Owner • ETA • Priority</div>
+                <div className="mt-2 h-2 rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full bg-indigo-400/70" style={{ width: `${35 + i * 18}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function DemoMeetings() {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <div className="text-[13px] font-black text-white">Sprint review</div>
+          <div className="text-[11px] text-white/45">Recording + notes attach to work</div>
+        </div>
+        <button className="px-3 py-2 rounded-lg bg-white text-slate-900 text-[12px] font-black flex items-center gap-2">
+          <Video size={14} />
+          Join
+        </button>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {["AP", "SC", "JW", "ER"].map((a, i) => (
+          <div key={a} className={cn("aspect-video rounded-xl border overflow-hidden", i === 0 ? "border-indigo-400/40 bg-indigo-500/10" : "border-white/10 bg-white/[0.02]")}>
+            <div className="h-full w-full flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-black text-white">{a}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="flex items-center justify-between">
+          <div className="text-[12px] font-black text-white">Agenda</div>
+          <div className="text-[11px] text-white/45 font-semibold">3 items</div>
+        </div>
+        <div className="mt-2 space-y-2">
+          {["Sprint outcomes", "Blockers", "Next sprint scope"].map((x) => (
+            <div key={x} className="flex items-center gap-2 text-[12px] text-white/70">
+              <div className="h-4 w-4 rounded bg-white/10 border border-white/10" />
+              {x}
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniChat({ accent }: { accent: string }) {
+  return (
+    <div className="rounded-xl bg-white p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-[12px] font-black text-slate-700"># launches</div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Threaded</div>
+      </div>
+      <div className="space-y-2">
+        <div className="rounded-lg border border-slate-100 p-3">
+          <div className="text-[11px] font-black text-slate-900">Decision</div>
+          <div className="text-[12px] text-slate-600">Ship the new pricing page on Monday.</div>
+        </div>
+        <div className="rounded-lg border border-slate-100 p-3" style={{ borderColor: `${accent}33`, background: `${accent}0A` }}>
+          <div className="text-[11px] font-black text-slate-900">Task created</div>
+          <div className="text-[12px] text-slate-600">“Finalize tier copy” assigned to @ava.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniBoard({ accent }: { accent: string }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {["To do", "Doing", "Done"].map((t, i) => (
+        <div key={t} className="rounded-xl border border-slate-100 bg-white p-3">
+          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t}</div>
+          <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
+            <div className="text-[11px] font-black text-slate-900">Card</div>
+            <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+              <div className="h-full" style={{ width: `${35 + i * 20}%`, background: accent }} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MiniMeeting({ accent }: { accent: string }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+      {["AP", "SC", "JW", "ER"].map((a, i) => (
+        <div key={a} className="aspect-square rounded-xl border border-slate-100 bg-white flex items-center justify-center">
+          <div className="h-9 w-9 rounded-full flex items-center justify-center font-black text-white" style={{ background: i === 0 ? accent : "#94a3b8" }}>
+            {a}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function UseCasePreview({ id }: { id: string }) {
+  if (id === "marketing") {
+    return (
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Campaign board</div>
+          <div className="space-y-2">
+            {["Draft", "Review", "Approved"].map((s) => (
+              <div key={s} className="rounded-xl border border-slate-100 bg-white p-3 text-[12px] font-semibold text-slate-700">
+                {s}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Stakeholder thread</div>
+          <div className="space-y-2">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[12px] text-slate-700">“Can we tweak the headline?”</div>
+            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-[12px] text-slate-700">Approved — ship version B.</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (id === "remote") {
+    return (
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Async check-in</div>
+          <div className="space-y-2 text-[12px] text-slate-700">
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">Yesterday: closed 8 tasks</div>
+            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">Today: unblock auth flow</div>
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">Blocker: waiting on review</div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Handoff</div>
+          <div className="rounded-xl border border-slate-100 bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="text-[12px] font-black text-slate-900">Timezone overlap</div>
+              <div className="text-[12px] font-black text-indigo-600">2h</div>
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
+              <div className="h-full bg-indigo-600" style={{ width: "35%" }} />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (id === "enterprise") {
+    return (
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Access policies</div>
+          <div className="space-y-2">
+            {["SSO required", "2FA enforced", "Guest expiry 7d"].map((p) => (
+              <div key={p} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[12px] text-slate-700 flex items-center justify-between">
+                <span>{p}</span>
+                <span className="text-emerald-700 font-black">On</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+          <div className="text-[12px] font-black text-slate-900 mb-2">Audit logs</div>
+          <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-2 text-[12px] text-slate-700">
+            <div className="flex items-center justify-between"><span>Role updated</span><span className="text-slate-400">1m</span></div>
+            <div className="flex items-center justify-between"><span>Workspace created</span><span className="text-slate-400">12m</span></div>
+            <div className="flex items-center justify-between"><span>SSO enabled</span><span className="text-slate-400">2h</span></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid sm:grid-cols-2 gap-4">
+      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <div className="text-[12px] font-black text-slate-900 mb-2">Sprint overview</div>
+        <div className="rounded-xl border border-slate-100 bg-white p-4">
+          <div className="text-[12px] font-black text-slate-900">Sprint 14</div>
+          <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
+            <div className="h-full bg-indigo-600" style={{ width: "62%" }} />
+          </div>
+          <div className="mt-2 text-[12px] text-slate-500">12 / 19 tasks complete</div>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+        <div className="text-[12px] font-black text-slate-900 mb-2">PR to task</div>
+        <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+          <div className="flex items-center justify-between">
+            <div className="text-[12px] font-black text-slate-900">#482</div>
+            <div className="text-[12px] font-black text-emerald-700">Merged</div>
+          </div>
+          <div className="text-[12px] text-slate-600 mt-2">“Improve onboarding completion”</div>
+        </div>
+      </div>
     </div>
   );
 }
