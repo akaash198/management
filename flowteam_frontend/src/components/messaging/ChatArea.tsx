@@ -8,13 +8,14 @@ import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
-import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon, Check } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { FormatToolbar } from "./FormatToolbar";
 import { CallComponent } from "./CallComponent";
 import { VoiceMemo } from "./VoiceMemo";
 import { SlashCommandMenu, SLASH_COMMANDS } from "./SlashCommandMenu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import type { ApiResponse, TeamMember } from "@/types";
@@ -26,6 +27,7 @@ import type { MessageEdit } from "@/types/messaging";
 import type { ScheduledMessage } from "@/types/messaging";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
@@ -2457,7 +2459,7 @@ export function ChatArea({
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setInfoOpen(true)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setDetailsOpen(true)}>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </div>
@@ -2465,7 +2467,7 @@ export function ChatArea({
             <button
               type="button"
               className="flex-1 py-2 text-[12px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors border-r border-border"
-              onClick={() => (isDirectConversation ? setMembersOpen(true) : setInfoOpen(true))}
+              onClick={() => { setDetailsTab(isDirectConversation ? "about" : "about"); setDetailsOpen(true); }}
             >
               {isDirectConversation ? "Profile" : "Details"}
             </button>
@@ -2484,7 +2486,7 @@ export function ChatArea({
             <button
               type="button"
               className="flex-1 py-2 text-[12px] font-medium text-muted-foreground hover:bg-muted/50 transition-colors"
-              onClick={() => (isDirectConversation ? setInfoOpen(true) : setMembersOpen(true))}
+              onClick={() => { setDetailsTab("members"); setDetailsOpen(true); }}
             >
               {isDirectConversation ? "More" : "Members"}
             </button>
@@ -2681,95 +2683,7 @@ export function ChatArea({
         </SheetContent>
       </Sheet>
 
-      <Sheet open={membersOpen} onOpenChange={setMembersOpen}>
-        <SheetContent side="right" className="w-[360px] sm:w-[420px]">
-          <SheetHeader>
-            <div className="flex items-center justify-between gap-3">
-              <SheetTitle>Members</SheetTitle>
-              {canManageChannel && channel.is_private && (
-                <Button variant="outline" size="sm" className="h-8" onClick={() => setAddMembersOpen(true)}>
-                  Add
-                </Button>
-              )}
-            </div>
-          </SheetHeader>
-          <div className="mt-4 space-y-3">
-            {membersLoading ? (
-              <p className="text-sm text-muted-foreground">Loading...</p>
-            ) : (channelMembers?.length ?? 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">No members found.</p>
-            ) : (
-              <div className="space-y-2">
-                {channelMembers?.map((m) => {
-                  const isOnline = !!onlineUserIds?.has(m.id);
-                  return (
-                    <div key={m.id} className="flex items-center gap-3 rounded-lg border border-border p-2.5">
-                      <div className="relative">
-                        <Avatar className="h-8 w-8 border border-border">
-                          <AvatarImage src={m.avatar || ""} />
-                          <AvatarFallback>{(m.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
-                        </Avatar>
-                          <span
-                            className={cn(
-                              "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card",
-                              isOnline ? "bg-emerald-500" : "bg-amber-500"
-                            )}
-                            title={isOnline ? "Online" : "Away"}
-                          />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{m.full_name}</div>
-                        {readStateByUserId.get(m.id)?.last_read_at ? (
-                          <div
-                            className="text-[11px] text-muted-foreground"
-                            title={new Date(readStateByUserId.get(m.id)!.last_read_at).toLocaleString()}
-                          >
-                            Last read{" "}
-                            {formatDistanceToNowStrict(new Date(readStateByUserId.get(m.id)!.last_read_at), {
-                              addSuffix: true,
-                            })}
-                          </div>
-                        ) : (
-                          <div className="text-[11px] text-muted-foreground">Last read unknown</div>
-                        )}
-                      </div>
-                      {canManageChannel && channel.is_private && user?.id !== m.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="ml-auto h-8 text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            if (!confirm("Remove this member from the channel?")) return;
-                            void removeMember(m.id);
-                          }}
-                        >
-                          Remove
-                        </Button>
-                      )}
-                      {onStartDirectMessage && user?.id !== m.id && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={cn(
-                            "h-8 gap-2 text-muted-foreground hover:bg-muted",
-                            canManageChannel && channel.is_private && user?.id !== m.id ? "" : "ml-auto"
-                          )}
-                          onClick={() => onStartDirectMessage(m.id)}
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                          Message
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Sheet
+      <Dialog
         open={addMembersOpen}
         onOpenChange={(open) => {
           setAddMembersOpen(open);
@@ -2779,133 +2693,98 @@ export function ChatArea({
           }
         }}
       >
-        <SheetContent side="right" className="w-[360px] sm:w-[420px]">
-          <SheetHeader>
-            <SheetTitle>Add members</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-3">
-            <Input value={addMemberQuery} onChange={(e) => setAddMemberQuery(e.target.value)} placeholder="Search…" />
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden border-none shadow-2xl">
+          <div className="flex flex-col">
+            <div className="p-6 pb-4 border-b border-border/50 bg-muted/5">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold tracking-tight">Add members to {channel.display_name}</DialogTitle>
+                <p className="text-xs text-muted-foreground mt-1">Select people from your team to join this channel.</p>
+              </DialogHeader>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input value={addMemberQuery} onChange={(e) => setAddMemberQuery(e.target.value)} placeholder="Search for people…" className="pl-9 h-10 text-[13px]" />
+              </div>
 
-            <div className="rounded-xl border border-border overflow-hidden">
-              <div className="max-h-[380px] overflow-auto divide-y divide-border">
-                {(teamMembers ?? []).length === 0 ? (
-                  <div className="p-4 text-sm text-muted-foreground">No team members found.</div>
-                ) : (
-                  (teamMembers ?? [])
-                    .filter((tm) => !(channelMembers ?? []).some((cm) => cm.id === tm.user.id))
-                    .filter((tm) => {
-                      const q = addMemberQuery.trim().toLowerCase();
-                      if (!q) return true;
-                      return (
-                        (tm.user.full_name ?? "").toLowerCase().includes(q) ||
-                        (tm.user.email ?? "").toLowerCase().includes(q)
-                      );
-                    })
-                    .map((tm) => {
-                      const checked = selectedAddIds.has(tm.user.id);
-                      const isOnline = !!onlineUserIds?.has(tm.user.id);
-                      return (
-                        <button
-                          key={tm.id}
-                          type="button"
-                          className="w-full flex items-center justify-between gap-3 p-3 hover:bg-muted/30 text-left"
-                          onClick={() => {
-                            setSelectedAddIds((prev) => {
-                              const next = new Set(prev);
-                              if (next.has(tm.user.id)) next.delete(tm.user.id);
-                              else next.add(tm.user.id);
-                              return next;
-                            });
-                          }}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="relative">
-                              <Avatar className="h-8 w-8 border border-border">
-                                <AvatarImage src={tm.user.avatar_url || ""} />
-                                <AvatarFallback>{(tm.user.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
-                              </Avatar>
-                              <span
-                                className={cn(
-                                  "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card",
-                                  isOnline ? "bg-emerald-500" : "bg-amber-500"
-                                )}
-                                title={isOnline ? "Online" : "Away"}
-                              />
+              <div className="rounded-xl border border-border overflow-hidden bg-muted/5">
+                <div className="max-h-[300px] overflow-auto divide-y divide-border/50">
+                  {(teamMembers ?? []).length === 0 ? (
+                    <div className="p-8 text-center text-[13px] text-muted-foreground italic">No team members found.</div>
+                  ) : (
+                    (teamMembers ?? [])
+                      .filter((tm) => !(channelMembers ?? []).some((cm) => cm.id === tm.user.id))
+                      .filter((tm) => {
+                        const q = addMemberQuery.trim().toLowerCase();
+                        if (!q) return true;
+                        return (
+                          (tm.user.full_name ?? "").toLowerCase().includes(q) ||
+                          (tm.user.email ?? "").toLowerCase().includes(q)
+                        );
+                      })
+                      .map((tm) => {
+                        const checked = selectedAddIds.has(tm.user.id);
+                        const isOnline = !!onlineUserIds?.has(tm.user.id);
+                        return (
+                          <button
+                            key={tm.id}
+                            type="button"
+                            className="w-full flex items-center justify-between gap-3 p-3 hover:bg-muted/40 text-left transition-colors group"
+                            onClick={() => {
+                              setSelectedAddIds((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(tm.user.id)) next.delete(tm.user.id);
+                                else next.add(tm.user.id);
+                                return next;
+                              });
+                            }}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="relative">
+                                <Avatar className="h-9 w-9 border border-border shadow-sm group-hover:scale-105 transition-transform">
+                                  <AvatarImage src={tm.user.avatar_url || ""} />
+                                  <AvatarFallback className="text-[12px] font-bold">{(tm.user.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <span
+                                  className={cn(
+                                    "absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-background",
+                                    isOnline ? "bg-emerald-500" : "bg-amber-500"
+                                  )}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-[13px] font-semibold truncate">{tm.user.full_name}</div>
+                                <div className="text-[11px] text-muted-foreground truncate opacity-70">{tm.user.email}</div>
+                              </div>
                             </div>
-                            <div className="min-w-0">
-                              <div className="text-sm font-medium truncate">{tm.user.full_name}</div>
-                              <div className="text-xs text-muted-foreground truncate">{tm.user.email}</div>
+                            <div className={cn(
+                              "h-5 w-5 rounded-full border flex items-center justify-center transition-all duration-200",
+                              checked ? "bg-primary border-primary text-primary-foreground scale-110" : "border-muted-foreground/30 group-hover:border-primary/50"
+                            )}>
+                              {checked && <Check size={12} strokeWidth={3} />}
                             </div>
-                          </div>
-                          <div className={cn("text-xs font-medium", checked ? "text-primary" : "text-muted-foreground")}>
-                            {checked ? "Selected" : "Select"}
-                          </div>
-                        </button>
-                      );
-                    })
-                )}
+                          </button>
+                        );
+                      })
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setAddMembersOpen(false)}>
+            <div className="p-4 border-t border-border/50 bg-muted/5 flex justify-end gap-2">
+              <Button variant="ghost" size="sm" className="h-9 px-4 text-[13px]" onClick={() => setAddMembersOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => void addMembers()} disabled={selectedAddIds.size === 0}>
-                Add ({selectedAddIds.size})
+              <Button size="sm" className="h-9 px-6 text-[13px] font-semibold" onClick={() => void addMembers()} disabled={selectedAddIds.size === 0}>
+                Add {selectedAddIds.size > 0 ? `(${selectedAddIds.size})` : ""}
               </Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
-      <Sheet open={infoOpen} onOpenChange={setInfoOpen}>
-        <SheetContent side="right" className="w-[360px] sm:w-[420px]">
-          <SheetHeader>
-            <SheetTitle>Channel info</SheetTitle>
-          </SheetHeader>
-          <div className="mt-4 space-y-4">
-            <div className="rounded-lg border border-border p-3">
-              <div className="text-xs text-muted-foreground mb-1">Name</div>
-              <div className="text-sm font-medium">#{channel.name}</div>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <div className="text-xs text-muted-foreground mb-1">Description</div>
-              <div className="text-sm">{channel.description || "No description set"}</div>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <div className="text-xs text-muted-foreground mb-1">Privacy</div>
-              <div className="text-sm font-medium">{channel.is_private ? "Private" : "Public"}</div>
-            </div>
-            <div className="rounded-lg border border-border p-3">
-              <div className="text-xs text-muted-foreground mb-1">Members</div>
-              <div className="text-sm font-medium">
-                {membersLoading ? "Loading..." : `${channelMembers?.length ?? 0}`}
-              </div>
-            </div>
-            <div className="rounded-lg border border-border p-3 space-y-2">
-              <div className="text-xs text-muted-foreground">Notification preferences</div>
-              <select
-                value={notificationLevel}
-                onChange={(e) => setNotificationLevel(e.target.value as "all" | "mentions" | "mute")}
-                className="h-9 w-full rounded-md border border-border bg-background px-3 text-[13px]"
-              >
-                <option value="all">All messages</option>
-                <option value="mentions">Mentions only</option>
-                <option value="mute">Mute notifications</option>
-              </select>
-              <Input
-                value={notificationKeywords}
-                onChange={(e) => setNotificationKeywords(e.target.value)}
-                placeholder="Keywords (comma separated)"
-              />
-              <Button className="w-full" onClick={() => void saveNotificationPreferences()} disabled={savingNotificationPrefs}>
-                {savingNotificationPrefs ? "Saving..." : "Save preferences"}
-              </Button>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+      {/* Redundant sheets removed */}
 
       <Sheet open={pinsOpen} onOpenChange={setPinsOpen}>
         <SheetContent side="right" className="w-[380px] sm:w-[460px] p-0">
@@ -3230,19 +3109,22 @@ export function ChatArea({
         remoteUserName={directPeer?.full_name ?? incomingCall?.callerName ?? channel.display_name}
         remoteUserAvatar={directPeer?.avatar ?? undefined}
       />
-      {/* ── Channel Details Sheet ── */}
-      <Sheet open={detailsOpen} onOpenChange={setDetailsOpen}>
-        <SheetContent side="right" className="w-[380px] sm:w-[520px] p-0 flex flex-col">
+      {/* ── Channel Details Modal ── */}
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-2xl p-0 flex flex-col h-[85vh] sm:h-[700px] overflow-hidden gap-0">
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            <div className="p-6 border-b border-border">
-              <SheetHeader className="mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded border border-primary/20 bg-primary/10 text-primary">
-                    {channel.is_private ? <Lock size={12} /> : <Hash size={12} />}
+            <div className="p-6 pb-4 border-b border-border/50 bg-muted/5">
+              <DialogHeader className="mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 text-primary shadow-sm">
+                    {channel.is_private ? <Lock size={20} /> : <Hash size={20} />}
                   </div>
-                  <SheetTitle className="text-xl font-bold">{channel.display_name}</SheetTitle>
+                  <div>
+                    <DialogTitle className="text-2xl font-bold tracking-tight">{channel.display_name}</DialogTitle>
+                    <p className="text-xs text-muted-foreground mt-0.5">Channel Details & Settings</p>
+                  </div>
                 </div>
-              </SheetHeader>
+              </DialogHeader>
 
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="h-8 gap-1.5 rounded-full text-[11px]" onClick={toggleStar}>
@@ -3366,20 +3248,55 @@ export function ChatArea({
                 </TabsContent>
 
                 <TabsContent value="settings" className="m-0 space-y-6">
-                   <div className="space-y-2">
-                      <h3 className="text-[13px] font-bold text-destructive">Danger Zone</h3>
-                      <div className="rounded-xl border border-destructive/20 p-4 bg-destructive/5 space-y-4">
-                         <div className="flex items-center justify-between">
-                            <div>
-                               <p className="text-[13px] font-semibold">Leave channel</p>
-                               <p className="text-[11px] text-muted-foreground">You can rejoin later if it's public.</p>
-                            </div>
-                            <Button variant="destructive" size="sm" className="h-8 px-4" onClick={() => void leaveChannel()}>
-                               Leave
-                            </Button>
-                         </div>
+                  <div className="space-y-4">
+                    <h3 className="text-[13px] font-bold">Notification Preferences</h3>
+                    <div className="space-y-4 rounded-xl border border-border p-4 bg-muted/10">
+                      <div className="space-y-1.5">
+                        <Label className="text-[12px]">Notify me about</Label>
+                        <select
+                          value={notificationLevel}
+                          onChange={(e) => setNotificationLevel(e.target.value as "all" | "mentions" | "mute")}
+                          className="h-9 w-full rounded-lg border border-border bg-background px-3 text-[13px] outline-none focus:ring-1 ring-primary/20"
+                        >
+                          <option value="all">All messages</option>
+                          <option value="mentions">Mentions only</option>
+                          <option value="mute">Nothing (Mute)</option>
+                        </select>
                       </div>
-                   </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-[12px]">Keywords</Label>
+                        <Input
+                          value={notificationKeywords}
+                          onChange={(e) => setNotificationKeywords(e.target.value)}
+                          placeholder="e.g. urgent, feedback, alpha"
+                          className="h-9 text-[13px]"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Get notified whenever these words are mentioned.</p>
+                      </div>
+                      <Button 
+                        className="w-full h-9 text-[13px] font-semibold" 
+                        onClick={() => void saveNotificationPreferences()} 
+                        disabled={savingNotificationPrefs}
+                      >
+                        {savingNotificationPrefs ? "Saving..." : "Save Preferences"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="text-[13px] font-bold text-destructive">Danger Zone</h3>
+                    <div className="rounded-xl border border-destructive/20 p-4 bg-destructive/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[13px] font-semibold">Leave channel</p>
+                          <p className="text-[11px] text-muted-foreground">You can rejoin later if it's public.</p>
+                        </div>
+                        <Button variant="destructive" size="sm" className="h-8 px-4" onClick={() => void leaveChannel()}>
+                          Leave
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="tabs" className="m-0 py-12 text-center text-muted-foreground">
@@ -3396,8 +3313,8 @@ export function ChatArea({
               </div>
             </Tabs>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

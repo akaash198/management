@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { usePresenceStore } from "@/store/presence";
 
 interface ChatSidebarProps {
   channels: Channel[];
@@ -79,7 +80,7 @@ export function ChatSidebar({
   const [allChannels, setAllChannels] = useState<Channel[]>([]);
   const [browseLoading, setBrowseLoading] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
-  const [userStatus, setUserStatus] = useState({ emoji: "💬", text: "" });
+  const { customStatus, setCustomStatus } = usePresenceStore();
   const searchRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -307,8 +308,8 @@ export function ChatSidebar({
             className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-[hsl(220_18%_20%)] max-w-[180px]"
             style={{ color: "hsl(var(--sidebar-fg-muted))" }}
           >
-            <span className="shrink-0">{userStatus.emoji}</span>
-            <span className="truncate">{userStatus.text || "Set status"}</span>
+            <span className="shrink-0">{customStatus?.emoji || "💬"}</span>
+            <span className="truncate">{customStatus?.text || "Set status"}</span>
           </button>
         </div>
 
@@ -713,7 +714,6 @@ export function ChatSidebar({
         </DialogContent>
       </Dialog>
 
-      {/* ── Custom Status dialog ── */}
       <Dialog open={statusOpen} onOpenChange={setStatusOpen}>
         <DialogContent className="sm:max-w-[420px]">
           <DialogHeader>
@@ -721,14 +721,19 @@ export function ChatSidebar({
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="flex gap-2">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-xl cursor-pointer hover:bg-muted transition-colors">
-                {userStatus.emoji}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-muted/50 text-xl">
+                {customStatus?.emoji || "💬"}
               </div>
               <Input
                 placeholder="What's your status?"
-                value={userStatus.text}
-                onChange={(e) => setUserStatus(prev => ({ ...prev, text: e.target.value }))}
-                onKeyDown={(e) => e.key === 'Enter' && setStatusOpen(false)}
+                defaultValue={customStatus?.text || ""}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const text = (e.target as HTMLInputElement).value;
+                    setCustomStatus({ emoji: customStatus?.emoji || "💬", text, clearAt: null });
+                    setStatusOpen(false);
+                  }
+                }}
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -743,7 +748,7 @@ export function ChatSidebar({
                 <button
                   key={s.t}
                   className="rounded-full border border-border px-3 py-1 text-[12px] hover:bg-muted transition-colors"
-                  onClick={() => setUserStatus({ emoji: s.e, text: s.t })}
+                  onClick={() => setCustomStatus({ emoji: s.e, text: s.t, clearAt: null })}
                 >
                   {s.e} {s.t}
                 </button>
@@ -751,8 +756,8 @@ export function ChatSidebar({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setUserStatus({ emoji: "💬", text: "" }); setStatusOpen(false); }}>Clear</Button>
-            <Button onClick={() => setStatusOpen(false)}>Save</Button>
+            <Button variant="outline" onClick={() => { setCustomStatus(null); setStatusOpen(false); }}>Clear</Button>
+            <Button onClick={() => setStatusOpen(false)}>Done</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
