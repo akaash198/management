@@ -113,18 +113,15 @@ def _connect(host: str, user: str, key_text: str) -> paramiko.SSHClient:
             "matching *private* key (not the .pub)."
         ) from exc
     except (paramiko.AuthenticationException, paramiko.SSHException) as exc:
-        # Some SSH servers have strict/legacy RSA signature algorithm policies.
-        # If we're using an RSA key, retry with alternative pubkey algorithms.
         if isinstance(pkey, paramiko.RSAKey):
             for disabled in (
-                {"pubkeys": ["ssh-rsa"]},  # force rsa-sha2
-                {"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},  # force ssh-rsa
+                {"pubkeys": ["ssh-rsa"]},
+                {"pubkeys": ["rsa-sha2-256", "rsa-sha2-512"]},
             ):
                 try:
                     return _try_connect(disabled_algorithms=disabled)
                 except (paramiko.AuthenticationException, paramiko.SSHException):
                     continue
-            # If the server rejects all RSA algorithms, provide a clearer hint.
             if "no RSA pubkey algorithms are configured" in str(exc):
                 raise RuntimeError(
                     "SSH server rejected RSA keys (no RSA pubkey algorithms enabled). "
@@ -142,76 +139,51 @@ def _run(client: paramiko.SSHClient, command: str) -> Tuple[int, str, str]:
     return exit_code, out, err
 
 
+def _upload_bytes(client: paramiko.SSHClient, data: bytes, remote_path: str, mode: int = 0o644) -> None:
+    """Write bytes to a remote file by piping through stdin — no SFTP required.
+
+    Uses a .tmp-then-rename pattern for atomicity, and sudo-with-fallback
+    so it works whether or not the deploy user owns the target directory.
+    """
+    tmp_path = remote_path + ".tmp"
+    mode_oct = oct(mode)[2:]
+
+    # Write via stdin: `cat > tmp` then atomic rename + chmod.
+    # Use sudo for the move/chmod so root-owned directories work too.
+    cmd = (
+        f"cat > {tmp_path} && "
+        f"(sudo mv {tmp_path} {remote_path} && sudo chmod {mode_oct} {remote_path} || "
+        f"mv {tmp_path} {remote_path} && chmod {mode_oct} {remote_path})"
+    )
+    transport = client.get_transport()
+    if transport is None:
+        raise RuntimeError("SSH transport is not available")
+    chan = transport.open_session()
+    chan.exec_command(cmd)
+    chan.sendall(data)
+    chan.shutdown_write()
+    exit_code = chan.recv_exit_status()
+    err = chan.recv_stderr(65536).decode("utf-8", errors="replace")
+    chan.close()
+    if exit_code != 0:
+        raise RuntimeError(f"Upload to {remote_path} failed (exit {exit_code}): {err.strip()}")
+
+
+def _upload_file(client: paramiko.SSHClient, local_path: str, remote_path: str, mode: int = 0o644) -> None:
+    with open(local_path, "rb") as f:
+        data = f.read()
+    _upload_bytes(client, data, remote_path, mode=mode)
+
+
+def _upload_text(client: paramiko.SSHClient, text: str, remote_path: str, mode: int = 0o644) -> None:
+    _upload_bytes(client, text.encode("utf-8"), remote_path, mode=mode)
+
+
 def _ensure_dir(client: paramiko.SSHClient, path: str) -> None:
-    # Create the directory (sudo handles root-owned parent paths).
     code, _, err = _run(client, f"mkdir -p {path} 2>/dev/null || sudo mkdir -p {path}")
     if code != 0:
         raise RuntimeError(f"mkdir failed: {err.strip()}")
     _run(client, f"sudo chmod 755 {path} || chmod 755 {path} || true")
-
-
-def _get_home(client: paramiko.SSHClient) -> str:
-    """Return the remote user's home directory."""
-    _, out, _ = _run(client, "echo $HOME")
-    home = out.strip()
-    return home if home else "/tmp"
-
-
-def _sftp_write_bytes(sftp: paramiko.SFTPClient, remote_path: str, data: bytes, mode: int = 0o644) -> None:
-    """Write bytes to a remote path via SFTP file handle (no sftp.put confirm issues)."""
-    tmp_path = remote_path + ".tmp"
-    last_err = None
-    for attempt in range(3):
-        try:
-            try:
-                sftp.remove(tmp_path)
-            except IOError:
-                pass
-            with sftp.file(tmp_path, "wb") as rf:
-                rf.write(data)
-            sftp.chmod(tmp_path, mode)
-            sftp.posix_rename(tmp_path, remote_path)
-            return
-        except (OSError, IOError) as e:
-            last_err = e
-            print(f"SFTP write failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
-    raise last_err or RuntimeError(f"Failed to write {remote_path} after 3 attempts")
-
-
-def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode: int = 0o644) -> None:
-    _sftp_write_bytes(sftp, remote_path, text.encode("utf-8"), mode=mode)
-
-
-def _sftp_put_file(
-    sftp: paramiko.SFTPClient,
-    client: paramiko.SSHClient,
-    local_path: str,
-    remote_path: str,
-    home: str,
-    mode: int = 0o644,
-) -> None:
-    """Upload a local file to remote_path.
-
-    Uploads to a staging file in $HOME first (always writable by the SSH user),
-    then uses sudo mv to place it at the final destination.  This avoids SFTP
-    write failures when the deploy user doesn't own the target directory.
-    """
-    filename = posixpath.basename(remote_path)
-    staging = posixpath.join(home, f".deploy_staging_{filename}")
-
-    with open(local_path, "rb") as lf:
-        data = lf.read()
-
-    _sftp_write_bytes(sftp, staging, data, mode=0o644)
-
-    # Move from staging into the deploy path using sudo (handles root-owned dirs).
-    mv_cmd = (
-        f"sudo mv {staging} {remote_path} && sudo chmod {oct(mode)[2:]} {remote_path}"
-        f" || mv {staging} {remote_path}"
-    )
-    code, _, err = _run(client, mv_cmd)
-    if code != 0:
-        raise RuntimeError(f"Failed to install {remote_path}: {err.strip()}")
 
 
 def _remote_exists(client: paramiko.SSHClient, remote_path: str) -> bool:
@@ -229,7 +201,6 @@ def _render_env_prod(template_text: str, *, server_ip: Optional[str], allowed_ho
 
 
 def _bootstrap_ufw(client: paramiko.SSHClient) -> None:
-    # Keep it simple/idempotent.
     cmds = [
         "sudo ufw --force reset",
         "sudo ufw allow OpenSSH",
@@ -275,54 +246,36 @@ def main() -> int:
 
     with _connect(args.host, args.user, ssh_key_text) as client:
         _ensure_dir(client, args.deploy_path)
-        home = _get_home(client)
-        with client.open_sftp() as sftp:
-            if args.upload:
-                _sftp_put_file(
-                    sftp, client,
-                    local_compose,
-                    posixpath.join(args.deploy_path, "docker-compose.prod.yml"),
-                    home,
-                )
-                _sftp_put_file(
-                    sftp, client,
-                    local_caddyfile,
-                    posixpath.join(args.deploy_path, "Caddyfile"),
-                    home,
-                )
 
-            if args.write_env_prod:
-                remote_env = posixpath.join(args.deploy_path, ".env.prod")
-                if not _remote_exists(client, remote_env):
-                    template = open(local_env_example, "r", encoding="utf-8").read()
-                    rendered = _render_env_prod(template, server_ip=args.server_ip, allowed_hosts=args.allowed_hosts)
-                    if args.env_postgres_password:
-                        rendered = re.sub(
-                            r"^POSTGRES_PASSWORD=.*$",
-                            f"POSTGRES_PASSWORD={args.env_postgres_password}",
-                            rendered,
-                            flags=re.MULTILINE,
-                        )
-                    if args.env_secret_key:
-                        rendered = re.sub(
-                            r"^SECRET_KEY=.*$",
-                            f"SECRET_KEY={args.env_secret_key}",
-                            rendered,
-                            flags=re.MULTILINE,
-                        )
-                    # Stage rendered content in $HOME (always writable), then sudo mv into place.
-                    staging_env = posixpath.join(home, ".deploy_staging_.env.prod")
-                    _sftp_put_text(sftp, staging_env, rendered, mode=0o600)
-                    mv_cmd = (
-                        f"sudo mv {staging_env} {remote_env} && sudo chmod 600 {remote_env}"
-                        f" || mv {staging_env} {remote_env}"
+        if args.upload:
+            _upload_file(client, local_compose, posixpath.join(args.deploy_path, "docker-compose.prod.yml"))
+            print("Uploaded docker-compose.prod.yml")
+            _upload_file(client, local_caddyfile, posixpath.join(args.deploy_path, "Caddyfile"))
+            print("Uploaded Caddyfile")
+
+        if args.write_env_prod:
+            remote_env = posixpath.join(args.deploy_path, ".env.prod")
+            if not _remote_exists(client, remote_env):
+                template = open(local_env_example, "r", encoding="utf-8").read()
+                rendered = _render_env_prod(template, server_ip=args.server_ip, allowed_hosts=args.allowed_hosts)
+                if args.env_postgres_password:
+                    rendered = re.sub(
+                        r"^POSTGRES_PASSWORD=.*$",
+                        f"POSTGRES_PASSWORD={args.env_postgres_password}",
+                        rendered,
+                        flags=re.MULTILINE,
                     )
-                    code, _, err = _run(client, mv_cmd)
-                    if code != 0:
-                        raise RuntimeError(f"Failed to install {remote_env}: {err.strip()}")
-                    print(f"Created {remote_env}")
-                else:
-                    print("Skipping .env.prod (already exists).")
+                if args.env_secret_key:
+                    rendered = re.sub(
+                        r"^SECRET_KEY=.*$",
+                        f"SECRET_KEY={args.env_secret_key}",
+                        rendered,
+                        flags=re.MULTILINE,
+                    )
+                _upload_text(client, rendered, remote_env, mode=0o600)
+                print(f"Created {remote_env}")
+            else:
+                print("Skipping .env.prod (already exists).")
 
         if args.bootstrap_ufw:
             _bootstrap_ufw(client)
