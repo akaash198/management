@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
-import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { FormatToolbar } from "./FormatToolbar";
 import { CallComponent } from "./CallComponent";
