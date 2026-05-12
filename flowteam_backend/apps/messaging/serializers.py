@@ -7,9 +7,11 @@ from apps.projects.models import Comment
 from apps.teams.models import Team
 
 class SlimUserSerializer(serializers.ModelSerializer):
+    timezone = serializers.CharField(source="timezone_pref", required=False, read_only=True)
+
     class Meta:
         model = UserSerializer.Meta.model
-        fields = ["id", "full_name", "avatar"]
+        fields = ["id", "full_name", "avatar", "timezone"]
 
 class MessageReactionSerializer(serializers.ModelSerializer):
     class Meta:

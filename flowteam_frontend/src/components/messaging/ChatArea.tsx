@@ -8,10 +8,12 @@ import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
-import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { FormatToolbar } from "./FormatToolbar";
 import { CallComponent } from "./CallComponent";
+import { VoiceMemo } from "./VoiceMemo";
+import { SlashCommandMenu, SLASH_COMMANDS } from "./SlashCommandMenu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
@@ -111,6 +113,10 @@ export function ChatArea({
   const [detailsTab, setDetailsTab] = useState<string>("about");
   const [memberSearch, setMemberSearch] = useState("");
   const [isStarred, setIsStarred] = useState(false);
+  const [slashMenuVisible, setSlashMenuVisible] = useState(false);
+  const [slashMenuIndex, setSlashMenuIndex] = useState(0);
+  const [firstUnreadIdx, setFirstUnreadIdx] = useState<number | null>(null);
+  const [showJumpBanner, setShowJumpBanner] = useState(false);
   const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
 
   useEffect(() => {
@@ -402,6 +408,43 @@ export function ChatArea({
 
     if (isAtBottomRef.current) scrollToBottom("auto");
   }, [messages.length, scrollToBottom]);
+
+  useEffect(() => {
+    // Detect slash command trigger at the start of the message
+    if (text.startsWith("/") && !text.includes(" ")) {
+      setSlashMenuVisible(true);
+    } else {
+      setSlashMenuVisible(false);
+      setSlashMenuIndex(0);
+    }
+  }, [text]);
+
+  const handleSlashKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (!slashMenuVisible) return;
+
+    // Filter available commands based on current input
+    const typed = text.split(" ")[0].toLowerCase();
+    const filtered = SLASH_COMMANDS.filter((c) => c.command.startsWith(typed));
+    if (!filtered.length) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSlashMenuIndex((prev) => (prev + 1) % filtered.length);
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSlashMenuIndex((prev) => (prev - 1 + filtered.length) % filtered.length);
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      const selected = filtered[slashMenuIndex];
+      if (selected) {
+        setText(selected.command + " ");
+        setSlashMenuVisible(false);
+        setSlashMenuIndex(0);
+      }
+    } else if (e.key === "Escape") {
+      setSlashMenuVisible(false);
+    }
+  }, [slashMenuIndex, slashMenuVisible, text]);
 
   useEffect(() => {
     // Best-effort typing indicator (debounced stop).
@@ -1126,7 +1169,7 @@ export function ChatArea({
     return rawInput.replace(/:([a-z0-9_+-]+):/gi, (full, key) => map[String(key).toLowerCase()] ?? full);
   }, []);
 
-  const applySlashCommand = useCallback((rawInput: string): string => {
+  const applySlashCommand = useCallback((rawInput: string): string | null => {
     const raw = rawInput.trim();
     if (!raw.startsWith("/")) return rawInput;
 
@@ -1136,13 +1179,42 @@ export function ChatArea({
 
     if (command === "/shrug") return `${payload}${payload ? " " : ""}¯\\_(ツ)_/¯`;
     if (command === "/giphy") return payload ? `[GIF] https://giphy.com/search/${encodeURIComponent(payload)}` : "[GIF]";
-    if (command === "/assign") return payload ? `Assigned: ${payload}` : "Usage: /assign @user task";
-    if (command === "/remind") return payload ? `Reminder: ${payload}` : "Usage: /remind 10m follow up";
+    if (command === "/assign") return payload ? `📋 Assigned: ${payload}` : "Usage: /assign @user task";
+    if (command === "/remind") {
+      if (!payload) return "Usage: /remind 15m Follow up with client";
+      // Parse time offset
+      const timeMatch = payload.match(/^(\d+)(m|h|d)\s*/i);
+      if (timeMatch) {
+        const val = parseInt(timeMatch[1]);
+        const unit = timeMatch[2].toLowerCase();
+        const unitLabel = unit === "m" ? "minute" : unit === "h" ? "hour" : "day";
+        const reminderText = payload.slice(timeMatch[0].length).trim() || "Reminder";
+        return `⏰ Reminder set for ${val} ${unitLabel}${val > 1 ? "s" : ""}: ${reminderText}`;
+      }
+      return `⏰ Reminder: ${payload}`;
+    }
     if (command === "/poll") {
       const items = payload.split("|").map((item) => item.trim()).filter(Boolean);
       if (items.length < 3) return "Usage: /poll Question | Option 1 | Option 2";
       const [question, ...options] = items;
-      return [`📊 Poll: ${question}`, ...options.map((option, index) => `${index + 1}. ${option}`)].join("\n");
+      const emojis = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+      return [`📊 **Poll: ${question}**`, "", ...options.map((option, index) => `${emojis[index] ?? `${index + 1}.`} ${option}`), "", "_React with the number to vote!_"].join("\n");
+    }
+    if (command === "/status") {
+      if (!payload) return "Usage: /status 🌴 On vacation";
+      toast.success(`Status updated: ${payload}`);
+      return null; // Don't send as a message
+    }
+    if (command === "/help") {
+      return [
+        "📖 **Available Commands:**",
+        "• `/poll Question | Opt1 | Opt2` — Create a team poll",
+        "• `/remind 15m Follow up` — Set a reminder",
+        "• `/shrug` — Append ¯\\_(ツ)_/¯",
+        "• `/giphy search` — Share a GIF",
+        "• `/assign @user task` — Assign a task",
+        "• `/status 🌴 text` — Set your status",
+      ].join("\n");
     }
     return rawInput;
   }, []);
@@ -1150,6 +1222,12 @@ export function ChatArea({
   const handleSend = (parentId?: string) => {
     if (!text.trim() && pendingAttachments.length === 0) return;
     const parsedText = applySlashCommand(expandEmojiShortcodes(text));
+    // Slash commands like /status return null to suppress sending
+    if (parsedText === null) {
+      setText("");
+      setSlashMenuVisible(false);
+      return;
+    }
     const finalText = quoteMessage ? `> ${quoteMessage.sender}: ${quoteMessage.text}\n${parsedText}` : parsedText;
     const ok = sendMessage(finalText, parentId, pendingAttachments);
     if (!ok) {
@@ -1864,6 +1942,22 @@ export function ChatArea({
                 )}
               </div>
             )}
+            
+            {firstUnreadId && (
+              <div className="sticky top-2 z-30 px-6 pointer-events-none">
+                <div className="mx-auto max-w-5xl flex justify-center">
+                  <button
+                    type="button"
+                    className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
+                    onClick={() => scrollToMessage(firstUnreadId, { highlight: true })}
+                  >
+                    <ArrowDown size={14} />
+                    Jump to new messages
+                  </button>
+                </div>
+              </div>
+            )}
+
             {(hasMoreHistory || isLoadingOlder) && displayedMessages.length > 0 && (
               <div className="flex justify-center pb-2">
                 <Button
@@ -2072,6 +2166,18 @@ export function ChatArea({
             onDragLeave={onDragLeave}
             onDrop={onDrop}
           >
+            {/* Slash Command Autocomplete Menu */}
+            <SlashCommandMenu
+              input={text}
+              visible={slashMenuVisible}
+              selectedIndex={slashMenuIndex}
+              onSelect={(cmd) => {
+                setText(cmd + " ");
+                setSlashMenuVisible(false);
+                setSlashMenuIndex(0);
+                composerRef.current?.focus();
+              }}
+            />
             {dragActive && (
               <div className="absolute inset-1 rounded-xl border-2 border-dashed border-primary/50 bg-background/80 flex items-center justify-center pointer-events-none z-20">
                 <div className="text-sm font-medium text-primary">Drop files to attach</div>
@@ -2146,6 +2252,25 @@ export function ChatArea({
                  ))}
                </div>
              )}
+
+             {/* Typing Indicators */}
+             {Object.keys(typingUsers).length > 0 && (
+               <div className="flex items-center gap-2 px-3 mb-1 text-[11px] text-muted-foreground animate-in fade-in slide-in-from-bottom-2">
+                 <div className="flex space-x-1 items-center bg-muted/40 px-2 py-1 rounded-full">
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                   <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                 </div>
+                 <span>
+                   {Object.values(typingUsers).length === 1
+                     ? `${Object.values(typingUsers)[0].name} is typing...`
+                     : Object.values(typingUsers).length === 2
+                     ? `${Object.values(typingUsers)[0].name} and ${Object.values(typingUsers)[1].name} are typing...`
+                     : "Several people are typing..."}
+                 </span>
+               </div>
+             )}
+
              <MentionAutocomplete 
                 value={text}
                 onChange={setText}
@@ -2153,6 +2278,7 @@ export function ChatArea({
                 teamId={activeTeamId ?? ""}
                 inputRef={composerRef}
                 onPaste={handlePaste}
+                onKeyDown={handleSlashKeyDown}
                 className="min-h-[56px] resize-none border-none bg-transparent px-2 shadow-none focus-visible:ring-0"
                 placeholder={`Message ${channel.is_private ? "" : "#"}${channel.display_name || channel.name}`}
                 onSubmit={() => handleSend(threadOpen && threadRoot ? threadRoot.id : undefined)}
@@ -2226,7 +2352,41 @@ export function ChatArea({
                  >
                    <Clock3 size={15} />
                  </button>
+                 <VoiceMemo
+                   onSend={async (blob) => {
+                     const form = new FormData();
+                     form.append("files", blob, `voice-memo-${Date.now()}.webm`);
+                     try {
+                       const res = await api.post<ApiResponse<Attachment[]>>(`/messaging/channels/${channel.id}/uploads/`, form);
+                       const atts = res.data.data;
+                       if (atts && atts.length > 0) {
+                         sendMessage("🎙️ Voice memo", undefined, [atts[0]]);
+                       }
+                     } catch (err) {
+                       toast.error(toErrorMessage(err, "Failed to upload voice memo"));
+                     }
+                   }}
+                 />
                </div>
+
+               {/* Out-of-hours warning for DMs */}
+               {isDirectConversation && directPeer?.timezone && (() => {
+                 try {
+                   const peerHour = new Date().toLocaleString("en-US", { timeZone: directPeer.timezone, hour: "numeric", hour12: false });
+                   const h = parseInt(peerHour);
+                   if (h >= 22 || h < 7) {
+                     const peerTime = new Date().toLocaleTimeString("en-US", { timeZone: directPeer.timezone, hour: "2-digit", minute: "2-digit" });
+                     return (
+                       <div className="flex items-center gap-2 px-2 text-[10px] text-amber-600 dark:text-amber-400">
+                         <Moon size={11} className="shrink-0" />
+                         <span>It&apos;s {peerTime} for {directPeer.full_name}. Your message will be delivered silently.</span>
+                       </div>
+                     );
+                   }
+                 } catch {}
+                 return null;
+               })()}
+
                <button
                  type="button"
                  className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"

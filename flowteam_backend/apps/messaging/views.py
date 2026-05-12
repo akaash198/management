@@ -474,6 +474,49 @@ class ChannelViewSet(viewsets.ModelViewSet):
         MessagePin.objects.filter(channel=channel, message_id=message_id).delete()
         return standardize_response(data={"message": "Unpinned"})
 
+    @action(detail=True, methods=["GET", "POST"], url_path="scheduled")
+    def scheduled(self, request, pk=None):
+        channel = self.get_object()
+        if not self._is_channel_member(channel):
+            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+        
+        if request.method == "GET":
+            qs = ScheduledMessage.objects.filter(channel=channel, sent_at__isnull=True).order_by("send_at")
+            return standardize_response(data=ScheduledMessageSerializer(qs, many=True).data)
+            
+        serializer = ScheduledMessageSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(sender=request.user, channel=channel)
+        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["DELETE"], url_path=r"scheduled/(?P<scheduled_id>[^/.]+)")
+    def delete_scheduled(self, request, pk=None, scheduled_id=None):
+        channel = self.get_object()
+        ScheduledMessage.objects.filter(channel=channel, id=scheduled_id, sender=request.user).delete()
+        return standardize_response(data={"message": "Deleted"})
+
+    @action(detail=True, methods=["POST"], url_path="scheduled/dispatch-due")
+    def dispatch_due(self, request, pk=None):
+        channel = self.get_object()
+        now = timezone.now()
+        due = ScheduledMessage.objects.filter(channel=channel, send_at__lte=now, sent_at__isnull=True)
+        from .services import create_message_with_seq
+        count = 0
+        for sm in due:
+            try:
+                create_message_with_seq(
+                    channel_id=channel.id,
+                    sender=sm.sender,
+                    text=sm.text,
+                    parent_id=sm.parent_id
+                )
+                sm.sent_at = now
+                sm.save()
+                count += 1
+            except Exception:
+                pass
+        return standardize_response(data={"dispatched": count})
+
     @action(detail=True, methods=["GET"], url_path="read-state")
     def read_state(self, request, pk=None):
         channel = self.get_object()

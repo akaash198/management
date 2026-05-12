@@ -17,6 +17,7 @@ interface MentionAutocompleteProps {
   onSubmit?: () => void;
   inputRef?: React.RefObject<HTMLTextAreaElement | null>;
   onPaste?: (e: React.ClipboardEvent<HTMLTextAreaElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
 type MentionSuggestion =
@@ -132,7 +133,7 @@ export function MentionAutocomplete({
     }, 0);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Avoid interfering with IME composition (e.g. Japanese/Chinese input)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isComposing = (e.nativeEvent as any)?.isComposing;
@@ -157,6 +158,10 @@ export function MentionAutocomplete({
       }
       return;
     }
+
+    // Call the optional prop.
+    onKeyDown?.(e);
+    if (e.defaultPrevented) return;
 
     // Formatting keyboard shortcuts
     if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {

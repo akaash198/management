@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Pin, Link as LinkIcon, Star, Send } from "lucide-react";
 import { RichEmbeds } from "@/components/embeds/RichEmbeds";
+import { VoiceMemoPlayer } from "./VoiceMemo";
 
 interface MessageItemProps {
   message: Message;
@@ -246,9 +247,8 @@ function AttachmentList({ items }: { items: Attachment[] }) {
         }
         if (ct.startsWith("audio/")) {
           return (
-            <div key={a.id} className="rounded-xl border border-border bg-card p-3 space-y-1.5">
-              <p className="text-[11px] font-medium truncate max-w-[220px]">{a.filename}</p>
-              <audio src={href} controls className="w-56" />
+            <div key={a.id} className="mt-1">
+              <VoiceMemoPlayer url={href} />
             </div>
           );
         }
