@@ -143,15 +143,22 @@ def _run(client: paramiko.SSHClient, command: str) -> Tuple[int, str, str]:
 
 
 def _ensure_dir(client: paramiko.SSHClient, path: str) -> None:
-    code, _, err = _run(client, f"mkdir -p {path}")
+    # Create the directory (sudo handles root-owned parent paths).
+    code, _, err = _run(client, f"mkdir -p {path} 2>/dev/null || sudo mkdir -p {path}")
     if code != 0:
         raise RuntimeError(f"mkdir failed: {err.strip()}")
-
-    # Make sure docker compose can read files even if deploy user isn't root.
-    _run(client, f"chmod 755 {path} || true")
+    _run(client, f"sudo chmod 755 {path} || chmod 755 {path} || true")
 
 
-def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode: int = 0o644) -> None:
+def _get_home(client: paramiko.SSHClient) -> str:
+    """Return the remote user's home directory."""
+    _, out, _ = _run(client, "echo $HOME")
+    home = out.strip()
+    return home if home else "/tmp"
+
+
+def _sftp_write_bytes(sftp: paramiko.SFTPClient, remote_path: str, data: bytes, mode: int = 0o644) -> None:
+    """Write bytes to a remote path via SFTP file handle (no sftp.put confirm issues)."""
     tmp_path = remote_path + ".tmp"
     last_err = None
     for attempt in range(3):
@@ -160,32 +167,6 @@ def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode:
                 sftp.remove(tmp_path)
             except IOError:
                 pass
-
-            with sftp.file(tmp_path, "w") as f:
-                f.write(text)
-            sftp.chmod(tmp_path, mode)
-            sftp.posix_rename(tmp_path, remote_path)
-            return
-        except (OSError, IOError) as e:
-            last_err = e
-            print(f"SFTP write failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
-
-    raise last_err or RuntimeError(f"Failed to write to {remote_path} after 3 attempts")
-
-
-def _sftp_put_file(sftp: paramiko.SFTPClient, local_path: str, remote_path: str, mode: int = 0o644) -> None:
-    tmp_path = remote_path + ".tmp"
-    last_err = None
-    with open(local_path, "rb") as lf:
-        data = lf.read()
-    for attempt in range(3):
-        try:
-            try:
-                sftp.remove(tmp_path)
-            except IOError:
-                pass
-            # Use sftp.file() (write via handle) instead of sftp.put() to avoid
-            # the confirm=True size-mismatch false-positive on some SSH servers.
             with sftp.file(tmp_path, "wb") as rf:
                 rf.write(data)
             sftp.chmod(tmp_path, mode)
@@ -193,9 +174,44 @@ def _sftp_put_file(sftp: paramiko.SFTPClient, local_path: str, remote_path: str,
             return
         except (OSError, IOError) as e:
             last_err = e
-            print(f"SFTP put failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
+            print(f"SFTP write failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
+    raise last_err or RuntimeError(f"Failed to write {remote_path} after 3 attempts")
 
-    raise last_err or RuntimeError(f"Failed to upload {local_path} after 3 attempts")
+
+def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode: int = 0o644) -> None:
+    _sftp_write_bytes(sftp, remote_path, text.encode("utf-8"), mode=mode)
+
+
+def _sftp_put_file(
+    sftp: paramiko.SFTPClient,
+    client: paramiko.SSHClient,
+    local_path: str,
+    remote_path: str,
+    home: str,
+    mode: int = 0o644,
+) -> None:
+    """Upload a local file to remote_path.
+
+    Uploads to a staging file in $HOME first (always writable by the SSH user),
+    then uses sudo mv to place it at the final destination.  This avoids SFTP
+    write failures when the deploy user doesn't own the target directory.
+    """
+    filename = posixpath.basename(remote_path)
+    staging = posixpath.join(home, f".deploy_staging_{filename}")
+
+    with open(local_path, "rb") as lf:
+        data = lf.read()
+
+    _sftp_write_bytes(sftp, staging, data, mode=0o644)
+
+    # Move from staging into the deploy path using sudo (handles root-owned dirs).
+    mv_cmd = (
+        f"sudo mv {staging} {remote_path} && sudo chmod {oct(mode)[2:]} {remote_path}"
+        f" || mv {staging} {remote_path}"
+    )
+    code, _, err = _run(client, mv_cmd)
+    if code != 0:
+        raise RuntimeError(f"Failed to install {remote_path}: {err.strip()}")
 
 
 def _remote_exists(client: paramiko.SSHClient, remote_path: str) -> bool:
@@ -259,17 +275,20 @@ def main() -> int:
 
     with _connect(args.host, args.user, ssh_key_text) as client:
         _ensure_dir(client, args.deploy_path)
+        home = _get_home(client)
         with client.open_sftp() as sftp:
             if args.upload:
                 _sftp_put_file(
-                    sftp,
+                    sftp, client,
                     local_compose,
                     posixpath.join(args.deploy_path, "docker-compose.prod.yml"),
+                    home,
                 )
                 _sftp_put_file(
-                    sftp,
+                    sftp, client,
                     local_caddyfile,
                     posixpath.join(args.deploy_path, "Caddyfile"),
+                    home,
                 )
 
             if args.write_env_prod:
@@ -291,7 +310,16 @@ def main() -> int:
                             rendered,
                             flags=re.MULTILINE,
                         )
-                    _sftp_put_text(sftp, remote_env, rendered, mode=0o600)
+                    # Stage rendered content in $HOME (always writable), then sudo mv into place.
+                    staging_env = posixpath.join(home, ".deploy_staging_.env.prod")
+                    _sftp_put_text(sftp, staging_env, rendered, mode=0o600)
+                    mv_cmd = (
+                        f"sudo mv {staging_env} {remote_env} && sudo chmod 600 {remote_env}"
+                        f" || mv {staging_env} {remote_env}"
+                    )
+                    code, _, err = _run(client, mv_cmd)
+                    if code != 0:
+                        raise RuntimeError(f"Failed to install {remote_env}: {err.strip()}")
                     print(f"Created {remote_env}")
                 else:
                     print("Skipping .env.prod (already exists).")
