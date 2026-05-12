@@ -608,6 +608,36 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
             )
         )
 
+    async def call_started(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "call.started",
+                    "data": event.get("data", {}),
+                }
+            )
+        )
+
+    async def call_ended(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "call.ended",
+                    "data": event.get("data", {}),
+                }
+            )
+        )
+
+    async def call_missed(self, event):
+        await self.send(
+            text_data=json.dumps(
+                {
+                    "type": "call.missed",
+                    "data": event.get("data", {}),
+                }
+            )
+        )
+
 
 class TeamPresenceConsumer(AsyncWebsocketConsumer):
     """
