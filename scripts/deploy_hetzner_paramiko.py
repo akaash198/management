@@ -153,17 +153,46 @@ def _ensure_dir(client: paramiko.SSHClient, path: str) -> None:
 
 def _sftp_put_text(sftp: paramiko.SFTPClient, remote_path: str, text: str, mode: int = 0o644) -> None:
     tmp_path = remote_path + ".tmp"
-    with sftp.file(tmp_path, "w") as f:
-        f.write(text)
-    sftp.chmod(tmp_path, mode)
-    sftp.posix_rename(tmp_path, remote_path)
+    last_err = None
+    for attempt in range(3):
+        try:
+            try:
+                sftp.remove(tmp_path)
+            except IOError:
+                pass
+
+            with sftp.file(tmp_path, "w") as f:
+                f.write(text)
+            sftp.chmod(tmp_path, mode)
+            sftp.posix_rename(tmp_path, remote_path)
+            return
+        except (OSError, IOError) as e:
+            last_err = e
+            print(f"SFTP write failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
+
+    raise last_err or RuntimeError(f"Failed to write to {remote_path} after 3 attempts")
 
 
 def _sftp_put_file(sftp: paramiko.SFTPClient, local_path: str, remote_path: str, mode: int = 0o644) -> None:
     tmp_path = remote_path + ".tmp"
-    sftp.put(local_path, tmp_path)
-    sftp.chmod(tmp_path, mode)
-    sftp.posix_rename(tmp_path, remote_path)
+    last_err = None
+    for attempt in range(3):
+        try:
+            # Cleanup any stale partial uploads
+            try:
+                sftp.remove(tmp_path)
+            except IOError:
+                pass
+
+            sftp.put(local_path, tmp_path, confirm=True)
+            sftp.chmod(tmp_path, mode)
+            sftp.posix_rename(tmp_path, remote_path)
+            return
+        except (OSError, IOError) as e:
+            last_err = e
+            print(f"SFTP put failed (attempt {attempt + 1}/3): {e}. Retrying...", file=sys.stderr)
+
+    raise last_err or RuntimeError(f"Failed to upload {local_path} after 3 attempts")
 
 
 def _remote_exists(client: paramiko.SSHClient, remote_path: str) -> bool:
