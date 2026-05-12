@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "@/lib/auth";
-import { getApiBaseUrl } from "@/lib/runtimeConfig";
+import { getAccessToken, clearTokens } from "@/lib/auth";
+// Import the shared refresh lock from api.ts so WS auth failures and HTTP 401s
+// don't race each other and double-consume a rotating refresh token.
+import { refreshAccessToken } from "@/lib/api";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
 
@@ -12,37 +14,11 @@ interface WebSocketOptions {
 }
 
 async function tryRefreshToken(): Promise<boolean> {
-  const refresh = getRefreshToken();
-  if (!refresh) {
-    clearTokens();
-    if (typeof window !== "undefined") window.location.href = "/login";
-    return false;
-  }
-  try {
-    const res = await fetch(`${getApiBaseUrl()}/auth/refresh/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh }),
-    });
-    if (!res.ok) {
-      // Refresh token is expired or invalid — force re-login.
-      clearTokens();
-      if (typeof window !== "undefined") window.location.href = "/login";
-      return false;
-    }
-    const body = await res.json();
-    // Handle both wrapped { success, data: { access, refresh } }
-    // and raw simplejwt { access, refresh } response shapes.
-    const access: string | undefined = body?.data?.access ?? body?.access;
-    const newRefresh: string | undefined = body?.data?.refresh ?? body?.refresh ?? refresh;
-    if (access) {
-      setTokens(access, newRefresh ?? refresh);
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  const newToken = await refreshAccessToken();
+  if (newToken) return true;
+  clearTokens();
+  if (typeof window !== "undefined") window.location.href = "/login";
+  return false;
 }
 
 export function useWebSocket(url: string, options: WebSocketOptions = {}) {
