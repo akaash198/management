@@ -215,7 +215,7 @@ export function ChatArea({
   } = useChatSocket(channel.id, {
     currentUser: user ? { id: user.id, full_name: user.full_name, avatar: user.avatar_url ?? null } : null,
     onCallEvent: (type, data) => {
-      if (type === 'call_started' && !callOpen) {
+      if ((type === 'call.started' || type === 'call_started') && !callOpen) {
         // Someone else started a call — show incoming call prompt
         const startedById = data?.started_by?.id ?? data?.started_by;
         if (startedById && String(startedById) !== String(user?.id)) {
@@ -661,8 +661,7 @@ export function ChatArea({
     setAcceptedCallId(incomingCall.callId);
     setCallOpen(true);
     setIncomingCall(null);
-    sendCallMessage('call.join', { call_id: incomingCall.callId });
-  }, [incomingCall, sendCallMessage]);
+  }, [incomingCall]);
 
   const summarizeChannel = useCallback(async () => {
     if (!aiEnabled) {

@@ -313,9 +313,9 @@ export function CallComponent({
 
   useEffect(() => {
     onCallEventRef.current = (type: string, data: any) => {
-      if (type === 'signal') handleCallSignal(data);
-      if (type === 'participant_joined') handleParticipantJoined(data);
-      if (type === 'call_started') {
+      if (type === 'signal' || type === 'call.signal') handleCallSignal(data);
+      if (type === 'participant_joined' || type === 'call.participant_joined') handleParticipantJoined(data);
+      if (type === 'call_started' || type === 'call.started') {
         callIdRef.current = data?.id ?? null;
         sendCallMessage('call.join', { call_id: data?.id });
       }

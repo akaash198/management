@@ -125,20 +125,12 @@ export function useChatSocket(
         });
         break;
       case "call.started":
-        opts?.onCallEvent?.("call_started", data);
-        break;
       case "call.participant_joined":
-        opts?.onCallEvent?.("participant_joined", data);
-        break;
       case "call.participant_left":
-        console.log("Participant left:", data);
-        break;
       case "call.ended":
-        console.log("Call ended:", data);
-        break;
+      case "call.missed":
       case "call.signal":
-        // Handle WebRTC signaling
-        opts?.onCallEvent?.("signal", data);
+        opts?.onCallEvent?.(type, data);
         break;
     }
   }, []);
