@@ -26,10 +26,10 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>;
 
 const leftFeatures = [
-  { icon: Kanban,        label: "Kanban & sprint boards",       color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/10" },
-  { icon: MessageSquare, label: "Real-time chat & voice calls", color: "text-[#9ECAC2]",  bg: "bg-[#82B4AA]/8"  },
-  { icon: BarChart3,     label: "Analytics & velocity reports", color: "text-[#B0D4CE]",  bg: "bg-[#82B4AA]/7"  },
-  { icon: Shield,        label: "Role-based access control",    color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/8"  },
+  { icon: Kanban,        label: "Kanban & sprint boards",       color: "text-[#7CFFCB]",  bg: "bg-[#7CFFCB]/10" },
+  { icon: MessageSquare, label: "Real-time chat & voice calls", color: "text-[#5FE3B3]",  bg: "bg-[#7CFFCB]/8"  },
+  { icon: BarChart3,     label: "Analytics & velocity reports", color: "text-[#7CFFCB]",  bg: "bg-[#7CFFCB]/7"  },
+  { icon: Shield,        label: "Role-based access control",    color: "text-[#5FE3B3]",  bg: "bg-[#7CFFCB]/8"  },
 ];
 
 export default function LoginClient() {
@@ -87,7 +87,7 @@ export default function LoginClient() {
       const apiErr = (data as { error?: { code?: string; message?: string } | string })?.error;
       if (typeof apiErr === "object" && apiErr?.code === "otp_required") {
         setOtpRequired(true);
-        setError(apiErr?.message || "Two‑factor authentication required.");
+        setError(apiErr?.message || "Two-factor authentication required.");
       } else {
         setError(toErrorMessage(apiErr ?? data ?? err, "Invalid email or password"));
       }
@@ -97,40 +97,37 @@ export default function LoginClient() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#060d0a]">
+    <div className="min-h-screen flex bg-[#0A1628]">
 
       {/* ══════════════════════════════════════
           LEFT PANEL — brand hero
           ══════════════════════════════════════ */}
       <div className="hidden lg:flex lg:w-[46%] xl:w-[44%] flex-col justify-between p-14 relative overflow-hidden">
-        {/* Layered background */}
-        <div className="absolute inset-0 bg-[#070f0b]" />
-        <div className="absolute inset-0 opacity-[0.022]" style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)",
+        <div className="absolute inset-0 bg-[#0A1628]" />
+        <div className="absolute inset-0 opacity-[0.025]" style={{
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
           backgroundSize: "48px 48px",
         }} />
-        <div className="absolute -top-24 -left-24 h-[560px] w-[560px] rounded-full blur-[130px]" style={{ background: "rgba(130,180,170,0.10)" }} />
-        <div className="absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full blur-[110px]" style={{ background: "rgba(130,180,170,0.07)" }} />
-        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#060d0a] to-transparent" />
+        <div className="absolute -top-24 -left-24 h-[560px] w-[560px] rounded-full blur-[130px]" style={{ background: "rgba(124,255,203,0.08)" }} />
+        <div className="absolute bottom-0 right-0 h-[380px] w-[380px] rounded-full blur-[110px]" style={{ background: "rgba(124,255,203,0.05)" }} />
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1628] to-transparent" />
 
-        {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_24px_rgba(130,180,170,0.35)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_24px_rgba(124,255,203,0.35)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
             CW
           </span>
           <span className="text-[17px] font-bold tracking-[-0.03em] text-white">cowrk</span>
         </div>
 
-        {/* Hero copy */}
         <div className="relative space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.08)", color: "#82B4AA" }}>
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#7CFFCB]/20 bg-[#7CFFCB]/8 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7CFFCB]">
             <Sparkles size={10} />
             Trusted by 5,000+ teams
           </div>
           <div>
             <h1 className="text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white">
               Work together,<br />
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #82B4AA, #B0D4CE, #9EC8C2)" }}>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7CFFCB] via-[#5FE3B3] to-[#7CFFCB]">
                 ship together.
               </span>
             </h1>
@@ -150,13 +147,12 @@ export default function LoginClient() {
             ))}
           </div>
 
-          {/* Social proof */}
           <div className="flex items-center gap-3">
             <div className="flex -space-x-2">
               {["A","B","C","D"].map((l, i) => (
                 <span key={l}
-                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#070f0b] text-[10px] font-bold text-white"
-                  style={{ background: ["#82B4AA","#6A9E94","#9ECAC2","#B0D4CE"][i] }}
+                  className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-[#0A1628] text-[10px] font-bold text-white"
+                  style={{ background: ["#7CFFCB","#5FE3B3","#7CFFCB","#5FE3B3"][i] }}
                 >
                   {l}
                 </span>
@@ -169,7 +165,7 @@ export default function LoginClient() {
         </div>
 
         <p className="relative text-[11px] text-white/18 tracking-wide">
-          © 2026 Cowrk Inc.
+          &copy; 2026 Cowrk Inc.
           {" · "}<a href="#" className="hover:text-white/38 transition-colors">Privacy</a>
           {" · "}<a href="#" className="hover:text-white/38 transition-colors">Terms</a>
         </p>
@@ -179,14 +175,13 @@ export default function LoginClient() {
           RIGHT PANEL — login form
           ══════════════════════════════════════ */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="absolute inset-0 bg-[#07100c]" />
-        <div className="absolute inset-0 opacity-[0.014]" style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
+        <div className="absolute inset-0 bg-[#0F1C2E]" />
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px)",
           backgroundSize: "30px 30px",
         }} />
-        <div className="absolute left-1/2 top-1/3 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]" style={{ background: "rgba(130,180,170,0.04)" }} />
+        <div className="absolute left-1/2 top-1/3 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]" style={{ background: "rgba(124,255,203,0.03)" }} />
 
-        {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-[13px] tracking-tighter">
             CW
@@ -204,10 +199,7 @@ export default function LoginClient() {
             </p>
           </div>
 
-          {/* Form card */}
-          <div className="rounded-2xl border border-white/[0.07] bg-white/[0.025] p-6 shadow-[0_8px_40px_rgba(0,0,0,0.35)] backdrop-blur-sm">
-
-            {/* Google OAuth */}
+          <div className="rounded-2xl border border-white/[0.08] bg-[#1A2942] p-6 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
             <button
               type="button"
               onClick={continueWithGoogle}
@@ -227,7 +219,7 @@ export default function LoginClient() {
                 <div className="w-full border-t border-white/[0.07]" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-[#07100c] px-3 text-[11px] font-medium text-white/22 uppercase tracking-wider">or</span>
+                <span className="bg-[#1A2942] px-3 text-[11px] font-medium text-white/22 uppercase tracking-wider">or</span>
               </div>
             </div>
 
@@ -237,7 +229,6 @@ export default function LoginClient() {
               className="space-y-4"
               noValidate
             >
-              {/* Error banner */}
               {error && (
                 <div className="flex items-start gap-2.5 rounded-xl border border-red-500/20 bg-red-500/[0.07] px-3.5 py-3">
                   <AlertCircle size={14} className="shrink-0 text-red-400 mt-px" />
@@ -245,7 +236,6 @@ export default function LoginClient() {
                 </div>
               )}
 
-              {/* Email */}
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-[11px] font-semibold uppercase tracking-[0.09em] text-white/30">
                   Email address
@@ -257,20 +247,19 @@ export default function LoginClient() {
                   autoComplete="email"
                   {...register("email")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15 focus-visible:bg-white/[0.06]",
+                    "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#7CFFCB]/45 focus-visible:ring-[#7CFFCB]/15 focus-visible:bg-white/[0.06]",
                     errors.email && "border-red-500/35"
                   )}
                 />
                 {errors.email && <p className="text-[11.5px] text-red-400">{errors.email.message}</p>}
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password" className="text-[11px] font-semibold uppercase tracking-[0.09em] text-white/30">
                     Password
                   </Label>
-                  <Link href="/forgot-password" className="text-[11px] font-semibold transition-colors" style={{ color: "rgba(130,180,170,0.65)" }}>
+                  <Link href="/forgot-password" className="text-[11px] font-semibold text-[#7CFFCB]/65 hover:text-[#7CFFCB] transition-colors">
                     Forgot password?
                   </Link>
                 </div>
@@ -278,11 +267,11 @@ export default function LoginClient() {
                   <Input
                     id="password"
                     type={showPw ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;"
                     autoComplete="current-password"
                     {...register("password")}
                     className={cn(
-                      "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] pr-10 text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15",
+                      "h-10 rounded-xl border-white/[0.09] bg-white/[0.04] pr-10 text-white placeholder:text-white/18 focus-visible:border-[#7CFFCB]/45 focus-visible:ring-[#7CFFCB]/15",
                       errors.password && "border-red-500/35"
                     )}
                   />
@@ -298,30 +287,29 @@ export default function LoginClient() {
                 {errors.password && <p className="text-[11.5px] text-red-400">{errors.password.message}</p>}
               </div>
 
-              {/* 2FA */}
               {otpRequired && (
-                <div className="space-y-2.5 rounded-xl border border-white/[0.07] bg-white/[0.025] p-4">
+                <div className="space-y-2.5 rounded-xl border border-white/[0.07] bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-[12.5px] font-semibold text-white/65">Two‑factor authentication</p>
+                    <p className="text-[12.5px] font-semibold text-white/65">Two-factor authentication</p>
                     <div className="flex items-center gap-1">
                       <button type="button" onClick={() => { setUseBackup(false); setBackupCode(""); }}
                         className={cn("rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all",
-                          !useBackup ? "bg-[rgba(130,180,170,0.15)] text-[#82B4AA]" : "text-white/32 hover:text-white/55")}>
+                          !useBackup ? "bg-[#7CFFCB]/15 text-[#7CFFCB]" : "text-white/32 hover:text-white/55")}>
                         OTP code
                       </button>
                       <button type="button" onClick={() => { setUseBackup(true); setOtpCode(""); }}
                         className={cn("rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all",
-                          useBackup ? "bg-[rgba(130,180,170,0.15)] text-[#82B4AA]" : "text-white/32 hover:text-white/55")}>
+                          useBackup ? "bg-[#7CFFCB]/15 text-[#7CFFCB]" : "text-white/32 hover:text-white/55")}>
                         Backup code
                       </button>
                     </div>
                   </div>
                   {!useBackup ? (
                     <div className="space-y-1.5">
-                      <Label htmlFor="otp_code" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/30">6‑digit code</Label>
+                      <Label htmlFor="otp_code" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/30">6-digit code</Label>
                       <Input id="otp_code" value={otpCode} onChange={(e) => setOtpCode(e.target.value)}
                         inputMode="numeric" placeholder="123456"
-                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15" />
+                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#7CFFCB]/45 focus-visible:ring-[#7CFFCB]/15" />
                       <p className="text-[11px] text-white/22">From your authenticator app.</p>
                     </div>
                   ) : (
@@ -329,22 +317,20 @@ export default function LoginClient() {
                       <Label htmlFor="backup_code" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/30">Backup code</Label>
                       <Input id="backup_code" value={backupCode} onChange={(e) => setBackupCode(e.target.value)}
                         placeholder="ABCD-EF12"
-                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#82B4AA]/45 focus-visible:ring-[#82B4AA]/15" />
-                      <p className="text-[11px] text-white/22">One‑time use code from 2FA setup.</p>
+                        className="h-10 rounded-xl border-white/[0.09] bg-white/[0.04] text-white placeholder:text-white/18 focus-visible:border-[#7CFFCB]/45 focus-visible:ring-[#7CFFCB]/15" />
+                      <p className="text-[11px] text-white/22">One-time use code from 2FA setup.</p>
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Submit */}
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-45 disabled:cursor-not-allowed"
-              style={{ background: "#82B4AA", boxShadow: "0 0 28px rgba(130,180,170,0.35), inset 0 1px 0 rgba(255,255,255,0.10)" }}
+                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-[#0A1628] transition-all disabled:opacity-45 disabled:cursor-not-allowed bg-gradient-to-r from-[#7CFFCB] to-[#5FE3B3] shadow-[0_0_28px_rgba(124,255,203,0.35)] hover:brightness-110 hover:-translate-y-0.5"
               >
                 {loading ? (
-                  <><Loader2 size={14} className="animate-spin" /> Signing in…</>
+                  <><Loader2 size={14} className="animate-spin" /> Signing in&hellip;</>
                 ) : (
                   <>Sign in <ArrowRight size={14} /></>
                 )}
@@ -354,7 +340,7 @@ export default function LoginClient() {
 
           <p className="text-center text-[13px] text-white/28">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-semibold transition-colors" style={{ color: "#82B4AA" }}>
+            <Link href="/register" className="font-semibold text-[#7CFFCB] hover:text-[#5FE3B3] transition-colors">
               Create one free
             </Link>
           </p>

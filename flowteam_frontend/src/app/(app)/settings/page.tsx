@@ -504,7 +504,7 @@ export default function SettingsPage() {
                         <Badge
                           className={cn(
                             "uppercase text-[9px] font-black",
-                            reportingTo.role === "ceo" ? "bg-primary" : "bg-amber-500"
+                              reportingTo.role === "ceo" ? "bg-primary" : "bg-amber-500 dark:bg-amber-600"
                           )}
                         >
                           {reportingTo.role}
@@ -654,7 +654,7 @@ export default function SettingsPage() {
                                 ? "default"
                                 : "secondary"
                             }
-                            className={cn(member.role === "manager" && "bg-amber-500 text-white hover:bg-amber-600")}
+                              className={cn(member.role === "manager" && "bg-amber-500 text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-500")}
                           >
                             {ROLE_LABELS[member.role] ?? member.role}
                           </Badge>
@@ -892,7 +892,7 @@ export default function SettingsPage() {
                 </div>
                 <Badge
                   variant={isCEO ? "destructive" : isAdmin ? "default" : "secondary"}
-                  className={cn(isManager && "bg-amber-500 text-white")}
+                  className={cn(isManager && "bg-amber-500 text-white dark:bg-amber-600")}
                 >
                   {yourRole ? ROLE_LABELS[yourRole] : "—"}
                 </Badge>
@@ -936,12 +936,12 @@ export default function SettingsPage() {
                     className={cn(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2 border text-sm",
                       allowed
-                        ? "bg-green-50 border-green-200 text-green-800"
+                        ? "bg-green-50 border-green-200 text-green-800 dark:bg-green-950/30 dark:border-green-800 dark:text-green-400"
                         : "bg-muted/40 border-border text-muted-foreground"
                     )}
                   >
                     {allowed ? (
-                      <Check className="h-3.5 w-3.5 text-green-600 shrink-0" />
+                      <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400 shrink-0" />
                     ) : (
                       <X className="h-3.5 w-3.5 text-muted-foreground/40 shrink-0" />
                     )}
@@ -995,7 +995,7 @@ export default function SettingsPage() {
                       {(["ceo", "admin", "manager", "member", "viewer"] as TeamRole[]).map((r) => (
                         <td key={r} className="text-center py-2 px-2">
                           {row[r] ? (
-                            <Check className="h-3.5 w-3.5 text-green-500 mx-auto" />
+                            <Check className="h-3.5 w-3.5 text-green-500 dark:text-green-400 mx-auto" />
                           ) : (
                             <X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                           )}
@@ -1053,7 +1053,7 @@ export default function SettingsPage() {
                           (r) => (
                             <td key={r} className="text-center py-2 px-2">
                               {matrix[r] ? (
-                                <Check className="h-3.5 w-3.5 text-green-500 mx-auto" />
+                                <Check className="h-3.5 w-3.5 text-green-500 dark:text-green-400 mx-auto" />
                               ) : (
                                 <X className="h-3.5 w-3.5 text-muted-foreground/30 mx-auto" />
                               )}

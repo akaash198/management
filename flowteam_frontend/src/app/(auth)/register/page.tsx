@@ -31,10 +31,10 @@ const registerSchema = z.object({
 type RegisterFormValues = z.infer<typeof registerSchema>;
 
 const leftFeatures = [
-  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/10" },
-  { icon: MessageSquare,label: "Real-time chat & voice calls",  color: "text-[#9ECAC2]",  bg: "bg-[#82B4AA]/8"  },
-  { icon: BarChart3,    label: "Analytics & velocity reports",  color: "text-[#B0D4CE]",  bg: "bg-[#82B4AA]/7"  },
-  { icon: Shield,       label: "Role-based access control",     color: "text-[#82B4AA]",  bg: "bg-[#82B4AA]/8"  },
+  { icon: Kanban,       label: "Kanban & sprint boards",        color: "text-[#7CFFCB]",  bg: "bg-[#7CFFCB]/10" },
+  { icon: MessageSquare,label: "Real-time chat & voice calls",  color: "text-[#5FE3B3]",  bg: "bg-[#7CFFCB]/8"  },
+  { icon: BarChart3,    label: "Analytics & velocity reports",  color: "text-[#7CFFCB]",  bg: "bg-[#7CFFCB]/7"  },
+  { icon: Shield,       label: "Role-based access control",     color: "text-[#5FE3B3]",  bg: "bg-[#7CFFCB]/8"  },
 ];
 
 export default function RegisterPage() {
@@ -73,37 +73,35 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#060d0a]">
+    <div className="min-h-screen flex bg-[#0A1628]">
 
       {/* ── Left panel ── */}
       <div className="hidden lg:flex lg:w-[46%] xl:w-[44%] flex-col justify-between p-14 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[#070f0b]" />
+        <div className="absolute inset-0 bg-[#0A1628]" />
         <div className="absolute inset-0 opacity-[0.025]" style={{
-          backgroundImage: "linear-gradient(rgba(255,255,255,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.7) 1px, transparent 1px)",
+          backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)",
           backgroundSize: "44px 44px",
         }} />
-        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full blur-[120px]" style={{ background: "rgba(130,180,170,0.12)" }} />
-        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full blur-[100px]" style={{ background: "rgba(130,180,170,0.08)" }} />
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#060d0a] to-transparent" />
+        <div className="absolute top-0 right-0 h-[500px] w-[500px] -translate-y-24 translate-x-24 rounded-full blur-[120px]" style={{ background: "rgba(124,255,203,0.10)" }} />
+        <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full blur-[100px]" style={{ background: "rgba(124,255,203,0.06)" }} />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A1628] to-transparent" />
 
-        {/* Logo */}
         <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(130,180,170,0.4)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(124,255,203,0.4)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
             CW
           </span>
-          <span className="text-[17px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
+          <span className="text-[17px] font-bold tracking-[-0.025em] text-white">cowrk</span>
         </div>
 
-        {/* Hero copy */}
         <div className="relative space-y-8">
-          <div className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ borderColor: "rgba(130,180,170,0.20)", background: "rgba(130,180,170,0.10)", color: "#82B4AA" }}>
-            <Sparkles size={10} style={{ color: "#82B4AA" }} />
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#7CFFCB]/20 bg-[#7CFFCB]/8 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#7CFFCB]">
+            <Sparkles size={10} className="text-[#7CFFCB]" />
             Free forever for small teams
           </div>
           <div>
             <h1 className="text-[42px] font-black leading-[1.05] tracking-[-0.04em] text-white">
               Everything your<br />
-              <span className="bg-clip-text text-transparent" style={{ backgroundImage: "linear-gradient(90deg, #82B4AA, #B0D4CE, #9EC8C2)" }}>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7CFFCB] via-[#5FE3B3] to-[#7CFFCB]">
                 team needs.
               </span>
             </h1>
@@ -123,12 +121,11 @@ export default function RegisterPage() {
             ))}
           </div>
 
-          {/* Trust bullets */}
           <ul className="space-y-2">
             {["No credit card required", "Free plan forever for small teams", "Upgrade anytime, cancel anytime"].map((t) => (
               <li key={t} className="flex items-center gap-2.5 text-[13px] text-white/40">
-                <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full" style={{ background: "rgba(130,180,170,0.15)" }}>
-                  <Check size={9} style={{ color: "#82B4AA" }} strokeWidth={3} />
+                <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#7CFFCB]/15">
+                  <Check size={9} className="text-[#7CFFCB]" strokeWidth={3} />
                 </div>
                 {t}
               </li>
@@ -137,29 +134,27 @@ export default function RegisterPage() {
         </div>
 
         <p className="relative text-[11px] text-white/20 tracking-wide">
-          © 2026 Cowrk Inc. · <a href="#" className="hover:text-white/40 transition-colors">Privacy</a> · <a href="#" className="hover:text-white/40 transition-colors">Terms</a>
+          &copy; 2026 Cowrk Inc. &middot; <a href="#" className="hover:text-white/40 transition-colors">Privacy</a> &middot; <a href="#" className="hover:text-white/40 transition-colors">Terms</a>
         </p>
       </div>
 
       {/* ── Right panel — form ── */}
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative">
-        <div className="absolute inset-0 bg-[#07100c]" />
+        <div className="absolute inset-0 bg-[#0F1C2E]" />
         <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.8) 1px, transparent 1px)",
+          backgroundImage: "radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px)",
           backgroundSize: "28px 28px",
         }} />
-        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px]" style={{ background: "rgba(130,180,170,0.05)" }} />
+        <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px]" style={{ background: "rgba(124,255,203,0.04)" }} />
 
-        {/* Mobile logo */}
         <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
           <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-[13px] tracking-tighter">
             CW
           </span>
-          <span className="text-[16px] font-bold tracking-[-0.025em] text-white">Cowrk</span>
+          <span className="text-[16px] font-bold tracking-[-0.025em] text-white">cowrk</span>
         </div>
 
         <div className="relative w-full max-w-[420px] space-y-6">
-          {/* Heading */}
           <div>
             <h2 className="text-[24px] font-black tracking-[-0.03em] text-white">
               Create your account
@@ -169,8 +164,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          {/* Form card */}
-          <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)] backdrop-blur-sm">
+          <div className="rounded-2xl border border-white/[0.08] bg-[#1A2942] p-6 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
             <button
               type="button"
               onClick={continueWithGoogle}
@@ -196,7 +190,6 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Full name */}
               <div className="space-y-1.5">
                 <Label htmlFor="full_name" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/35">
                   Full name
@@ -207,7 +200,7 @@ export default function RegisterPage() {
                   autoComplete="name"
                   {...register("full_name")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#7CFFCB]/50 focus-visible:ring-[#7CFFCB]/20 focus-visible:bg-white/[0.07]",
                     errors.full_name && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -216,7 +209,6 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Email */}
               <div className="space-y-1.5">
                 <Label htmlFor="email" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/35">
                   Work email
@@ -228,7 +220,7 @@ export default function RegisterPage() {
                   autoComplete="email"
                   {...register("email")}
                   className={cn(
-                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
+                    "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] text-white placeholder:text-white/20 focus-visible:border-[#7CFFCB]/50 focus-visible:ring-[#7CFFCB]/20 focus-visible:bg-white/[0.07]",
                     errors.email && "border-red-500/40 focus-visible:ring-red-500/20"
                   )}
                 />
@@ -237,7 +229,6 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Password row */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="password" className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/35">Password</Label>
@@ -249,7 +240,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#7CFFCB]/50 focus-visible:ring-[#7CFFCB]/20 focus-visible:bg-white/[0.07]",
                         errors.password && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -273,7 +264,7 @@ export default function RegisterPage() {
                       autoComplete="new-password"
                       {...register("password_confirm")}
                       className={cn(
-                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#82B4AA]/50 focus-visible:ring-[#82B4AA]/20 focus-visible:bg-white/[0.07]",
+                        "h-10 rounded-xl border-white/[0.1] bg-white/[0.05] pr-9 text-white placeholder:text-white/20 focus-visible:border-[#7CFFCB]/50 focus-visible:ring-[#7CFFCB]/20 focus-visible:bg-white/[0.07]",
                         errors.password_confirm && "border-red-500/40 focus-visible:ring-red-500/20"
                       )}
                     />
@@ -297,11 +288,10 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ background: "#82B4AA", boxShadow: "0 0 24px rgba(130,180,170,0.40), inset 0 1px 0 rgba(255,255,255,0.12)" }}
+                className="mt-1 inline-flex w-full h-11 items-center justify-center gap-2 rounded-xl text-[14px] font-semibold text-[#0A1628] transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-gradient-to-r from-[#7CFFCB] to-[#5FE3B3] shadow-[0_0_24px_rgba(124,255,203,0.40)] hover:brightness-110 hover:-translate-y-0.5"
               >
                 {loading ? (
-                  <><Loader2 size={14} className="animate-spin" /> Creating account…</>
+                  <><Loader2 size={14} className="animate-spin" /> Creating account&hellip;</>
                 ) : (
                   <>Create free account <ArrowRight size={14} /></>
                 )}
@@ -320,7 +310,7 @@ export default function RegisterPage() {
             Already have an account?{" "}
             <Link
               href="/login"
-              className="font-semibold transition-colors" style={{ color: "#82B4AA" }}
+              className="font-semibold text-[#7CFFCB] hover:text-[#5FE3B3] transition-colors"
             >
               Sign in
             </Link>
@@ -330,4 +320,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-
