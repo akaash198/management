@@ -114,7 +114,7 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
     <Link href={`/projects/${project.id}`}>
       <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-150 hover:shadow-sm hover:border-border-strong">
         {/* Color accent strip */}
-        <div className="h-[3px] w-full" style={{ backgroundColor: project.color ?? "#82B4AA" }} />
+        <div className="h-[3px] w-full" style={{ backgroundColor: project.color ?? "#7CFFCB" }} />
         <div className="p-4">
           {/* Header */}
           <div className="mb-3.5 flex items-start gap-2.5">
@@ -138,7 +138,7 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
           <div className="h-1 w-full overflow-hidden rounded-full bg-muted/70">
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${project.progress_percent}%`, backgroundColor: project.color ?? "#82B4AA" }}
+              style={{ width: `${project.progress_percent}%`, backgroundColor: project.color ?? "#7CFFCB" }}
             />
           </div>
 

@@ -1399,9 +1399,9 @@ export function ChatArea({
   }, [maybeLoadOlder]);
 
   return (
-    <div className="relative flex-1 flex h-full flex-col overflow-hidden bg-white">
+    <div className="relative flex-1 flex h-full flex-col overflow-hidden bg-background">
       {/* ── Header ── */}
-      <div className="z-10 flex h-[52px] shrink-0 items-center border-b border-slate-100 bg-white/80 backdrop-blur-md px-5 xl:pr-[348px] gap-2 overflow-hidden">
+      <div className="z-10 flex h-[52px] shrink-0 items-center border-b border-border bg-card/80 backdrop-blur-md px-5 xl:pr-[348px] gap-2 overflow-hidden">
         {/* Channel identity — hide when search is open to reclaim space */}
         {!searchOpen && (
           <div className="flex items-center gap-2.5 min-w-0 shrink mr-2">

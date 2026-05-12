@@ -46,17 +46,17 @@ export default function ReportsPage() {
   return (
     <div className="min-h-screen bg-background">
       <ProjectTopNav projectId={id as string} />
-      <div className="p-8 space-y-8 bg-slate-50/50">
+      <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Project Insights</h1>
-          <p className="text-slate-500">Deep dive into project performance, velocity, and team health.</p>
+          <p className="text-muted-foreground">Deep dive into project performance, velocity, and team health.</p>
         </div>
         <ExportDropdown projectId={id as string} />
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-white border p-1 h-12 gap-1 rounded-xl">
+        <TabsList className="bg-card border p-1 h-12 gap-1 rounded-xl">
           <TabsTrigger value="overview" className="rounded-lg px-6">Overview</TabsTrigger>
           <TabsTrigger value="velocity" className="rounded-lg px-6">Velocity</TabsTrigger>
           <TabsTrigger value="burndown" className="rounded-lg px-6">Burndown</TabsTrigger>
@@ -110,21 +110,21 @@ function OverviewTab({ projectId }: { projectId: string }) {
   if (healthLoading) return <OverviewSkeleton />;
 
   const getHealthColor = (score: number) => {
-    if (score >= 70) return "text-emerald-500";
-    if (score >= 40) return "text-amber-500";
-    return "text-red-500";
+    if (score >= 70) return "text-success";
+    if (score >= 40) return "text-warning";
+    return "text-destructive";
   };
 
   const getProgressColor = (score: number) => {
-    if (score >= 70) return "bg-emerald-500";
-    if (score >= 40) return "bg-amber-500";
-    return "bg-red-500";
+    if (score >= 70) return "bg-success";
+    if (score >= 40) return "bg-warning";
+    return "bg-destructive";
   };
 
   return (
     <div className="space-y-8">
       <AIGate featureName="Project health score">
-        <Card className="overflow-hidden border border-border bg-white">
+        <Card className="overflow-hidden border border-border bg-card">
           <CardHeader className="flex flex-row items-start justify-between gap-3">
             <div className="space-y-1">
               <CardTitle className="text-base">AI Project Health</CardTitle>
@@ -143,11 +143,11 @@ function OverviewTab({ projectId }: { projectId: string }) {
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <p className="text-xs text-muted-foreground">Score</p>
-                    <div
-                      className={cn(
-                        "text-3xl font-bold",
-                        aiHealth.score >= 80 ? "text-green-500" : aiHealth.score >= 50 ? "text-amber-500" : "text-red-500"
-                      )}
+                      <div
+                        className={cn(
+                          "text-3xl font-bold",
+                          aiHealth.score >= 80 ? "text-success" : aiHealth.score >= 50 ? "text-warning" : "text-destructive"
+                        )}
                     >
                       {aiHealth.score}
                     </div>
@@ -180,7 +180,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
       </AIGate>
 
       {/* Health Score Card */}
-      <Card className="overflow-hidden border-none shadow-xl bg-white">
+      <Card className="overflow-hidden border border-border bg-card">
         <div className={cn("h-1 w-full", getProgressColor(health?.health_score || 0))} />
         <CardContent className="p-8">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
@@ -194,9 +194,9 @@ function OverviewTab({ projectId }: { projectId: string }) {
               <h2 className="text-4xl font-extrabold tracking-tight">Your project is looking {health?.health_label.toLowerCase()}.</h2>
               <div className="space-y-4">
                 {health?.recommendations.map((rec, i) => (
-                  <div key={i} className="flex items-start gap-3 p-4 bg-slate-50 rounded-xl border border-slate-100 group hover:border-amber-200 hover:bg-amber-50/30 transition-all">
-                    <AlertCircle className="text-amber-500 shrink-0 mt-0.5" size={18} />
-                    <p className="text-sm text-slate-700 font-medium">{rec}</p>
+                  <div key={i} className="flex items-start gap-3 p-4 bg-muted/30 rounded-xl border border-border group hover:border-warning/30 hover:bg-warning/5 transition-all">
+                    <AlertCircle className="text-warning shrink-0 mt-0.5" size={18} />
+                    <p className="text-sm text-foreground/80 font-medium">{rec}</p>
                   </div>
                 ))}
               </div>
@@ -277,13 +277,13 @@ function VelocityTab({ projectId }: { projectId: string }) {
     }
   });
 
-  if (isLoading) return <div className="h-96 w-full animate-pulse bg-slate-100 rounded-xl" />;
+  if (isLoading) return <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />;
 
   return (
     <Card className="p-8">
       <div className="mb-8">
         <h3 className="text-xl font-bold">Team Velocity</h3>
-        <p className="text-sm text-slate-500">Tasks created vs. completed by week.</p>
+        <p className="text-sm text-muted-foreground">Tasks created vs. completed by week.</p>
       </div>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -314,13 +314,13 @@ function BurndownTab({ projectId }: { projectId: string }) {
     }
   });
 
-  if (isLoading) return <div className="h-96 w-full animate-pulse bg-slate-100 rounded-xl" />;
+  if (isLoading) return <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />;
 
   return (
     <Card className="p-8">
        <div className="mb-8">
         <h3 className="text-xl font-bold">Burndown Chart</h3>
-        <p className="text-sm text-slate-500">Actual remaining work vs. ideal linear progression.</p>
+        <p className="text-sm text-muted-foreground">Actual remaining work vs. ideal linear progression.</p>
       </div>
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -379,30 +379,30 @@ function MembersTab({ projectId }: { projectId: string }) {
             <CardContent className="p-6">
                 <div className="grid grid-cols-5 gap-6 items-center">
                    <div className="flex items-center gap-4">
-                      <img src={m.user.avatar || ""} className="h-10 w-10 rounded-full border bg-slate-100" />
-                      <div>
-                         <p className="font-bold text-sm">{m.user.full_name}</p>
-                         <p className="text-[10px] text-slate-400 font-bold uppercase">{m.user.role || 'Member'}</p>
-                      </div>
-                   </div>
-                   <div className="text-center">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Created / Completed</p>
-                      <p className="text-lg font-bold">{m.tasks_assigned} / {m.tasks_completed}</p>
-                   </div>
-                   <div className="col-span-1">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-2">Completion Rate</p>
-                      <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${m.completion_rate}%` }} />
+                       <img src={m.user.avatar || ""} className="h-10 w-10 rounded-full border bg-muted" />
+                       <div>
+                          <p className="font-bold text-sm text-foreground">{m.user.full_name}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase">{m.user.role || 'Member'}</p>
+                       </div>
+                    </div>
+                    <div className="text-center">
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Created / Completed</p>
+                       <p className="text-lg font-bold text-foreground">{m.tasks_assigned} / {m.tasks_completed}</p>
+                    </div>
+                    <div className="col-span-1">
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase mb-2">Completion Rate</p>
+                       <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                         <div className="h-full bg-primary rounded-full" style={{ width: `${m.completion_rate}%` }} />
                       </div>
                       <p className="text-right text-[10px] font-bold mt-1">{m.completion_rate.toFixed(0)}%</p>
                    </div>
-                   <div className="text-center">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Avg Days</p>
-                      <p className="text-lg font-bold">{m.avg_completion_days}d</p>
-                   </div>
-                   <div className="text-center">
-                      <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Time Logged</p>
-                      <p className="text-lg font-bold">{m.total_hours_logged}h</p>
+                    <div className="text-center">
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Avg Days</p>
+                       <p className="text-lg font-bold text-foreground">{m.avg_completion_days}d</p>
+                    </div>
+                    <div className="text-center">
+                       <p className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Time Logged</p>
+                       <p className="text-lg font-bold text-foreground">{m.total_hours_logged}h</p>
                    </div>
                 </div>
             </CardContent>
@@ -451,10 +451,10 @@ function ExportDropdown({ projectId }: { projectId: string }) {
 function OverviewSkeleton() {
   return (
     <div className="space-y-8 animate-pulse">
-      <div className="h-64 w-full bg-slate-100 rounded-3xl" />
+      <div className="h-64 w-full bg-muted rounded-3xl" />
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="h-64 bg-slate-100 rounded-3xl" />
-        <div className="h-64 bg-slate-100 rounded-3xl" />
+        <div className="h-64 bg-muted rounded-3xl" />
+        <div className="h-64 bg-muted rounded-3xl" />
       </div>
     </div>
   );

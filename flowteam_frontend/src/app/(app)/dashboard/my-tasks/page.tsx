@@ -160,10 +160,10 @@ export default function MyTasksPage() {
                       variant="outline"
                       className={cn(
                         "text-[10px] uppercase",
-                        task.priority === "urgent" && "border-red-200 bg-red-50 text-red-700",
-                        task.priority === "high" && "border-amber-200 bg-amber-50 text-amber-800",
-                        task.priority === "normal" && "border-sky-200 bg-sky-50 text-sky-800",
-                        task.priority === "low" && "border-slate-200 bg-slate-50 text-slate-700"
+                        task.priority === "urgent" && "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-400",
+                        task.priority === "high" && "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400",
+                        task.priority === "normal" && "border-sky-200 bg-sky-50 text-sky-800 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-400",
+                        task.priority === "low" && "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-900/30 dark:text-slate-400"
                       )}
                     >
                       {task.priority}

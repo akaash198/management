@@ -89,7 +89,7 @@ export default function PortfolioPage() {
         {!isLoading &&
           projects.map((p) => {
             const score = p.health_score ?? 0;
-            const scoreTone = score >= 80 ? "text-emerald-600" : score >= 50 ? "text-amber-600" : "text-red-600";
+            const scoreTone = score >= 80 ? "text-emerald-600 dark:text-emerald-400" : score >= 50 ? "text-amber-600 dark:text-amber-400" : "text-destructive";
             return (
               <Card key={p.id} className="overflow-hidden">
                 <CardHeader className="pb-3">
@@ -115,7 +115,7 @@ export default function PortfolioPage() {
                     <Badge variant="outline" className="text-[11px]">
                       Open: {p.task_open ?? 0}/{p.task_total ?? 0}
                     </Badge>
-                    <Badge variant="outline" className={cn("text-[11px]", (p.task_overdue ?? 0) > 0 && "text-red-600")}>
+                    <Badge variant="outline" className={cn("text-[11px]", (p.task_overdue ?? 0) > 0 && "text-destructive")}>
                       Overdue: {p.task_overdue ?? 0}
                     </Badge>
                   </div>

@@ -248,7 +248,7 @@ export default function MessagingPage() {
   }, [channels, pathname, router, selectedChannel]);
 
   return (
-    <div className="flex h-full overflow-hidden bg-white">
+    <div className="flex h-full overflow-hidden">
       <ChatSidebar
         channels={channels}
         selectedId={selectedChannel?.id || ""}
@@ -276,19 +276,18 @@ export default function MessagingPage() {
           onClearAcceptedCall={() => setAcceptedCallId(null)}
         />
       ) : (
-        <div className="flex-1 flex items-center justify-center bg-white relative overflow-hidden">
-          {/* Subtle Background Glow */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-50 blur-[120px] rounded-full pointer-events-none" />
+        <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-background">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 blur-[120px] rounded-full pointer-events-none bg-primary/10" />
           
-          <div className="relative z-10 max-w-sm space-y-8 p-12 rounded-[32px] border border-slate-100 bg-white/40 backdrop-blur-xl text-center shadow-xl shadow-slate-200/50">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-2xl shadow-indigo-500/20">
-              <MessageSquare size={32} className="text-white" />
+          <div className="relative z-10 max-w-sm space-y-8 p-12 rounded-2xl border border-border bg-card shadow-lg text-center">
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-accent shadow-glow-strong">
+              <MessageSquare size={32} className="text-primary-foreground" />
             </div>
             <div className="space-y-3">
-              <h2 className="text-[20px] font-black tracking-tight text-slate-900">
+              <h2 className="text-[20px] font-black tracking-tight text-foreground">
                 {isLoading ? "Fetching workspace…" : "Ready for focus?"}
               </h2>
-              <p className="text-[14px] text-slate-500 leading-relaxed">
+              <p className="text-[14px] text-muted-foreground leading-relaxed">
                 {isLoading
                   ? "We're setting up your workspace environment. One moment."
                   : channels.length === 0
@@ -299,7 +298,7 @@ export default function MessagingPage() {
             {!isLoading && channels.length === 0 && (
               <Button 
                 onClick={() => router.push('/onboarding')} 
-                className="w-full h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold"
+                className="w-full h-11 rounded-xl font-bold"
               >
                 Create First Channel
               </Button>
@@ -308,8 +307,8 @@ export default function MessagingPage() {
         </div>
       )}
       {incomingCall && (
-        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-4 rounded-2xl border border-indigo-500/30 bg-background shadow-2xl p-4 animate-in slide-in-from-bottom-8 duration-500">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-400">
+        <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-4 rounded-2xl border border-accent/30 bg-card shadow-lg p-4 animate-in slide-in-from-bottom-8 duration-500">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
             <Phone size={24} className="animate-pulse" />
           </div>
           <div className="flex flex-col pr-4">
@@ -317,10 +316,10 @@ export default function MessagingPage() {
             <span className="text-[12px] text-muted-foreground uppercase tracking-wide font-medium">Incoming {incomingCall.callType} call…</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4" onClick={acceptCall}>
+            <Button size="sm" className="rounded-xl px-4" onClick={acceptCall}>
               Accept
             </Button>
-            <Button size="sm" variant="outline" className="rounded-xl border-red-500/20 hover:bg-red-500/5 hover:text-red-400" onClick={declineCall}>
+            <Button size="sm" variant="outline" className="rounded-xl border-destructive/30 hover:bg-destructive/10 hover:text-destructive" onClick={declineCall}>
               Decline
             </Button>
           </div>

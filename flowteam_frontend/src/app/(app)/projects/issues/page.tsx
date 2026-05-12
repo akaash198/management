@@ -416,7 +416,7 @@ function IssueRow({
       </div>
       <div><Badge variant="outline" className="border-border bg-background text-[11px] font-medium">{task.column_name || "Unknown"}</Badge></div>
       <div>
-        <Badge variant="outline" className={cn("text-[11px] font-semibold uppercase", task.priority === "urgent" && "border-rose-200 bg-rose-50 text-rose-700", task.priority === "high" && "border-amber-200 bg-amber-50 text-amber-700", task.priority === "normal" && "border-sky-200 bg-sky-50 text-sky-700", task.priority === "low" && "border-slate-200 bg-slate-100 text-slate-700")}>
+              <Badge variant="outline" className={cn("text-[11px] font-semibold uppercase", task.priority === "urgent" && "border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-400", task.priority === "high" && "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-400", task.priority === "normal" && "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/30 dark:text-sky-400", task.priority === "low" && "border-slate-200 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800/30 dark:text-slate-400")}>
           {task.priority}
         </Badge>
       </div>

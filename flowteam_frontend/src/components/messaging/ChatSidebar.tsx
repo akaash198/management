@@ -290,7 +290,7 @@ export function ChatSidebar({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl">
               <DropdownMenuItem onClick={() => setDmOpen(true)} className="rounded-xl py-2.5">
-                <MessageSquare size={16} className="mr-2 text-indigo-400" />
+                <MessageSquare size={16} className="mr-2 text-accent" />
                 New direct message
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />
@@ -319,13 +319,13 @@ export function ChatSidebar({
         </div>
 
         <div className="relative group">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/20 group-focus-within:text-indigo-400 transition-colors" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors" />
           <input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Jump to conversation… (Ctrl+K)"
-            className="h-10 w-full rounded-xl border border-white/5 bg-white/[0.03] pl-10 pr-3 text-[13px] text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500/30 transition-all"
+            className="h-10 w-full rounded-xl border border-white/5 bg-white/[0.03] pl-10 pr-3 text-[13px] text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
           />
         </div>
 
@@ -333,25 +333,25 @@ export function ChatSidebar({
           <button
             type="button"
             onClick={() => setUnreadOnly((v) => !v)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
-              unreadOnly
-                ? "bg-indigo-500/30 text-white"
-                : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
-            )}
-            aria-pressed={unreadOnly}
-          >
-            <CheckCircle2 size={11} />
-            Unread
-            {unreadTotal > 0 && (
-              <span className={cn(
-                "ml-0.5 rounded-full px-1.5 py-px text-[9px] font-bold",
-                unreadOnly ? "bg-white/20 text-white" : "bg-indigo-600 text-white"
-              )}>
-                {unreadTotal > 99 ? "99+" : unreadTotal}
-              </span>
-            )}
-          </button>
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
+                  unreadOnly
+                    ? "bg-primary/30 text-white"
+                    : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                )}
+                aria-pressed={unreadOnly}
+              >
+                <CheckCircle2 size={11} />
+                Unread
+                {unreadTotal > 0 && (
+                  <span className={cn(
+                    "ml-0.5 rounded-full px-1.5 py-px text-[9px] font-bold",
+                    unreadOnly ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
+                  )}>
+                    {unreadTotal > 99 ? "99+" : unreadTotal}
+                  </span>
+                )}
+              </button>
           <button
             type="button"
             onClick={() => setShowMuted((v) => !v)}
@@ -400,17 +400,17 @@ export function ChatSidebar({
             className={cn(
               "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
               activeView === "unreads" 
-                ? "bg-indigo-50 text-indigo-700 font-bold" 
-                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                ? "bg-accent/15 text-accent font-bold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <Inbox size={15} className={cn(
               "shrink-0 transition-colors", 
-              activeView === "unreads" ? "text-indigo-600" : "text-slate-400 group-hover:text-slate-600"
+              activeView === "unreads" ? "text-accent" : "text-muted-foreground/60 group-hover:text-foreground/70"
             )} />
             <span className="flex-1 text-left">All Unreads</span>
             {unreadTotal > 0 && (
-              <span className="h-5 min-w-[20px] rounded-full bg-indigo-600 text-white text-[10px] font-black flex items-center justify-center px-1.5 leading-none shadow-lg shadow-indigo-500/20">
+              <span className="h-5 min-w-[20px] rounded-full bg-primary text-primary-foreground text-[10px] font-black flex items-center justify-center px-1.5 leading-none shadow-glow-strong">
                 {unreadTotal > 99 ? "99+" : unreadTotal}
               </span>
             )}
@@ -425,13 +425,13 @@ export function ChatSidebar({
             className={cn(
               "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
               activeView === "threads" 
-                ? "bg-violet-50 text-violet-700 font-bold" 
-                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                ? "bg-violet-500/15 text-violet-400 font-bold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <MessagesSquare size={15} className={cn(
               "shrink-0 transition-colors", 
-              activeView === "threads" ? "text-violet-600" : "text-slate-400 group-hover:text-slate-600"
+              activeView === "threads" ? "text-violet-400" : "text-muted-foreground/60 group-hover:text-foreground/70"
             )} />
             <span className="flex-1 text-left">Threads</span>
           </button>
@@ -445,19 +445,19 @@ export function ChatSidebar({
             className={cn(
               "group w-full flex items-center gap-2.5 px-3 py-2 text-[13px] rounded-xl transition-all duration-200",
               activeView === "drafts" 
-                ? "bg-cyan-50 text-cyan-700 font-bold" 
-                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                ? "bg-cyan-500/15 text-cyan-400 font-bold" 
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
             )}
           >
             <Pencil size={15} className={cn(
               "shrink-0 transition-colors", 
-              activeView === "drafts" ? "text-cyan-600" : "text-slate-400 group-hover:text-slate-600"
+              activeView === "drafts" ? "text-cyan-400" : "text-muted-foreground/60 group-hover:text-foreground/70"
             )} />
             <span className="flex-1 text-left">Drafts &amp; Sent</span>
           </button>
         </div>
 
-        <div className="mx-3 mb-2 h-px bg-slate-100" />
+        <div className="mx-3 mb-2 h-px bg-border/50" />
 
         {/* ── Starred ── */}
         {starredChannels.length > 0 && (
@@ -814,7 +814,7 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
       <button
         type="button"
         onClick={() => onToggle(sectionKey)}
-        className="flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-[11px] font-black uppercase tracking-[0.15em] text-slate-400 transition-colors hover:text-slate-600"
+        className="flex flex-1 items-center gap-2 rounded px-1 py-0.5 text-[11px] font-black uppercase tracking-[0.15em] text-muted-foreground/60 transition-colors hover:text-foreground/80"
       >
         <span className="shrink-0 transition-transform duration-200" style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}>
           <ChevronDown size={12} />
@@ -826,7 +826,7 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
         <button
           type="button"
           onClick={onAdd}
-          className="h-6 w-6 flex items-center justify-center rounded-lg opacity-0 group-hover/sec:opacity-40 hover:!opacity-100 hover:bg-slate-100 transition-all text-slate-500"
+          className="h-6 w-6 flex items-center justify-center rounded-lg opacity-0 group-hover/sec:opacity-40 hover:!opacity-100 hover:bg-muted/50 transition-all text-muted-foreground/60"
           title={`Add to ${label}`}
         >
           <Plus size={14} />
@@ -837,7 +837,7 @@ function SectionHeader({ label, sectionKey, isOpen, onToggle, onAdd, icon }: {
 }
 
 function SkeletonRow() {
-  return <div className="mx-1 h-[52px] rounded-xl animate-pulse mb-1 bg-slate-100" />;
+  return <div className="mx-1 h-[52px] rounded-xl animate-pulse mb-1 bg-muted/30" />;
 }
 
 function ChannelRow({
@@ -870,32 +870,32 @@ function ChannelRow({
       className={cn(
         "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
         active 
-          ? "bg-indigo-50 text-indigo-700 font-bold" 
-          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+          ? "bg-accent/15 text-accent font-bold" 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
       )}
       style={{ whiteSpace: "normal", alignItems: "flex-start" }}
     >
       {/* Icon */}
       <div className="mt-[3.5px] shrink-0">
         {channel.is_private ? (
-          <Lock size={14} className={cn("transition-colors", active ? "text-indigo-600" : "text-slate-400")} />
+          <Lock size={14} className={cn("transition-colors", active ? "text-accent" : "text-muted-foreground/50")} />
         ) : (
-          <Hash size={14} className={cn("transition-colors", active ? "text-indigo-600" : "text-slate-400")} />
+          <Hash size={14} className={cn("transition-colors", active ? "text-accent" : "text-muted-foreground/50")} />
         )}
       </div>
 
       {/* Name + preview */}
       <div className="min-w-0 flex-1 text-left overflow-hidden">
         <div className="flex items-center gap-1 min-w-0">
-          <span className={cn("truncate font-medium transition-colors", active ? "text-indigo-900" : hasUnread ? "font-bold text-slate-900" : "text-slate-600")}>
+          <span className={cn("truncate font-medium transition-colors", active ? "text-accent" : hasUnread ? "font-bold text-foreground" : "text-muted-foreground/70")}>
             {channel.display_name}
           </span>
-          {channel.is_muted && <BellOff size={10} className="shrink-0 text-slate-300" />}
+          {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
         {channel.last_message?.text && (
           <p className={cn(
             "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
-            active ? "text-indigo-600/70" : "text-slate-400"
+            active ? "text-accent/60" : "text-muted-foreground/50"
           )}>
             {channel.last_message.text}
           </p>
@@ -905,13 +905,13 @@ function ChannelRow({
       {/* Right side: time + badge + menu */}
       <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
         {channel.last_message?.created_at && (
-          <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
+          <span className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap">
             {formatMessageTime(channel.last_message.created_at)}
           </span>
         )}
         <div className="flex items-center gap-2">
           {hasUnread && (
-            <span className="h-4.5 min-w-[18px] rounded-full bg-indigo-500 text-white text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-lg shadow-indigo-500/20">
+            <span className="h-4.5 min-w-[18px] rounded-full bg-primary text-primary-foreground text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-glow-strong">
               {channel.unread_count > 99 ? "99+" : channel.unread_count}
             </span>
           )}
@@ -922,12 +922,12 @@ function ChannelRow({
                 aria-label="Channel actions"
                 className={cn(
                   "inline-flex h-6 w-6 items-center justify-center rounded-lg opacity-0 transition-all",
-                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-slate-100",
+                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-muted/40",
                   active && "opacity-20"
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                <MoreHorizontal size={14} className="text-slate-600" />
+                <MoreHorizontal size={14} className="text-muted-foreground/60" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
@@ -942,12 +942,12 @@ function ChannelRow({
                 <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
-                <BellRing size={16} className="mr-2 text-indigo-400" /> Mark unread
+                <BellRing size={16} className="mr-2 text-accent" /> Mark unread
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />
               {channel.is_muted ? (
                 <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
-                  <Bell size={16} className="mr-2 text-indigo-400" /> Unmute
+                  <Bell size={16} className="mr-2 text-accent" /> Unmute
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>
@@ -1001,37 +1001,37 @@ function DmRow({
       className={cn(
         "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
         active 
-          ? "bg-indigo-50 text-indigo-700 font-bold" 
-          : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+          ? "bg-accent/15 text-accent font-bold" 
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
       )}
       style={{ whiteSpace: "normal", alignItems: "flex-start" }}
     >
       {/* Avatar with presence */}
       <div className="relative shrink-0 mt-0.5">
-        <Avatar className="h-7 w-7 border border-slate-100">
+        <Avatar className="h-7 w-7 border border-border/50">
           <AvatarImage src="" />
-          <AvatarFallback className="text-[10px] bg-indigo-500/10 text-indigo-600 font-bold">
+          <AvatarFallback className="text-[10px] bg-accent/10 text-accent font-bold">
             {(channel.display_name?.[0] ?? "?").toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <span className={cn(
-          "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-white",
-          online ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-slate-200"
+          "absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background",
+          online ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-muted-foreground/30"
         )} />
       </div>
 
       {/* Name + preview */}
       <div className="min-w-0 flex-1 text-left overflow-hidden">
         <div className="flex items-center gap-1 min-w-0">
-          <span className={cn("truncate font-medium transition-colors", active ? "text-indigo-900" : hasUnread ? "font-bold text-slate-900" : "text-slate-600")}>
+          <span className={cn("truncate font-medium transition-colors", active ? "text-accent" : hasUnread ? "font-bold text-foreground" : "text-muted-foreground/70")}>
             {channel.display_name}
           </span>
-          {channel.is_muted && <BellOff size={10} className="shrink-0 text-slate-300" />}
+          {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
         {channel.last_message?.text && (
           <p className={cn(
             "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
-            active ? "text-indigo-600/70" : "text-slate-400"
+            active ? "text-accent/60" : "text-muted-foreground/50"
           )}>
             {channel.last_message.text}
           </p>
@@ -1041,13 +1041,13 @@ function DmRow({
       {/* Right side: time + badge + menu */}
       <div className="shrink-0 flex flex-col items-end gap-1.5 ml-1">
         {channel.last_message?.created_at && (
-          <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
+          <span className="text-[10px] font-medium text-muted-foreground/50 whitespace-nowrap">
             {formatMessageTime(channel.last_message.created_at)}
           </span>
         )}
         <div className="flex items-center gap-2">
           {hasUnread && (
-            <span className="h-4.5 min-w-[18px] rounded-full bg-indigo-500 text-white text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-lg shadow-indigo-500/20">
+            <span className="h-4.5 min-w-[18px] rounded-full bg-primary text-primary-foreground text-[9px] font-black flex items-center justify-center px-1 leading-none shadow-glow-strong">
               {channel.unread_count > 99 ? "99+" : channel.unread_count}
             </span>
           )}
@@ -1058,7 +1058,7 @@ function DmRow({
                 aria-label="Conversation actions"
                 className={cn(
                   "inline-flex h-6 w-6 items-center justify-center rounded-lg opacity-0 transition-all",
-                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-white/10",
+                  "group-hover:opacity-40 hover:!opacity-100 hover:bg-muted/40",
                   active && "opacity-20"
                 )}
                 onClick={(e) => e.stopPropagation()}
@@ -1078,12 +1078,12 @@ function DmRow({
                 <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
-                <BellRing size={16} className="mr-2 text-indigo-400" /> Mark unread
+                <BellRing size={16} className="mr-2 text-accent" /> Mark unread
               </DropdownMenuItem>
               <DropdownMenuSeparator className="bg-white/5" />
               {channel.is_muted ? (
                 <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
-                  <Bell size={16} className="mr-2 text-indigo-400" /> Unmute
+                  <Bell size={16} className="mr-2 text-accent" /> Unmute
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>

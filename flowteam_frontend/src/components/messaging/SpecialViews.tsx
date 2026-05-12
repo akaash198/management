@@ -12,19 +12,19 @@ interface SpecialViewsProps {
 export function SpecialViews({ view, onRefreshChannels }: SpecialViewsProps) {
   const content = {
     unreads: {
-      icon: <Inbox size={32} className="text-indigo-400" />,
+      icon: <Inbox size={32} className="text-accent" />,
       title: "All Unreads",
       description: "You're all caught up! When you have new messages across any channel, they'll appear here for quick review.",
       action: "Mark all as read"
     },
     threads: {
-      icon: <MessagesSquare size={32} className="text-indigo-400" />,
+      icon: <MessagesSquare size={32} className="text-accent" />,
       title: "Threads",
       description: "Threads help you follow specific conversations without cluttering the main channel. Active threads will appear here.",
       action: null
     },
     drafts: {
-      icon: <Pencil size={32} className="text-indigo-400" />,
+      icon: <Pencil size={32} className="text-accent" />,
       title: "Drafts & Sent",
       description: "Messages you've started but haven't sent, or messages you've recently sent across all your workspaces.",
       action: null
@@ -40,9 +40,9 @@ export function SpecialViews({ view, onRefreshChannels }: SpecialViewsProps) {
   if (view === "all") return null;
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center bg-white p-6">
+    <div className="flex-1 flex flex-col items-center justify-center bg-background p-6">
       <div className="max-w-md w-full space-y-6 text-center animate-in fade-in zoom-in duration-300">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-indigo-500/20 bg-indigo-500/10 shadow-[0_0_20px_rgba(99,102,241,0.1)]">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/20 bg-accent/10 shadow-glow">
           {content.icon}
         </div>
         
@@ -57,7 +57,7 @@ export function SpecialViews({ view, onRefreshChannels }: SpecialViewsProps) {
           <div className="pt-2">
             <Button 
               variant="outline" 
-              className="gap-2 border-indigo-500/20 hover:bg-indigo-500/5 hover:text-indigo-400 transition-all"
+              className="gap-2 border-accent/20 hover:bg-accent/5 hover:text-accent transition-all"
               onClick={() => onRefreshChannels?.()}
             >
               <CheckCircle2 size={16} />

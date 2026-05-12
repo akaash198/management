@@ -108,9 +108,9 @@ export default function ProjectBoardPage() {
 
   const healthToneClass = useMemo(() => {
     const score = health?.health_score ?? 0;
-    if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200";
-    if (score >= 40) return "text-amber-700 bg-amber-50 border-amber-200";
-    return "text-red-700 bg-red-50 border-red-200";
+    if (score >= 70) return "text-emerald-600 bg-emerald-50 border-emerald-200 dark:text-emerald-400 dark:bg-emerald-950/30 dark:border-emerald-800";
+    if (score >= 40) return "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-400 dark:bg-amber-950/30 dark:border-amber-800";
+    return "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800";
   }, [health?.health_score]);
 
   const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
