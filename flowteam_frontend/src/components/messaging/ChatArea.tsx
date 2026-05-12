@@ -450,7 +450,7 @@ export function ChatArea({
       const res = await api.get<ApiResponse<SlimUser[]>>(`/messaging/channels/${channel.id}/members/`);
       return res.data.data ?? [];
     },
-    enabled: channel.is_private || membersOpen || infoOpen || addMembersOpen || searchOpen || searchMobileOpen,
+    enabled: channel.is_private || membersOpen || infoOpen || addMembersOpen || searchOpen || searchMobileOpen || detailsOpen,
   });
 
   const { data: pins } = useQuery<MessagePin[]>({
@@ -751,14 +751,7 @@ export function ChatArea({
     },
     enabled: (addMembersOpen || channel.is_private) && !!activeTeamId,
   });
-  const { data: channelMembers, isLoading: membersLoading } = useQuery<TeamMember[]>({
-    queryKey: ["channel-members", channel.id],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<TeamMember[]>>(`/messaging/channels/${channel.id}/members/`);
-      return res.data.data ?? [];
-    },
-    enabled: detailsOpen || searchOpen,
-  });
+
   const directPeerTeamMember = useMemo(
     () => (channel.is_private ? (teamMembers ?? []).find((tm) => tm.user.id === directPeer?.id) ?? null : null),
     [channel.is_private, directPeer?.id, teamMembers]
@@ -1459,8 +1452,8 @@ export function ChatArea({
                 <div className="flex -space-x-1.5 overflow-hidden">
                   {(channelMembers ?? []).slice(0, 3).map((m, i) => (
                     <Avatar key={m.id} className="h-5 w-5 border border-background ring-1 ring-background">
-                      <AvatarImage src={m.user.avatar || ""} />
-                      <AvatarFallback className="text-[7px]">{(m.user.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
+                      <AvatarImage src={m.avatar || ""} />
+                      <AvatarFallback className="text-[7px]">{(m.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
                     </Avatar>
                   ))}
                 </div>
@@ -3179,16 +3172,16 @@ export function ChatArea({
 
                   <div className="space-y-1">
                     {(channelMembers ?? [])
-                      .filter(m => m.user.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                      .filter(m => m.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
                       .map((m) => {
-                        const isOnline = onlineUserIds.has(m.user.id);
+                        const isOnline = onlineUserIds?.has(m.id);
                         return (
                           <div key={m.id} className="flex items-center justify-between rounded-lg p-2 hover:bg-muted/30 group">
                             <div className="flex items-center gap-3 min-w-0">
                                <div className="relative">
                                   <Avatar className="h-8 w-8">
-                                    <AvatarImage src={m.user.avatar || ""} />
-                                    <AvatarFallback>{m.user.full_name[0]}</AvatarFallback>
+                                    <AvatarImage src={m.avatar || ""} />
+                                    <AvatarFallback>{m.full_name[0]}</AvatarFallback>
                                   </Avatar>
                                   <span className={cn(
                                     "absolute bottom-0 right-0 h-2 w-2 rounded-full border border-background",
@@ -3197,10 +3190,9 @@ export function ChatArea({
                                </div>
                                <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
-                                    <span className="text-[14px] font-medium truncate">{m.user.full_name}</span>
-                                    {m.user.id === user?.id && <span className="text-[12px] text-muted-foreground">(you)</span>}
+                                    <span className="text-[14px] font-medium truncate">{m.full_name}</span>
+                                    {m.id === user?.id && <span className="text-[12px] text-muted-foreground">(you)</span>}
                                   </div>
-                                  <div className="text-[12px] text-muted-foreground truncate">{m.user.full_name}</div>
                                </div>
                             </div>
                           </div>
