@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from apps.messaging.views import TaskCommentView
 from apps.core.views import HealthView
 from apps.core.metrics_views import MetricsView
 
@@ -25,9 +24,6 @@ urlpatterns = [
     path("api/billing/", include("apps.billing.urls")),
     path("api/ai/", include("apps.ai.urls")),
     path("api/reports/", include("apps.reports.urls")),
-    path("api/tasks/<uuid:id>/comments/", include([
-        path("", TaskCommentView.as_view(), name="task-comments")
-    ])),
 ]
 
 if settings.DEBUG:

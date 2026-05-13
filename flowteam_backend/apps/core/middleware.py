@@ -54,11 +54,12 @@ class RateLimitMiddleware:
         r"^/api/auth/login/$": (10, 60),  # 10 req / 60s
         r"^/api/auth/register/$": (5, 60),  # 5 req / 60s
         r"^/api/auth/password-reset/request/$": (5, 60),  # 5 req / 60s
-        r"^/api/auth/password-reset/confirm/$": (10, 60),  # 10 req / 60s
+        r"^/api/auth/password-reset/confirm/$": (3, 60),  # 3 req / 60s — prevent token brute force
         r"^/api/auth/email/verify/request/$": (10, 60),  # 10 req / 60s
         r"^/api/auth/2fa/": (20, 60),  # 20 req / 60s (per user when authenticated)
         r'^/api/search/': (30, 60),      # 30 req / 60s
         r'^/api/projects/.+/export/': (5, 60), # 5 req / 60s
+        r"^/api/auth/oauth/": (10, 60),  # 10 req / 60s — OAuth redirect + callback
     }
 
     def _client_ip(self, request) -> str:
@@ -124,9 +125,22 @@ def get_user(user_id):
     except User.DoesNotExist:
         return AnonymousUser()
 
+def _ws_cookie(scope, name):
+    """Parse a cookie value from the ASGI WebSocket handshake headers."""
+    for header, value in scope.get("headers", []):
+        if header.lower() == b"cookie":
+            for part in value.decode().split(";"):
+                part = part.strip()
+                if part.startswith(f"{name}="):
+                    return part[len(name) + 1:]
+    return None
+
+
 class JWTAuthMiddleware:
     """
-    Custom middleware that takes user ID from JWT in query string and populates scope['user']
+    Custom middleware that authenticates WebSocket connections via:
+    1. `access_token` httpOnly cookie (sent automatically by browser)
+    2. `?token=` query string (legacy/fallback)
     """
     def __init__(self, inner):
         self.inner = inner
@@ -134,7 +148,10 @@ class JWTAuthMiddleware:
     async def __call__(self, scope, receive, send):
         query_params = parse_qs(scope["query_string"].decode())
         token = query_params.get("token", [None])[0]
-        
+
+        if not token:
+            token = _ws_cookie(scope, "access_token")
+
         if token:
             try:
                 access_token = AccessToken(token)

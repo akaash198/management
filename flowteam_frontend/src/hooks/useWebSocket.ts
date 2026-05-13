@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getAccessToken, clearTokens } from "@/lib/auth";
-// Import the shared refresh lock from api.ts so WS auth failures and HTTP 401s
+import { clearTokens } from "@/lib/auth";
+// Import the shared refresh lock so WS auth failures and HTTP 401s
 // don't race each other and double-consume a rotating refresh token.
-import { refreshAccessToken } from "@/lib/api";
+import { refreshAccessToken } from "@/lib/auth";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
 
@@ -17,7 +17,6 @@ async function tryRefreshToken(): Promise<boolean> {
   const newToken = await refreshAccessToken();
   if (newToken) return true;
   clearTokens();
-  if (typeof window !== "undefined") window.location.href = "/login";
   return false;
 }
 
@@ -51,10 +50,8 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
       // ignore
     }
 
-    const token = getAccessToken();
-    if (!url || !token) {
-      if (!url) setConnectionState("disconnected");
-      else setConnectionState("error"); // No token is an error for auth-required WS
+    if (!url) {
+      setConnectionState("disconnected");
       return;
     }
 
@@ -67,7 +64,6 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
       setConnectionState("error");
       return;
     }
-    wsUrl.searchParams.set("token", token);
     
     console.log(`[WS] Connecting to: ${wsUrl.origin}${wsUrl.pathname}`);
 

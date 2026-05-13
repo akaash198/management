@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+import secrets
 from urllib.parse import urlencode
 
 import requests
@@ -12,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from apps.teams.models import Team, TeamMember
+from apps.core.jwt_cookie_auth import set_access_token_cookie, set_refresh_token_cookie
 
 User = get_user_model()
 
@@ -36,16 +40,46 @@ def _frontend_base() -> str:
     return getattr(settings, "FRONTEND_BASE_URL", "http://localhost:3000").rstrip("/")
 
 
-def _issue_tokens_and_redirect(user):
+def _generate_state() -> str:
+    return secrets.token_urlsafe(32)
+
+
+def _validate_state(request, expected_state: str | None) -> bool:
+    if not expected_state:
+        return False
+    stored = request.session.get("oauth_state")
+    if not stored:
+        return False
+    return secrets.compare_digest(str(stored), str(expected_state))
+
+
+def _generate_pkce_pair() -> tuple[str, str]:
+    """Returns (code_verifier, code_challenge) per RFC 7636."""
+    verifier = secrets.token_urlsafe(64)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
+
+
+def _issue_tokens_and_redirect(user, request):
     refresh = RefreshToken.for_user(user)
-    params = urlencode({"access": str(refresh.access_token), "refresh": str(refresh)})
-    return redirect(f"{_frontend_base()}/auth/callback?{params}")
+    access_token = str(refresh.access_token)
+    params = urlencode({"access": access_token, "refresh": str(refresh)})
+
+    response = redirect(f"{_frontend_base()}/auth/callback?{params}")
+    set_access_token_cookie(response, access_token)
+    set_refresh_token_cookie(response, str(refresh))
+    return response
 
 
 class GoogleRedirectView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
+        state = _generate_state()
+        request.session["oauth_state"] = state
+        verifier, challenge = _generate_pkce_pair()
+        request.session["oauth_code_verifier"] = verifier
         params = {
             "client_id": settings.GOOGLE_CLIENT_ID,
             "redirect_uri": settings.GOOGLE_REDIRECT_URI,
@@ -53,6 +87,9 @@ class GoogleRedirectView(APIView):
             "scope": "openid email profile",
             "access_type": "offline",
             "prompt": "select_account",
+            "state": state,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
         }
         return redirect(f"{GOOGLE_AUTH_URL}?{urlencode(params)}")
 
@@ -63,20 +100,25 @@ class GoogleCallbackView(APIView):
     def get(self, request):
         code = request.GET.get("code")
         error = request.GET.get("error")
+        state = request.GET.get("state")
+
+        if not _validate_state(request, state):
+            return redirect(f"{_frontend_base()}/login?error=oauth_invalid_state")
+
         if error or not code:
             return redirect(f"{_frontend_base()}/login?error=oauth_cancelled")
 
-        token_res = requests.post(
-            GOOGLE_TOKEN_URL,
-            data={
-                "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
-            timeout=10,
-        )
+        code_verifier = request.session.pop("oauth_code_verifier", None)
+        token_data = {
+            "code": code,
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+        if code_verifier:
+            token_data["code_verifier"] = code_verifier
+        token_res = requests.post(GOOGLE_TOKEN_URL, data=token_data, timeout=10)
         if not token_res.ok:
             return redirect(f"{_frontend_base()}/login?error=oauth_failed")
 
@@ -117,19 +159,27 @@ class GoogleCallbackView(APIView):
             team = Team.objects.create(name=f"{full_name}'s Team", created_by=user)
             TeamMember.objects.create(team=team, user=user, role=TeamMember.ADMIN)
 
-        return _issue_tokens_and_redirect(user)
+        return _issue_tokens_and_redirect(user, request)
 
 
 class GitHubOAuthRedirectView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        state = request.GET.get("project_id", "")
+        state = _generate_state()
+        request.session["oauth_state"] = state
+        verifier, challenge = _generate_pkce_pair()
+        request.session["oauth_code_verifier"] = verifier
+        project_id = request.GET.get("project_id", "")
+        if project_id:
+            state = f"{state}:{project_id}"
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
             "redirect_uri": settings.GITHUB_REDIRECT_URI,
             "scope": "repo",
             "state": state,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
         }
         return redirect(f"{GITHUB_AUTH_URL}?{urlencode(params)}")
 
@@ -139,20 +189,31 @@ class GitHubOAuthCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get("code")
-        project_id = request.GET.get("state", "")
+        state_raw = request.GET.get("state", "")
+        state_parts = state_raw.split(":", 1)
+        state = state_parts[0] if state_parts else ""
+
+        if not _validate_state(request, state):
+            return redirect(f"{_frontend_base()}/login?error=oauth_invalid_state")
+
+        project_id = state_parts[1] if len(state_parts) > 1 else ""
 
         if not code:
             return redirect(f"{_frontend_base()}/login?error=github_cancelled")
 
+        code_verifier = request.session.pop("oauth_code_verifier", None)
+        token_data = {
+            "client_id": settings.GITHUB_CLIENT_ID,
+            "client_secret": settings.GITHUB_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": settings.GITHUB_REDIRECT_URI,
+        }
+        if code_verifier:
+            token_data["code_verifier"] = code_verifier
         token_res = requests.post(
             GITHUB_TOKEN_URL,
             headers={"Accept": "application/json"},
-            data={
-                "client_id": settings.GITHUB_CLIENT_ID,
-                "client_secret": settings.GITHUB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITHUB_REDIRECT_URI,
-            },
+            data=token_data,
             timeout=10,
         )
         access_token = token_res.json().get("access_token")
@@ -188,13 +249,21 @@ class GitLabOAuthRedirectView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        state = request.GET.get("project_id", "")
+        state = _generate_state()
+        request.session["oauth_state"] = state
+        verifier, challenge = _generate_pkce_pair()
+        request.session["oauth_code_verifier"] = verifier
+        project_id = request.GET.get("project_id", "")
+        if project_id:
+            state = f"{state}:{project_id}"
         params = {
             "client_id": settings.GITLAB_CLIENT_ID,
             "redirect_uri": settings.GITLAB_REDIRECT_URI,
             "response_type": "code",
             "scope": "api read_api",
             "state": state,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
         }
         return redirect(f"{GITLAB_AUTH_URL}?{urlencode(params)}")
 
@@ -204,21 +273,29 @@ class GitLabOAuthCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get("code")
-        project_id = request.GET.get("state", "")
+        state_raw = request.GET.get("state", "")
+        state_parts = state_raw.split(":", 1)
+        state = state_parts[0] if state_parts else ""
+
+        if not _validate_state(request, state):
+            return redirect(f"{_frontend_base()}/login?error=oauth_invalid_state")
+
+        project_id = state_parts[1] if len(state_parts) > 1 else ""
+
         if not code:
             return redirect(f"{_frontend_base()}/projects/{project_id}/settings/permissions?error=gitlab_cancelled")
 
-        token_res = requests.post(
-            GITLAB_TOKEN_URL,
-            data={
-                "client_id": settings.GITLAB_CLIENT_ID,
-                "client_secret": settings.GITLAB_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.GITLAB_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            },
-            timeout=10,
-        )
+        code_verifier = request.session.pop("oauth_code_verifier", None)
+        token_data = {
+            "client_id": settings.GITLAB_CLIENT_ID,
+            "client_secret": settings.GITLAB_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": settings.GITLAB_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        }
+        if code_verifier:
+            token_data["code_verifier"] = code_verifier
+        token_res = requests.post(GITLAB_TOKEN_URL, data=token_data, timeout=10)
         if not token_res.ok:
             return redirect(f"{_frontend_base()}/projects/{project_id}/settings/permissions?error=gitlab_failed")
 
@@ -252,13 +329,21 @@ class BitbucketOAuthRedirectView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        state = request.GET.get("project_id", "")
+        state = _generate_state()
+        request.session["oauth_state"] = state
+        verifier, challenge = _generate_pkce_pair()
+        request.session["oauth_code_verifier"] = verifier
+        project_id = request.GET.get("project_id", "")
+        if project_id:
+            state = f"{state}:{project_id}"
         params = {
             "client_id": settings.BITBUCKET_CLIENT_ID,
             "redirect_uri": settings.BITBUCKET_REDIRECT_URI,
             "response_type": "code",
             "scope": "pullrequest repository",
             "state": state,
+            "code_challenge": challenge,
+            "code_challenge_method": "S256",
         }
         return redirect(f"{BITBUCKET_AUTH_URL}?{urlencode(params)}")
 
@@ -268,18 +353,30 @@ class BitbucketOAuthCallbackView(APIView):
 
     def get(self, request):
         code = request.GET.get("code")
-        project_id = request.GET.get("state", "")
+        state_raw = request.GET.get("state", "")
+        state_parts = state_raw.split(":", 1)
+        state = state_parts[0] if state_parts else ""
+
+        if not _validate_state(request, state):
+            return redirect(f"{_frontend_base()}/login?error=oauth_invalid_state")
+
+        project_id = state_parts[1] if len(state_parts) > 1 else ""
+
         if not code:
             return redirect(f"{_frontend_base()}/projects/{project_id}/settings/permissions?error=bitbucket_cancelled")
 
+        code_verifier = request.session.pop("oauth_code_verifier", None)
+        token_data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": settings.BITBUCKET_REDIRECT_URI,
+        }
+        if code_verifier:
+            token_data["code_verifier"] = code_verifier
         token_res = requests.post(
             BITBUCKET_TOKEN_URL,
             auth=(settings.BITBUCKET_CLIENT_ID, settings.BITBUCKET_CLIENT_SECRET),
-            data={
-                "grant_type": "authorization_code",
-                "code": code,
-                "redirect_uri": settings.BITBUCKET_REDIRECT_URI,
-            },
+            data=token_data,
             timeout=10,
         )
         if not token_res.ok:

@@ -25,6 +25,11 @@ COPY . .
 
 RUN chmod +x start.sh
 
+# Run as non-root user
+RUN groupadd -r flowteam && useradd -r -g flowteam -d /app -s /sbin/nologin flowteam
+RUN chown -R flowteam:flowteam /app
+USER flowteam
+
 EXPOSE 8000
 
 CMD ["./start.sh"]

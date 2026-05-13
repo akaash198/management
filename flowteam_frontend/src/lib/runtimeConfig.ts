@@ -52,9 +52,10 @@ export function getWsBaseUrl(): string {
       }
     }
 
-    // Default: same origin as the page.
+    // Default: point to the backend port on the same host if we are on localhost
+    const host = window.location.hostname;
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${window.location.host}`;
+    return `${proto}://${host}:8000`;
   }
 
   // Server-side (SSR/build) — use localhost fallback; WS isn't used server-side.
@@ -64,5 +65,5 @@ export function getWsBaseUrl(): string {
   ) {
     return envValue;
   }
-  return "ws://127.0.0.1:8000";
+  return "ws://localhost:8000";
 }

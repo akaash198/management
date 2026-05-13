@@ -6,8 +6,6 @@ from django.utils import timezone
 from django.core.cache import cache
 from django.db import models
 from django.utils.dateparse import parse_datetime
-from rest_framework_simplejwt.tokens import UntypedToken
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from django.contrib.auth import get_user_model
 from .models import (
     Channel,
@@ -35,31 +33,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
         self.group_name = f"chat_{self.channel_id}"
         self._rate_key_prefix = None
 
-        # Auth — must accept() before closing with a custom code so the browser
-        # receives the actual close code (4001) rather than a network error (1006).
-        query_string = self.scope.get("query_string", b"").decode()
-        token = None
-        if "token=" in query_string:
-            token = query_string.split("token=")[1].split("&")[0]
-
-        if not token:
-            await self.accept()
+        if not self.scope["user"].is_authenticated:
             await self.close(code=4001)
             return
 
-        try:
-            untyped_token = UntypedToken(token)
-            user_id = untyped_token.payload.get("user_id")
-            self.user = await self.get_user(user_id)
-            if not await self.is_member(self.user, self.channel_id):
-                await self.accept()
-                await self.close(code=4001)
-                return
-            self._rate_key_prefix = f"ws:chat:{self.channel_id}:user:{self.user.id}"
-        except (InvalidToken, TokenError, User.DoesNotExist):
-            await self.accept()
+        self.user = self.scope["user"]
+        if not await self.is_member(self.user, self.channel_id):
             await self.close(code=4001)
             return
+        self._rate_key_prefix = f"ws:chat:{self.channel_id}:user:{self.user.id}"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
@@ -262,10 +244,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
         }))
 
     @database_sync_to_async
-    def get_user(self, user_id):
-        return User.objects.get(id=user_id)
-
-    @database_sync_to_async
     def is_member(self, user, channel_id):
         return ChannelMember.objects.filter(user=user, channel_id=channel_id).exists()
 
@@ -345,8 +323,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             cache.set(key, next_value, timeout=self.RATE_LIMIT_WINDOW_SECONDS + 2)
             return next_value <= float(self.RATE_LIMIT_EVENTS_PER_WINDOW)
         except Exception:
-            # Fail open to avoid hard outages if cache is unavailable.
-            return True
+            # Fail closed — deny event when cache is unavailable to prevent rate limit bypass.
+            return False
 
     @database_sync_to_async
     def edit_message(self, message_id, text):
@@ -572,27 +550,15 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
     """
 
     async def connect(self):
-        query_string = self.scope.get("query_string", b"").decode()
-        token = None
-        if "token=" in query_string:
-            token = query_string.split("token=")[1].split("&")[0]
-
-        if not token:
-            await self.accept()
+        if not self.scope["user"].is_authenticated:
             await self.close(code=4001)
             return
 
-        try:
-            untyped_token = UntypedToken(token)
-            user_id = untyped_token.payload.get("user_id")
-            self.user = await self.get_user(user_id)
-            self.user_id = str(self.user.id)
-            self.group_name = f"channels_{self.user_id}"
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
-            await self.accept()
-        except Exception:
-            await self.accept()
-            await self.close(code=4001)
+        self.user = self.scope["user"]
+        self.user_id = str(self.user.id)
+        self.group_name = f"channels_{self.user_id}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
@@ -651,27 +617,12 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.team_id = str(self.scope["url_route"]["kwargs"]["team_id"])
 
-        query_string = self.scope.get("query_string", b"").decode()
-        token = None
-        if "token=" in query_string:
-            token = query_string.split("token=")[1].split("&")[0]
-
-        if not token:
-            await self.accept()
+        if not self.scope["user"].is_authenticated:
             await self.close(code=4001)
             return
 
-        try:
-            untyped_token = UntypedToken(token)
-            user_id = untyped_token.payload.get("user_id")
-            self.user = await self.get_user(user_id)
-        except (InvalidToken, TokenError, User.DoesNotExist):
-            await self.accept()
-            await self.close(code=4001)
-            return
-
+        self.user = self.scope["user"]
         if not await self.can_join_team(self.user.id, self.team_id):
-            await self.accept()
             await self.close(code=4001)
             return
 
@@ -711,10 +662,6 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
     async def send_snapshot(self):
         online_user_ids = await self.presence_snapshot(self.team_id)
         await self.send(text_data=json.dumps({"type": "presence.snapshot", "data": {"online_user_ids": online_user_ids}}))
-
-    @database_sync_to_async
-    def get_user(self, user_id):
-        return User.objects.get(id=user_id)
 
     @database_sync_to_async
     def can_join_team(self, user_id: str, team_id: str) -> bool:
@@ -765,25 +712,14 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        query_string = self.scope.get("query_string", b"").decode()
-        token = None
-        if "token=" in query_string:
-            token = query_string.split("token=")[1].split("&")[0]
-            
-        if not token:
-            await self.accept()
+        if not self.scope["user"].is_authenticated:
             await self.close(code=4001)
             return
 
-        try:
-            untyped_token = UntypedToken(token)
-            self.user_id = untyped_token.payload.get("user_id")
-            self.group_name = f"notifications_{self.user_id}"
-            await self.channel_layer.group_add(self.group_name, self.channel_name)
-            await self.accept()
-        except Exception:
-            await self.accept()
-            await self.close(code=4001)
+        self.user_id = str(self.scope["user"].id)
+        self.group_name = f"notifications_{self.user_id}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):

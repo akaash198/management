@@ -26,6 +26,9 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["team", "status"]),
+        ]
         permissions = [
             ("edit_project", "Can edit project tasks and columns"),
             ("manage_project", "Can manage project settings and members"),
@@ -141,6 +144,8 @@ class Task(models.Model):
         ordering = ["order"]
         indexes = [
             GinIndex(fields=["search_vector"], name="task_search_gin"),
+            models.Index(fields=["project", "column", "order"]),
+            models.Index(fields=["assignee"]),
         ]
 
     def __str__(self):
@@ -459,6 +464,9 @@ class ProjectRole(models.Model):
 
     class Meta:
         unique_together = ("project", "user")
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
 
     def is_active(self) -> bool:
         """Return False if outside the validity window."""

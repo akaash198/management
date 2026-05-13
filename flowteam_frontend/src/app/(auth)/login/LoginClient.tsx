@@ -36,7 +36,7 @@ export default function LoginClient() {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
-  const setUser      = useAuthStore((s) => s.setUser);
+  const { user, setUser } = useAuthStore();
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
   const [showPw, setShowPw]       = useState(false);
@@ -66,25 +66,42 @@ export default function LoginClient() {
     }
   }, [pathname, router, searchParams, setValue]);
 
+
   const onSubmit = async (values: LoginFormValues) => {
     setLoading(true);
     setError(null);
     try {
-      const payload: Record<string, string> = { ...values };
+      const payload: Record<string, any> = { ...values };
       if (otpRequired) {
         if (useBackup) payload.backup_code = backupCode.trim();
         else payload.otp_code = otpCode.trim().replace(/\s+/g, "");
       }
+
+      console.log("[Login] Attempting login for:", values.email);
       const res = await api.post("/auth/login/", payload);
-      if (res.data.success) {
-        const { user, access, refresh } = res.data.data;
-        setTokens(access, refresh);
-        setUser(user);
-        router.push(searchParams.get("redirect") || "/dashboard");
+      
+      if (res.data.success && res.data.data) {
+        try {
+          const { user: userData, access, refresh } = res.data.data;
+          console.log("[Login] Success! Data received:", !!userData);
+          
+          setTokens(access, refresh);
+          setUser(userData);
+          
+          const target = searchParams.get("redirect") || "/dashboard";
+          window.location.assign(target);
+        } catch (innerErr) {
+          console.error("[Login] Inner Error during state update:", innerErr);
+          setError("An internal error occurred after login. Please refresh.");
+        }
+      } else {
+        setError(res.data.error || "Login failed. Please check your credentials.");
       }
-    } catch (err: unknown) {
-      const data   = (err as { response?: { data?: unknown } })?.response?.data;
-      const apiErr = (data as { error?: { code?: string; message?: string } | string })?.error;
+    } catch (err: any) {
+      console.error("[Login] Error:", err);
+      const data   = err.response?.data;
+      const apiErr = data?.error;
+      
       if (typeof apiErr === "object" && apiErr?.code === "otp_required") {
         setOtpRequired(true);
         setError(apiErr?.message || "Two-factor authentication required.");
@@ -224,8 +241,7 @@ export default function LoginClient() {
             </div>
 
             <form
-              method="post"
-              onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }}
+              onSubmit={handleSubmit(onSubmit)}
               className="space-y-4"
               noValidate
             >

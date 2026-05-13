@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-export function proxy(request: NextRequest) {
-  const token = request.cookies.get("accessToken")?.value;
+export function middleware(request: NextRequest) {
+  // Check for both camelCase and snake_case for maximum compatibility
+  const token = request.cookies.get("access_token")?.value || request.cookies.get("accessToken")?.value;
   const { pathname } = request.nextUrl;
 
   const isFrameworkAsset =
@@ -16,12 +17,14 @@ export function proxy(request: NextRequest) {
   const publicRoutes = ["/login", "/register", "/accept-invite/"];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
+  // If no token and trying to access protected route -> redirect to login
   if (!token && !isPublicRoute && pathname !== "/") {
     const url = new URL("/login", request.url);
     url.searchParams.set("redirect", pathname);
     return NextResponse.redirect(url);
   }
 
+  // If token exists and trying to access login -> redirect to dashboard
   if (token && isPublicRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }

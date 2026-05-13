@@ -208,7 +208,7 @@ ANONYMOUS_USER_NAME = None
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "apps.core.jwt_cookie_auth.CookieJWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -226,21 +226,25 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
-    "UPDATE_LAST_LOGIN": False,
+    "UPDATE_LAST_LOGIN": True,
     "ALGORITHM": "HS256",
     "SIGNING_KEY": SECRET_KEY,
     "AUTH_HEADER_TYPES": ("Bearer",),
 }
 
-# CORS
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-else:
-    CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000"
-    ])
+# CORS — always restrict, even in debug
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False
+
+# Security headers
+SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Channels
 if DISABLE_REDIS:
@@ -260,6 +264,9 @@ else:
 
 # Celery
 CELERY_BROKER_URL = "memory://" if DISABLE_REDIS else env("REDIS_URL", default="redis://localhost:6379")
+if DISABLE_REDIS:
+    import warnings
+    warnings.warn("DISABLE_REDIS=True — Celery tasks will NOT execute asynchronously", RuntimeWarning, stacklevel=2)
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_ACCEPT_CONTENT = ["json"]
@@ -279,6 +286,8 @@ else:
                 "IGNORE_EXCEPTIONS": True,
                 "SOCKET_CONNECT_TIMEOUT": 1,
                 "SOCKET_TIMEOUT": 1,
+                "CONNECTION_POOL_CLASS": "redis.ConnectionPool",
+                "CONNECTION_POOL_CLASS_KWARGS": {"max_connections": 50, "retry_on_timeout": True},
             },
             "KEY_PREFIX": "flowteam",
             "TIMEOUT": 300,
@@ -290,6 +299,10 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLOFF_TIME = timedelta(minutes=15)
 AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_PARAMETERS = ["ip_address", "username"]
+
+# Upload & request size limits
+DATA_UPLOAD_MAX_MEMORY_SIZE = env.int("DATA_UPLOAD_MAX_MEMORY_SIZE", default=10 * 1024 * 1024)  # 10MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = env.int("FILE_UPLOAD_MAX_MEMORY_SIZE", default=10 * 1024 * 1024)  # 10MB
 
 # Audit retention
 AUDIT_LOG_RETENTION_DAYS = env.int("AUDIT_LOG_RETENTION_DAYS", default=365)

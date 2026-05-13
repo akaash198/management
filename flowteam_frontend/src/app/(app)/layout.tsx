@@ -61,9 +61,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const myPresence    = usePresenceStore((s) => s.status);
   const setMyPresence = usePresenceStore((s) => s.setStatus);
 
-  useEffect(() => { fetchMe().finally(() => setDidInit(true)); }, [fetchMe]);
+  useEffect(() => { 
+    fetchMe().then(() => {
+      console.log("[AppLayout] fetchMe complete");
+    }).catch(err => {
+      console.error("[AppLayout] fetchMe failed:", err);
+      window.alert("Dashboard Auth Failed: " + (err.response?.data?.error || err.message));
+    }).finally(() => setDidInit(true)); 
+  }, [fetchMe]);
   useEffect(() => {
-    if (didInit && !isLoading && !user) router.push("/login");
+    if (didInit && !isLoading && !user) {
+      console.warn("[AppLayout] No user found after init, but NOT redirecting (DEBUG MODE)");
+    }
   }, [didInit, isLoading, user, router]);
 
   usePushNotifications(!!user);

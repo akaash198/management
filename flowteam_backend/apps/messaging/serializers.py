@@ -158,7 +158,7 @@ class ChannelSerializer(serializers.ModelSerializer):
         return membership.mute_until.isoformat()
 
     def get_member_count(self, obj):
-        return obj.memberships.count()
+        return getattr(obj, "_member_count", None) or obj.memberships.count()
 
     def get_notification_level(self, obj):
         if membership.mute_until <= timezone.now():

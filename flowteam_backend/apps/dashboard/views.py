@@ -12,6 +12,7 @@ from .models import UserProjectVisit
 from .serializers import ProjectProgressSerializer, ActivityItemSerializer, CalendarTaskSerializer, CalendarMeetingSerializer
 from apps.projects.serializers import TaskListSerializer, ProjectListSerializer
 from apps.messaging.serializers import SlimUserSerializer
+from django.db import connection as db_connection
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchHeadline
 from config.utils import standardize_response
 from apps.meetings.models import Meeting
@@ -341,38 +342,53 @@ class GlobalSearchView(views.APIView):
         start_time = time.time()
         results = {}
 
+        is_postgres = db_connection.vendor == "postgresql"
+
         if search_type in ["all", "tasks"]:
-            tasks = Task.objects.filter(
-                project__team_id=team_id,
-                search_vector=SearchQuery(q)
-            ).annotate(
-                rank=SearchRank("search_vector", SearchQuery(q))
-            ).order_by("-rank")[:10]
+            if is_postgres:
+                tasks = Task.objects.filter(
+                    project__team_id=team_id,
+                    search_vector=SearchQuery(q)
+                ).annotate(
+                    rank=SearchRank("search_vector", SearchQuery(q))
+                ).order_by("-rank")[:10]
+            else:
+                tasks = Task.objects.filter(
+                    project__team_id=team_id,
+                    title__icontains=q
+                )[:10]
             results["tasks"] = {
                 "items": CalendarTaskSerializer(tasks, many=True).data,
-                "total": tasks.count()
+                "total": len(tasks)
             }
 
         if search_type in ["all", "messages"]:
-            messages = Message.objects.filter(
-                channel__team_id=team_id,
-                search_vector=SearchQuery(q)
-            ).annotate(
-                rank=SearchRank("search_vector", SearchQuery(q)),
-                snippet=SearchHeadline("text", SearchQuery(q))
-            ).order_by("-rank")[:10]
+            if is_postgres:
+                messages = Message.objects.filter(
+                    channel__team_id=team_id,
+                    search_vector=SearchQuery(q)
+                ).annotate(
+                    rank=SearchRank("search_vector", SearchQuery(q)),
+                    snippet=SearchHeadline("text", SearchQuery(q))
+                ).order_by("-rank")[:10]
+            else:
+                messages = Message.objects.filter(
+                    channel__team_id=team_id,
+                    text__icontains=q
+                )[:10]
             
             msg_data = []
             for m in messages:
+                snippet = getattr(m, "snippet", m.text[:200]) if hasattr(m, "text") else m.text[:200]
                 msg_data.append({
                     "id": m.id,
-                    "text": m.snippet,
+                    "text": snippet,
                     "sender": SlimUserSerializer(m.sender).data,
                     "channel_name": m.channel.display_name,
                     "channel_id": m.channel.id,
                     "created_at": m.created_at
                 })
-            results["messages"] = {"items": msg_data, "total": messages.count()}
+            results["messages"] = {"items": msg_data, "total": len(messages)}
 
         if search_type in ["all", "members"]:
             members = TeamMember.objects.filter(

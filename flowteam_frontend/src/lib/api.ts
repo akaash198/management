@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken, getRefreshToken, setTokens, clearTokens } from "./auth";
+import { refreshAccessToken as authRefresh, getAccessToken } from "./auth";
 import { getApiBaseUrl } from "./runtimeConfig";
 
 const api = axios.create({
@@ -7,12 +7,14 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  withCredentials: true,
 });
 
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
-    if (token) {
+    console.log(`[API] Request: ${config.method?.toUpperCase()} ${config.url} - Token: ${token ? "YES" : "NO"}`);
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
 
@@ -28,56 +30,31 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Serialise all concurrent token refreshes so only one hits /auth/refresh/
-// at a time. Subsequent 401s wait for the in-flight refresh and reuse the
-// result instead of each sending their own (and invalidating each other's
-// refresh token under ROTATE_REFRESH_TOKENS=True).
 let refreshPromise: Promise<string | null> | null = null;
 
-export async function refreshAccessToken(): Promise<string | null> {
-  if (refreshPromise) return refreshPromise;
-
-  refreshPromise = (async () => {
-    const refreshToken = getRefreshToken();
-    if (!refreshToken) return null;
-    try {
-      const response = await axios.post(`${getApiBaseUrl()}/auth/refresh/`, {
-        refresh: refreshToken,
-      });
-      const body = response.data;
-      const access: string | undefined = body?.data?.access ?? body?.access;
-      const newRefresh: string | undefined =
-        body?.data?.refresh ?? body?.refresh ?? refreshToken;
-      if (access) {
-        setTokens(access, newRefresh ?? refreshToken);
-        return access;
-      }
-      return null;
-    } catch {
-      return null;
-    } finally {
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
-}
-
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log(`[API] Response: ${response.status} ${response.config.url} - Success: ${response.data?.success}`);
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const newToken = await refreshAccessToken();
+      if (!refreshPromise) {
+        refreshPromise = authRefresh();
+      }
+      const newToken = await refreshPromise;
+      refreshPromise = null;
+
       if (newToken) {
         originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return api(originalRequest);
       }
 
-      clearTokens();
+      // Redirect to login on auth failure
       if (typeof window !== "undefined") {
         window.location.href = "/login";
       }

@@ -57,7 +57,14 @@ from apps.audit.mixins import AuditedModelMixin
 from apps.audit.models import AuditLog
 from apps.teams.permissions import IsTeamMember, IsTeamAdmin
 from apps.teams.models import TeamMember, Team
+from apps.teams.plans import get_team_limits
 from apps.users.models import User
+from apps.users.tasks import send_push_async
+from .permissions import can_assign_role, get_user_project_role, sync_project_permissions
+from .serializers import ProjectCreateUpdateSerializer
+import csv, io
+from datetime import date
+from django.utils.dateparse import parse_date
 from apps.messaging.models import Notification
 from config.utils import standardize_response
 
@@ -138,8 +145,6 @@ def create_project_notification(recipient, notification_type, title, body, refer
         delivery_channel=delivery,
     )
     try:
-        from apps.users.tasks import send_push_async
-
         send_push_async.delay(str(recipient.id), notification.title, notification.body, notification.action_url or "/dashboard")
     except Exception:
         pass
@@ -197,10 +202,9 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):
-        if self.action == "list":
-            return ProjectListSerializer
-        if self.action == "retrieve":
-            return ProjectDetailSerializer
+        if self.action in ("create", "update", "partial_update"):
+            return ProjectCreateUpdateSerializer
+        return ProjectDetailSerializer
         if self.action in {"create", "update", "partial_update"}:
             from .serializers import ProjectCreateUpdateSerializer
 
@@ -281,7 +285,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if not is_power_user:
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
-        from apps.teams.plans import get_team_limits
         limits = get_team_limits(team)
         max_projects = int(limits.get("max_projects", 3))
         current_projects = Project.objects.filter(team=team, status="active").count()
@@ -307,18 +310,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
     @action(detail=True, methods=["post"], url_path="import/csv")
     def import_csv(self, request, pk=None):
-        """
-        CSV task import for basic migrations from other tools.
-
-        Expected header columns (case-insensitive):
-        - title (required)
-        - description
-        - column (column name; defaults to Backlog if not found)
-        - assignee_email
-        - due_date (YYYY-MM-DD)
-        - priority (urgent|high|normal|low)
-        - issue_type (epic|story|task|bug|subtask)
-        """
         project = self.get_object()
         if not check_project_permission(request.user, project, "edit_project"):
             raise permissions.PermissionDenied("Forbidden")
@@ -782,8 +773,7 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         assigner_role = get_user_project_role(self.request.user, project)
         target_role = serializer.validated_data.get("role")
         if assigner_role and not self.request.user.is_superuser:
-            from .permissions import can_assign_role as _can
-            if not _can(assigner_role, target_role):
+            if not can_assign_role(assigner_role, target_role):
                 raise permissions.PermissionDenied(
                     f"Your role '{assigner_role}' cannot assign the '{target_role}' role."
                 )
@@ -798,7 +788,6 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
 
     def partial_update(self, request, *args, **kwargs):
-        from .permissions import can_assign_role, get_user_project_role, sync_project_permissions
         instance = self.get_object()
         project = self._get_project()
         self._require_manage(project)
@@ -819,7 +808,6 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         return standardize_response(data=self.get_serializer(role_obj).data)
 
     def destroy(self, request, *args, **kwargs):
-        from .permissions import sync_project_permissions
         instance = self.get_object()
         project = self._get_project()
         self._require_manage(project)

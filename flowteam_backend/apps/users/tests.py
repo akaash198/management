@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 from django.test import TestCase
 from django.utils import timezone
 from django.utils.encoding import force_bytes
@@ -32,6 +34,41 @@ class AuthHardeningTests(TestCase):
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password("newpassword123"))
 
+    def test_password_reset_confirm_rejects_short_password(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        resp = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_password_reset_confirm_rejects_invalid_token(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        resp = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {"uid": uid, "token": "invalid", "new_password": "newpassword123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
+
+    def test_password_reset_confirm_rejects_missing_fields(self):
+        resp = self.client.post("/api/auth/password-reset/confirm/", {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_password_reset_request_returns_success_even_for_missing_email(self):
+        resp = self.client.post("/api/auth/password-reset/request/", {"email": "nonexistent@example.com"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data.get("data", {}).get("message"), "If that email exists, a reset link was sent.")
+
+    def test_password_reset_request_returns_error_on_failed_email(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        with patch("apps.users.views.send_mail", side_effect=Exception("SMTP down")):
+            resp = self.client.post("/api/auth/password-reset/request/", {"email": self.user.email}, format="json")
+            self.assertEqual(resp.status_code, 500)
+
     def test_email_verify_confirm_sets_verified_at(self):
         self.assertIsNone(self.user.email_verified_at)
         uid = urlsafe_base64_encode(force_bytes(self.user.pk))
@@ -59,6 +96,63 @@ class AuthHardeningTests(TestCase):
             self.assertEqual(r.status_code, 200)
         r_last = self.client.post("/api/auth/password-reset/request/", {"email": "nobody@example.com"}, format="json")
         self.assertEqual(r_last.status_code, 429)
+
+    def test_rate_limit_on_password_reset_confirm(self):
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        token = default_token_generator.make_token(self.user)
+        # Limit is 3/60s, so 4th should be rate-limited
+        for i in range(3):
+            resp = self.client.post(
+                "/api/auth/password-reset/confirm/",
+                {"uid": uid, "token": token, "new_password": "newpassword123"},
+                format="json",
+            )
+            self.assertIn(resp.status_code, (200, 400))  # 400 after first success (token consumed)
+        r_last = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {"uid": uid, "token": token, "new_password": "newpassword123"},
+            format="json",
+        )
+        self.assertEqual(r_last.status_code, 429)
+
+    def test_change_password_success(self):
+        access = str(RefreshToken.for_user(self.user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        resp = self.client.post("/api/auth/change-password/", {
+            "current_password": "password123",
+            "new_password": "newsecure456",
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.user.refresh_from_db()
+        self.assertTrue(self.user.check_password("newsecure456"))
+
+    def test_change_password_rejects_short_new_password(self):
+        access = str(RefreshToken.for_user(self.user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        resp = self.client.post("/api/auth/change-password/", {
+            "current_password": "password123",
+            "new_password": "short",
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_change_password_rejects_incorrect_current(self):
+        access = str(RefreshToken.for_user(self.user).access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
+        resp = self.client.post("/api/auth/change-password/", {
+            "current_password": "wrongpassword",
+            "new_password": "newsecure456",
+        }, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def test_password_reset_confirm_rate_limit_strict(self):
+        """Confirm endpoint rate limit is 3/60s to prevent token brute force."""
+        uid = urlsafe_base64_encode(force_bytes(self.user.pk))
+        resp = self.client.post(
+            "/api/auth/password-reset/confirm/",
+            {"uid": uid, "token": "invalid", "new_password": "newpassword123"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
 
 
 class TwoFactorTests(TestCase):

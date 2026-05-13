@@ -7,7 +7,10 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+import logging
 from django.core.mail import send_mail
+
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -24,6 +27,7 @@ from .two_factor import (
 )
 from apps.teams.models import Team, TeamMember
 from config.utils import standardize_response
+from apps.core.jwt_cookie_auth import set_access_token_cookie, clear_access_token_cookie, set_refresh_token_cookie, clear_refresh_token_cookie
 
 User = get_user_model()
 
@@ -63,16 +67,22 @@ class RegisterView(generics.CreateAPIView):
                 )
 
         refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
 
         data = {
             "user": UserSerializer(user, context={"request": request}).data,
-            "access": str(refresh.access_token),
+            "access": access_token,
             "refresh": str(refresh),
         }
-        return standardize_response(data=data, status=status.HTTP_201_CREATED)
+        response = standardize_response(data=data, status=status.HTTP_201_CREATED)
+        set_access_token_cookie(response, access_token)
+        set_refresh_token_cookie(response, str(refresh))
+        return response
 
 class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
+        print(f"DEBUG LOGIN: Origin: {request.headers.get('Origin')}")
+        print(f"DEBUG LOGIN: Host: {request.headers.get('Host')}")
         email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password") or ""
         otp_code = (request.data.get("otp_code") or "").strip().replace(" ", "")
@@ -120,7 +130,10 @@ class LoginView(TokenObtainPairView):
                 "access": response.data["access"],
                 "refresh": response.data["refresh"],
             }
-            return standardize_response(data=data)
+            resp = standardize_response(data=data)
+            set_access_token_cookie(resp, response.data["access"])
+            set_refresh_token_cookie(resp, response.data["refresh"])
+            return resp
         return response
 
 class LogoutView(generics.GenericAPIView):
@@ -128,12 +141,16 @@ class LogoutView(generics.GenericAPIView):
 
     def post(self, request):
         try:
-            refresh_token = request.data["refresh"]
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return standardize_response(data={"message": "Logged out successfully"})
+            refresh_token = request.data.get("refresh")
+            if refresh_token:
+                token = RefreshToken(refresh_token)
+                token.blacklist()
         except Exception:
-            return standardize_response(success=False, error="Invalid token", status=status.HTTP_400_BAD_REQUEST)
+            pass
+        response = standardize_response(data={"message": "Logged out successfully"})
+        clear_access_token_cookie(response)
+        clear_refresh_token_cookie(response)
+        return response
 
 class UserMeView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
@@ -198,13 +215,21 @@ class PasswordResetRequestView(generics.GenericAPIView):
             else:
                 reset_link = f"uid={uid} token={token}"
 
-            send_mail(
-                subject="FlowTeam password reset",
-                message=f"Use this link to reset your password: {reset_link}",
-                from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
+            try:
+                send_mail(
+                    subject="FlowTeam password reset",
+                    message=f"Use this link to reset your password: {reset_link}",
+                    from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                logger.error("Failed to send password reset email to %s: %s", user.email, e)
+                return standardize_response(
+                    success=False,
+                    error="Failed to send reset email. Please try again later.",
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
         return standardize_response(data={"message": "If that email exists, a reset link was sent."})
 
@@ -387,6 +412,29 @@ class TwoFactorBackupCodesRotateView(generics.GenericAPIView):
         user.two_factor_backup_codes = hash_backup_codes(backup_codes)
         user.save(update_fields=["two_factor_backup_codes"])
         return standardize_response(data={"backup_codes": backup_codes})
+
+
+class CookieTokenRefreshView(generics.GenericAPIView):
+    permission_classes = (permissions.AllowAny,)
+
+    def post(self, request):
+        from rest_framework_simplejwt.tokens import RefreshToken as JWTRefreshToken
+
+        refresh_token = request.data.get("refresh") or request.COOKIES.get("refresh_token")
+        if not refresh_token:
+            return standardize_response(success=False, error="refresh is required", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            token = JWTRefreshToken(refresh_token)
+            access_token = str(token.access_token)
+            new_refresh = str(token)
+            data = {"access": access_token, "refresh": new_refresh}
+            response = standardize_response(data=data)
+            set_access_token_cookie(response, access_token)
+            set_refresh_token_cookie(response, new_refresh)
+            return response
+        except Exception:
+            return standardize_response(success=False, error="Invalid or expired refresh token", status=status.HTTP_401_UNAUTHORIZED)
 
 
 class PushSubscribeView(generics.GenericAPIView):

@@ -92,13 +92,14 @@ class ChannelViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
+        from django.db.models import Count, Prefetch as DbPrefetch
         team_id = self.request.query_params.get("team_id")
+        qs = Channel.objects.filter(memberships__user=self.request.user).exclude(name__startswith="mtg-")
         if team_id:
-            return Channel.objects.filter(
-                team_id=team_id,
-                memberships__user=self.request.user
-            ).exclude(name__startswith="mtg-").prefetch_related("memberships__user")
-        return Channel.objects.filter(memberships__user=self.request.user).exclude(name__startswith="mtg-").prefetch_related("memberships__user")
+            qs = qs.filter(team_id=team_id)
+        return qs.prefetch_related("memberships__user").annotate(
+            _member_count=Count("memberships"),
+        )
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -324,8 +325,6 @@ class ChannelViewSet(viewsets.ModelViewSet):
         if not self._is_channel_member(channel):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
-        self._dispatch_due_scheduled_messages(channel)
-
         if request.method == "GET":
             queryset = (
                 ScheduledMessage.objects.filter(channel=channel, sender=request.user, sent_at__isnull=True)
@@ -473,49 +472,6 @@ class ChannelViewSet(viewsets.ModelViewSet):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
         MessagePin.objects.filter(channel=channel, message_id=message_id).delete()
         return standardize_response(data={"message": "Unpinned"})
-
-    @action(detail=True, methods=["GET", "POST"], url_path="scheduled")
-    def scheduled(self, request, pk=None):
-        channel = self.get_object()
-        if not self._is_channel_member(channel):
-            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
-        
-        if request.method == "GET":
-            qs = ScheduledMessage.objects.filter(channel=channel, sent_at__isnull=True).order_by("send_at")
-            return standardize_response(data=ScheduledMessageSerializer(qs, many=True).data)
-            
-        serializer = ScheduledMessageSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(sender=request.user, channel=channel)
-        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
-
-    @action(detail=True, methods=["DELETE"], url_path=r"scheduled/(?P<scheduled_id>[^/.]+)")
-    def delete_scheduled(self, request, pk=None, scheduled_id=None):
-        channel = self.get_object()
-        ScheduledMessage.objects.filter(channel=channel, id=scheduled_id, sender=request.user).delete()
-        return standardize_response(data={"message": "Deleted"})
-
-    @action(detail=True, methods=["POST"], url_path="scheduled/dispatch-due")
-    def dispatch_due(self, request, pk=None):
-        channel = self.get_object()
-        now = timezone.now()
-        due = ScheduledMessage.objects.filter(channel=channel, send_at__lte=now, sent_at__isnull=True)
-        from .services import create_message_with_seq
-        count = 0
-        for sm in due:
-            try:
-                create_message_with_seq(
-                    channel_id=channel.id,
-                    sender=sm.sender,
-                    text=sm.text,
-                    parent_id=sm.parent_id
-                )
-                sm.sent_at = now
-                sm.save()
-                count += 1
-            except Exception:
-                pass
-        return standardize_response(data={"dispatched": count})
 
     @action(detail=True, methods=["GET"], url_path="read-state")
     def read_state(self, request, pk=None):

@@ -1,42 +1,57 @@
-export const getAccessToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("accessToken");
-  }
-  return null;
+import { getApiBaseUrl } from "./runtimeConfig";
+
+let _accessToken: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+  _accessToken = token;
 };
 
-export const getRefreshToken = () => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("refreshToken");
+export const getAccessToken = (): string | null => {
+  if (!_accessToken && typeof window !== "undefined") {
+    _accessToken = localStorage.getItem("accessToken");
   }
-  return null;
+  return _accessToken;
 };
 
-const setAccessTokenCookie = (access: string) => {
-  if (typeof window === "undefined") return;
-  document.cookie = `accessToken=${access}; path=/; max-age=3600; SameSite=Lax`;
+export const setTokens = (access: string, _refresh: string) => {
+  _accessToken = access;
+  if (typeof window !== "undefined") {
+    localStorage.setItem("accessToken", access);
+  }
+  // Refresh token is stored as httpOnly cookie by the server.
+  // The `_refresh` value is ignored here; the server sets the cookie.
 };
 
 export const ensureAccessTokenCookie = () => {
-  if (typeof window === "undefined") return;
-  if (document.cookie.includes("accessToken=")) return;
-  const access = getAccessToken();
-  if (access) setAccessTokenCookie(access);
-};
-
-export const setTokens = (access: string, refresh: string) => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("accessToken", access);
-    localStorage.setItem("refreshToken", refresh);
-    // Also set cookie for Next proxy routing.
-    setAccessTokenCookie(access);
-  }
+  // Access token is set as httpOnly cookie by the server. No client action needed.
 };
 
 export const clearTokens = () => {
+  _accessToken = null;
   if (typeof window !== "undefined") {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  }
+};
+
+export const refreshAccessToken = async (): Promise<string | null> => {
+  try {
+    // Refresh token is sent as httpOnly cookie — no need to read from localStorage.
+    const response = await fetch(`${getApiBaseUrl()}/auth/refresh/`, {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+    });
+    if (!response.ok) return null;
+    const body = await response.json();
+    const access = body?.data?.access ?? body?.access ?? null;
+    if (access) {
+      _accessToken = access;
+      if (typeof window !== "undefined") {
+        localStorage.setItem("accessToken", access);
+      }
+    }
+    return access;
+  } catch {
+    return null;
   }
 };

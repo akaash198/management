@@ -28,19 +28,17 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           const status = error?.response?.status;
           if (status === 401) {
-            // Genuine auth failure — tokens are gone, must re-login.
             set({ user: null });
           }
-          // For network errors, 5xx, etc. keep the existing user so transient
-          // outages don't force a logout.
         } finally {
           set({ isLoading: false });
         }
       },
-      logout: () => {
-        const refresh = localStorage.getItem("refreshToken");
-        if (refresh) {
-          api.post("/auth/logout/", { refresh }).catch(console.error);
+      logout: async () => {
+        try {
+          await api.post("/auth/logout/", {});
+        } catch {
+          // Server will clear cookie regardless
         }
         clearTokens();
         set({ user: null });
