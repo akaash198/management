@@ -14,7 +14,8 @@ import {
   User,
   Calendar,
   Tags,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react";
 import { 
   Dialog, 
