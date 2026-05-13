@@ -12,6 +12,17 @@ export function getApiBaseUrl(): string {
   const envValue = process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== "undefined") {
     if (envValue) {
+      // If it's an absolute URL and pointing to the same host, ensure the protocol matches.
+      // This prevents issues where a build-time HTTPS URL breaks an HTTP deployment.
+      try {
+        const apiUrl = new URL(envValue, window.location.origin);
+        if (apiUrl.hostname === window.location.hostname || apiUrl.hostname === "localhost" || apiUrl.hostname === "127.0.0.1") {
+          return `${window.location.protocol}//${apiUrl.host}${apiUrl.pathname.replace(/\/$/, "")}`;
+        }
+      } catch (e) {
+        // Fall back to envValue if URL parsing fails
+      }
+
       const isApiLocal = isLocalhostUrl(envValue);
       // Only use absolute localhost API URL if the page itself is also on localhost (supports cross-port dev)
       if (!isApiLocal || isLocalhostUrl(window.location.origin)) {
