@@ -38,7 +38,7 @@ export function getApiBaseUrl(): string {
 export function getWsBaseUrl(): string {
   const envValue = process.env.NEXT_PUBLIC_WS_URL;
   if (typeof window !== "undefined") {
-    // Explicit absolute WS URL that isn't localhost — use as-is.
+    // 1. Explicit WS URL from env (absolute and not localhost)
     if (
       envValue &&
       (envValue.startsWith("ws://") || envValue.startsWith("wss://")) &&
@@ -47,34 +47,34 @@ export function getWsBaseUrl(): string {
       return envValue;
     }
 
-    // Derive from the API env var if it's an absolute non-localhost URL.
+    // 2. Derive from API env var if it's absolute
     const apiEnv = process.env.NEXT_PUBLIC_API_URL;
-    if (
-      apiEnv &&
-      (apiEnv.startsWith("http://") || apiEnv.startsWith("https://")) &&
-      !isLocalhostUrl(apiEnv)
-    ) {
+    if (apiEnv && (apiEnv.startsWith("http://") || apiEnv.startsWith("https://"))) {
       try {
-        const apiUrl = new URL(apiEnv);
-        const proto = apiUrl.protocol === "https:" ? "wss" : "ws";
-        return `${proto}://${apiUrl.host}`;
-      } catch {
-        // fall through
-      }
+        const apiUrl = new URL(apiEnv, window.location.origin);
+        // If the API host matches the current page host, use current origin's protocol/host
+        if (apiUrl.hostname === window.location.hostname || isLocalhostUrl(apiUrl.href)) {
+          const proto = window.location.protocol === "https:" ? "wss" : "ws";
+          // If we are on a real host (not localhost), don't force a port unless the API URL explicitly has one
+          const host = apiUrl.hostname === window.location.hostname ? window.location.host : apiUrl.host;
+          return `${proto}://${host}`;
+        }
+      } catch (e) { /* ignore */ }
     }
 
-    // Default: point to the backend port on the same host if we are on localhost
-    const host = window.location.hostname;
+    // 3. Fallback: use current window location
     const proto = window.location.protocol === "https:" ? "wss" : "ws";
-    return `${proto}://${host}:8000`;
+    const host = window.location.host;
+    
+    // On localhost dev, we often need port 8000
+    if (isLocalhostUrl(window.location.origin) && !host.includes(":")) {
+      return `${proto}://${host}:8000`;
+    }
+    
+    return `${proto}://${host}`;
   }
 
-  // Server-side (SSR/build) — use localhost fallback; WS isn't used server-side.
-  if (
-    envValue &&
-    (envValue.startsWith("ws://") || envValue.startsWith("wss://"))
-  ) {
-    return envValue;
-  }
+  // Server-side / Build-time
+  if (envValue) return envValue;
   return "ws://localhost:8000";
 }
