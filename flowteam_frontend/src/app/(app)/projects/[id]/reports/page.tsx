@@ -207,7 +207,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
                  <svg className="h-full w-full rotate-[-90deg]">
                    <circle 
                      cx="96" cy="96" r="80" 
-                     className="stroke-slate-100 fill-none" 
+                     className="stroke-muted fill-none" 
                      strokeWidth="12" 
                    />
                    <circle 
@@ -221,13 +221,13 @@ function OverviewTab({ projectId }: { projectId: string }) {
                  </svg>
                  <div className="absolute inset-0 flex flex-col items-center justify-center">
                    <span className="text-5xl font-black">{health?.health_score}</span>
-                   <span className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Score</span>
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Score</span>
                  </div>
               </div>
               <div className="grid grid-cols-2 gap-4 w-full max-w-xs">
                 {Object.entries(health?.factors || {}).map(([key, val]) => (
                   <div key={key} className="text-center">
-                    <p className="text-[10px] text-slate-400 font-bold uppercase truncate">{key.replace('_', ' ')}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold uppercase truncate">{key.replace('_', ' ')}</p>
                     <p className="text-lg font-bold">{(val * 100).toFixed(0)}%</p>
                   </div>
                 ))}
@@ -242,7 +242,7 @@ function OverviewTab({ projectId }: { projectId: string }) {
             <CardHeader><CardTitle className="text-lg">Recent Activity Velocity</CardTitle></CardHeader>
             <CardContent className="h-64">
                {/* Mini chart placeholder */}
-               <div className="flex items-center justify-center h-full text-slate-300">
+               <div className="flex items-center justify-center h-full text-muted-foreground/40">
                   <Activity size={48} className="animate-pulse" />
                </div>
             </CardContent>
@@ -288,12 +288,12 @@ function VelocityTab({ projectId }: { projectId: string }) {
       <div className="h-[400px]">
         <ResponsiveContainer width="100%" height="100%">
            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="week_start" tickFormatter={(v) => format(new Date(v), "MMM d")} />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+              <XAxis dataKey="week_start" tickFormatter={(v) => format(new Date(v), "MMM d")} stroke="var(--color-muted-foreground)" />
+              <YAxis stroke="var(--color-muted-foreground)" />
               <Tooltip 
-                cursor={{ fill: '#f8fafc' }}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)' }}
+                cursor={{ fill: 'var(--color-muted)' }}
+                contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-card)', color: 'var(--color-foreground)', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.4)' }}
               />
               <Legend verticalAlign="top" align="right" height={36} />
               <Bar name="Created" dataKey="created" fill="#94a3b8" radius={[4, 4, 0, 0]} />
@@ -331,10 +331,10 @@ function BurndownTab({ projectId }: { projectId: string }) {
                   <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-              <XAxis dataKey="date" tickFormatter={(v) => format(new Date(v), "MMM d")} />
-              <YAxis />
-              <Tooltip />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
+              <XAxis dataKey="date" tickFormatter={(v) => format(new Date(v), "MMM d")} stroke="var(--color-muted-foreground)" />
+              <YAxis stroke="var(--color-muted-foreground)" />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-card)', color: 'var(--color-foreground)' }} />
               <Legend verticalAlign="top" align="right" height={36} />
               <Area 
                 name="Remaining Tasks" 
@@ -349,7 +349,7 @@ function BurndownTab({ projectId }: { projectId: string }) {
                 name="Ideal Burndown" 
                 type="monotone" 
                 dataKey="ideal" 
-                stroke="#cbd5e1" 
+                stroke="var(--color-muted-foreground)" 
                 strokeDasharray="5 5" 
                 dot={false}
               />

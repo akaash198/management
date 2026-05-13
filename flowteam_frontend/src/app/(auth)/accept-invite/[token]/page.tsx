@@ -49,8 +49,8 @@ export default function AcceptInvitePage() {
           <CardDescription className="text-center">Joining the team you were invited to.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {error && <p className="text-sm text-red-500 text-center">{String(error)}</p>}
-          {success && <p className="text-sm text-green-600 text-center">{success}</p>}
+          {error && <p className="text-sm text-destructive text-center">{String(error)}</p>}
+          {success && <p className="text-sm text-green-600 dark:text-green-400 text-center">{success}</p>}
           {!error && !success && <p className="text-sm text-muted-foreground text-center">Processing…</p>}
         </CardContent>
         <CardFooter className="flex justify-center">

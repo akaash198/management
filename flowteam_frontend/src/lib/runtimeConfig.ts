@@ -11,9 +11,13 @@ function isLocalhostUrl(url: string): boolean {
 export function getApiBaseUrl(): string {
   const envValue = process.env.NEXT_PUBLIC_API_URL;
   if (typeof window !== "undefined") {
-    // If the baked env var points to localhost but we're running on a different
-    // origin (i.e. production), ignore it and use a relative path instead.
-    if (envValue && !isLocalhostUrl(envValue)) return envValue;
+    if (envValue) {
+      const isApiLocal = isLocalhostUrl(envValue);
+      // Only use absolute localhost API URL if the page itself is also on localhost (supports cross-port dev)
+      if (!isApiLocal || isLocalhostUrl(window.location.origin)) {
+        return envValue;
+      }
+    }
     return `${window.location.origin}/api`;
   }
   if (envValue) return envValue;

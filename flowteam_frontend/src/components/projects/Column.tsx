@@ -100,7 +100,7 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
         </SortableContext>
         
         {isAdding ? (
-          <div className="space-y-2 pt-1">
+          <div className="space-y-2 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
             <Textarea
               autoFocus
               placeholder="What needs to be done?"
@@ -113,13 +113,23 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
                 }
                 if (e.key === "Escape") setIsAdding(false);
               }}
-              className="min-h-[72px] bg-card border-[0.5px] border-border resize-none text-[13px] shadow-none"
+              className="min-h-[84px] bg-background border-border/50 focus:border-primary/50 resize-none text-[13px] shadow-sm transition-all rounded-lg"
             />
             <div className="flex items-center gap-2">
-              <Button size="sm" onClick={handleAddTask} disabled={!newTaskTitle.trim() || createTask.isPending} className="h-7 text-[12px]">
+              <Button 
+                size="sm" 
+                onClick={handleAddTask} 
+                disabled={!newTaskTitle.trim() || createTask.isPending} 
+                className="h-8 px-4 text-[12px] bg-primary text-primary-foreground font-medium shadow-glow"
+              >
                 {createTask.isPending ? "Adding..." : "Add task"}
               </Button>
-              <Button variant="ghost" size="sm" onClick={() => setIsAdding(false)} className="h-7 text-[12px]">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsAdding(false)} 
+                className="h-8 text-[12px] text-muted-foreground hover:text-foreground"
+              >
                 Cancel
               </Button>
             </div>
@@ -128,9 +138,9 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
           <Button 
             variant="ghost" 
             onClick={() => setIsAdding(true)}
-            className="w-full justify-start text-muted-foreground/50 hover:text-foreground h-8 px-2 hover:bg-muted/50 text-[12px] mt-1"
+            className="w-full justify-start text-muted-foreground/50 hover:text-primary hover:bg-primary/5 h-9 px-3 text-[12px] mt-2 group transition-all duration-200"
           >
-            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            <Plus className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
             Add task
           </Button>
         )}

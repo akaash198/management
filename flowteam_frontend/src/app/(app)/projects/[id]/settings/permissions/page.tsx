@@ -39,10 +39,10 @@ import { BitbucketSettingsCard } from "@/components/projects/BitbucketSettingsCa
 import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
 
 const ROLE_BADGE_CLASS: Record<ProjectRoleType, string> = {
-  project_admin: "bg-violet-100 text-violet-700 border-violet-200",
-  editor: "bg-blue-100 text-blue-700 border-blue-200",
-  commenter: "bg-amber-100 text-amber-700 border-amber-200",
-  viewer: "bg-slate-100 text-slate-600 border-slate-200",
+  project_admin: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  editor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  commenter: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  viewer: "bg-muted text-muted-foreground border-border",
 };
 
 // Team role → implied project role (for the matrix display)

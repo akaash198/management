@@ -244,12 +244,21 @@ class TaskWriteSerializer(serializers.ModelSerializer):
     column = serializers.PrimaryKeyRelatedField(queryset=Column.objects.all())
     sprint = serializers.PrimaryKeyRelatedField(queryset=Sprint.objects.all(), required=False, allow_null=True)
     parent_task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all(), required=False, allow_null=True)
+    label_ids = serializers.PrimaryKeyRelatedField(
+        source="labels",
+        queryset=Label.objects.all(),
+        many=True,
+        required=False,
+        allow_empty=True,
+        write_only=True,
+    )
 
     class Meta:
         model = Task
         fields = (
             "id", "title", "description", "project", "column", "assignee", "assignee_ids",
-            "priority", "start_date", "due_date", "order", "estimated_hours", "sprint", "parent_task", "issue_type"
+            "priority", "start_date", "due_date", "order", "estimated_hours", "sprint", "parent_task", "issue_type",
+            "label_ids"
         )
         read_only_fields = ("id",)
 

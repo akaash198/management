@@ -362,6 +362,8 @@ export default function ProjectBoardPage() {
         onOpenChange={setIsTaskModalOpen}
         projectId={id}
         columns={project.columns || []}
+        labels={project.labels || []}
+        members={teamMembers || []}
       />
     </div>
   );

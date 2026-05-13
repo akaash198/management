@@ -830,6 +830,59 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         instance.delete()
         return standardize_response(status=status.HTTP_204_NO_CONTENT)
 
+class SubTaskViewSet(viewsets.ModelViewSet):
+    serializer_class = SubTaskSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        task_id = self.kwargs.get("task_pk")
+        task = get_object_or_404(Task, pk=task_id)
+        if not check_project_permission(self.request.user, task.project, "view_project"):
+            raise permissions.PermissionDenied()
+        return SubTask.objects.filter(task=task)
+
+    def perform_create(self, serializer):
+        task_id = self.kwargs.get("task_pk")
+        task = get_object_or_404(Task, pk=task_id)
+        if not check_project_permission(self.request.user, task.project, "edit_project"):
+            raise permissions.PermissionDenied()
+        order = SubTask.objects.filter(task=task).count()
+        serializer.save(task=task, created_by=self.request.user, order=order)
+
+    def perform_update(self, serializer):
+        if not check_project_permission(self.request.user, serializer.instance.task.project, "edit_project"):
+            raise permissions.PermissionDenied()
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        if not check_project_permission(self.request.user, instance.task.project, "edit_project"):
+            raise permissions.PermissionDenied()
+        super().perform_destroy(instance)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return standardize_response(data=serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return standardize_response(data=serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return standardize_response(data=serializer.data)
+
 class TimeLogViewSet(viewsets.ModelViewSet):
     serializer_class = TimeLogSerializer
     permission_classes = [permissions.IsAuthenticated]

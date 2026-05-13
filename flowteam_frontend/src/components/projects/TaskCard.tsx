@@ -11,6 +11,15 @@ import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useMoveTask } from "@/hooks/useTasks";
 import type { Column } from "@/types/project";
+import { TaskCompletionModal } from "./TaskCompletionModal";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface TaskCardProps {
   task: Task;
@@ -31,6 +40,7 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
   const moveTask = useMoveTask();
   const [completing, setCompleting] = useState(false);
   const [movingTo, setMovingTo] = useState<string | null>(null);
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const {
     attributes,
     listeners,
@@ -56,12 +66,41 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
   const isInDoneColumn = doneColumn ? task.column === doneColumn.id : false;
   const otherColumns = columns?.filter((col) => col.id !== task.column && !col.is_done_column) ?? [];
 
-  const handleQuickComplete = async (e: React.MouseEvent) => {
+  const handleQuickComplete = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!doneColumn || completing) return;
+    setIsCompletionModalOpen(true);
+  };
+
+  const handleConfirmComplete = async () => {
+    if (!doneColumn) return;
     setCompleting(true);
     try {
       await moveTask.mutateAsync({ id: task.id, columnId: doneColumn.id, order: 0 });
+      setIsCompletionModalOpen(false);
+    } catch {
+      /* toast handled by hook */
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const reviewColumn = columns?.find((col) => 
+    col.name.toLowerCase().includes("review") || 
+    col.name.toLowerCase().includes("qa") || 
+    col.name.toLowerCase().includes("testing")
+  ) ?? null;
+
+  const handleSendForReview = async () => {
+    // If no explicit review column, we could move to the next column or just do nothing
+    // For now, let's use reviewColumn if found, else just use the doneColumn or first other column
+    const targetColumnId = reviewColumn?.id || otherColumns[0]?.id || doneColumn?.id;
+    if (!targetColumnId) return;
+
+    setCompleting(true);
+    try {
+      await moveTask.mutateAsync({ id: task.id, columnId: targetColumnId, order: 0 });
+      setIsCompletionModalOpen(false);
     } catch {
       /* toast handled by hook */
     } finally {
@@ -123,44 +162,58 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
                 </button>
               )}
               {columns && columns.length > 1 && !isOverlay && (
-                <div data-card-action className="relative inline-block">
-                  <button
-                    data-card-action
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const menu = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (menu) {
-                        menu.classList.toggle("hidden");
-                      }
-                    }}
-                    className="h-6 w-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                    title="Move to column"
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      data-card-action
+                      className="h-6 w-6 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                      title="Move to column"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent 
+                    align="end" 
+                    sideOffset={8}
+                    className="w-52 p-1.5 glass-panel backdrop-blur-xl border-primary/20 shadow-2xl animate-in fade-in-0 zoom-in-95"
                   >
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </button>
-                  <div className="hidden absolute right-0 top-full z-50 mt-1 w-44 rounded-lg border border-border bg-card shadow-lg py-1 text-[12px]">
-                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Move to</div>
-                    {otherColumns.map((col) => (
-                      <button
-                        key={col.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleMoveToColumn(col.id);
-                        }}
-                        disabled={movingTo === col.id}
-                        className="w-full text-left px-3 py-1.5 hover:bg-muted/50 text-foreground disabled:opacity-50 flex items-center gap-2"
-                      >
-                        {movingTo === col.id ? <Loader2 size={10} className="animate-spin" /> : <span className="h-2 w-2 rounded-full" style={{ backgroundColor: col.color || undefined }} />}
-                        {col.name}
-                      </button>
-                    ))}
+                    <DropdownMenuLabel className="px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70">
+                      Transfer Task
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator className="bg-primary/10 mx-1" />
+                    <div className="py-1">
+                      {otherColumns.map((col) => (
+                        <DropdownMenuItem
+                          key={col.id}
+                          onSelect={() => void handleMoveToColumn(col.id)}
+                          disabled={movingTo === col.id}
+                          className="flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-all focus:bg-primary/10 focus:text-primary group"
+                        >
+                          <div className="relative flex items-center justify-center">
+                            {movingTo === col.id ? (
+                              <Loader2 size={12} className="animate-spin text-primary" />
+                            ) : (
+                              <>
+                                <span className="h-2.5 w-2.5 rounded-full shadow-sm" style={{ backgroundColor: col.color || 'var(--primary)' }} />
+                                <span className="absolute inset-0 h-2.5 w-2.5 rounded-full animate-pulse opacity-40" style={{ backgroundColor: col.color || 'var(--primary)' }} />
+                              </>
+                            )}
+                          </div>
+                          <span className="text-[13px] font-medium tracking-tight">
+                            {col.name}
+                          </span>
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
                     {otherColumns.length === 0 && (
-                      <div className="px-3 py-1.5 text-muted-foreground italic">No other columns</div>
+                      <div className="px-3 py-3 text-muted-foreground/50 italic text-[11px] text-center">
+                        No other available columns
+                      </div>
                     )}
-                  </div>
-                </div>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )}
             </div>
           </div>
@@ -212,6 +265,17 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
           </div>
         </CardContent>
       </Card>
+      {isCompletionModalOpen && (
+        <TaskCompletionModal
+          open={isCompletionModalOpen}
+          onOpenChange={setIsCompletionModalOpen}
+          task={task}
+          onConfirmComplete={handleConfirmComplete}
+          onSendForReview={handleSendForReview}
+          isProcessing={completing}
+          hasReviewColumn={!!reviewColumn}
+        />
+      )}
     </div>
   );
 }

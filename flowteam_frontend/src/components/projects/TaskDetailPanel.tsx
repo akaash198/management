@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTask, useUpdateTask, useMoveTask, useTaskWatchers, useAddWatcher, useRemoveWatcher } from "@/hooks/useTasks";
 import { useProject } from "@/hooks/useProjects";
 import { 
   Sheet, 
@@ -22,9 +21,11 @@ import {
   GitPullRequest,
   Eye,
   EyeOff,
+  Plus,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { CommentSection } from "./CommentSection";
 import { TaskTimeTracker } from "./task-time-tracker";
@@ -37,6 +38,7 @@ import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { RichEmbeds } from "@/components/embeds/RichEmbeds";
 import type { Column } from "@/types/project";
+import { useTask, useUpdateTask, useMoveTask, useTaskWatchers, useAddWatcher, useRemoveWatcher, useCreateSubtask, useUpdateSubtask, useDeleteSubtask } from "@/hooks/useTasks";
 
 interface TaskDetailPanelProps {
   taskId: string;
@@ -54,6 +56,8 @@ interface GitHubPullRequest {
   status: "open" | "merged" | "closed";
 }
 
+import { TaskCompletionModal } from "./TaskCompletionModal";
+
 export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelProps) {
   const router = useRouter();
   const { user } = useAuthStore();
@@ -63,11 +67,15 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const { data: watchers = [] } = useTaskWatchers(taskId);
   const addWatcher = useAddWatcher();
   const removeWatcher = useRemoveWatcher();
+  const createSubtask = useCreateSubtask(taskId);
+  const updateSubtask = useUpdateSubtask(taskId);
+  const deleteSubtask = useDeleteSubtask(taskId);
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const [draftDescription, setDraftDescription] = useState<string | null>(null);
   const [summary, setSummary] = useState("");
   const [summarizing, setSummarizing] = useState(false);
   const [pullRequests, setPullRequests] = useState<GitHubPullRequest[]>([]);
+  const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
 
@@ -96,19 +104,40 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   };
 
   const doneColumn = columns.find((col) => col.is_done_column) ?? null;
+  const reviewColumn = columns.find((col) => col.name.toLowerCase().includes("review")) ?? null;
   const isInDoneColumn = doneColumn ? task?.column === doneColumn.id : false;
 
   const myWatcher = watchers.find((w) => w.user.id === user?.id);
   const isWatching = !!myWatcher;
 
-  const handleMarkComplete = async () => {
+  const handleConfirmComplete = async () => {
     if (!doneColumn || !task) return;
     setCompleting(true);
     try {
       await moveTask.mutateAsync({ id: task.id, columnId: doneColumn.id, order: 0 });
       toast.success("Task marked as complete");
+      setIsCompletionModalOpen(false);
     } catch {
       toast.error("Failed to complete task");
+    } finally {
+      setCompleting(false);
+    }
+  };
+
+  const handleSendForReview = async () => {
+    if (!task) return;
+    const targetColumn = reviewColumn || columns.find(c => !c.is_done_column && c.id !== task.column);
+    if (!targetColumn) {
+      toast.error("No review or secondary column found");
+      return;
+    }
+    setCompleting(true);
+    try {
+      await moveTask.mutateAsync({ id: task.id, columnId: targetColumn.id, order: 0 });
+      toast.success(`Task sent to ${targetColumn.name}`);
+      setIsCompletionModalOpen(false);
+    } catch {
+      toast.error("Failed to send for review");
     } finally {
       setCompleting(false);
     }
@@ -206,12 +235,12 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
               {/* Mark Complete */}
               {doneColumn && !isInDoneColumn && (
                 <Button
-                  onClick={() => void handleMarkComplete()}
+                  onClick={() => setIsCompletionModalOpen(true)}
                   disabled={completing}
-                  className="w-full h-10 text-[13px] gap-2"
+                  className="w-full h-10 text-[13px] gap-2 bg-primary/10 text-primary hover:bg-primary/20 border-primary/20"
                 >
                   {completing ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={16} />}
-                  Mark complete
+                  Complete Task...
                 </Button>
               )}
               {isInDoneColumn && (
@@ -339,19 +368,59 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                   <h3 className="text-[13px] font-medium flex items-center gap-2">
                     <CheckSquare size={14} className="text-muted-foreground/60" /> Subtasks
                   </h3>
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] font-medium hover:bg-primary/5 hover:text-primary">Add</Button>
+                  <div className="flex items-center gap-2">
+                    {task.subtasks?.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground/60 font-medium">
+                        {task.subtasks.filter(s => s.is_completed).length}/{task.subtasks.length}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  {task.subtasks?.length ? task.subtasks.map(sub => (
-                    <div key={sub.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 group transition-colors border border-transparent">
-                      <input type="checkbox" checked={sub.is_completed} readOnly className="h-4 w-4 rounded border-border" />
-                      <span className={cn("text-[13px] flex-1", sub.is_completed && "line-through text-muted-foreground/40")}>
+                
+                <div className="space-y-1">
+                  {task.subtasks?.map(sub => (
+                    <div key={sub.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 group transition-all border border-transparent">
+                      <button
+                        onClick={() => updateSubtask.mutate({ id: sub.id, data: { is_completed: !sub.is_completed } })}
+                        className={cn(
+                          "h-4 w-4 rounded border flex items-center justify-center transition-all",
+                          sub.is_completed ? "bg-primary border-primary" : "border-muted-foreground/30 hover:border-primary/50"
+                        )}
+                      >
+                        {sub.is_completed && <CheckCircle2 size={10} className="text-primary-foreground stroke-[3px]" />}
+                      </button>
+                      <span className={cn(
+                        "text-[13px] flex-1 truncate",
+                        sub.is_completed ? "text-muted-foreground/40 line-through" : "text-foreground"
+                      )}>
                         {sub.title}
                       </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                        onClick={() => deleteSubtask.mutate(sub.id)}
+                      >
+                        <X size={12} />
+                      </Button>
                     </div>
-                  )) : (
-                    <p className="text-[12px] text-muted-foreground/40 italic pl-6">No subtasks defined.</p>
-                  )}
+                  ))}
+                  
+                  <div className="pt-2">
+                    <div className="relative group">
+                      <Plus size={14} className="absolute left-2.5 top-2.5 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                      <Input
+                        placeholder="Add a subtask..."
+                        className="h-9 pl-9 text-[13px] bg-muted/10 border-dashed border-border/60 focus:border-primary/50 focus:bg-background transition-all"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                            createSubtask.mutate({ title: e.currentTarget.value.trim() });
+                            e.currentTarget.value = "";
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -410,6 +479,17 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
           )}
         </div>
       </SheetContent>
+      {task && (
+        <TaskCompletionModal
+          open={isCompletionModalOpen}
+          onOpenChange={setIsCompletionModalOpen}
+          task={task}
+          onConfirmComplete={handleConfirmComplete}
+          onSendForReview={handleSendForReview}
+          isProcessing={completing}
+          hasReviewColumn={!!reviewColumn}
+        />
+      )}
     </Sheet>
   );
 }

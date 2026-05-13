@@ -1,6 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { 
+  Type, 
+  AlignLeft, 
+  Layout, 
+  Flag, 
+  Sparkles, 
+  CheckCircle2,
+  X,
+  Target,
+  Clock,
+  User,
+  Calendar,
+  Tags,
+  Plus
+} from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -20,15 +35,17 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useCreateTask } from "@/hooks/useTasks";
-import { Column } from "@/types/project";
+import { Column, Label as ProjectLabel } from "@/types/project";
 import { TaskPriority } from "@/types/task";
 import api from "@/lib/api";
-import type { ApiResponse } from "@/types";
+import type { ApiResponse, TeamMember } from "@/types";
 import { AIButton } from "@/components/ai/AIButton";
 import { useAIStore } from "@/store/ai";
 import { useTeamStore } from "@/store/team";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 type GeneratedTask = {
   title: string;
@@ -42,22 +59,45 @@ interface CreateTaskModalProps {
   onOpenChange: (open: boolean) => void;
   projectId: string;
   columns: Column[];
+  labels?: ProjectLabel[];
+  members?: TeamMember[];
 }
 
-export function CreateTaskModal({ open, onOpenChange, projectId, columns }: CreateTaskModalProps) {
+export function CreateTaskModal({ 
+  open, 
+  onOpenChange, 
+  projectId, 
+  columns,
+  labels = [],
+  members = []
+}: CreateTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [columnId, setColumnId] = useState(columns[0]?.id || "");
+  const [columnId, setColumnId] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
+  const [issueType, setIssueType] = useState<string>("task");
+  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [dueDate, setDueDate] = useState<string>("");
+  const [estimatedHours, setEstimatedHours] = useState<string>("");
+  const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
+  
   const [autoWriting, setAutoWriting] = useState(false);
   const [suggestedLabels, setSuggestedLabels] = useState<string[]>([]);
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [selectedGenerated, setSelectedGenerated] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
+  
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const activeTeamId = useTeamStore((state) => state.activeTeamId);
   
   const createTask = useCreateTask();
+
+  // Initialize columnId when open
+  useEffect(() => {
+    if (open && !columnId && columns.length > 0) {
+      setColumnId(columns[0].id);
+    }
+  }, [open, columns, columnId]);
 
   const handleCreate = () => {
     if (!title.trim() || !columnId) return;
@@ -68,13 +108,36 @@ export function CreateTaskModal({ open, onOpenChange, projectId, columns }: Crea
       column: columnId,
       project: projectId,
       priority,
+      issue_type: issueType as any,
+      assignee: assigneeId || null,
+      due_date: dueDate || null,
+      estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+      label_ids: Array.from(selectedLabelIds),
     }, {
       onSuccess: () => {
-        setTitle("");
-        setDescription("");
+        resetForm();
         onOpenChange(false);
       }
     });
+  };
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setIssueType("task");
+    setPriority("normal");
+    setAssigneeId("");
+    setDueDate("");
+    setEstimatedHours("");
+    setSelectedLabelIds(new Set());
+    setSuggestedLabels([]);
+    setGeneratedTasks([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      handleCreate();
+    }
   };
 
   const handleGenerateTasks = async () => {
@@ -101,14 +164,7 @@ export function CreateTaskModal({ open, onOpenChange, projectId, columns }: Crea
   };
 
   const handleAutoDescription = async () => {
-    if (!aiEnabled) {
-      toast.error("AI features are not enabled for this team");
-      return;
-    }
-    if (!activeTeamId) {
-      toast.error("Select a team to use AI features");
-      return;
-    }
+    if (!aiEnabled || !activeTeamId) return;
     const trimmed = title.trim();
     if (trimmed.length < 6) return;
 
@@ -130,10 +186,10 @@ export function CreateTaskModal({ open, onOpenChange, projectId, columns }: Crea
       const formatted = [
         (payload.description ?? "").trim(),
         payload.acceptance_criteria?.length
-          ? ["", "Acceptance Criteria:", ...payload.acceptance_criteria.map((c) => `- ${c}`)].join("\n")
+          ? ["", "### Acceptance Criteria", ...payload.acceptance_criteria.map((c) => `- ${c}`)].join("\n")
           : "",
         payload.suggested_subtasks?.length
-          ? ["", "Suggested Subtasks:", ...payload.suggested_subtasks.map((s) => `- ${s}`)].join("\n")
+          ? ["", "### Sub-tasks", ...payload.suggested_subtasks.map((s) => `- ${s}`)].join("\n")
           : "",
       ]
         .filter(Boolean)
@@ -152,10 +208,22 @@ export function CreateTaskModal({ open, onOpenChange, projectId, columns }: Crea
 
       const triageData = triage.data.data ?? {};
       if (triageData.suggested_priority) setPriority(triageData.suggested_priority);
+      if (triageData.suggested_issue_type) setIssueType(triageData.suggested_issue_type);
       setSuggestedLabels(triageData.suggested_labels ?? []);
-      toast.success("AI suggestions added");
+      
+      // Auto-select labels if they match exactly
+      if (triageData.suggested_labels) {
+        const matchingIds = labels
+          .filter(l => triageData.suggested_labels?.some(sl => sl.toLowerCase() === l.name.toLowerCase()))
+          .map(l => l.id);
+        if (matchingIds.length > 0) {
+          setSelectedLabelIds(new Set(matchingIds));
+        }
+      }
+
+      toast.success("AI analysis complete");
     } catch (err) {
-      toast.error(toErrorMessage(err, "Failed to generate description"));
+      toast.error(toErrorMessage(err, "AI assist failed"));
     } finally {
       setAutoWriting(false);
     }
@@ -165,141 +233,373 @@ export function CreateTaskModal({ open, onOpenChange, projectId, columns }: Crea
     if (!columnId) return;
     const selected = generatedTasks.filter((_, index) => selectedGenerated.has(index));
     if (!selected.length) return;
-    for (const task of selected) {
-      await createTask.mutateAsync({
-        title: task.title,
-        description: "",
-        column: columnId,
-        project: projectId,
-        priority: task.priority ?? "normal",
-        issue_type: task.issue_type ?? "task",
-        estimated_hours: task.estimated_hours ?? null,
-      });
+    try {
+      for (const task of selected) {
+        await createTask.mutateAsync({
+          title: task.title,
+          description: "",
+          column: columnId,
+          project: projectId,
+          priority: task.priority ?? "normal",
+          issue_type: task.issue_type ?? "task",
+          estimated_hours: task.estimated_hours ?? null,
+        });
+      }
+      toast.success(`Created ${selected.length} tasks`);
+      resetForm();
+      onOpenChange(false);
+    } catch (err) {
+      toast.error("Some tasks could not be created");
     }
-    setGeneratedTasks([]);
-    setSelectedGenerated(new Set());
-    onOpenChange(false);
+  };
+
+  const toggleLabel = (id: string) => {
+    setSelectedLabelIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
-            <DialogTitle>Create New Task</DialogTitle>
-            <AIButton variant="outline" size="sm" className="h-8 text-[12px]" loading={generating} onClick={() => void handleGenerateTasks()}>
-              Generate tasks
+      <DialogContent 
+        className="sm:max-w-[700px] p-0 overflow-hidden glass-panel border-none page-enter shadow-2xl"
+        onKeyDown={handleKeyDown}
+      >
+        <DialogHeader className="px-8 pt-8 pb-6 bg-muted/20 border-b border-border/50">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-1">
+              <DialogTitle className="text-xl font-bold tracking-tight flex items-center gap-3">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Plus className="h-5 w-5 text-primary" />
+                </div>
+                Create Task
+              </DialogTitle>
+              <p className="text-[13px] text-muted-foreground/80">Add a new work item to the project board</p>
+            </div>
+            <AIButton 
+              variant="outline" 
+              size="sm" 
+              className="h-9 px-4 text-[13px] shadow-glow hover:bg-primary/5 border-primary/20 transition-all duration-300 gap-2" 
+              loading={generating} 
+              onClick={() => void handleGenerateTasks()}
+            >
+              <Sparkles className="h-4 w-4" />
+              Magic Generate
             </AIButton>
           </div>
         </DialogHeader>
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Task Title</Label>
-            <div className="flex items-center gap-2">
-              <Input 
-              id="title" 
-              placeholder="Enter task title" 
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              />
-              {title.trim().length > 5 && (
-                <AIButton
-                  variant="outline"
-                  size="sm"
-                  className="h-10 whitespace-nowrap text-[12px]"
-                  loading={autoWriting}
-                  onClick={() => void handleAutoDescription()}
-                >
-                  Write description
-                </AIButton>
+
+        <div className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar bg-background/30 backdrop-blur-sm">
+          {/* Main Content Area */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="md:col-span-2 space-y-6">
+              {/* Title */}
+              <div className="space-y-2.5">
+                <Label htmlFor="title" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1">Task Title</Label>
+                <div className="relative group">
+                  <Type className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                  <Input 
+                    id="title" 
+                    placeholder="Enter task name..." 
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="pl-11 h-11 text-[15px] bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all shadow-sm rounded-xl"
+                  />
+                  {title.trim().length > 5 && (
+                    <div className="absolute right-1.5 top-1.5">
+                      <AIButton
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 px-3 whitespace-nowrap text-[11px] font-semibold hover:text-primary hover:bg-primary/5 rounded-lg"
+                        loading={autoWriting}
+                        onClick={() => void handleAutoDescription()}
+                      >
+                        <Sparkles className="h-3 w-3 mr-1.5" />
+                        AI Polish
+                      </AIButton>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2.5">
+                <Label htmlFor="description" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1">Context & Requirements</Label>
+                <div className="relative group">
+                  <AlignLeft className="absolute left-3.5 top-3.5 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
+                  <Textarea 
+                    id="description" 
+                    placeholder="Describe what needs to be done..." 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="pl-11 pt-3 min-h-[160px] text-[14px] leading-relaxed bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all resize-none rounded-xl"
+                  />
+                </div>
+              </div>
+
+              {/* Labels */}
+              {labels.length > 0 && (
+                <div className="space-y-2.5 pt-2">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                    <Tags className="h-3.5 w-3.5" />
+                    Labels
+                  </Label>
+                  <div className="flex flex-wrap gap-2">
+                    {labels.map(label => (
+                      <button
+                        key={label.id}
+                        type="button"
+                        onClick={() => toggleLabel(label.id)}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[11px] font-medium border transition-all flex items-center gap-2",
+                          selectedLabelIds.has(label.id)
+                            ? "border-primary/50 bg-primary/10 text-primary ring-2 ring-primary/10"
+                            : "border-border/50 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/30"
+                        )}
+                      >
+                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: label.color }} />
+                        {label.name}
+                        {selectedLabelIds.has(label.id) && <X className="h-3 w-3" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-            {!!suggestedLabels.length && (
-              <p className="text-[11px] text-muted-foreground">
-                Suggested labels: {suggestedLabels.slice(0, 6).join(", ")}
-              </p>
-            )}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea 
-              id="description" 
-              placeholder="Add details..." 
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="min-h-[100px]"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Column</Label>
-              <Select value={columnId} onValueChange={setColumnId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select column" />
-                </SelectTrigger>
-                <SelectContent>
-                  {columns.map(col => (
-                    <SelectItem key={col.id} value={col.id}>{col.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+
+            {/* Sidebar Meta Info */}
+            <div className="space-y-6">
+              {/* Column Selection */}
+              <div className="space-y-2.5">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                  <Layout className="h-3.5 w-3.5" />
+                  Status
+                </Label>
+                <Select value={columnId} onValueChange={setColumnId}>
+                  <SelectTrigger className="h-10 bg-background/50 border-border/50 rounded-xl shadow-sm">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-panel border-border/50">
+                    {columns.map(col => (
+                      <SelectItem key={col.id} value={col.id} className="text-[13px] py-2.5 cursor-pointer">
+                        <div className="flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: col.color || 'var(--primary)' }} />
+                          {col.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Assignee Selection */}
+              <div className="space-y-2.5">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                  <User className="h-3.5 w-3.5" />
+                  Assignee
+                </Label>
+                <Select value={assigneeId} onValueChange={setAssigneeId}>
+                  <SelectTrigger className="h-10 bg-background/50 border-border/50 rounded-xl shadow-sm">
+                    <SelectValue placeholder="Unassigned" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-panel border-border/50">
+                    <SelectItem value="unassigned" className="text-[13px] py-2.5">Unassigned</SelectItem>
+                    {members.map(member => (
+                      <SelectItem key={member.user.id} value={member.user.id} className="text-[13px] py-2.5 cursor-pointer">
+                        {member.user.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Issue Type */}
+              <div className="space-y-2.5">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                  <Target className="h-3.5 w-3.5" />
+                  Type
+                </Label>
+                <Select value={issueType} onValueChange={setIssueType}>
+                  <SelectTrigger className="h-10 bg-background/50 border-border/50 rounded-xl shadow-sm">
+                    <SelectValue placeholder="Task" />
+                  </SelectTrigger>
+                  <SelectContent className="glass-panel border-border/50">
+                    <SelectItem value="task" className="text-[13px] py-2.5">Task</SelectItem>
+                    <SelectItem value="story" className="text-[13px] py-2.5">Story</SelectItem>
+                    <SelectItem value="bug" className="text-[13px] py-2.5 text-red-500">Bug</SelectItem>
+                    <SelectItem value="epic" className="text-[13px] py-2.5 text-purple-500 font-medium">Epic</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Priority */}
+              <div className="space-y-2.5">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                  <Flag className="h-3.5 w-3.5" />
+                  Priority
+                </Label>
+                <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
+                  <SelectTrigger className="h-10 bg-background/50 border-border/50 rounded-xl shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="glass-panel border-border/50">
+                    <SelectItem value="urgent" className="text-red-500 text-[13px] py-2.5">Urgent</SelectItem>
+                    <SelectItem value="high" className="text-orange-500 text-[13px] py-2.5">High</SelectItem>
+                    <SelectItem value="normal" className="text-blue-500 text-[13px] py-2.5">Normal</SelectItem>
+                    <SelectItem value="low" className="text-emerald-500 text-[13px] py-2.5">Low</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Due Date & Estimates */}
+              <div className="grid grid-cols-1 gap-4 pt-2 border-t border-border/30 mt-4">
+                <div className="space-y-2.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                    <Calendar className="h-3.5 w-3.5" />
+                    Due Date
+                  </Label>
+                  <Input 
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="h-10 bg-background/50 border-border/50 rounded-xl text-[13px]"
+                  />
+                </div>
+                <div className="space-y-2.5">
+                  <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                    <Clock className="h-3.5 w-3.5" />
+                    Estimate (Hrs)
+                  </Label>
+                  <Input 
+                    type="number"
+                    placeholder="0"
+                    value={estimatedHours}
+                    onChange={(e) => setEstimatedHours(e.target.value)}
+                    className="h-10 bg-background/50 border-border/50 rounded-xl text-[13px]"
+                  />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label>Priority</Label>
-              <Select value={priority} onValueChange={(value) => setPriority(value as TaskPriority)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="normal">Normal</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
+
+          {/* AI Generated Suggestions */}
           {generatedTasks.length > 0 && (
-            <div className="rounded-lg border border-border bg-muted/20 p-3">
-              <p className="mb-2 text-[12px] font-semibold">Generated tasks</p>
-              <div className="max-h-48 space-y-2 overflow-y-auto pr-1">
+            <div className="space-y-4 pt-6 border-t border-border/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                  </div>
+                  <h4 className="text-[14px] font-bold tracking-tight">AI Backlog Expansion</h4>
+                </div>
+                <span className="text-[11px] font-medium text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">
+                  {selectedGenerated.size} items selected
+                </span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-2 custom-scrollbar">
                 {generatedTasks.map((task, index) => (
-                  <label key={`${task.title}-${index}`} className="flex items-start gap-2 rounded-md border border-border bg-background p-2 text-[12px]">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5"
-                      checked={selectedGenerated.has(index)}
-                      onChange={(event) => {
-                        setSelectedGenerated((current) => {
-                          const next = new Set(current);
-                          if (event.target.checked) next.add(index);
-                          else next.delete(index);
-                          return next;
-                        });
-                      }}
-                    />
-                    <span className="flex-1">
-                      <span className="block font-medium">{task.title}</span>
-                      <span className="text-muted-foreground">
-                        {task.issue_type ?? "task"} - {task.priority ?? "normal"} - {task.estimated_hours ?? 0}h
+                  <label 
+                    key={`${task.title}-${index}`} 
+                    className={cn(
+                      "flex items-start gap-4 rounded-xl border p-4 transition-all cursor-pointer group relative overflow-hidden",
+                      selectedGenerated.has(index) 
+                        ? "bg-primary/[0.03] border-primary/40 ring-1 ring-primary/10" 
+                        : "bg-background/40 border-border/50 hover:border-primary/20 hover:bg-muted/10"
+                    )}
+                  >
+                    <div className="mt-0.5">
+                      <div className={cn(
+                        "h-5 w-5 rounded-md border-2 flex items-center justify-center transition-all",
+                        selectedGenerated.has(index) ? "bg-primary border-primary shadow-sm" : "border-muted-foreground/20 group-hover:border-muted-foreground/40"
+                      )}>
+                        {selectedGenerated.has(index) && <CheckCircle2 className="h-3.5 w-3.5 text-primary-foreground stroke-[3px]" />}
+                      </div>
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={selectedGenerated.has(index)}
+                        onChange={(event) => {
+                          setSelectedGenerated((current) => {
+                            const next = new Set(current);
+                            if (event.target.checked) next.add(index);
+                            else next.delete(index);
+                            return next;
+                          });
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <span className={cn(
+                        "block text-[13px] font-bold leading-snug mb-2 truncate",
+                        selectedGenerated.has(index) ? "text-foreground" : "text-foreground/80"
+                      )}>
+                        {task.title}
                       </span>
-                    </span>
+                      <div className="flex items-center flex-wrap gap-2">
+                        <Badge variant="outline" className="h-4 px-1 text-[9px] font-bold uppercase tracking-tight bg-background/50">
+                          {task.issue_type ?? "task"}
+                        </Badge>
+                        <span className="flex items-center gap-1 text-[10px] text-muted-foreground/70 font-medium">
+                          <Clock className="h-2.5 w-2.5" />
+                          {task.estimated_hours ?? 0}h
+                        </span>
+                        <div className={cn(
+                          "h-1.5 w-1.5 rounded-full",
+                          task.priority === 'urgent' ? "bg-red-500 shadow-[0_0_4px_rgba(239,68,68,0.5)]" :
+                          task.priority === 'high' ? "bg-orange-500" :
+                          "bg-blue-500"
+                        )} />
+                      </div>
+                    </div>
                   </label>
                 ))}
               </div>
             </div>
           )}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          {generatedTasks.length > 0 && (
-            <Button variant="outline" onClick={() => void createSelectedGenerated()} disabled={createTask.isPending || selectedGenerated.size === 0}>
-              Create selected
+
+        <DialogFooter className="px-8 py-5 bg-muted/20 border-t border-border/50 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2 text-[12px] text-muted-foreground/60 font-medium">
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-background text-[10px] font-bold">⌘</kbd>
+            <kbd className="px-1.5 py-0.5 rounded border border-border bg-background text-[10px] font-bold">↵</kbd>
+            <span className="ml-1">to create</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              className="h-10 px-4 text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-xl"
+            >
+              Cancel
             </Button>
-          )}
-          <Button onClick={handleCreate} disabled={!title.trim() || createTask.isPending}>
-            {createTask.isPending ? "Creating..." : "Create Task"}
-          </Button>
+            {generatedTasks.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => void createSelectedGenerated()} 
+                disabled={createTask.isPending || selectedGenerated.size === 0}
+                className="h-10 px-5 text-[13px] font-bold border-primary/30 text-primary hover:bg-primary/10 transition-all rounded-xl gap-2"
+              >
+                Create {selectedGenerated.size} suggested
+              </Button>
+            )}
+            <Button 
+              onClick={handleCreate} 
+              disabled={!title.trim() || !columnId || createTask.isPending}
+              className="h-10 px-8 text-[13px] font-bold bg-primary text-primary-foreground shadow-glow hover:shadow-glow-strong hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-xl"
+            >
+              {createTask.isPending ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Creating...
+                </div>
+              ) : "Create Task"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -150,3 +150,43 @@ export const useDeleteTask = () => {
     },
   });
 };
+
+export const useCreateSubtask = (taskId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { title: string }) => {
+      const res = await api.post<ApiResponse<any>>(`/tasks/${taskId}/subtasks/`, data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+      toast.success("Subtask added");
+    },
+  });
+};
+
+export const useUpdateSubtask = (taskId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const res = await api.patch<ApiResponse<any>>(`/tasks/${taskId}/subtasks/${id}/`, data);
+      return res.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+    },
+  });
+};
+
+export const useDeleteSubtask = (taskId: string) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/tasks/${taskId}/subtasks/${id}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", taskId] });
+      toast.success("Subtask removed");
+    },
+  });
+};

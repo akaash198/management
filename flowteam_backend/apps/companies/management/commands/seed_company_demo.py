@@ -4,17 +4,16 @@ with a full role hierarchy, teams, projects, tasks, sprints, milestones,
 messages, and pending invites suitable for a live product demonstration.
 
 Production-safe by design:
-  - Demo users are tagged with a marker email prefix (demo+*)
-    so they are never confused with real users.
-  - email_domain_verified is set to False so no real user
-    auto-joins the demo company on registration.
-  - --reset requires an explicit --confirm flag; without it the
-    command aborts, preventing accidental data loss in production.
-  - The demo password is read from the DEMO_PASSWORD env var;
-    falls back to a randomly generated one if not set (printed at end).
-  - All demo objects are identified by the DEMO_MARKER tag in their
-    notes/description so they can be cleaned up precisely without
-    touching any real company, team, or user data.
+   - Demo users use clean emails (e.g. sarah@nova-agency.com).
+   - email_domain_verified is set to False so no real user
+     auto-joins the demo company on registration.
+   - --reset requires an explicit --confirm flag; without it the
+     command aborts, preventing accidental data loss in production.
+   - The demo password is read from the DEMO_PASSWORD env var;
+     falls back to a randomly generated one if not set (printed at end).
+   - All demo objects are identified by the DEMO_MARKER tag in their
+     notes/description so they can be cleaned up precisely without
+     touching any real company, team, or user data.
 
 Usage:
     python manage.py seed_company_demo
@@ -30,7 +29,7 @@ import random
 import secrets
 from django.core.management.base import BaseCommand, CommandError
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import transaction, models
 from django.utils import timezone
 
 User = get_user_model()
@@ -39,15 +38,15 @@ DEMO_MARKER   = "[demo]"
 COMPANY_NAME  = "Nova Agency"
 COMPANY_SLUG  = "nova-agency-demo"
 
-# Emails use demo+* prefix so they never collide with or match real @nova-agency.com registrations
+# Emails for the demo company
 USERS = [
-    # (full_name,       email,                              role)
-    ("Sarah Chen",      "demo+sarah@nova-agency.com",       "ceo"),
-    ("Alex Rivera",     "demo+alex@nova-agency.com",        "admin"),
-    ("Priya Sharma",    "demo+priya@nova-agency.com",       "manager"),
-    ("Jordan Kim",      "demo+jordan@nova-agency.com",      "member"),
-    ("Dana Osei",       "demo+dana@nova-agency.com",        "member"),
-    ("Marcus Liu",      "demo+marcus@nova-agency.com",      "viewer"),
+    # (full_name,       email,                         role)
+    ("Sarah Chen",      "sarah@nova-agency.com",       "ceo"),
+    ("Alex Rivera",     "alex@nova-agency.com",        "admin"),
+    ("Priya Sharma",    "priya@nova-agency.com",       "manager"),
+    ("Jordan Kim",      "jordan@nova-agency.com",      "member"),
+    ("Dana Osei",       "dana@nova-agency.com",        "member"),
+    ("Marcus Liu",      "marcus@nova-agency.com",      "viewer"),
 ]
 
 
@@ -106,12 +105,13 @@ class Command(BaseCommand):
         # Delete only demo-tagged teams (those not already cascade-deleted)
         deleted_teams, _ = Team.objects.filter(
             name__in=["Engineering", "Design", "Marketing"],
-            created_by__email__startswith="demo+",
+            created_by__email__in=[u[1] for u in USERS],
         ).delete()
 
-        # Delete only demo users (identified by demo+ email prefix)
+        # Delete only demo users
         deleted_users, _ = User.objects.filter(
-            email__startswith="demo+"
+            models.Q(email__in=[u[1] for u in USERS] + ["newdesigner@nova-agency.com"]) |
+            models.Q(email__startswith="demo+")
         ).delete()
 
         self.stdout.write(
@@ -151,8 +151,8 @@ class Command(BaseCommand):
     def _create_company(self, users: dict) -> "Company":
         from apps.companies.models import Company, CompanyMember, CompanyInvite
 
-        sarah = users["demo+sarah@nova-agency.com"]
-        alex  = users["demo+alex@nova-agency.com"]
+        sarah = users["sarah@nova-agency.com"]
+        alex  = users["alex@nova-agency.com"]
 
         company, created = Company.objects.get_or_create(
             slug=COMPANY_SLUG,
@@ -200,7 +200,7 @@ class Command(BaseCommand):
         # One pending invite so the Invites tab has something to show
         CompanyInvite.objects.get_or_create(
             company=company,
-            email="demo+newdesigner@nova-agency.com",
+            email="newdesigner@nova-agency.com",
             defaults={
                 "role": "member",
                 "invited_by": alex,
@@ -219,12 +219,12 @@ class Command(BaseCommand):
     def _create_teams(self, company: "Company", users: dict) -> dict:
         from apps.teams.models import Team, TeamMember
 
-        sarah  = users["demo+sarah@nova-agency.com"]
-        alex   = users["demo+alex@nova-agency.com"]
-        priya  = users["demo+priya@nova-agency.com"]
-        jordan = users["demo+jordan@nova-agency.com"]
-        dana   = users["demo+dana@nova-agency.com"]
-        marcus = users["demo+marcus@nova-agency.com"]
+        sarah  = users["sarah@nova-agency.com"]
+        alex   = users["alex@nova-agency.com"]
+        priya  = users["priya@nova-agency.com"]
+        jordan = users["jordan@nova-agency.com"]
+        dana   = users["dana@nova-agency.com"]
+        marcus = users["marcus@nova-agency.com"]
 
         team_specs = [
             {
@@ -295,7 +295,7 @@ class Command(BaseCommand):
     def _create_projects(self, teams: dict, users: dict) -> dict:
         from apps.projects.models import Project, Column, Label
 
-        sarah = users["demo+sarah@nova-agency.com"]
+        sarah = users["sarah@nova-agency.com"]
         eng   = teams["Engineering"]
         design = teams["Design"]
 
@@ -403,11 +403,11 @@ class Command(BaseCommand):
     def _create_tasks_and_sprints(self, projects: dict, users: dict) -> None:
         from apps.projects.models import Task, Sprint, SprintCapacity, Milestone, TaskLink
 
-        sarah  = users["demo+sarah@nova-agency.com"]
-        alex   = users["demo+alex@nova-agency.com"]
-        priya  = users["demo+priya@nova-agency.com"]
-        jordan = users["demo+jordan@nova-agency.com"]
-        dana   = users["demo+dana@nova-agency.com"]
+        sarah  = users["sarah@nova-agency.com"]
+        alex   = users["alex@nova-agency.com"]
+        priya  = users["priya@nova-agency.com"]
+        jordan = users["jordan@nova-agency.com"]
+        dana   = users["dana@nova-agency.com"]
 
         today = datetime.date.today()
 
@@ -637,12 +637,12 @@ class Command(BaseCommand):
     def _create_messages(self, teams: dict, users: dict) -> None:
         from apps.messaging.models import Channel, ChannelMember, Message
 
-        sarah  = users["demo+sarah@nova-agency.com"]
-        alex   = users["demo+alex@nova-agency.com"]
-        priya  = users["demo+priya@nova-agency.com"]
-        jordan = users["demo+jordan@nova-agency.com"]
-        dana   = users["demo+dana@nova-agency.com"]
-        marcus = users["demo+marcus@nova-agency.com"]
+        sarah  = users["sarah@nova-agency.com"]
+        alex   = users["alex@nova-agency.com"]
+        priya  = users["priya@nova-agency.com"]
+        jordan = users["jordan@nova-agency.com"]
+        dana   = users["dana@nova-agency.com"]
+        marcus = users["marcus@nova-agency.com"]
 
         eng = teams["Engineering"]
 
@@ -743,9 +743,8 @@ class Command(BaseCommand):
         self.stdout.write("")
         self.stdout.write(f"  Password for ALL accounts: {password}")
         self.stdout.write("")
-        self.stdout.write("  NOTE: Emails use demo+ prefix. No real @nova-agency.com")
-        self.stdout.write("  users are created. email_domain_verified=False so no")
-        self.stdout.write("  real registrations auto-join this demo company.")
+        self.stdout.write("  NOTE: email_domain_verified=False so no real registrations")
+        self.stdout.write("  auto-join this demo company.")
         self.stdout.write("")
         self.stdout.write("  WHAT'S BEEN CREATED")
         self.stdout.write("  " + "-" * 56)
@@ -760,7 +759,7 @@ class Command(BaseCommand):
         self.stdout.write("  Task link  : 'Fix mobile nav' blocked_by 'Implement hero animation'")
         self.stdout.write("  Channels   : #general / #engineering / #design-review (private)")
         self.stdout.write("  Messages   : 24 seeded messages across 3 channels")
-        self.stdout.write("  Invite     : 1 pending (demo+newdesigner@nova-agency.com -> Member)")
+        self.stdout.write("  Invite     : 1 pending (newdesigner@nova-agency.com -> Member)")
         self.stdout.write("")
         self.stdout.write("  TO RESET:")
         self.stdout.write("  python manage.py seed_company_demo --reset --confirm")

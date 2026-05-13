@@ -552,7 +552,7 @@ export default function SuperAdminDashboardPage() {
                 type="checkbox"
                 checked={formIsActive}
                 onChange={(e) => setFormIsActive(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
               />
               <Label htmlFor="active" className="cursor-pointer">Active Account</Label>
             </div>

@@ -9,7 +9,8 @@ from .views import (
     IssueTypeFieldDefinitionViewSet, TaskCustomFieldValueViewSet,
     AutomationRuleViewSet, ClientPortalAccessViewSet, CommentAttachmentUploadView,
     AttachmentVersionUploadView, activity_feed, advanced_reporting,
-    calendar_export, client_portal_detail, task_pull_requests
+    calendar_export, client_portal_detail, task_pull_requests,
+    SubTaskViewSet
 )
 
 router = DefaultRouter()
@@ -51,4 +52,8 @@ urlpatterns = [
     # Time Logs
     path("tasks/<uuid:task_pk>/timelogs/", TimeLogViewSet.as_view({"get": "list", "post": "create"}), name="task-timelog-list"),
     path("tasks/<uuid:task_pk>/timelogs/<uuid:pk>/", TimeLogViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="task-timelog-detail"),
+
+    # Subtasks
+    path("tasks/<uuid:task_pk>/subtasks/", SubTaskViewSet.as_view({"get": "list", "post": "create"}), name="task-subtask-list"),
+    path("tasks/<uuid:task_pk>/subtasks/<uuid:pk>/", SubTaskViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="task-subtask-detail"),
 ]

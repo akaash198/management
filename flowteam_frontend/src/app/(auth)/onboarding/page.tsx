@@ -83,7 +83,7 @@ export default function OnboardingPage() {
                 onChange={(e) => setTeamName(e.target.value)}
               />
               {teamName && (
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-muted-foreground">
                   Preview slug: <span className="font-mono">{teamName.toLowerCase().replace(/\s+/g, '-')}</span>
                 </p>
               )}
