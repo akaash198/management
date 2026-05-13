@@ -32,7 +32,7 @@ class CookieJWTAuthentication(JWTAuthentication):
 
 def set_access_token_cookie(response, access_token, secure=None):
     if secure is None:
-        secure = not settings.DEBUG
+        secure = getattr(settings, "SESSION_COOKIE_SECURE", not settings.DEBUG)
     response.set_cookie(
         key="access_token",
         value=access_token,
@@ -49,14 +49,14 @@ def clear_access_token_cookie(response):
         value="",
         max_age=0,
         httponly=True,
-        secure=not settings.DEBUG,
+        secure=getattr(settings, "SESSION_COOKIE_SECURE", not settings.DEBUG),
         samesite="Lax",
         path="/",
     )
 
 def set_refresh_token_cookie(response, refresh_token, secure=None):
     if secure is None:
-        secure = not settings.DEBUG
+        secure = getattr(settings, "SESSION_COOKIE_SECURE", not settings.DEBUG)
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
@@ -73,7 +73,7 @@ def clear_refresh_token_cookie(response):
         value="",
         max_age=0,
         httponly=True,
-        secure=not settings.DEBUG,
+        secure=getattr(settings, "SESSION_COOKIE_SECURE", not settings.DEBUG),
         samesite="Lax",
         path="/api/auth/refresh/",
     )
