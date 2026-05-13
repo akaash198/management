@@ -112,7 +112,6 @@ export function CreateTaskModal({
       assignee: assigneeId || null,
       due_date: dueDate || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
-      labels: Array.from(selectedLabelIds),
     }, {
       onSuccess: () => {
         resetForm();
