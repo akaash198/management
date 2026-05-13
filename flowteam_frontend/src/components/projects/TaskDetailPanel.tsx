@@ -117,6 +117,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
       await moveTask.mutateAsync({ id: task.id, columnId: doneColumn.id, order: 0 });
       toast.success("Task marked as complete");
       setIsCompletionModalOpen(false);
+      handleClose(); // Close the side panel after successful completion
     } catch {
       toast.error("Failed to complete task");
     } finally {
@@ -136,6 +137,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
       await moveTask.mutateAsync({ id: task.id, columnId: targetColumn.id, order: 0 });
       toast.success(`Task sent to ${targetColumn.name}`);
       setIsCompletionModalOpen(false);
+      handleClose(); // Close the side panel after sending for review
     } catch {
       toast.error("Failed to send for review");
     } finally {
