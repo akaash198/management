@@ -163,6 +163,7 @@ class TaskListSerializer(serializers.ModelSerializer):
     parent_task_id = serializers.UUIDField(read_only=True)
     issue_type = serializers.CharField(read_only=True)
     watchers_count = serializers.IntegerField(source="watchers.count", read_only=True)
+    epic_name = serializers.CharField(source="epic.title", read_only=True)
 
     class Meta:
         model = Task
