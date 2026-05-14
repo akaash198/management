@@ -23,14 +23,13 @@ class CsvImportTests(TestCase):
         self.team = Team.objects.create(name="Acme", created_by=self.user, plan="free")
         TeamMember.objects.create(team=self.team, user=self.user, role=TeamMember.CEO)
         self.project = Project.objects.create(team=self.team, name="P", description="", created_by=self.user)
-        self.backlog = Column.objects.create(project=self.project, name="Backlog", order=0, is_done_column=False)
-        Column.objects.create(project=self.project, name="Done", order=1, is_done_column=True)
+        # Default columns are created by signals
 
     def test_import_csv_creates_tasks(self):
         csv_bytes = (
             "title,description,column,priority,issue_type,due_date\n"
-            "Task One,Desc,Backlog,high,task,2026-05-01\n"
-            "Task Two,,Backlog,normal,bug,\n"
+            "Task One,Desc,To Do,high,task,2026-05-01\n"
+            "Task Two,,To Do,normal,bug,\n"
         ).encode("utf-8")
         upload = SimpleUploadedFile("tasks.csv", csv_bytes, content_type="text/csv")
 

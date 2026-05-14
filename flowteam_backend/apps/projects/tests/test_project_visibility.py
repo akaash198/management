@@ -26,7 +26,9 @@ class ProjectVisibilityTests(TestCase):
 
         self.project = Project.objects.create(team=self.team, name="Website Redesign", created_by=self.ceo)
 
-        # Default columns are created by signals
+        from apps.projects.models import ProjectRole
+        ProjectRole.objects.create(project=self.project, user=self.member, role="editor")
+
         self.todo = self.project.columns.get(name="To Do")
 
         Task.objects.create(
@@ -48,7 +50,7 @@ class ProjectVisibilityTests(TestCase):
     def test_team_member_can_list_tasks_for_project(self):
         client = authed_client(self.member)
         resp = client.get("/api/tasks/", {"project_id": str(self.project.id)})
-        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.status_code, 200, f"Expected 200, got {resp.status_code}. Response: {resp.data}")
         items = (resp.data or {}).get("data") or []
         self.assertEqual(len(items), 1)
         self.assertEqual(items[0].get("title"), "Task A")
