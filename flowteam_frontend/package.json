@@ -46,6 +46,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",
+    "framer-motion": "^12.38.0",
     "fuse.js": "^7.3.0",
     "immer": "^11.1.4",
     "lucide-react": "^1.8.0",
