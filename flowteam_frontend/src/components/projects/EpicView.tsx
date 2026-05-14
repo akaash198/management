@@ -12,7 +12,7 @@ import {
   ArrowUpRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useEpics, useCreateEpic } from "@/hooks/useEpics";
+import { useEpics } from "@/hooks/useEpics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -25,14 +25,14 @@ interface EpicViewProps {
 }
 
 export function EpicView({ projectId }: EpicViewProps) {
-  const { data: epics, isLoading } = useEpics({ project_id: projectId });
+  const { epics, loading } = useEpics({ project_id: projectId });
   const [search, setSearch] = useState("");
 
   const filteredEpics = epics?.filter(epic => 
     epic.title.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
-  if (isLoading) {
+  if (loading) {
     return <div className="p-8 flex justify-center"><Layers className="animate-pulse text-muted-foreground" size={32} /></div>;
   }
 
