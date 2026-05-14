@@ -7,6 +7,7 @@ import {
   Section, SectionLink, EmptyNote, StatCard, ActivityRow,
   MiniMetric, QuickActionLink, RoleBadge, MemberRow, getTimeOfDay,
 } from "./shared";
+import { MissedMessagesPulse } from "./MissedMessagesPulse";
 import { Button } from "@/components/ui/button";
 import {
   Users, Briefcase, AlertCircle, Activity, BarChart3,
@@ -46,6 +47,9 @@ export function AdminDashboard({ data, members, activeTeamId, onRefresh, isFetch
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 p-6">
+      
+      {/* ── Missed Messages Briefing ── */}
+      <MissedMessagesPulse />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">

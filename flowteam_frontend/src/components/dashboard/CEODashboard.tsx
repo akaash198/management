@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import { useAuthStore } from "@/store/auth";
+import { MissedMessagesPulse } from "./MissedMessagesPulse";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { TeamMember } from "@/types";
 import type { DashboardData } from "@/types/dashboard";
 import {
@@ -53,6 +55,9 @@ export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetchin
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 p-6">
+      
+      {/* ── Missed Messages Briefing ── */}
+      <MissedMessagesPulse />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">

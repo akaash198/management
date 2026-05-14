@@ -2,6 +2,18 @@ import re
 from apps.users.models import User
 from apps.teams.models import TeamMember
 from .models import Notification
+from django.core.cache import cache
+
+def is_user_online(user_id: str) -> bool:
+    """
+    Check if a user is online globally (across any team).
+    """
+    key = f"presence:global:{user_id}"
+    try:
+        val = cache.get(key)
+        return val is not None and int(val) > 0
+    except (ValueError, TypeError):
+        return False
 
 def parse_mentions(text: str, team_id: str) -> list[str]:
     """

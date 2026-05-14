@@ -787,3 +787,51 @@ class CallViewSet(viewsets.ModelViewSet):
         call.participants.filter(is_active=True).update(is_active=False, left_at=timezone.now())
         
         return standardize_response(data={"message": "Call ended"})
+
+class MessageSummaryView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        # Look for messages since last_login or last 24h if last_login is None
+        since = user.last_login or (timezone.now() - timedelta(days=1))
+        
+        # Count unread messages (created after membership.last_read_at)
+        memberships = ChannelMember.objects.filter(user=user).select_related('channel')
+        
+        summary = []
+        total_unread = 0
+        
+        for m in memberships:
+            unread_count = Message.objects.filter(
+                channel=m.channel, 
+                created_at__gt=m.last_read_at
+            ).exclude(sender=user).count()
+            
+            if unread_count > 0:
+                total_unread += unread_count
+                # Get last message as preview
+                last_msg = Message.objects.filter(
+                    channel=m.channel,
+                    created_at__gt=m.last_read_at
+                ).exclude(sender=user).order_by('-created_at').first()
+                
+                summary.append({
+                    "channel_id": str(m.channel_id),
+                    "channel_name": m.channel.display_name or m.channel.name,
+                    "unread_count": unread_count,
+                    "last_message": {
+                        "text": last_msg.text[:100],
+                        "sender": last_msg.sender.full_name,
+                        "created_at": last_msg.created_at
+                    } if last_msg else None
+                })
+        
+        # Sort summary by unread count
+        summary.sort(key=lambda x: x['unread_count'], reverse=True)
+
+        return standardize_response(data={
+            "total_unread": total_unread,
+            "since": since,
+            "channels": summary
+        })

@@ -164,3 +164,18 @@ export interface TaskWatcher {
   user: SlimUser;
   created_at: string;
 }
+
+export interface MissedMessagesSummary {
+  total_unread: number;
+  since: string;
+  channels: {
+    channel_id: string;
+    channel_name: string;
+    unread_count: number;
+    last_message: {
+      text: string;
+      sender: string;
+      created_at: string;
+    } | null;
+  }[];
+}

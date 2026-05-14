@@ -16,6 +16,7 @@ import {
   Briefcase, AlertCircle, Clock, TrendingUp, RefreshCcw, Sparkles,
   ListTodo, CalendarRange, Search, ArrowUpRight,
 } from "lucide-react";
+import { MissedMessagesPulse } from "./MissedMessagesPulse";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -68,6 +69,9 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-6 p-6">
+      
+      {/* ── Missed Messages Briefing ── */}
+      <MissedMessagesPulse />
 
       {/* ── Header ── */}
       <div className="flex items-start justify-between">

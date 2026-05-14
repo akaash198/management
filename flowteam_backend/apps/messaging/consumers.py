@@ -104,6 +104,14 @@ class ChatConsumer(AsyncWebsocketConsumer):
             if msg:
                 await self.broadcast("message.new", msg)
                 await self.push_channel_unread_events()
+                
+                # Trigger offline notification with a small delay (30s) 
+                # to give them a chance to see it in the UI if they just connected.
+                from .tasks import notify_offline_users
+                notify_offline_users.apply_async(
+                    args=[str(self.channel_id), msg.get("id"), str(self.user.id)],
+                    countdown=30
+                )
                 if isinstance(client_id, str) and client_id:
                     await self.send(
                         text_data=json.dumps(
@@ -645,6 +653,7 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
 
         # Mark online and broadcast to others.
         online_now = await self.presence_increment(self.team_id, self.user_id)
+        await self.global_presence_increment(self.user_id)
         await self.send_snapshot()
         if online_now:
             await self.channel_layer.group_send(
@@ -659,6 +668,7 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
 
             if hasattr(self, "team_id") and hasattr(self, "user_id"):
                 offline_now = await self.presence_decrement(self.team_id, self.user_id)
+                await self.global_presence_decrement(self.user_id)
                 if offline_now and hasattr(self, "group_name"):
                     await self.channel_layer.group_send(
                         self.group_name,
@@ -721,6 +731,24 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
             data[user_id] = next_count
         cache.set(key, data, timeout=60 * 60)
         return prev > 0 and next_count == 0
+
+    @database_sync_to_async
+    def global_presence_increment(self, user_id: str):
+        key = f"presence:global:{user_id}"
+        try:
+            cache.incr(key)
+        except ValueError:
+            cache.set(key, 1, timeout=60 * 60)
+
+    @database_sync_to_async
+    def global_presence_decrement(self, user_id: str):
+        key = f"presence:global:{user_id}"
+        try:
+            val = cache.decr(key)
+            if val <= 0:
+                cache.delete(key)
+        except (ValueError, TypeError):
+            cache.delete(key)
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):

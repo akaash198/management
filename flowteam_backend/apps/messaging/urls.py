@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ChannelViewSet, MessageViewSet, NotificationViewSet, SavedMessageViewSet, MessageEditHistoryView, CallViewSet
+from .views import ChannelViewSet, MessageViewSet, NotificationViewSet, SavedMessageViewSet, MessageEditHistoryView, CallViewSet, MessageSummaryView
 
 router = DefaultRouter()
 router.register(r"channels", ChannelViewSet, basename="channel")
@@ -16,4 +16,5 @@ urlpatterns = [
         MessageEditHistoryView.as_view(),
         name="message-edit-history",
     ),
+    path("summary/missed/", MessageSummaryView.as_view(), name="missed-summary"),
 ]
