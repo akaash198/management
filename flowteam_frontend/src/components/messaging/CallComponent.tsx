@@ -226,6 +226,7 @@ export function CallComponent({
           () => {
             setIsScreenSharing(false);
             setScreenStream(null);
+            sendCallMessage('call.screen_share', { call_id: callIdRef.current, is_sharing: false });
             const cam = cameraStreamRef.current;
             if (cam) {
               localStreamRef.current = cam;
@@ -390,6 +391,7 @@ export function CallComponent({
       screenStream?.getTracks().forEach(t => t.stop());
       setScreenStream(null);
       setIsScreenSharing(false);
+      sendCallMessage('call.screen_share', { call_id: callIdRef.current, is_sharing: false });
 
       // Restore camera stream when stopping screen share (video calls only).
       if (callType === 'video') {
@@ -411,6 +413,7 @@ export function CallComponent({
         // Preview local screen share in the PiP.
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         localStreamRef.current = stream;
+        sendCallMessage('call.screen_share', { call_id: callIdRef.current, is_sharing: true });
 
         peersRef.current.forEach(peer => {
           const oldStream = cameraStreamRef.current;

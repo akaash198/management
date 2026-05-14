@@ -29,6 +29,9 @@ from .models import (
     AutomationRule,
     ClientPortalAccess,
     AttachmentVersion,
+    Epic,
+    Retrospective,
+    RetroItem,
 )
 from apps.users.serializers import UserSerializer
 from apps.teams.models import Team
@@ -169,7 +172,7 @@ class TaskListSerializer(serializers.ModelSerializer):
             "start_date",
             "assignee", "assignees", "labels", "subtasks_count", "attachments_count", "is_overdue", "order",
             "estimated_hours", "created_at", "updated_at", "issue_type", "sprint", "sprint_name",
-            "parent_task_id", "watchers_count"
+            "parent_task_id", "watchers_count", "epic", "epic_name", "resolution_at"
         )
 
     def get_is_overdue(self, obj):
@@ -258,7 +261,7 @@ class TaskWriteSerializer(serializers.ModelSerializer):
         fields = (
             "id", "title", "description", "project", "column", "assignee", "assignee_ids",
             "priority", "start_date", "due_date", "order", "estimated_hours", "sprint", "parent_task", "issue_type",
-            "label_ids"
+            "label_ids", "epic", "resolution_at"
         )
         read_only_fields = ("id",)
 
@@ -305,7 +308,7 @@ class TaskDetailSerializer(serializers.ModelSerializer):
             "project_name", "project_team_id", "column_name", "is_overdue",
             "issue_type", "sprint", "sprint_name", "parent_task", "parent_task_id", "child_tasks_count",
             "subtasks", "attachments", "activities", "timelogs",
-            "total_logged_minutes", "total_logged_display", "watchers_count"
+            "total_logged_minutes", "total_logged_display", "watchers_count", "epic", "resolution_at"
         )
 
     def get_total_logged_minutes(self, obj):
@@ -497,3 +500,51 @@ class ClientPortalAccessSerializer(serializers.ModelSerializer):
 
     def get_portal_url(self, obj):
         return f"/client-portal/{obj.token}/"
+
+
+class EpicSerializer(serializers.ModelSerializer):
+    owner_details = UserSerializer(source="owner", read_only=True)
+    tasks_count = serializers.IntegerField(source="tasks.count", read_only=True)
+    completed_tasks_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Epic
+        fields = (
+            "id", "project", "title", "description", "owner", "owner_details",
+            "start_date", "end_date", "phase", "priority",
+            "tasks_count", "completed_tasks_count", "created_by", "created_at", "updated_at"
+        )
+        read_only_fields = ("id", "created_by", "created_at")
+
+    def get_completed_tasks_count(self, obj):
+        return obj.tasks.filter(column__is_done_column=True).count()
+
+
+class RetroItemSerializer(serializers.ModelSerializer):
+    submitter_details = UserSerializer(source="submitter", read_only=True)
+    vote_count = serializers.IntegerField(source="votes.count", read_only=True)
+    has_voted = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RetroItem
+        fields = (
+            "id", "retrospective", "submitter", "submitter_details", "text",
+            "item_type", "vote_count", "has_voted", "is_repeating", "created_at"
+        )
+        read_only_fields = ("id", "submitter", "created_at")
+
+    def get_has_voted(self, obj):
+        user = self.context.get("request").user
+        if user and user.is_authenticated:
+            return obj.votes.filter(id=user.id).exists()
+        return False
+
+
+class RetrospectiveSerializer(serializers.ModelSerializer):
+    items = RetroItemSerializer(many=True, read_only=True)
+    sprint_name = serializers.CharField(source="sprint.name", read_only=True)
+
+    class Meta:
+        model = Retrospective
+        fields = ("id", "team", "sprint", "sprint_name", "title", "date", "items", "created_by", "created_at")
+        read_only_fields = ("id", "created_by", "created_at")

@@ -44,6 +44,8 @@ services:
       USE_UVICORN: ${USE_UVICORN:-0}
       UVICORN_WORKERS: ${UVICORN_WORKERS:-1}
       PORT: "8000"
+    volumes:
+      - flowteam_mediadata:/app/media
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,11 +82,13 @@ services:
       - "80:80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - flowteam_mediadata:/media:ro
       - caddy_data:/data
       - caddy_config:/config
 
 volumes:
   flowteam_pgdata:
   flowteam_redisdata:
+  flowteam_mediadata:
   caddy_data:
   caddy_config:

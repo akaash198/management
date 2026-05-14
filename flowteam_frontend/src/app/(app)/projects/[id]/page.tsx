@@ -12,6 +12,9 @@ import { useBoardStore } from "@/store/boardStore";
 import { useAuthStore } from "@/store/auth";
 import { useAIStore } from "@/store/ai";
 import { KanbanBoard } from "@/components/projects/KanbanBoard";
+import { ProjectListView } from "@/components/projects/ProjectListView";
+import { ProjectTabs, ProjectViewType } from "@/components/projects/ProjectTabs";
+import { EpicView } from "@/components/projects/EpicView";
 import { TaskDetailPanel } from "@/components/projects/TaskDetailPanel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,6 +36,7 @@ import {
   UserCircle2,
   AlertCircle,
   X,
+  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -46,12 +50,27 @@ export default function ProjectBoardPage() {
   const { user } = useAuthStore();
   const aiEnabled = useAIStore((state) => state.aiEnabled);
 
+  const [activeView, setActiveView] = useState<ProjectViewType>("board");
   const [search, setSearch] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<"all" | "urgent" | "high" | "normal" | "low">("all");
   const [dueFilter, setDueFilter] = useState<"all" | "overdue" | "today" | "this_week">("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isExporting, setIsExporting] = useState<false | "csv" | "xlsx" | "pdf">(false);
+
+  const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
+    try {
+      setIsExporting(format);
+      const res = await api.get(`/projects/${id}/export/?format=${format}`, { responseType: "blob" });
+      const extension = format === "xlsx" ? "xlsx" : format;
+      saveAs(res.data, `${(project?.name || "project").replace(/\s+/g, "_").toLowerCase()}_board_export.${extension}`);
+      toast.success(`Exported ${format.toUpperCase()}`);
+    } catch {
+      toast.error("Failed to export project");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const taskFilters = useMemo(() => {
     const assigneeId = assigneeFilter === "me" ? user?.id ?? "" : assigneeFilter;
@@ -60,8 +79,9 @@ export default function ProjectBoardPage() {
       ...(priorityFilter !== "all" ? { priority: priorityFilter } : {}),
       ...(dueFilter !== "all" ? { due: dueFilter } : {}),
       ...(assigneeId ? { assignee_id: assigneeId } : {}),
+      ...(activeView === "bugs" ? { issue_type: "bug" } : {}),
     };
-  }, [assigneeFilter, dueFilter, id, priorityFilter, user?.id]);
+  }, [activeView, assigneeFilter, dueFilter, id, priorityFilter, user?.id]);
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
   const { data: tasks, isLoading: tasksLoading, error: tasksError } = useTasks(taskFilters);
@@ -113,20 +133,6 @@ export default function ProjectBoardPage() {
     return "text-red-700 bg-red-50 border-red-200 dark:text-red-400 dark:bg-red-950/30 dark:border-red-800";
   }, [health?.health_score]);
 
-  const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
-    try {
-      setIsExporting(format);
-      const res = await api.get(`/projects/${id}/export/?format=${format}`, { responseType: "blob" });
-      const extension = format === "xlsx" ? "xlsx" : format;
-      saveAs(res.data, `${(project?.name || "project").replace(/\s+/g, "_").toLowerCase()}_board_export.${extension}`);
-      toast.success(`Exported ${format.toUpperCase()}`);
-    } catch {
-      toast.error("Failed to export project");
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   if (projectLoading || tasksLoading) {
     return (
       <div className="flex flex-col h-full bg-background">
@@ -172,8 +178,8 @@ export default function ProjectBoardPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-background">
-      <div className="border-b border-border bg-card shrink-0">
-        <div className="h-14 px-6 flex items-center justify-between gap-4">
+      <div className="bg-card shrink-0 shadow-sm z-20">
+        <div className="h-14 px-6 flex items-center justify-between gap-4 border-b border-border/50">
           <div className="flex items-center gap-3 min-w-0">
             <Button
               variant="ghost"
@@ -188,78 +194,38 @@ export default function ProjectBoardPage() {
             >
               <ArrowLeft size={18} />
             </Button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted shadow-inner">
               <span className="text-lg">{project.icon}</span>
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <h1 className="text-[15px] font-medium tracking-tight truncate">{project.name}</h1>
-                <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-medium uppercase border-border text-muted-foreground/70">
+                <h1 className="text-[15px] font-bold tracking-tight truncate">{project.name}</h1>
+                <Badge variant="outline" className="h-4 px-1.5 text-[10px] font-bold uppercase border-border text-muted-foreground/70 bg-muted/30">
                   {project.status || "active"}
                 </Badge>
                 {health && (
-                  <Badge variant="outline" className={cn("h-5 px-2 text-[10px] border", healthToneClass)}>
+                  <Badge variant="outline" className={cn("h-5 px-2 text-[10px] border shadow-sm", healthToneClass)}>
                     {health.health_label} ({health.health_score})
                   </Badge>
                 )}
               </div>
-              <p className="text-[11px] text-muted-foreground/60">
+              <p className="text-[11px] text-muted-foreground/60 font-medium">
                 {(project.columns?.length || 0)} columns • {filteredTasks.length} tasks • {boardCompletion}% complete
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
+            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px] font-semibold text-muted-foreground hover:text-primary transition-colors">
               <Link href={`/projects/${id}/reports`}>
                 <BarChart3 className="mr-1.5 h-3.5 w-3.5" />
                 Reports
               </Link>
             </Button>
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
-              <Link href={`/projects/${id}/docs`}>
-                <FileText className="mr-1.5 h-3.5 w-3.5" />
-                Docs
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
-              <Link href={`/projects/${id}/files`}>
-                <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
-                Files
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
-              <Link href={`/projects/${id}/timeline`}>
-                <GanttChartSquare className="mr-1.5 h-3.5 w-3.5" />
-                Timeline
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
-              <Link href={`/projects/${id}/billing`}>
-                <Receipt className="mr-1.5 h-3.5 w-3.5" />
-                Billing
-              </Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm" className="h-8 px-2 text-[12px]">
-              <Link href={`/projects/${id}/settings/permissions`}>
-                <Shield className="mr-1.5 h-3.5 w-3.5" />
-                Permissions
-              </Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-[12px]"
-              disabled={!!isExporting}
-              onClick={() => void handleExport("csv")}
-            >
-              <Download className="mr-1.5 h-3.5 w-3.5" />
-              Export
-            </Button>
             <Button
               size="sm"
               onClick={() => setIsTaskModalOpen(true)}
-              className="h-8 px-3 text-[13px] font-medium"
+              className="h-8 px-3 text-[13px] font-bold shadow-md bg-primary hover:bg-primary/90 transition-all active:scale-95"
             >
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               New task
@@ -267,60 +233,64 @@ export default function ProjectBoardPage() {
           </div>
         </div>
 
-        <div className="px-6 pb-3 flex flex-wrap items-center gap-2">
+        <ProjectTabs activeView={activeView} onViewChange={setActiveView} />
+
+        <div className="px-6 py-3 flex flex-wrap items-center gap-3 bg-muted/5 border-b border-border/30">
           <div className="relative min-w-[240px] flex-1 max-w-sm">
             <Input
               placeholder="Search tasks..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="h-8 pl-8 text-[13px]"
+              className="h-8 pl-8 text-[13px] border-border/50 bg-background/50 focus:bg-background transition-all"
             />
-            <Filter className="absolute left-2.5 top-2 h-3.5 w-3.5 text-muted-foreground/50" />
+            <Filter className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground/50" />
           </div>
 
-          <select
-            value={priorityFilter}
-            onChange={(e) => setPriorityFilter(e.target.value as typeof priorityFilter)}
-            className="h-8 rounded-md border border-border bg-background px-2.5 text-[12px]"
-            aria-label="Priority filter"
-          >
-            <option value="all">All priorities</option>
-            <option value="urgent">Urgent</option>
-            <option value="high">High</option>
-            <option value="normal">Normal</option>
-            <option value="low">Low</option>
-          </select>
-          <select
-            value={dueFilter}
-            onChange={(e) => setDueFilter(e.target.value as typeof dueFilter)}
-            className="h-8 rounded-md border border-border bg-background px-2.5 text-[12px]"
-            aria-label="Due date filter"
-          >
-            <option value="all">Any due date</option>
-            <option value="overdue">Overdue</option>
-            <option value="today">Due today</option>
-            <option value="this_week">Due this week</option>
-          </select>
-          <select
-            value={assigneeFilter}
-            onChange={(e) => setAssigneeFilter(e.target.value)}
-            className="h-8 rounded-md border border-border bg-background px-2.5 text-[12px] max-w-[220px]"
-            aria-label="Assignee filter"
-          >
-            <option value="">All assignees</option>
-            <option value="me">Assigned to me</option>
-            {(teamMembers ?? []).map((member) => (
-              <option key={member.user.id} value={member.user.id}>
-                {member.user.full_name}
-              </option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <select
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value as typeof priorityFilter)}
+              className="h-8 rounded-md border border-border/50 bg-background px-2.5 text-[12px] font-medium text-muted-foreground hover:border-primary/30 transition-all outline-none"
+              aria-label="Priority filter"
+            >
+              <option value="all">All priorities</option>
+              <option value="urgent">Urgent</option>
+              <option value="high">High</option>
+              <option value="normal">Normal</option>
+              <option value="low">Low</option>
+            </select>
+            <select
+              value={dueFilter}
+              onChange={(e) => setDueFilter(e.target.value as typeof dueFilter)}
+              className="h-8 rounded-md border border-border/50 bg-background px-2.5 text-[12px] font-medium text-muted-foreground hover:border-primary/30 transition-all outline-none"
+              aria-label="Due date filter"
+            >
+              <option value="all">Any due date</option>
+              <option value="overdue">Overdue</option>
+              <option value="today">Due today</option>
+              <option value="this_week">Due this week</option>
+            </select>
+            <select
+              value={assigneeFilter}
+              onChange={(e) => setAssigneeFilter(e.target.value)}
+              className="h-8 rounded-md border border-border/50 bg-background px-2.5 text-[12px] font-medium text-muted-foreground hover:border-primary/30 transition-all outline-none max-w-[220px]"
+              aria-label="Assignee filter"
+            >
+              <option value="">All assignees</option>
+              <option value="me">Assigned to me</option>
+              {(teamMembers ?? []).map((member) => (
+                <option key={member.user.id} value={member.user.id}>
+                  {member.user.full_name}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {activeFiltersCount > 0 && (
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 px-2 text-[12px] text-muted-foreground"
+              className="h-8 px-2 text-[12px] font-semibold text-primary hover:bg-primary/5 transition-colors"
               onClick={() => {
                 setPriorityFilter("all");
                 setDueFilter("all");
@@ -331,28 +301,48 @@ export default function ProjectBoardPage() {
               Clear filters ({activeFiltersCount})
             </Button>
           )}
-
-          <div className="ml-auto flex items-center gap-2 text-[11px] text-muted-foreground">
-            <span className="inline-flex items-center gap-1">
-              <CalendarDays className="h-3.5 w-3.5" />
-              {dueFilter === "all" ? "All dates" : dueFilter.replace("_", " ")}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <UserCircle2 className="h-3.5 w-3.5" />
-              {assigneeFilter ? "Filtered assignee" : "All owners"}
-            </span>
-            {dueFilter === "overdue" && (
-              <span className="inline-flex items-center gap-1 text-amber-700">
-                <AlertCircle className="h-3.5 w-3.5" />
-                Overdue focus
-              </span>
-            )}
-          </div>
         </div>
       </div>
 
-      <div className="flex-1 overflow-x-auto bg-muted/20 p-6 custom-scrollbar">
-        <KanbanBoard projectId={id} searchTerm={search} />
+      <div className="flex-1 overflow-auto bg-[#fafbfc] dark:bg-[#0d1117] custom-scrollbar">
+        {activeView === "board" && (
+          <div className="p-6 h-full">
+            <KanbanBoard projectId={id} searchTerm={search} />
+          </div>
+        )}
+        {(activeView === "list" || activeView === "bugs") && (
+          <div className="p-8 max-w-[1600px] mx-auto">
+            <ProjectListView 
+              tasks={filteredTasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))} 
+              groupBy={activeView === "bugs" ? "column" : "sprint"}
+              onTaskClick={(taskId) => router.push(`/projects/${id}?task=${taskId}`)}
+              onAddTask={() => setIsTaskModalOpen(true)}
+            />
+          </div>
+        )}
+        {activeView === "epics" && (
+          <EpicView projectId={id} />
+        )}
+        {activeView === "retrospectives" && (
+          <div className="p-20 flex flex-col items-center justify-center text-muted-foreground bg-background/50 m-12 rounded-3xl border border-dashed border-border shadow-inner">
+             <RotateCcw size={64} className="mb-6 opacity-20" />
+             <h2 className="text-xl font-bold text-foreground mb-2">Sprints Retrospectives</h2>
+             <p className="text-center max-w-md opacity-60">Collect feedback after each sprint. This feature is currently being optimized for your team.</p>
+             <Button className="mt-8 gap-2 font-bold px-8 h-12 shadow-xl shadow-primary/20">
+               <Plus size={18} /> Start Retrospective
+             </Button>
+          </div>
+        )}
+        {activeView === "timeline" && (
+          <div className="p-20 flex flex-col items-center justify-center text-muted-foreground bg-background/50 m-12 rounded-3xl border border-dashed border-border shadow-inner">
+             <GanttChartSquare size={64} className="mb-6 opacity-20" />
+             <h2 className="text-xl font-bold text-foreground mb-2">Project Timeline</h2>
+             <p className="text-center max-w-md opacity-60">Visualize your project roadmap and dependencies in a Gantt-style timeline.</p>
+             <Button variant="outline" className="mt-8 font-bold border-primary text-primary hover:bg-primary/5">
+               Configure Timeline
+             </Button>
+          </div>
+        )}
       </div>
 
       {taskId && <TaskDetailPanel key={taskId} taskId={taskId} projectId={id} columns={project.columns || []} />}

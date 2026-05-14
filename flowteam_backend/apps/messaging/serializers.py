@@ -112,6 +112,8 @@ class ChannelSerializer(serializers.ModelSerializer):
             "member_count",
             "created_at",
             "created_by",
+            "dm_other_user_id",
+            "dm_other_avatar",
         ]
 
     def validate(self, attrs):
@@ -205,6 +207,10 @@ class ChannelSerializer(serializers.ModelSerializer):
         if other:
             rep["display_name"] = other.full_name
             rep["dm_other_user_id"] = str(other.id)
+            avatar_url = other.avatar.url if other.avatar else None
+            if avatar_url and request:
+                avatar_url = request.build_absolute_uri(avatar_url)
+            rep["dm_other_avatar"] = avatar_url
         return rep
 
 class CommentSerializer(serializers.ModelSerializer):

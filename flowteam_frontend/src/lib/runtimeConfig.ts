@@ -42,7 +42,7 @@ export function getWsBaseUrl(): string {
     if (
       envValue &&
       (envValue.startsWith("ws://") || envValue.startsWith("wss://")) &&
-      !isLocalhostUrl(envValue)
+      (!isLocalhostUrl(envValue) || isLocalhostUrl(window.location.origin))
     ) {
       return envValue;
     }
@@ -56,7 +56,9 @@ export function getWsBaseUrl(): string {
         if (apiUrl.hostname === window.location.hostname || isLocalhostUrl(apiUrl.href)) {
           const proto = window.location.protocol === "https:" ? "wss" : "ws";
           // If we are on a real host (not localhost), don't force a port unless the API URL explicitly has one
-          const host = apiUrl.hostname === window.location.hostname ? window.location.host : apiUrl.host;
+          const host = (apiUrl.hostname === window.location.hostname && (apiUrl.port === window.location.port || (!apiUrl.port && !window.location.port)))
+            ? window.location.host
+            : apiUrl.host;
           return `${proto}://${host}`;
         }
       } catch (e) { /* ignore */ }

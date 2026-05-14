@@ -31,6 +31,14 @@ export interface Task {
   subtasks_count: number;
   attachments_count: number;
   estimated_hours: number | null;
+  epic?: string | null;
+  epic_details?: {
+    id: string;
+    title: string;
+    status: string;
+    color: string;
+  } | null;
+  resolution_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -92,6 +100,43 @@ export interface TaskFilters {
   due?: "overdue" | "today" | "this_week";
   search?: string;
   status?: "open" | "done";
+  epic_id?: string;
+}
+
+export interface Epic {
+  id: string;
+  project: string;
+  owner: SlimUser;
+  title: string;
+  description: string | null;
+  status: "backlog" | "discovery" | "wip" | "review" | "done";
+  color: string;
+  start_date: string | null;
+  end_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Retrospective {
+  id: string;
+  team: string;
+  sprint: string | null;
+  title: string;
+  date: string;
+  created_by: SlimUser;
+  items?: RetroItem[];
+  created_at: string;
+}
+
+export interface RetroItem {
+  id: string;
+  retrospective: string;
+  item_type: "keep" | "improve" | "discussion";
+  text: string;
+  submitter: SlimUser;
+  vote_count: number;
+  has_voted: boolean;
+  created_at: string;
 }
 
 export interface TaskMutationInput {

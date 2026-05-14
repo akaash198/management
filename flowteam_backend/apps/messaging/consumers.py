@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
 from django.core.cache import cache
+from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models
 from django.utils.dateparse import parse_datetime
 from django.contrib.auth import get_user_model
@@ -14,6 +15,8 @@ from .models import (
     MessageReaction,
     Notification,
     MessageEdit,
+    Call,
+    CallParticipant,
 )
 from .serializers import MessageSerializer, NotificationSerializer, CallSerializer, CallParticipantSerializer
 from .services import create_message_with_seq, get_latest_seq
@@ -51,9 +54,9 @@ class ChatConsumer(AsyncWebsocketConsumer):
             history, latest_seq = await self.get_history(self.channel_id)
         except Exception:
             history, latest_seq = [], 0
-        await self.send(text_data=json.dumps({"type": "history", "data": history}))
+        await self.send(text_data=json.dumps({"type": "history", "data": history}, cls=DjangoJSONEncoder))
         # Newer clients can use this cursor for resumable sync.
-        await self.send(text_data=json.dumps({"type": "history.cursor", "data": {"latest_seq": latest_seq}}))
+        await self.send(text_data=json.dumps({"type": "history.cursor", "data": {"latest_seq": latest_seq}}, cls=DjangoJSONEncoder))
         # Consider the channel read when the user opens/connects to it.
         await self.update_last_read(self.user, self.channel_id)
 
@@ -71,7 +74,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             data = json.loads(text_data)
         except Exception:
             await self.send(
-                text_data=json.dumps({"type": "error", "data": {"message": "Invalid JSON"}})
+                text_data=json.dumps({"type": "error", "data": {"message": "Invalid JSON"}}, cls=DjangoJSONEncoder)
             )
             return
 
@@ -85,7 +88,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         if not await self._allow_event(event_type):
             await self.send(
-                text_data=json.dumps({"type": "error", "data": {"message": "Rate limit exceeded"}})
+                text_data=json.dumps({"type": "error", "data": {"message": "Rate limit exceeded"}}, cls=DjangoJSONEncoder)
             )
             await self.close(code=4008)
             return
@@ -107,7 +110,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             {
                                 "type": "message.ack",
                                 "data": {"client_id": client_id, "message_id": msg.get("id"), "seq": msg.get("seq")},
-                            }
+                            },
+                            cls=DjangoJSONEncoder
                         )
                     )
             
@@ -209,6 +213,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 "call_id": payload.get("call_id")
             })
 
+        elif event_type == "call.screen_share":
+            await self.broadcast("call.screen_share", {
+                "call_id": payload.get("call_id"),
+                "user_id": str(self.user.id),
+                "is_sharing": payload.get("is_sharing", False)
+            })
+
         elif event_type == "history.sync":
             messages, latest_seq = await self.get_history_delta(
                 last_seq=payload.get("last_seq"),
@@ -218,7 +229,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             )
             await self.send(
                 text_data=json.dumps(
-                    {"type": "history.sync", "data": {"messages": messages, "latest_seq": latest_seq}}
+                    {"type": "history.sync", "data": {"messages": messages, "latest_seq": latest_seq}},
+                    cls=DjangoJSONEncoder
                 )
             )
             # Connecting/syncing implies the user is actively viewing the channel.
@@ -241,7 +253,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             "type": event["message_type"],
             "data": event["data"]
-        }))
+        }, cls=DjangoJSONEncoder))
 
     @database_sync_to_async
     def is_member(self, user, channel_id):
@@ -468,7 +480,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def start_call(self, call_type):
-        from .models import Call, CallParticipant
         channel = Channel.objects.get(id=self.channel_id)
         call = Call.objects.create(channel=channel, started_by=self.user, call_type=call_type)
         CallParticipant.objects.create(call=call, user=self.user)
@@ -476,7 +487,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def join_call(self, call_id):
-        from .models import CallParticipant
         try:
             if call_id:
                 call = Call.objects.get(id=call_id, channel_id=self.channel_id, is_active=True)
@@ -497,7 +507,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def leave_call(self, call_id):
-        from .models import CallParticipant
         try:
             participant = CallParticipant.objects.get(call_id=call_id, user=self.user, is_active=True)
             participant.is_active = False
@@ -517,7 +526,6 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def end_call(self, call_id):
-        from .models import Call
         try:
             # Race conditions can occur where the caller hangs up before the
             # `call.start` was processed and the `started_by` field isn't set
@@ -570,7 +578,8 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "channel.unread",
                     "data": event.get("data", {}),
-                }
+                },
+                cls=DjangoJSONEncoder
             )
         )
 
@@ -580,7 +589,8 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "call.started",
                     "data": event.get("data", {}),
-                }
+                },
+                cls=DjangoJSONEncoder
             )
         )
 
@@ -590,7 +600,8 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "call.ended",
                     "data": event.get("data", {}),
-                }
+                },
+                cls=DjangoJSONEncoder
             )
         )
 
@@ -600,7 +611,8 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
                 {
                     "type": "call.missed",
                     "data": event.get("data", {}),
-                }
+                },
+                cls=DjangoJSONEncoder
             )
         )
 
@@ -657,11 +669,11 @@ class TeamPresenceConsumer(AsyncWebsocketConsumer):
             pass
 
     async def presence_update(self, event):
-        await self.send(text_data=json.dumps({"type": "presence.update", "data": event.get("data", {})}))
+        await self.send(text_data=json.dumps({"type": "presence.update", "data": event.get("data", {})}, cls=DjangoJSONEncoder))
 
     async def send_snapshot(self):
         online_user_ids = await self.presence_snapshot(self.team_id)
-        await self.send(text_data=json.dumps({"type": "presence.snapshot", "data": {"online_user_ids": online_user_ids}}))
+        await self.send(text_data=json.dumps({"type": "presence.snapshot", "data": {"online_user_ids": online_user_ids}}, cls=DjangoJSONEncoder))
 
     @database_sync_to_async
     def can_join_team(self, user_id: str, team_id: str) -> bool:
@@ -733,13 +745,13 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({
                 "type": "notifications.unread_count",
                 "data": {"count": count}
-            }))
+            }, cls=DjangoJSONEncoder))
 
     async def notification_push(self, event):
         await self.send(text_data=json.dumps({
             "type": "notification.new",
             "data": event["data"]
-        }))
+        }, cls=DjangoJSONEncoder))
 
     @database_sync_to_async
     def mark_notifications_read(self, ids):

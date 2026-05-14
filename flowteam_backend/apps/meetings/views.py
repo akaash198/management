@@ -167,6 +167,34 @@ class MeetingDetailView(views.APIView):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
         return standardize_response(data=MeetingSerializer(meeting).data)
 
+    def patch(self, request, meeting_id):
+        meeting = get_object_or_404(Meeting.objects.select_related("team", "channel"), id=meeting_id)
+        if not ensure_team_membership(team=meeting.team, user=request.user):
+            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+
+        payload = MeetingPatchSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = payload.validated_data
+
+        if data and not _can_manage_meeting(meeting=meeting, user=request.user):
+            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+
+        # Title/metadata
+        for field in ["title", "description", "call_type", "starts_at", "duration_minutes", "status"]:
+            if field in data:
+                setattr(meeting, field, data[field])
+
+        meeting.save()
+
+        if "attendee_ids" in data:
+            attendee_ids = _valid_attendees(meeting.team, data.get("attendee_ids", []))
+            if str(request.user.id) not in attendee_ids:
+                attendee_ids.append(str(request.user.id))
+            meeting.attendees.set(attendee_ids)
+            ensure_channel_membership(channel=meeting.channel, user_ids=attendee_ids)
+
+        return standardize_response(data=MeetingSerializer(meeting).data)
+
 
 class MeetingRecordingListCreateView(views.APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -216,31 +244,3 @@ class MeetingRecordingDetailView(views.APIView):
         if not ensure_team_membership(team=rec.meeting.team, user=request.user):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
         return standardize_response(data=MeetingRecordingSerializer(rec, context={"request": request}).data)
-
-    def patch(self, request, meeting_id):
-        meeting = get_object_or_404(Meeting.objects.select_related("team", "channel"), id=meeting_id)
-        if not ensure_team_membership(team=meeting.team, user=request.user):
-            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
-
-        payload = MeetingPatchSerializer(data=request.data)
-        payload.is_valid(raise_exception=True)
-        data = payload.validated_data
-
-        if data and not _can_manage_meeting(meeting=meeting, user=request.user):
-            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
-
-        # Title/metadata
-        for field in ["title", "description", "call_type", "starts_at", "duration_minutes", "status"]:
-            if field in data:
-                setattr(meeting, field, data[field])
-
-        meeting.save()
-
-        if "attendee_ids" in data:
-            attendee_ids = _valid_attendees(meeting.team, data.get("attendee_ids", []))
-            if str(request.user.id) not in attendee_ids:
-                attendee_ids.append(str(request.user.id))
-            meeting.attendees.set(attendee_ids)
-            ensure_channel_membership(channel=meeting.channel, user_ids=attendee_ids)
-
-        return standardize_response(data=MeetingSerializer(meeting).data)

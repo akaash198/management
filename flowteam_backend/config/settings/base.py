@@ -245,6 +245,7 @@ CORS_ALLOW_ALL_ORIGINS = False
 # Security headers
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = "SAMEORIGIN"
 
 # Channels
 if DISABLE_REDIS:

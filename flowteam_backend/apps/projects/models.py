@@ -125,6 +125,7 @@ class Task(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reported_tasks"
     )
     sprint = models.ForeignKey("Sprint", on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
+    epic = models.ForeignKey("Epic", on_delete=models.SET_NULL, null=True, blank=True, related_name="tasks")
     parent_task = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="child_tasks"
     )
@@ -136,6 +137,7 @@ class Task(models.Model):
     labels = models.ManyToManyField(Label, blank=True, related_name="tasks")
     is_archived = models.BooleanField(default=False)
     estimated_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    resolution_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     search_vector = SearchVectorField(null=True)
@@ -150,6 +152,21 @@ class Task(models.Model):
 
     def __str__(self):
         return self.title
+
+    def save(self, *args, **kwargs):
+        if self.pk:
+            try:
+                old_instance = Task.objects.get(pk=self.pk)
+                if old_instance.column_id != self.column_id:
+                    if self.column and self.column.is_done_column:
+                        self.resolution_at = timezone.now()
+                    else:
+                        self.resolution_at = None
+            except Task.DoesNotExist:
+                pass
+        elif self.column and self.column.is_done_column:
+            self.resolution_at = timezone.now()
+        super().save(*args, **kwargs)
 
 class Sprint(models.Model):
     STATUS_PLANNED = "planned"
@@ -178,6 +195,89 @@ class Sprint(models.Model):
 
     def __str__(self):
         return f"{self.project.name} / {self.name}"
+
+
+class Epic(models.Model):
+    PHASE_BACKLOG = "backlog"
+    PHASE_DISCOVERY = "discovery"
+    PHASE_WIP = "wip"
+    PHASE_REVIEW = "review"
+    PHASE_DONE = "done"
+    PHASE_CHOICES = [
+        (PHASE_BACKLOG, "Backlog"),
+        (PHASE_DISCOVERY, "Product discovery"),
+        (PHASE_WIP, "Dev WIP"),
+        (PHASE_REVIEW, "Review"),
+        (PHASE_DONE, "Done"),
+    ]
+
+    PRIORITY_CRITICAL = "critical"
+    PRIORITY_MUST_HAVE = "must_have"
+    PRIORITY_NICE_TO_HAVE = "nice_to_have"
+    PRIORITY_BEST_EFFORT = "best_effort"
+    PRIORITY_CHOICES = [
+        (PRIORITY_CRITICAL, "Critical"),
+        (PRIORITY_MUST_HAVE, "Must Have"),
+        (PRIORITY_NICE_TO_HAVE, "Nice to Have"),
+        (PRIORITY_BEST_EFFORT, "Best Effort"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name="epics")
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="owned_epics"
+    )
+    start_date = models.DateField(null=True, blank=True)
+    end_date = models.DateField(null=True, blank=True)
+    phase = models.CharField(max_length=20, choices=PHASE_CHOICES, default=PHASE_BACKLOG)
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default=PRIORITY_MUST_HAVE)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="created_epics")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.title
+
+
+class Retrospective(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="retrospectives")
+    sprint = models.OneToOneField(Sprint, on_delete=models.CASCADE, related_name="retrospective", null=True, blank=True)
+    title = models.CharField(max_length=255)
+    date = models.DateField(default=timezone.now)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Retro: {self.title}"
+
+
+class RetroItem(models.Model):
+    TYPE_KEEP = "keep"
+    TYPE_IMPROVE = "improve"
+    TYPE_DISCUSSION = "discussion"
+    TYPE_CHOICES = [
+        (TYPE_KEEP, "Keep"),
+        (TYPE_IMPROVE, "Improve"),
+        (TYPE_DISCUSSION, "Discussion"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    retrospective = models.ForeignKey(Retrospective, on_delete=models.CASCADE, related_name="items")
+    submitter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    text = models.TextField()
+    item_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_DISCUSSION)
+    votes = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="voted_retro_items", blank=True)
+    is_repeating = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["item_type", "-created_at"]
 
 class SprintCapacity(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

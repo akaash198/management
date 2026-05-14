@@ -43,6 +43,14 @@ export default function MessagingPage() {
     selectedChannelIdRef.current = selectedChannel?.id ?? "";
   }, [selectedChannel?.id]);
 
+  useEffect(() => {
+    // When workspace changes, clear current selection to avoid cross-workspace data leakage
+    // and show a clean loading state
+    setSelectedChannel(null);
+    setChannels([]);
+    setIsLoading(true);
+  }, [activeTeamId]);
+
   const fetchChannels = useCallback(async () => {
     if (!activeTeamId) return;
     try {
@@ -51,6 +59,7 @@ export default function MessagingPage() {
       if (res.data.success) {
         const data: Channel[] = res.data.data;
         setChannels(data);
+        
         if (viewId && ["unreads", "threads", "drafts"].includes(viewId)) {
           setActiveView(viewId);
           setSelectedChannel(null);
@@ -59,8 +68,18 @@ export default function MessagingPage() {
           if (active) {
             setSelectedChannel(active);
             setActiveView("all");
+          } else {
+            // Channel from URL not in this team, reset to default
+            if (data.length > 0) {
+              setSelectedChannel(data[0]);
+              setActiveView("all");
+              router.replace(`${pathname}?channel=${data[0].id}`);
+            } else {
+              setSelectedChannel(null);
+              router.replace(pathname);
+            }
           }
-        } else if (data.length > 0 && !selectedChannelIdRef.current) {
+        } else if (data.length > 0) {
           setSelectedChannel(data[0]);
           setActiveView("all");
           router.replace(`${pathname}?channel=${data[0].id}`);
@@ -71,7 +90,7 @@ export default function MessagingPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeTeamId, channelId, pathname, router]);
+  }, [activeTeamId, channelId, pathname, router, viewId]);
 
   const refreshChannels = useCallback(async () => {
     if (!activeTeamId) return;

@@ -8,6 +8,7 @@ export interface Channel {
   last_message?: Message;
   /** For 1:1 private channels, backend may include the other user's id for presence indicators. */
   dm_other_user_id?: string | null;
+  dm_other_avatar?: string | null;
   is_muted?: boolean;
   mute_until?: string | null;
   notification_level?: "all" | "mentions" | "mute";

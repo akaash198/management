@@ -2062,14 +2062,6 @@ export function ChatArea({
       {/* ── Composer ── */}
       <div className="border-t border-border bg-card px-6 pb-5 pt-3 xl:pr-[348px]">
         <div className="mx-auto max-w-5xl space-y-2">
-          {/* Typing indicator */}
-          <div className="h-4 text-[11px] text-muted-foreground font-medium px-2 italic">
-            {Object.keys(typingUsers).length > 0 && (
-              <span>
-                {Object.values(typingUsers).map(u => u.name).join(", ")} {Object.keys(typingUsers).length === 1 ? "is" : "are"} typing…
-              </span>
-            )}
-          </div>
 
           <div
             className="relative rounded-xl border border-border bg-background p-2 transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15"

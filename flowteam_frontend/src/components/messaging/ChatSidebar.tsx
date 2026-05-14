@@ -4,7 +4,7 @@ import { Channel, SidebarViewType } from "@/types/messaging";
 import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Inbox, Lock, MessageSquare, MessagesSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive, ArrowDownUp, Compass } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, normalizeUrl } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useMemo, useRef, useState } from "react";
 import api from "@/lib/api";
@@ -865,10 +865,18 @@ function ChannelRow({
 }) {
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(channel)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(channel);
+        }
+      }}
       className={cn(
-        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
+        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 cursor-pointer outline-none",
         active 
           ? "bg-accent/15 text-accent font-bold" 
           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -966,7 +974,7 @@ function ChannelRow({
           </DropdownMenu>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -996,10 +1004,18 @@ function DmRow({
   const online = channel.dm_other_user_id ? !!onlineUserIds?.has(channel.dm_other_user_id) : false;
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
   return (
-    <button
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(channel)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(channel);
+        }
+      }}
       className={cn(
-        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200",
+        "group w-full flex items-center gap-3 px-3 py-2.5 text-[13px] rounded-xl transition-all duration-200 cursor-pointer outline-none",
         active 
           ? "bg-accent/15 text-accent font-bold" 
           : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -1009,7 +1025,7 @@ function DmRow({
       {/* Avatar with presence */}
       <div className="relative shrink-0 mt-0.5">
         <Avatar className="h-7 w-7 border border-border/50">
-          <AvatarImage src="" />
+          <AvatarImage src={normalizeUrl(channel.dm_other_avatar) || ""} />
           <AvatarFallback className="text-[10px] bg-accent/10 text-accent font-bold">
             {(channel.display_name?.[0] ?? "?").toUpperCase()}
           </AvatarFallback>
@@ -1094,7 +1110,7 @@ function DmRow({
           </DropdownMenu>
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 

@@ -10,7 +10,7 @@ from .views import (
     AutomationRuleViewSet, ClientPortalAccessViewSet, CommentAttachmentUploadView,
     AttachmentVersionUploadView, activity_feed, advanced_reporting,
     calendar_export, client_portal_detail, task_pull_requests,
-    SubTaskViewSet
+    SubTaskViewSet, EpicViewSet, RetrospectiveViewSet, RetroItemViewSet
 )
 
 router = DefaultRouter()
@@ -28,6 +28,9 @@ router.register(r"issue-fields", IssueTypeFieldDefinitionViewSet, basename="issu
 router.register(r"custom-field-values", TaskCustomFieldValueViewSet, basename="task-custom-field-value")
 router.register(r"automation-rules", AutomationRuleViewSet, basename="automation-rule")
 router.register(r"client-access", ClientPortalAccessViewSet, basename="client-portal-access")
+router.register(r"epics", EpicViewSet, basename="epic")
+router.register(r"retrospectives", RetrospectiveViewSet, basename="retrospective")
+router.register(r"retro-items", RetroItemViewSet, basename="retro-item")
 router.register(r"", ProjectViewSet, basename="project")
 
 urlpatterns = [

@@ -35,6 +35,9 @@ from .models import (
     AutomationRule,
     ClientPortalAccess,
     AttachmentVersion,
+    Epic,
+    Retrospective,
+    RetroItem,
 )
 from .serializers import (
     ProjectListSerializer, ProjectDetailSerializer, ColumnSerializer, 
@@ -48,7 +51,8 @@ from .serializers import (
     TaskWatcherSerializer, TaskApprovalSerializer, ProjectDocumentSerializer,
     NotificationRuleSerializer, IssueTypeFieldDefinitionSerializer,
     TaskCustomFieldValueSerializer, AutomationRuleSerializer,
-    ClientPortalAccessSerializer, AttachmentVersionSerializer
+    ClientPortalAccessSerializer, AttachmentVersionSerializer,
+    EpicSerializer, RetrospectiveSerializer, RetroItemSerializer
 )
 from .utils import reorder_items
 from .permissions import check_project_permission, get_user_project_role
@@ -205,11 +209,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if self.action in ("create", "update", "partial_update"):
             return ProjectCreateUpdateSerializer
         return ProjectDetailSerializer
-        if self.action in {"create", "update", "partial_update"}:
-            from .serializers import ProjectCreateUpdateSerializer
-
-            return ProjectCreateUpdateSerializer
-        return ProjectDetailSerializer
 
     def get_queryset(self):
         queryset = Project.objects.select_related("team", "created_by")
@@ -220,7 +219,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             if status_filter in {"active", "archived"}:
                 queryset = queryset.filter(status=status_filter)
         elif self.action in {"retrieve", "export", "update", "partial_update", "destroy", "restore", "reorder_columns"}:
-            # Keep archived projects addressable for detail and management workflows.
             queryset = queryset
         else:
             queryset = queryset.filter(status="active")
@@ -234,7 +232,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
                 member_count=Count("team__members", distinct=True)
             )
         elif self.action == "retrieve":
-            # For detail view, we MUST have columns and tasks to render the board
             queryset = queryset.prefetch_related("columns", "columns__tasks", "labels")
 
         if team_id:
@@ -243,7 +240,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return queryset
 
-        # Any team member can view their team's projects (implicit project role derives from TeamMember).
         filtered_queryset = queryset.filter(
             Q(team__members__user=self.request.user)
             | Q(roles__user=self.request.user)
@@ -259,14 +255,11 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             template = ProjectTemplate.objects.filter(pk=template_id, team=project.team).first()
             if template:
                 apply_template_to_project(project, template, self.request.user)
-        # Grant creator admin role? Actually signals handle permissions usually
         ProjectRole.objects.create(project=project, user=self.request.user, role="project_admin")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-
-        # Enforce: only team admins can create projects for a team.
         team = serializer.validated_data.get("team")
         if team is None:
             team = Team.objects.filter(members__user=request.user).first()
@@ -321,7 +314,6 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         import csv
         import io
         from datetime import date
-
         from django.utils.dateparse import parse_date
 
         content = upload.read()
@@ -494,11 +486,13 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         search = self.request.query_params.get("search")
         team_id = self.request.query_params.get("team_id")
         status_filter = self.request.query_params.get("status")
+        epic_id = self.request.query_params.get("epic_id")
 
         if column_id: queryset = queryset.filter(column_id=column_id)
         if assignee_id:
             queryset = queryset.filter(Q(assignee_id=assignee_id) | Q(assignees__id=assignee_id)).distinct()
         if sprint_id: queryset = queryset.filter(sprint_id=sprint_id)
+        if epic_id: queryset = queryset.filter(epic_id=epic_id)
         if parent_task_id: queryset = queryset.filter(parent_task_id=parent_task_id)
         if issue_type: queryset = queryset.filter(issue_type=issue_type)
         if priority: queryset = queryset.filter(priority=priority)
@@ -1581,3 +1575,120 @@ def client_portal_detail(request, token):
         "tasks": TaskListSerializer(tasks[:200], many=True).data,
     }
     return standardize_response(data=data)
+
+
+class EpicViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+    serializer_class = EpicSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        project_id = self.request.query_params.get("project_id")
+        team_id = self.request.query_params.get("team_id")
+        qs = Epic.objects.all().select_related("project", "owner")
+        if project_id:
+            qs = qs.filter(project_id=project_id)
+        if team_id:
+            qs = qs.filter(project__team_id=team_id)
+        return qs
+
+    def perform_create(self, serializer):
+        project = serializer.validated_data.get("project")
+        if not check_project_permission(self.request.user, project, "edit_project"):
+            raise permissions.PermissionDenied()
+        serializer.save(created_by=self.request.user)
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return standardize_response(data=serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return standardize_response(data=serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return standardize_response(data=serializer.data)
+
+class RetrospectiveViewSet(viewsets.ModelViewSet):
+    serializer_class = RetrospectiveSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        team_id = self.request.query_params.get("team_id")
+        qs = Retrospective.objects.all().select_related("team", "sprint").prefetch_related("items", "items__submitter", "items__votes")
+        if team_id:
+            qs = qs.filter(team_id=team_id)
+        return qs
+
+    def perform_create(self, serializer):
+        team_id = self.request.data.get("team")
+        team = get_object_or_404(Team, id=team_id)
+        if not IsTeamMember().has_object_permission(self.request, self, team):
+            raise permissions.PermissionDenied()
+        serializer.save(created_by=self.request.user)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return standardize_response(data=serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return standardize_response(data=serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
+class RetroItemViewSet(viewsets.ModelViewSet):
+    serializer_class = RetroItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        retro_id = self.request.query_params.get("retrospective_id")
+        qs = RetroItem.objects.all().select_related("submitter").prefetch_related("votes")
+        if retro_id:
+            qs = qs.filter(retrospective_id=retro_id)
+        return qs
+
+    def perform_create(self, serializer):
+        retro = serializer.validated_data.get("retrospective")
+        if not IsTeamMember().has_object_permission(self.request, self, retro.team):
+            raise permissions.PermissionDenied()
+        serializer.save(submitter=self.request.user)
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        return standardize_response(data=serializer.data)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return standardize_response(data=serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
+    @action(detail=True, methods=["post"])
+    def vote(self, request, pk=None):
+        item = self.get_object()
+        if item.votes.filter(id=request.user.id).exists():
+            item.votes.remove(request.user)
+        else:
+            item.votes.add(request.user)
+        return standardize_response(data={"votes": item.votes.count(), "has_voted": item.votes.filter(id=request.user.id).exists()})
