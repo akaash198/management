@@ -93,6 +93,8 @@ class ChannelSerializer(serializers.ModelSerializer):
     notification_keywords = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     created_by = SlimUserSerializer(read_only=True)
+    dm_other_user_id = serializers.SerializerMethodField()
+    dm_other_avatar = serializers.SerializerMethodField()
 
     class Meta:
         model = Channel
@@ -163,11 +165,6 @@ class ChannelSerializer(serializers.ModelSerializer):
         return getattr(obj, "_member_count", None) or obj.memberships.count()
 
     def get_notification_level(self, obj):
-        if membership.mute_until <= timezone.now():
-            return None
-        return membership.mute_until.isoformat()
-
-    def get_notification_level(self, obj):
         request = self.context.get("request")
         user = request.user if request else None
         if not user:
@@ -187,30 +184,40 @@ class ChannelSerializer(serializers.ModelSerializer):
             return []
         return membership.notification_keywords or []
 
-    def to_representation(self, instance):
-        rep = super().to_representation(instance)
-        # For 1:1 private channels, show the *other* member's name for the current user.
+    def _get_dm_other(self, obj):
+        """Return the other user in a 2-member private (DM) channel, or None."""
         request = self.context.get("request")
         user = request.user if request else None
-        if not user or not getattr(instance, "is_private", False):
-            return rep
-
+        if not user or not obj.is_private:
+            return None
         try:
-            memberships = list(getattr(instance, "memberships").all())
+            memberships = list(obj.memberships.all())
         except Exception:
-            memberships = list(ChannelMember.objects.filter(channel=instance).select_related("user"))
-
+            memberships = list(ChannelMember.objects.filter(channel=obj).select_related("user"))
         if len(memberships) != 2:
-            return rep
+            return None
+        return next((m.user for m in memberships if m.user_id != user.id), None)
 
-        other = next((m.user for m in memberships if m.user_id != user.id), None)
+    def get_dm_other_user_id(self, obj):
+        other = self._get_dm_other(obj)
+        return str(other.id) if other else None
+
+    def get_dm_other_avatar(self, obj):
+        other = self._get_dm_other(obj)
+        if not other:
+            return None
+        request = self.context.get("request")
+        avatar_url = other.avatar.url if other.avatar else None
+        if avatar_url and request:
+            avatar_url = request.build_absolute_uri(avatar_url)
+        return avatar_url
+
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        # For DM channels, override display_name with the other member's name.
+        other = self._get_dm_other(instance)
         if other:
             rep["display_name"] = other.full_name
-            rep["dm_other_user_id"] = str(other.id)
-            avatar_url = other.avatar.url if other.avatar else None
-            if avatar_url and request:
-                avatar_url = request.build_absolute_uri(avatar_url)
-            rep["dm_other_avatar"] = avatar_url
         return rep
 
 class CommentSerializer(serializers.ModelSerializer):

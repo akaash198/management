@@ -274,26 +274,26 @@ export function ChatSidebar({
       <div className="shrink-0 px-4 pt-5 pb-5 space-y-4 sidebar-header">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-white/30">Workspace Inbox</div>
-            <h2 className="mt-1 text-[18px] font-black tracking-tight text-white">Messages</h2>
+            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Workspace Inbox</div>
+            <h2 className="mt-1 text-[18px] font-black tracking-tight text-foreground">Messages</h2>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 text-white/50 transition-all"
+                className="h-8 w-8 rounded-xl bg-muted/50 hover:bg-muted border border-border/50 text-muted-foreground transition-all"
                 aria-label="New conversation"
               >
                 <Plus size={16} />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl">
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-border bg-popover/95 backdrop-blur-xl">
               <DropdownMenuItem onClick={() => setDmOpen(true)} className="rounded-xl py-2.5">
                 <MessageSquare size={16} className="mr-2 text-accent" />
                 New direct message
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="rounded-xl py-2.5"
                 onClick={() => {
@@ -311,7 +311,7 @@ export function ChatSidebar({
         <div className="flex items-center justify-between">
           <button
             onClick={() => setStatusOpen(true)}
-            className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-white/5 max-w-[180px] text-white/50 hover:text-white"
+            className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] font-medium transition-all hover:bg-muted/50 max-w-[180px] text-muted-foreground hover:text-foreground"
           >
             <span className="shrink-0">{customStatus?.emoji || "💬"}</span>
             <span className="truncate">{customStatus?.text || "Set status"}</span>
@@ -319,13 +319,13 @@ export function ChatSidebar({
         </div>
 
         <div className="relative group">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/20 group-focus-within:text-primary transition-colors" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
           <input
             ref={searchRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Jump to conversation… (Ctrl+K)"
-            className="h-10 w-full rounded-xl border border-white/5 bg-white/[0.03] pl-10 pr-3 text-[13px] text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
+            className="h-10 w-full rounded-xl border border-border/50 bg-muted/20 pl-10 pr-3 text-[13px] text-foreground placeholder:text-muted-foreground/40 outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all"
           />
         </div>
 
@@ -336,8 +336,8 @@ export function ChatSidebar({
                 className={cn(
                   "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
                   unreadOnly
-                    ? "bg-primary/30 text-white"
-                    : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
                 aria-pressed={unreadOnly}
               >
@@ -346,7 +346,7 @@ export function ChatSidebar({
                 {unreadTotal > 0 && (
                   <span className={cn(
                     "ml-0.5 rounded-full px-1.5 py-px text-[9px] font-bold",
-                    unreadOnly ? "bg-white/20 text-white" : "bg-primary text-primary-foreground"
+                    unreadOnly ? "bg-primary-foreground/20 text-primary-foreground" : "bg-primary text-primary-foreground shadow-sm"
                   )}>
                     {unreadTotal > 99 ? "99+" : unreadTotal}
                   </span>
@@ -358,8 +358,8 @@ export function ChatSidebar({
             className={cn(
               "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all",
               !showMuted
-                ? "bg-amber-500/20 text-amber-300"
-                : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60"
+                ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 shadow-sm"
+                : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
             aria-pressed={!showMuted}
             title={showMuted ? "Showing muted — click to hide" : "Hiding muted — click to show"}
@@ -372,13 +372,13 @@ export function ChatSidebar({
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-1 text-[11px] font-medium text-white/40 hover:bg-white/10 transition-all"
+                className="inline-flex items-center gap-1 rounded-md bg-muted/50 px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted transition-all"
                 title="Sort channels"
               >
                 <ArrowDownUp size={10} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-40 p-2 rounded-xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl">
+            <DropdownMenuContent align="end" className="w-40 p-2 rounded-xl border-border bg-popover/95 backdrop-blur-xl">
               <DropdownMenuItem onClick={() => setSortMode('recent')} className="rounded-lg">Most recent</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortMode('alpha')} className="rounded-lg">Alphabetical</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setSortMode('unread')} className="rounded-lg">Most unread</DropdownMenuItem>
@@ -900,12 +900,12 @@ function ChannelRow({
           </span>
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
-        {channel.last_message?.text && (
+        {(channel.last_message?.text || channel.last_message?.attachments?.length) && (
           <p className={cn(
             "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
             active ? "text-accent/60" : "text-muted-foreground/50"
           )}>
-            {channel.last_message.text}
+            {channel.last_message.text || `📎 ${channel.last_message.attachments?.[0]?.filename ?? "Attachment"}`}
           </p>
         )}
       </div>
@@ -938,35 +938,35 @@ function ChannelRow({
                 <MoreHorizontal size={14} className="text-muted-foreground/60" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-border bg-popover/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => onSelect(channel)} className="rounded-xl py-2.5">Open Channel</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)} className="rounded-xl py-2.5">
-                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-white/40")} />
+                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
                 {starred ? "Unstar" : "Star channel"}
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">
-                <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
+                <CheckCircle2 size={16} className="mr-2 text-green-500" /> Mark read
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
                 <BellRing size={16} className="mr-2 text-accent" /> Mark unread
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               {channel.is_muted ? (
                 <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
                   <Bell size={16} className="mr-2 text-accent" /> Unmute
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>
-                   <BellOff size={16} className="mr-2 text-white/40" /> Mute...
+                   <BellOff size={16} className="mr-2 text-muted-foreground/40" /> Mute...
                 </DropdownMenuItem>
               )}
               {onLeave && (
                 <>
-                  <DropdownMenuSeparator className="bg-white/5" />
-                  <DropdownMenuItem onClick={() => void onLeave(channel.id)} className="rounded-xl py-2.5 text-red-400 focus:text-red-400">
-                    <LogOut size={16} className="mr-2 text-red-400" /> Leave channel
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => void onLeave(channel.id)} className="rounded-xl py-2.5 text-red-500 focus:text-red-500">
+                    <LogOut size={16} className="mr-2 text-red-500" /> Leave channel
                   </DropdownMenuItem>
                 </>
               )}
@@ -1044,12 +1044,12 @@ function DmRow({
           </span>
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
-        {channel.last_message?.text && (
+        {(channel.last_message?.text || channel.last_message?.attachments?.length) && (
           <p className={cn(
             "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
             active ? "text-accent/60" : "text-muted-foreground/50"
           )}>
-            {channel.last_message.text}
+            {channel.last_message.text || `📎 ${channel.last_message.attachments?.[0]?.filename ?? "Attachment"}`}
           </p>
         )}
       </div>
@@ -1082,28 +1082,28 @@ function DmRow({
                 <MoreHorizontal size={14} />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-white/10 bg-[#0a0a10]/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuContent align="end" className="w-56 p-2 rounded-2xl border-border bg-popover/95 backdrop-blur-xl" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuItem onClick={() => onSelect(channel)} className="rounded-xl py-2.5">Open Chat</DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)} className="rounded-xl py-2.5">
-                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-white/40")} />
+                <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
                 {starred ? "Unstar" : "Star conversation"}
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">
-                <CheckCircle2 size={16} className="mr-2 text-green-400" /> Mark read
+                <CheckCircle2 size={16} className="mr-2 text-green-500" /> Mark read
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void onMarkUnread(channel)} className="rounded-xl py-2.5">
                 <BellRing size={16} className="mr-2 text-accent" /> Mark unread
               </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-white/5" />
+              <DropdownMenuSeparator />
               {channel.is_muted ? (
                 <DropdownMenuItem onClick={() => void onUnmute(channel.id)} className="rounded-xl py-2.5">
                   <Bell size={16} className="mr-2 text-accent" /> Unmute
                 </DropdownMenuItem>
               ) : (
                 <DropdownMenuItem className="rounded-xl py-2.5" onClick={(e) => e.stopPropagation()}>
-                   <BellOff size={16} className="mr-2 text-white/40" /> Mute...
+                   <BellOff size={16} className="mr-2 text-muted-foreground/40" /> Mute...
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>

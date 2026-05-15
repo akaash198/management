@@ -304,7 +304,7 @@ export default function ProjectBoardPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-[#fafbfc] dark:bg-[#0d1117] custom-scrollbar">
+      <div className="flex-1 overflow-auto bg-background custom-scrollbar">
         {activeView === "board" && (
           <div className="p-6 h-full">
             <KanbanBoard projectId={id} searchTerm={search} />

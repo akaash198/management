@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useDeleteColumn } from "@/hooks/useColumns";
 import { Textarea } from "@/components/ui/textarea";
@@ -55,14 +56,17 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
   };
 
   return (
-    <div className={`flex flex-col w-[280px] shrink-0 bg-muted/40 rounded-lg max-h-full border-[0.5px] transition-colors ${isOver ? "border-primary/40 bg-primary/5" : "border-border"}`}>
+    <div className={cn(
+        "flex flex-col w-[280px] shrink-0 bg-secondary/30 border border-border/60 rounded-xl max-h-full shadow-sm transition-all duration-200 group",
+        isOver && "border-primary/50 bg-primary/5 ring-1 ring-primary/20"
+      )}>
       {/* Column Header */}
       <div className="px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h3 className="text-[12px] font-medium uppercase tracking-widest text-muted-foreground/70">
+          <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             {column.name}
           </h3>
-          <span className="bg-background border-[0.5px] border-border rounded text-muted-foreground/60 text-[10px] font-medium px-1.5 py-0.5">
+          <span className="bg-background border border-border rounded text-muted-foreground/80 text-[10px] font-medium px-1.5 py-0.5">
             {tasks.length}
           </span>
         </div>

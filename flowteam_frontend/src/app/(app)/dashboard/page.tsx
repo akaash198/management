@@ -2,10 +2,11 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { useTeamPermissions } from "@/hooks/usePermissions";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import api from "@/lib/api";
 import { DashboardData } from "@/types/dashboard";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +79,7 @@ const PRIORITY_ORDER = ["urgent", "high", "normal", "low"] as PriorityKey[];
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { activeTeamId, fetchTeams, isLoading: isTeamsLoading } = useTeamStore();
   const { role, isCEO, isAdmin, isManager, isMember } = useTeamPermissions();
 
@@ -107,6 +109,31 @@ export default function DashboardPage() {
       return res.data.data;
     },
     enabled: !!activeTeamId,
+  });
+
+  // Realtime activity updates
+  const wsUrl = useMemo(() => {
+    if (typeof window === "undefined" || !activeTeamId) return "";
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = process.env.NEXT_PUBLIC_WS_URL || window.location.host;
+    return `${protocol}//${host}/ws/activity/${activeTeamId}/`;
+  }, [activeTeamId]);
+
+  useWebSocket(wsUrl, {
+    onMessage: (msg) => {
+      if (msg.type === "activity.new") {
+        const newActivity = msg.data;
+        queryClient.setQueryData<DashboardData>(["dashboard", activeTeamId], (old) => {
+          if (!old) return old;
+          // Prepend new activity and keep only recent items
+          return {
+            ...old,
+            activity: [newActivity, ...(old.activity || [])].slice(0, 50),
+          };
+        });
+      }
+    },
+    shouldReconnect: true,
   });
 
   if (isTeamsLoading || isLoading || !activeTeamId || !data) return <DashboardSkeleton />;

@@ -373,40 +373,40 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue={defaultTab} className="space-y-4">
-        <TabsList className="bg-card border border-border shadow-sm">
-          <TabsTrigger value="profile" className="gap-2">
+        <TabsList className="inline-flex h-10 items-center justify-center rounded-xl bg-muted/50 p-1 text-muted-foreground border border-border/50 shadow-sm">
+          <TabsTrigger value="profile" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <User className="h-4 w-4" />
             Profile
           </TabsTrigger>
-          <TabsTrigger value="team" className="gap-2">
+          <TabsTrigger value="team" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <UsersIcon className="h-4 w-4" />
             Team
           </TabsTrigger>
-          <TabsTrigger value="members" className="gap-2">
+          <TabsTrigger value="members" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <UsersIcon className="h-4 w-4" />
             Members
           </TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2">
+          <TabsTrigger value="notifications" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Bell className="h-4 w-4" />
             Notifications
           </TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-2">
+          <TabsTrigger value="integrations" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Link2 className="h-4 w-4" />
             Integrations
           </TabsTrigger>
-          <TabsTrigger value="ai" className="gap-2">
+          <TabsTrigger value="ai" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Sparkles className="h-4 w-4" />
             AI
           </TabsTrigger>
-          <TabsTrigger value="plan" className="gap-2">
+          <TabsTrigger value="plan" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Sparkles className="h-4 w-4" />
             Plan
           </TabsTrigger>
-          <TabsTrigger value="security" className="gap-2">
+          <TabsTrigger value="security" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Lock className="h-4 w-4" />
             Security
           </TabsTrigger>
-          <TabsTrigger value="rbac" className="gap-2">
+          <TabsTrigger value="rbac" className="gap-2 rounded-lg data-[state=active]:bg-card data-[state=active]:shadow-sm">
             <Shield className="h-4 w-4" />
             Roles &amp; Access
           </TabsTrigger>
@@ -627,7 +627,7 @@ export default function SettingsPage() {
                       (isCEO ? !isCurrentUser : canManageTeamSettings && !isCurrentUser && !isMemberCEO);
 
                     return (
-                      <TableRow key={member.id}>
+                      <TableRow key={member.id} className="hover:bg-muted/30 transition-colors duration-200">
                         <TableCell>
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8 border border-border">

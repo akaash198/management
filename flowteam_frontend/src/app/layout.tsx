@@ -35,9 +35,32 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${geistMono.variable} dark h-full`}
+      className={`${inter.variable} ${geistMono.variable} h-full`}
       suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var stored = localStorage.getItem('flowteam-theme');
+                  if (stored) {
+                    var parsed = JSON.parse(stored);
+                    var theme = parsed && parsed.state && parsed.state.theme;
+                    if (theme) {
+                      document.documentElement.classList.add(theme);
+                      return;
+                    }
+                  }
+                } catch (e) {}
+                // Default to dark if no theme is stored
+                document.documentElement.classList.add('dark');
+              })()
+            `,
+          }}
+        />
+      </head>
       <body className="h-full antialiased">
         <AuthCookieSync />
         {children}

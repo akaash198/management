@@ -73,6 +73,11 @@
   --slack-purple: 292 55% 26%;     /* #611f69 */
   --jira-blue:    221 100% 40%;    /* #0052CC */
   --teams-purple: 238 28% 52%;     /* #6264A7 */
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* ─────────────────────────────────────────────
@@ -80,8 +85,8 @@
    ───────────────────────────────────────────── */
 .light {
   /* ── Page surface ── */
-  --background:         210 25% 97%;        /* #F5F7FA off-white */
-  --foreground:         222 47% 11%;        /* #0F172A dark slate */
+  --background:         210 30% 98%;        /* #F8FAFC cleaner white-gray */
+  --foreground:         222 47% 11%;        /* #0F172A slate-900 */
 
   /* ── Card / panel surfaces ── */
   --card:               0 0% 100%;          /* #FFFFFF white */
@@ -90,24 +95,24 @@
   --popover:            0 0% 100%;
   --popover-foreground: 222 47% 11%;
 
-  /* ── Brand — Mint #7CFFCB ── */
-  --primary:            162 100% 40%;       /* darker mint for contrast */
+  /* ── Brand — Mint ── */
+  --primary:            162 100% 32%;       /* higher contrast mint */
   --primary-foreground: 0 0% 100%;
 
   /* ── Secondary ── */
-  --secondary:          210 20% 93%;         /* #EDF2F7 */
+  --secondary:          210 20% 96%;        /* #F1F5F9 */
   --secondary-foreground: 222 47% 11%;
 
   /* ── Muted ── */
-  --muted:              210 20% 93%;         /* #EDF2F7 */
+  --muted:              210 20% 96%;        /* #F1F5F9 */
   --muted-foreground:   215 16% 47%;        /* #64748B */
 
   /* ── Accent (Indigo) ── */
-  --accent:             238 84% 62%;         /* #6366F1 */
+  --accent:             238 84% 62%;        /* #6366F1 */
   --accent-foreground:  0 0% 100%;
 
   /* ── Semantic ── */
-  --destructive:        0 72% 58%;
+  --destructive:        0 84% 60%;
   --destructive-foreground: 0 0% 100%;
   --success:            160 84% 39%;
   --success-foreground: 0 0% 100%;
@@ -117,35 +122,65 @@
   --info-foreground:    0 0% 100%;
 
   /* ── Structural ── */
-  --border:             214 32% 91%;         /* #DDE2EB */
-  --border-strong:      214 28% 80%;
+  --border:             214 32% 91%;        /* #DDE2EB */
+  --border-strong:      214 28% 84%;
   --input:              214 32% 91%;
-  --ring:               162 100% 40%;        /* mint focus ring */
+  --ring:               162 100% 32%;       /* mint focus ring */
 
-  /* ── Sidebar ── */
-  --rail-bg:            222 47% 11%;         /* keep sidebar dark always */
-  --rail-fg:            215 20% 65%;
-  --rail-fg-active:    162 100% 74%;
-  --rail-active-bg:     215 28% 22%;
-  --rail-hover-bg:      215 25% 18%;
-  --rail-border:        0 0% 100% / 0.08;
-  --rail-logo-fg:       162 100% 74%;
+  /* ── Sidebar (Premium Light Variant) ── */
+  --rail-bg:            0 0% 100%;          /* Pure white or matches background */
+  --rail-fg:            215 25% 45%;        /* Soft slate icons */
+  --rail-fg-active:     162 100% 32%;       /* Darker mint for high contrast */
+  --rail-active-bg:     162 100% 32% / 0.08; /* Soft mint tint */
+  --rail-hover-bg:      210 40% 96%;        /* Subtle hover gray */
+  --rail-border:        214 32% 91%;        /* Matches topbar border */
+  --rail-logo-fg:       162 100% 32%;
 
   /* ── Topbar ── */
-  --topbar-bg:          0 0% 100%;
+  --topbar-bg:          0 0% 100% / 0.8;    /* Semi-transparent blur */
   --topbar-border:      214 32% 91%;
 
-  /* ── Brand Palette ── */
-  --slack-purple: 292 55% 26%;
-  --jira-blue:    221 100% 40%;
-  --teams-purple: 238 28% 52%;
-
   /* ── Shadows ── */
-  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.10);
-  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.12);
-  --shadow-glow: 0 0 24px rgba(124, 255, 203, 0.2);
-  --shadow-glow-strong: 0 4px 12px rgba(124, 255, 203, 0.2);
+  --shadow-sm:  0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md:  0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg:  0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* ─────────────────────────────────────────────
+   DARK MODE (explicit overrides)
+   ───────────────────────────────────────────── */
+.dark {
+  --background:         222 60% 10%;
+  --foreground:         0 0% 100%;
+  --card:               218 42% 18%;
+  --card-foreground:    0 0% 100%;
+  --popover:            218 42% 18%;
+  --popover-foreground: 0 0% 100%;
+  --primary:            162 100% 74%;
+  --primary-foreground: 222 60% 10%;
+  --secondary:          218 42% 18%;
+  --secondary-foreground: 0 0% 100%;
+  --muted:              218 42% 18%;
+  --muted-foreground:   215 16% 47%;
+  --accent:             238 84% 62%;
+  --accent-foreground:  0 0% 100%;
+  --destructive:        0 72% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --success:            160 84% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning:            38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  --info:               210 92% 50%;
+  --info-foreground:    0 0% 100%;
+  --border:             0 0% 100% / 0.08;
+  --border-strong:      0 0% 100% / 0.15;
+  --input:              0 0% 100% / 0.10;
+  --ring:               162 100% 74%;
+  --topbar-bg:          222 60% 10%;
+  --topbar-border:      0 0% 100% / 0.08;
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* ─────────────────────────────────────────────
@@ -244,6 +279,9 @@
 /* ─────────────────────────────────────────────
    TAILWIND THEME MAPPING
    ───────────────────────────────────────────── */
+@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant light (&:where(.light, .light *));
+
 @theme inline {
   --color-background:             hsl(var(--background));
   --color-foreground:             hsl(var(--foreground));
@@ -420,7 +458,7 @@ body {
 .rail-item.active {
   background: hsl(var(--rail-active-bg));
   color: hsl(var(--rail-fg-active));
-  box-shadow: 0 0 0 1px hsl(170 22% 50% / 0.35);
+  box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3);
 }
 
 /* Legacy nav-item aliases (keeps older components working) */
@@ -619,16 +657,16 @@ body {
    RAIL TOOLTIP (flyout label on hover)
    ═══════════════════════════════════════════════════════════════════ */
 .rail-radix-tooltip {
-  background: hsl(224 28% 14%);
-  color: hsl(220 14% 85%);
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
   font-size: 12px;
   font-weight: 500;
   padding: 5px 10px;
   border-radius: 7px;
   white-space: nowrap;
-  box-shadow: 0 4px 12px rgb(0 0 0 / 0.25);
+  box-shadow: var(--shadow-md);
   z-index: 9999;
-  border: 1px solid hsl(222 20% 20%);
+  border: 1px solid hsl(var(--border));
   animation-duration: 120ms;
   will-change: transform, opacity;
 }
@@ -910,4 +948,10 @@ body {
   .lp-live-dot {
     animation: none !important;
   }
+}
+
+/* -- Sub-components & Patterns -- */
+.bg-dot-pattern {
+  background-image: radial-gradient(hsl(var(--border-strong)) 1px, transparent 1px);
+  background-size: 32px 32px;
 }

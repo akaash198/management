@@ -19,15 +19,15 @@ const buttonVariants = cva(
         /* Filled — primary action */
         default: [
           "bg-primary text-primary-foreground border-primary",
-          "hover:bg-primary-mid active:brightness-95",
-          "shadow-xs shadow-primary/25",
+          "hover:brightness-110 active:brightness-95 hover:shadow-md hover:-translate-y-0.5",
+          "shadow-sm",
         ].join(" "),
 
         /* Outlined — secondary action */
         outline: [
           "bg-card text-foreground border-border",
-          "hover:bg-muted hover:border-border-strong active:bg-muted/70",
-          "shadow-2xs",
+          "hover:bg-muted/50 hover:border-border-strong active:bg-muted/70 hover:shadow-sm",
+          "shadow-none",
         ].join(" "),
 
         /* Ghost — tertiary / toolbar */

@@ -172,7 +172,7 @@ function RailItem({
           className="rail-radix-tooltip"
         >
           {label}
-          <TooltipPrimitive.Arrow className="fill-[hsl(224_28%_14%)]" width={8} height={5} />
+          <TooltipPrimitive.Arrow className="fill-popover" width={8} height={5} />
         </TooltipPrimitive.Content>
       </TooltipPrimitive.Portal>
     </TooltipPrimitive.Root>

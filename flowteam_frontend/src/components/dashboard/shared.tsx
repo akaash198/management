@@ -21,8 +21,8 @@ export function Section({
   title: string; icon?: ReactNode; action?: ReactNode; children: ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xs">
-      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow duration-200 hover:shadow-md">
+      <div className="flex items-center justify-between border-b border-border/60 px-5 py-3 bg-muted/5">
         <h2 className="flex items-center gap-2 text-[12.5px] font-semibold tracking-[-0.01em] text-foreground">
           {icon}{title}
         </h2>
@@ -83,8 +83,8 @@ export function StatCard({
 }) {
   const inner = (
     <div className={cn(
-      "group rounded-2xl border border-border bg-card p-5 transition-all duration-150",
-      "hover:shadow-sm hover:border-border-strong",
+      "group rounded-2xl border border-border bg-card p-5 transition-all duration-200",
+      "shadow-sm hover:shadow-md hover:border-border-strong hover:-translate-y-0.5",
       href && "cursor-pointer"
     )}>
       <div className="mb-4 flex items-start justify-between">
@@ -111,8 +111,8 @@ export function StatCard({
 
 export function ProjectCard({ project }: { project: ProjectProgress }) {
   return (
-    <Link href={`/projects/${project.id}`}>
-      <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-150 hover:shadow-sm hover:border-border-strong">
+    <Link href={`/projects/${project.id}`} className="block">
+      <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 shadow-sm hover:shadow-md hover:border-border-strong hover:-translate-y-0.5">
         {/* Color accent strip */}
         <div className="h-[3px] w-full" style={{ backgroundColor: project.color ?? "#7CFFCB" }} />
         <div className="p-4">
@@ -287,7 +287,7 @@ export function MiniMetric({
     danger:  "text-destructive",
   }[tone];
   return (
-    <div className="rounded-xl border border-border/70 bg-card px-3.5 py-3">
+    <div className="rounded-xl border border-border/70 bg-card px-3.5 py-3 shadow-sm hover:shadow-md transition-shadow duration-200">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">{label}</p>
       <p className={cn("mt-1.5 text-[22px] font-semibold tracking-[-0.03em] leading-none", valueColor)}>{value}</p>
     </div>

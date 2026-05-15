@@ -50,12 +50,6 @@ def custom_serve(request, path, document_root=None, **kwargs):
     
     return response
 
-if settings.DEBUG:
-    # We use re_path here instead of static() to use our custom_serve
-    urlpatterns += [
-        re_path(r'^%s(?P<path>.*)$' % settings.MEDIA_URL, custom_serve, {'document_root': settings.MEDIA_ROOT}),
-    ]
-else:
-    urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', custom_serve, {'document_root': settings.MEDIA_ROOT}),
-    ]
+urlpatterns += [
+    re_path(r'^media/(?P<path>.*)$', custom_serve, {'document_root': settings.MEDIA_ROOT}),
+]

@@ -103,10 +103,10 @@ export default function ProjectsPage() {
     <div className="p-6 max-w-[1400px] mx-auto space-y-6">
       {/* ── Header ── */}
       <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight">Projects</h1>
-          <p className="text-[13px] text-muted-foreground mt-0.5">
-            Manage your team&apos;s workflows and deliverables.
+        <div className="relative">
+          <h1 className="text-[24px] font-bold tracking-tight text-foreground">Projects</h1>
+          <p className="text-[14px] text-muted-foreground mt-0.5 max-w-lg">
+            Manage your team&apos;s workflows, monitor progress, and deliver high-quality results.
           </p>
         </div>
         {canCreate && (
@@ -265,13 +265,15 @@ function StatTile({
   label, value, sub, icon: Icon, danger,
 }: { label: string; value: string | number; sub: string; icon: LucideIcon; danger?: boolean }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
+    <div className="rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
-        <Icon size={14} className={cn("text-muted-foreground/50", danger && "text-destructive/60")} />
+        <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">{label}</p>
+        <div className={cn("p-1.5 rounded-lg bg-muted/50", danger && "bg-destructive/10")}>
+          <Icon size={14} className={cn("text-muted-foreground/70", danger && "text-destructive")} />
+        </div>
       </div>
-      <p className={cn("text-[24px] font-bold tracking-tight", danger && "text-destructive")}>{value}</p>
-      <p className="text-[11px] text-muted-foreground mt-1">{sub}</p>
+      <p className={cn("text-[26px] font-bold tracking-tight text-foreground", danger && "text-destructive")}>{value}</p>
+      <p className="text-[11px] text-muted-foreground/60 mt-1 font-medium">{sub}</p>
     </div>
   );
 }
@@ -305,7 +307,7 @@ function ProjectCard({
   };
 
   return (
-    <div className="group rounded-xl border border-border bg-card overflow-hidden hover:shadow-lg hover:-translate-y-0.5 transition-all">
+    <div className="group rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
       <Link href={`/projects/${project.id}`} className="block">
         <div className="h-[3px] w-full" style={{ backgroundColor: project.color || "#5B5EDE" }} />
         <div className="p-5">

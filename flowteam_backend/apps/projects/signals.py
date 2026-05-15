@@ -3,6 +3,9 @@ from django.dispatch import receiver
 from .models import Project, Column, Task, TaskActivity, ProjectRole
 from .permissions import sync_project_permissions
 from django.contrib.auth import get_user_model
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+import json
 
 User = get_user_model()
 
@@ -95,3 +98,28 @@ def log_task_assignees_changed(sender, instance: Task, action: str, pk_set, **kw
 @receiver(post_save, sender=ProjectRole)
 def on_project_role_save(sender, instance, **kwargs):
     sync_project_permissions(instance)
+
+
+@receiver(post_save, sender=TaskActivity)
+def broadcast_activity(sender, instance: TaskActivity, created, **kwargs):
+    if not created:
+        return
+
+    try:
+        from apps.dashboard.serializers import ActivityItemSerializer
+        serializer = ActivityItemSerializer(instance)
+        data = serializer.data
+        team_id = str(instance.task.project.team_id)
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                f"team_activity_{team_id}",
+                {
+                    "type": "activity.update", # This matches the method name in TeamActivityConsumer
+                    "data": data,
+                }
+            )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error broadcasting activity: {e}")

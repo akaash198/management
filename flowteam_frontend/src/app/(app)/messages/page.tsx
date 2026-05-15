@@ -27,7 +27,7 @@ export default function MessagingPage() {
   const channelId      = searchParams.get("channel");
   const viewId         = searchParams.get("view") as SidebarViewType | null;
   const focusMessageId = searchParams.get("message");
-  const { activeTeamId } = useTeamStore();
+  const { activeTeamId, fetchTeams } = useTeamStore();
   const selectedChannelIdRef = useRef<string>("");
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [incomingCall, setIncomingCall] = useState<{ 
@@ -43,23 +43,14 @@ export default function MessagingPage() {
     selectedChannelIdRef.current = selectedChannel?.id ?? "";
   }, [selectedChannel?.id]);
 
-  useEffect(() => {
-    // When workspace changes, clear current selection to avoid cross-workspace data leakage
-    // and show a clean loading state
-    setSelectedChannel(null);
-    setChannels([]);
-    setIsLoading(true);
-  }, [activeTeamId]);
-
-  const fetchChannels = useCallback(async () => {
-    if (!activeTeamId) return;
+  const fetchChannels = useCallback(async (teamId: string) => {
     try {
       setIsLoading(true);
-      const res = await api.get("/messaging/channels/", { params: { team_id: activeTeamId } });
+      const res = await api.get("/messaging/channels/", { params: { team_id: teamId } });
       if (res.data.success) {
         const data: Channel[] = res.data.data;
         setChannels(data);
-        
+
         if (viewId && ["unreads", "threads", "drafts"].includes(viewId)) {
           setActiveView(viewId);
           setSelectedChannel(null);
@@ -69,7 +60,6 @@ export default function MessagingPage() {
             setSelectedChannel(active);
             setActiveView("all");
           } else {
-            // Channel from URL not in this team, reset to default
             if (data.length > 0) {
               setSelectedChannel(data[0]);
               setActiveView("all");
@@ -90,7 +80,29 @@ export default function MessagingPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [activeTeamId, channelId, pathname, router, viewId]);
+  }, [channelId, pathname, router, viewId]);
+
+  const initializedRef = useRef(false);
+
+  // On mount: validate teams (corrects stale persisted activeTeamId), then load channels.
+  useEffect(() => {
+    fetchTeams().then(() => {
+      const teamId = useTeamStore.getState().activeTeamId;
+      initializedRef.current = true;
+      if (teamId) fetchChannels(teamId);
+      else setIsLoading(false);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // After init, re-load channels whenever the user switches teams.
+  useEffect(() => {
+    if (!initializedRef.current) return;
+    setSelectedChannel(null);
+    setChannels([]);
+    if (activeTeamId) fetchChannels(activeTeamId);
+    else setIsLoading(false);
+  }, [activeTeamId, fetchChannels]);
 
   const refreshChannels = useCallback(async () => {
     if (!activeTeamId) return;
@@ -107,7 +119,6 @@ export default function MessagingPage() {
     } catch { /* best-effort */ }
   }, [activeTeamId]);
 
-  useEffect(() => { fetchChannels(); }, [fetchChannels]);
 
   const markChannelRead = useCallback(async (id: string) => {
     try { await api.post(`/messaging/channels/${id}/mark-read/`); } catch { /* best-effort */ }

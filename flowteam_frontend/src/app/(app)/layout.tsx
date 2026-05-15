@@ -127,7 +127,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               TOPBAR — clean, editorial
               ══════════════════════════════════════════════ */}
           <header
-            className="h-[56px] shrink-0 z-20 flex items-center justify-between gap-3 px-5 border-b"
+            className="h-[56px] shrink-0 z-20 flex items-center justify-between gap-3 px-5 border-b backdrop-blur-md"
             style={{
               background: "hsl(var(--topbar-bg))",
               borderColor: "hsl(var(--topbar-border))",
@@ -246,7 +246,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           {/* ── Page content ── */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden page-enter">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden page-enter bg-dot-pattern">
             {children}
           </main>
         </div>

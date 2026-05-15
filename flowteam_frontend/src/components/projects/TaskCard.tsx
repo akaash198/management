@@ -135,10 +135,10 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
       onClick={handleClick}
     >
       <Card className={cn(
-        "border-0.5 border-border bg-card transition-all duration-150 hover:border-primary/30 rounded-md overflow-hidden",
+        "border-[0.5px] border-border bg-card shadow-sm transition-all duration-200 hover:shadow-md hover:border-primary/40 rounded-lg overflow-hidden",
         "border-l-[3px]", 
         config.border,
-        isInDoneColumn && "opacity-70"
+        isInDoneColumn && "opacity-60 grayscale-[0.2]"
       )}>
         <CardContent className="p-3 space-y-2.5">
           <div className="flex items-start justify-between gap-2">
