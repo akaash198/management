@@ -900,14 +900,30 @@ function ChannelRow({
           </span>
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
-        {(channel.last_message?.text || channel.last_message?.attachments?.length) && (
-          <p className={cn(
-            "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
-            active ? "text-accent/60" : "text-muted-foreground/50"
-          )}>
-            {channel.last_message.text || `📎 ${channel.last_message.attachments?.[0]?.filename ?? "Attachment"}`}
-          </p>
-        )}
+        {(() => {
+          const msg = channel.last_message;
+          if (!msg) return null;
+          let preview = msg.text || "";
+          if (!preview && msg.attachments?.length) preview = `📎 ${msg.attachments[0].filename ?? "Attachment"}`;
+          // Suppress system message raw text (call logs stored as emoji strings or numbers); show human label instead.
+          if (msg.is_system) {
+            const event = (msg.meta as Record<string, unknown> | null)?.event as string | undefined;
+            const callType = (msg.meta as Record<string, unknown> | null)?.call_type as string | undefined;
+            const kind = callType === "video" ? "Video" : "Audio";
+            if (event === "call_missed") preview = `📵 Missed ${kind.toLowerCase()} call`;
+            else if (event === "call_ended") preview = `📞 ${kind} call ended`;
+            else preview = preview || "System message";
+          }
+          if (!preview) return null;
+          return (
+            <p className={cn(
+              "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
+              active ? "text-accent/60" : "text-muted-foreground/50"
+            )}>
+              {preview}
+            </p>
+          );
+        })()}
       </div>
 
       {/* Right side: time + badge + menu */}
@@ -1044,14 +1060,30 @@ function DmRow({
           </span>
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
-        {(channel.last_message?.text || channel.last_message?.attachments?.length) && (
-          <p className={cn(
-            "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
-            active ? "text-accent/60" : "text-muted-foreground/50"
-          )}>
-            {channel.last_message.text || `📎 ${channel.last_message.attachments?.[0]?.filename ?? "Attachment"}`}
-          </p>
-        )}
+        {(() => {
+          const msg = channel.last_message;
+          if (!msg) return null;
+          let preview = msg.text || "";
+          if (!preview && msg.attachments?.length) preview = `📎 ${msg.attachments[0].filename ?? "Attachment"}`;
+          // Suppress system message raw text (call logs stored as emoji strings or numbers); show human label instead.
+          if (msg.is_system) {
+            const event = (msg.meta as Record<string, unknown> | null)?.event as string | undefined;
+            const callType = (msg.meta as Record<string, unknown> | null)?.call_type as string | undefined;
+            const kind = callType === "video" ? "Video" : "Audio";
+            if (event === "call_missed") preview = `📵 Missed ${kind.toLowerCase()} call`;
+            else if (event === "call_ended") preview = `📞 ${kind} call ended`;
+            else preview = preview || "System message";
+          }
+          if (!preview) return null;
+          return (
+            <p className={cn(
+              "mt-1 text-[11.5px] leading-[1.4] line-clamp-1 break-words transition-colors",
+              active ? "text-accent/60" : "text-muted-foreground/50"
+            )}>
+              {preview}
+            </p>
+          );
+        })()}
       </div>
 
       {/* Right side: time + badge + menu */}
