@@ -1157,38 +1157,82 @@ function DemoProjects() {
 
 function DemoMeetings() {
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
+    <div className="relative">
+      {/* Meeting-started status bar */}
+      <div className="flex items-center gap-3 mb-4 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.04]">
+        <div className="relative h-9 w-9 shrink-0 rounded-xl bg-[#6264A7]/30 flex items-center justify-center">
+          <Video size={16} className="text-[#6264A7]" />
+          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[#0b0b12]" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[12px] font-black text-white leading-none">Meeting started</div>
+          <div className="text-[10px] text-white/45 mt-0.5">Sprint review • 4 participants</div>
+        </div>
+        <div className="text-[10px] text-white/30 font-mono shrink-0">flowteam.app</div>
+      </div>
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-3">
         <div>
           <div className="text-[13px] font-black text-white">Sprint review</div>
           <div className="text-[11px] text-white/45">Recording + notes attach to work</div>
         </div>
-        <button className="px-3 py-2 rounded-lg bg-white text-slate-900 text-[12px] font-black flex items-center gap-2">
-          <Video size={14} />
+        <button className="px-4 py-2 rounded-full bg-white text-slate-900 text-[12px] font-black flex items-center gap-1.5 shadow-lg shadow-white/10 hover:bg-white/90 transition-colors">
+          <Video size={13} />
           Join
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        {["AP", "SC", "JW", "ER"].map((a, i) => (
-          <div key={a} className={cn("aspect-video rounded-xl border overflow-hidden", i === 0 ? "border-indigo-400/40 bg-indigo-500/10" : "border-white/10 bg-white/[0.02]")}>
-            <div className="h-full w-full flex items-center justify-center">
-              <div className="h-12 w-12 rounded-full bg-white/10 border border-white/10 flex items-center justify-center font-black text-white">{a}</div>
+
+      {/* 2×2 video grid */}
+      <div className="grid grid-cols-2 gap-2.5">
+        {[
+          { initials: "AP", active: true, color: "from-indigo-500 to-[#6264A7]" },
+          { initials: "SC", active: false, color: "from-slate-500 to-slate-600" },
+          { initials: "JW", active: false, color: "from-slate-500 to-slate-600" },
+          { initials: "ER", active: false, color: "from-slate-500 to-slate-600" },
+        ].map(({ initials, active, color }) => (
+          <div
+            key={initials}
+            className={cn(
+              "aspect-video rounded-xl border overflow-hidden flex items-center justify-center",
+              active
+                ? "border-[#6264A7]/60 bg-[#6264A7]/10 ring-1 ring-[#6264A7]/40"
+                : "border-white/8 bg-[#13131a]"
+            )}
+          >
+            <div className={cn("h-11 w-11 rounded-full bg-gradient-to-br flex items-center justify-center font-black text-white text-[13px] shadow-lg", color)}>
+              {initials}
             </div>
           </div>
         ))}
       </div>
-      <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
-        <div className="flex items-center justify-between">
+
+      {/* Agenda */}
+      <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
+        <div className="flex items-center justify-between mb-2">
           <div className="text-[12px] font-black text-white">Agenda</div>
-          <div className="text-[11px] text-white/45 font-semibold">3 items</div>
+          <div className="text-[10px] text-white/40 font-semibold">3 items</div>
         </div>
-        <div className="mt-2 space-y-2">
-          {["Sprint outcomes", "Blockers", "Next sprint scope"].map((x) => (
-            <div key={x} className="flex items-center gap-2 text-[12px] text-white/70">
-              <div className="h-4 w-4 rounded bg-white/10 border border-white/10" />
-              {x}
+        <div className="space-y-2">
+          {["Sprint outcomes", "Blockers", "Next sprint scope"].map((item, i) => (
+            <div key={item} className="flex items-center gap-2.5 text-[12px] text-white/65">
+              <div className={cn("h-4 w-4 rounded-[4px] border flex items-center justify-center shrink-0", i === 0 ? "border-[#6264A7]/60 bg-[#6264A7]/20" : "border-white/15 bg-white/[0.04]")}>
+                {i === 0 && <Check size={9} className="text-[#6264A7]" />}
+              </div>
+              <span className={i === 0 ? "line-through text-white/30" : ""}>{item}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* New message notification */}
+      <div className="mt-3 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#611f69]/20 border border-[#611f69]/30">
+        <div className="h-7 w-7 rounded-full bg-[#611f69]/50 flex items-center justify-center shrink-0">
+          <MessageSquare size={13} className="text-[#e879f9]" />
+        </div>
+        <div>
+          <div className="text-[11px] font-black text-white">New message</div>
+          <div className="text-[10px] text-white/45">@ava mentioned you in #engineering</div>
         </div>
       </div>
     </div>
@@ -1236,14 +1280,25 @@ function MiniBoard({ accent }: { accent: string }) {
 
 function MiniMeeting({ accent }: { accent: string }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      {["AP", "SC", "JW", "ER"].map((a, i) => (
-        <div key={a} className="aspect-square rounded-xl border border-slate-100 bg-white flex items-center justify-center">
-          <div className="h-9 w-9 rounded-full flex items-center justify-center font-black text-white" style={{ background: i === 0 ? accent : "#94a3b8" }}>
-            {a}
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { a: "AP", active: true },
+          { a: "SC", active: false },
+          { a: "JW", active: false },
+          { a: "ER", active: false },
+        ].map(({ a, active }) => (
+          <div key={a} className={cn("aspect-video rounded-xl border flex items-center justify-center", active ? "border-slate-300 bg-slate-100" : "border-slate-100 bg-white")}>
+            <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-white text-[11px] shadow" style={{ background: active ? accent : "#94a3b8" }}>
+              {a}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="rounded-lg border border-slate-100 bg-white px-3 py-2 flex items-center justify-between">
+        <span className="text-[11px] font-black text-slate-600">Agenda · 3 items</span>
+        <div className="h-4 w-4 rounded-[3px] border border-slate-200 bg-slate-50" />
+      </div>
     </div>
   );
 }
