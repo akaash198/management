@@ -174,7 +174,7 @@ export function ProjectTimelineInline({ projectId }: { projectId: string }) {
           ) : (
             items.map(({ task, start, due, leftPct, widthPct }) => {
               const barColor = PRIORITY_COLOR[task.priority ?? "normal"] ?? "bg-primary/70";
-              const isOverdue = due < new Date() && task.status !== "done";
+              const isOverdue = task.is_overdue;
               return (
                 <div
                   key={task.id}
