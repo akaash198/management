@@ -6,7 +6,6 @@ import { CalendarDays, ChevronLeft, ChevronRight, GitBranch } from "lucide-react
 import { useTasks } from "@/hooks/useTasks";
 import type { Task } from "@/types/task";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 function parseDate(value: string | null | undefined): Date | null {
@@ -175,7 +174,7 @@ export function ProjectTimelineInline({ projectId }: { projectId: string }) {
           ) : (
             items.map(({ task, start, due, leftPct, widthPct }) => {
               const barColor = PRIORITY_COLOR[task.priority ?? "normal"] ?? "bg-primary/70";
-              const isOverdue = due < new Date() && !task.is_done;
+              const isOverdue = due < new Date() && task.status !== "done";
               return (
                 <div
                   key={task.id}
