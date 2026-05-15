@@ -1,7 +1,7 @@
 # FlowTeam — Complete User Guide
 
-**Version:** 2.3  
-**Covers:** All features end-to-end including Company hierarchy, Company Admin dashboard, Super Admin Company Management, CEO/invite onboarding, email domain auto-join, AI features, Web Push Notifications, OAuth (Google Login + GitHub/GitLab/Bitbucket), Calendar external events, Rich Link Embeds, Project Timeline/Docs/Billing, and Meeting Recordings + AI transcripts
+**Version:** 4.0  
+**Covers:** Every page and component — Company hierarchy, Teams, Settings (9 tabs), Dashboard (role-specific), Portfolio, My Tasks, Projects (6 view types), Issue Navigator, Planning Hub, Operations Hub, Project Reports, Timeline, Files, Docs, Billing, Project Settings & Permissions, Messaging (full feature set), Calls, Presence, Status, Meetings, Calendar, Search, Notifications, 2FA, Push, Audit Log, Exports, Client Portal, Automation, AI Features, Super Admin.
 
 ---
 
@@ -11,1750 +11,1435 @@
 2. [Getting Started — Register & Sign In](#2-getting-started--register--sign-in)
 3. [Onboarding — Create Your Workspace](#3-onboarding--create-your-workspace)
 4. [Company Structure & Roles](#4-company-structure--roles)
-5. [Team Management (within a Team)](#5-team-management-within-a-team)
-6. [Company Admin Dashboard](#6-company-admin-dashboard)
-7. [Dashboard](#7-dashboard)
-8. [Projects](#8-projects)
-9. [Tasks — Full Feature Breakdown](#9-tasks--full-feature-breakdown)
-10. [Sprints & Capacity Planning](#10-sprints--capacity-planning)
-11. [Milestones](#11-milestones)
-12. [Messages — Real-Time Chat](#12-messages--real-time-chat)
-13. [Meetings](#13-meetings)
-14. [Calendar](#14-calendar)
-15. [Search](#15-search)
-16. [Notifications](#16-notifications)
-17. [Settings](#17-settings)
-18. [Two-Factor Authentication (2FA)](#18-two-factor-authentication-2fa)
-19. [Web Push Notifications](#19-web-push-notifications)
-20. [Audit Log](#20-audit-log)
-21. [Export](#21-export)
-22. [Client Portal](#22-client-portal)
-23. [Automation Rules](#23-automation-rules)
-24. [AI Features (AI Plan)](#24-ai-features-ai-plan)
-25. [Super Admin](#25-super-admin)
-26. [Plan Limits](#26-plan-limits)
-27. [Quick Reference — Field Limits](#27-quick-reference--field-limits)
-
-**New in Version 2.3:** Full Company hierarchy (CEO → Admin → Manager → Member → Viewer) · Company Admin dashboard · Company invite flow with role-scoped permissions · Email domain auto-join on registration · Super Admin Company Management panel (5-step onboarding wizard, status filter chips, company cards, detail drill-down) · Company Settings per company (AI, notifications, plan, member cap, audit retention)
+5. [Company Admin Dashboard](#5-company-admin-dashboard)
+6. [Team Management](#6-team-management)
+7. [Settings — All 9 Tabs](#7-settings--all-9-tabs)
+8. [Dashboard — Role-Specific Views](#8-dashboard--role-specific-views)
+9. [Portfolio](#9-portfolio)
+10. [My Tasks](#10-my-tasks)
+11. [Projects List](#11-projects-list)
+12. [Project Board — 6 View Types](#12-project-board--6-view-types)
+13. [Tasks — Full Feature Breakdown](#13-tasks--full-feature-breakdown)
+14. [Issue Navigator](#14-issue-navigator)
+15. [Planning Hub](#15-planning-hub)
+16. [Operations Hub — 8 Tabs](#16-operations-hub--8-tabs)
+17. [Project Reports & Insights](#17-project-reports--insights)
+18. [Project Timeline](#18-project-timeline)
+19. [Project Files](#19-project-files)
+20. [Project Docs](#20-project-docs)
+21. [Project Billing](#21-project-billing)
+22. [Project Settings & Permissions](#22-project-settings--permissions)
+23. [Messages — Real-Time Chat](#23-messages--real-time-chat)
+24. [Calls — Audio & Video](#24-calls--audio--video)
+25. [Presence & Custom Status](#25-presence--custom-status)
+26. [Meetings](#26-meetings)
+27. [Calendar](#27-calendar)
+28. [Search](#28-search)
+29. [Notifications](#29-notifications)
+30. [Dark / Light Theme](#30-dark--light-theme)
+31. [Two-Factor Authentication (2FA)](#31-two-factor-authentication-2fa)
+32. [Web Push Notifications](#32-web-push-notifications)
+33. [Audit Log](#33-audit-log)
+34. [Exports](#34-exports)
+35. [Client Portal](#35-client-portal)
+36. [Automation Rules](#36-automation-rules)
+37. [AI Features (AI Plan)](#37-ai-features-ai-plan)
+38. [Super Admin](#38-super-admin)
+39. [Plan Limits](#39-plan-limits)
+40. [Quick Reference — Field Limits](#40-quick-reference--field-limits)
+41. [Appendix A — Production Setup](#appendix-a--production-setup)
 
 ---
 
 ## 1. What is FlowTeam?
 
-FlowTeam is an all-in-one team workspace that combines:
+FlowTeam is an all-in-one team workspace combining:
 
-- **Company & team hierarchy** — multi-level roles (CEO → Admin → Manager → Member → Viewer), company-scoped invites, email domain auto-join
-- **Project management** — Kanban boards, sprints, milestones, task dependencies
-- **Real-time messaging** — channels, direct messages, threads, reactions
-- **Meetings & calls** — instant audio/video calls and scheduled meetings
-- **Calendar** — task due dates and meetings in one view
-- **Team security** — role-based access control, 2FA, full audit log
-- **AI assistant** — daily briefings, auto task descriptions, sprint planning, health scores, and more (AI plan)
-- **OAuth sign-in** — Continue with Google for one-click registration and login
-- **Browser push notifications** — real-time alerts even when FlowTeam is not the active tab
-- **GitHub / GitLab / Bitbucket integration** — link pull requests to tasks automatically
-
-Everything lives in one place.
-
-**Example company used in this guide:** *Nova Agency* — a 10-person design and development studio.
+- **Company & team hierarchy** — multi-level roles (CEO → Admin → Manager → Member → Viewer)
+- **Project management** — Kanban, table, epics, bugs, timeline, retrospectives, sprints, milestones
+- **Cross-project views** — Issue Navigator (Jira-style filtering), Planning Hub, Operations Hub, Portfolio
+- **Real-time messaging** — channels, DMs, threads, reactions, pinning, voice memos, slash commands, GIFs, polls, message scheduling
+- **Audio & video calls** — WebRTC peer-to-peer calls with screen sharing and recording
+- **Presence & custom status** — live indicators with emoji status, expiry timers, quick presets
+- **AI assistant** — daily briefing, focus recommendations, sprint planning, task generation, retrospectives, client reports (AI plan)
+- **Dark / light theme** — persisted per browser
+- **Notifications** — in-app, email, web push, per-project rules
+- **Enterprise security** — 2FA, RBAC, audit log, OAuth
 
 ---
 
 ## 2. Getting Started — Register & Sign In
 
-### 2.1 Register a New Account
+### 2.1 Sign Up
 
-Open `http://localhost:3000/register`
+1. Go to your FlowTeam URL and click **Sign up**
+2. Enter full name, email, password (min 8 characters)
+3. Verify email via the link sent to your inbox
+4. If your company already exists and your email domain matches the allowed domain, you are automatically added
 
-Fill in:
+### 2.2 Sign In Options
 
-| Field | Example | Rules |
-|-------|---------|-------|
-| Full name | `Sarah Chen` | Min 2 characters |
-| Email | `sarah@nova-agency.com` | Must be a valid email |
-| Password | `Launch2024!` | Min 8 characters |
-| Confirm password | `Launch2024!` | Must match password |
+- **Email + password** — standard form
+- **Google OAuth** — click "Continue with Google" (if enabled by your admin)
 
-Click **Create account**. You will be automatically signed in and redirected to onboarding.
+### 2.3 Forgot Password
 
-> **Email domain auto-join:** If a company has a verified email domain that matches your registration email (e.g., `@nova-agency.com`), you will automatically be added as a **Member** of that company. No invite needed.
+Click **Forgot password** → enter email → follow reset link in your inbox.
 
----
+### 2.4 Session Management
 
-### 2.2 Sign In
-
-Open `http://localhost:3000/login`
-
-**Option A — Email and password**
-
-Enter your email and password. If your account has 2FA enabled, you will be prompted for a 6-digit code from your authenticator app (or a backup code).
-
-**Option B — Continue with Google**
-
-Click the **Continue with Google** button. After approving access, FlowTeam creates or links your account automatically.
-
-- If no FlowTeam account exists for your Google email, one is created automatically with email pre-verified
-- If a password account already exists with the same email, your Google identity is linked to it
-
----
-
-### 2.3 Register with Google
-
-1. On the register or login page, click **Continue with Google**
-2. Approve Google consent once
-3. FlowTeam creates your account and takes you directly to onboarding
-
-No email verification step is needed.
-
----
-
-### 2.4 Password Reset
-
-1. On the login page click **Forgot password?**
-2. Enter your email address
-3. Check your inbox for a reset link
-4. Click the link and enter a new password (min 8 characters)
-
-> **Note:** If you signed up with Google and have no password set, use **Continue with Google** to sign in.
+JWT access tokens refresh automatically and silently. Only a confirmed 401 authentication failure will log you out — network errors or server errors will not.
 
 ---
 
 ## 3. Onboarding — Create Your Workspace
 
-After registering, you land on `/onboarding`. This runs once per account.
+After first login:
 
-### Step 1 — Create Your Team
-
-Enter a **Team Name**. A URL-friendly slug is generated automatically.
-
-```
-Team name: Nova Agency
-Slug:      nova-agency   ← auto-generated
-```
-
-Click **Create team** to continue.
-
-### Step 2 — Invite Teammates
-
-You can enter up to **5 email addresses** to invite immediately. Each gets a role of **Member** by default.
-
-Click **Send invites** — or **Skip** to invite people later from Settings.
-
-> **What gets created:** Your team workspace, your CEO account (you are the owner), and invite records for each email you entered.
+1. Create or join a company (name, plan)
+2. Set your company role
+3. Create your first team (e.g. "Engineering")
+4. Invite teammates by email or shareable invite link
+5. Create your first project (blank or from template)
 
 ---
 
 ## 4. Company Structure & Roles
 
-FlowTeam uses a **Company** layer on top of Teams. A Company groups multiple Teams under one organisational structure with a defined leadership hierarchy.
+### 4.1 Hierarchy
 
-> Companies are created and managed by **Super Admins** (platform operators) via the Super Admin dashboard. Once a company is active, its CEO and Admins manage it day-to-day from the Company Admin dashboard.
-
----
-
-### 4.1 Company Roles
-
-Every member of a company has one of five roles:
-
-| Role | Who it's for |
-|------|-------------|
-| **CEO** | The company owner. Full control over the company, all teams, and all members. |
-| **Admin** | Operations lead. Manages members, roles, invites, and company settings. |
-| **Manager** | Team lead. Can invite Members and Viewers to teams. Sees own sent invites. |
-| **Member** | Day-to-day contributor. Can view members and teams. |
-| **Viewer** | External observer or client. Read-only access. |
-
----
-
-### 4.2 What Each Role Can Do
-
-| Action | CEO | Admin | Manager | Member | Viewer |
-|--------|-----|-------|---------|--------|--------|
-| Manage company settings | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Invite members to company | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Invite roles (max level) | CEO | Admin | Member | — | — |
-| Change member roles | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Remove members | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Create teams | ✅ | ✅ | ❌ | ❌ | ❌ |
-| Invite to a specific team | ✅ | ✅ | ✅ | ❌ | ❌ |
-| View members list | ✅ | ✅ | ✅ | ✅ | ✅ |
-| View pending invites | ✅ all | ✅ all | ✅ own only | ❌ | ❌ |
-| Revoke invites | ✅ any | ✅ any | ✅ own only | ❌ | ❌ |
-| View audit log | ✅ | ✅ | ❌ | ❌ | ❌ |
-
-**Safety rules that cannot be overridden:**
-- The last CEO in a company cannot be removed or demoted
-- Only a CEO can assign or change the CEO role
-- Admins cannot change or remove the CEO's role
-- Managers can only invite Members and Viewers (they cannot invite peers or above)
-
-**Example:**
-> Sarah is the CEO of Nova Agency. She promotes Alex to Admin so Alex can manage member onboarding. Priya is a Manager who runs the development project. The rest of the team are Members. A client, Jordan, is added as a Viewer.
-
----
-
-### 4.3 Role Hierarchy for Invites
-
-When sending a company invite, you can only assign roles at or below your own level:
-
-| Your role | Roles you can invite |
-|-----------|---------------------|
-| CEO | CEO, Admin, Manager, Member, Viewer |
-| Admin | Admin, Manager, Member, Viewer |
-| Manager | Member, Viewer |
-| Member | (cannot invite) |
-| Viewer | (cannot invite) |
-
----
-
-### 4.4 Project Roles (within a Project)
-
-Within each project, members can have a more granular role that overrides their company/team role for that project:
-
-| Project Role | View | Edit Tasks | Delete Tasks | Manage Project | Export | Comment |
-|-------------|------|-----------|-------------|---------------|--------|---------|
-| **Project Admin** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Editor** | ✅ | ✅ | ❌ | ❌ | ✅ | ✅ |
-| **Commenter** | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Viewer** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-
-Navigate to `/projects/{id}/settings/permissions` to configure project roles.
-
----
-
-## 5. Team Management (within a Team)
-
-> This section covers the **Team** layer — individual workspaces created by company Admins. For company-level member management, see [Section 6 — Company Admin Dashboard](#6-company-admin-dashboard).
-
-### 5.1 Invite a Member to a Team
-
-1. Go to **Settings → Members**
-2. Click **Invite**
-3. Enter the email address and select a role:
-   - Admin / Manager / Member / Viewer
-4. Click **Send invite**
-
-The invitee receives a link to `/accept-invite/{token}`. If they don't have an account yet, they register first, then click the link to join.
-
-**Example:**
 ```
-Email:  jordan@client.com
-Role:   Viewer
-→ Jordan joins Nova Agency's team with read-only access
+Company
+ └── Teams (Engineering, Design, Marketing…)
+      └── Projects
+           └── Tasks / Issues
 ```
 
----
+### 4.2 Company / Team Roles
 
-### 5.2 Change a Member's Role
+| Role    | Manage team | Invite | Change roles | Delete team | Audit log | Create projects |
+|---------|-------------|--------|--------------|-------------|-----------|-----------------|
+| CEO     | ✓           | ✓      | ✓            | ✓           | ✓         | ✓               |
+| Admin   | ✓           | ✓      | ✓            | —           | ✓         | ✓               |
+| Manager | — (own)     | ✓      | —            | —           | —         | ✓               |
+| Member  | —           | —      | —            | —           | —         | —               |
+| Viewer  | —           | —      | —            | —           | —         | —               |
 
-1. **Settings → Members**
-2. Find the member, click the **⋯** menu
-3. Choose **Change role**
-4. Select the new role and confirm
+### 4.3 Project Roles
 
-> Only CEO and Admin can do this. Admins cannot change the CEO's role.
+| Role          | View | Edit tasks | Export | Comment | Admin |
+|---------------|------|------------|--------|---------|-------|
+| Project Admin | ✓    | ✓          | ✓      | ✓       | ✓     |
+| Editor        | ✓    | ✓          | ✓      | ✓       | —     |
+| Commenter     | ✓    | —          | —      | ✓       | —     |
+| Viewer        | ✓    | —          | —      | —       | —     |
 
----
-
-### 5.3 Remove a Member
-
-1. **Settings → Members**
-2. Click **⋯** next to the member → **Remove**
-3. Confirm the action
-
-The member loses access immediately. Their past work (tasks, messages) remains.
-
----
-
-### 5.4 Transfer CEO Ownership
-
-Only the current CEO can do this:
-
-1. **Settings → Members**
-2. Find the person to promote
-3. **Change role → CEO**
-4. Confirm — you become an Admin, they become the new CEO
+Team role implies a project role by default: CEO/Admin → Project Admin, Manager/Member → Editor, Viewer → Viewer. These can be overridden per user per project in Project Settings.
 
 ---
 
-## 6. Company Admin Dashboard
+## 5. Company Admin Dashboard
 
-URL: `/company-admin/dashboard`
+**Route:** `/company-admin/dashboard`  
+Available to CEO and Admin roles.
 
-This dashboard is available to all members of a company. What you can see and do depends on your role.
+Four tabs:
 
-### 6.1 Overview Tab
+### 5.1 Overview
 
-Shows the company profile and your permissions:
+Stats: total members, teams, projects, pending invites. Summary of company plan and capabilities.
 
-| Section | What it shows |
-|---------|--------------|
-| **Company info** | Name, slug, website, industry, size, country, email domain (with verified/unverified badge) |
-| **Your permissions** | A card showing which actions your role allows (6 permission flags with ✅/❌) |
-| **Stats** | Member count, team count, pending invite count |
+### 5.2 Members
 
----
+- Full member list with role colour badges
+- Change role via the `⋯` menu (dropdown: CEO / Admin / Manager / Member / Viewer)
+- Deactivate or remove a member
+- Your own role cannot be lowered
 
-### 6.2 Members Tab
+### 5.3 Invites
 
-Visible to: **Member and above**
+- Lists all pending invites with status: pending / accepted / expired
+- Resend or cancel an invite
+- Send new invite: enter email, select role → **Send invite**
 
-| Column | Example |
-|--------|---------|
-| Name | Priya Sharma |
-| Email | priya@nova-agency.com |
-| Role | Manager |
-| Joined | May 1, 2026 |
+### 5.4 Teams
 
-**Actions (Admin/CEO only):**
-- **Change role** — opens a dialog with roles you can assign
-- **Remove member** — requires confirmation; member loses access immediately
+- List of all teams in the company with member count and project count
+- Drill into a team → see its members and their roles
+- Create a new team from this view
 
 ---
 
-### 6.3 Teams Tab
+## 6. Team Management
 
-Visible to: **Member and above**
+Access via the **team switcher** in the top-left sidebar or **Settings → Team**.
 
-Lists all teams under the company with member counts and plan.
-
-**Per team (Managers and above):**
-- **Invite to team** button — sends a team-level invite to an email address
-
-> Teams are created by company Admins and CEOs. Managers and Members cannot create teams — this is by design to keep team structure under Admin control.
+- **Create a team** — name, description
+- **Switch active team** — all project/task/planning views filter to the active team
+- **Team roles** — separate from company roles (Owner, Admin, Member within the team context)
+- **Invite to team** — from Settings → Members → Invite Member (see Section 7)
 
 ---
 
-### 6.4 Invites Tab
+## 7. Settings — All 9 Tabs
 
-Visible to: **Manager and above**
+**Route:** `/settings` (also openable with `?tab=<name>`)
 
-Shows pending invites and lets you revoke them.
+The Settings page has 9 tabs accessible to all users (some sections are role-gated):
 
-| Column | Notes |
-|--------|-------|
-| Email | Who the invite was sent to |
-| Role | The role they'll receive on accepting |
-| Expires | 7 days after send |
+### 7.1 Profile
 
-**Visibility rules:**
-- **Managers** see only the invites they personally sent
-- **Admins and CEOs** see all pending invites for the company
+- **Full Name** — update display name
+- **Email** — shown read-only (email cannot be changed)
+- **Timezone** — select from a list of common timezones (UTC, ET, CT, MT, PT, London, Paris, Tokyo, Singapore); used for due-date display and notifications
+- **Avatar** — shown; upload coming soon
+- **Reporting Structure card** — if you have a manager or CEO above you in the hierarchy, a card shows who you directly report to and their role
 
-**Revoke rules:**
-- **Managers** can only revoke their own invites
-- **Admins and CEOs** can revoke any invite
+### 7.2 Team
 
----
+- Update **team name** (shown with slug)
+- **Danger Zone** — Delete team button (only enabled for CEO/Admin with `can_delete_team` capability)
 
-### 6.5 Invite a Member (Company-Level)
+### 7.3 Members
 
-Click the **Invite** button in the dashboard header (visible to Manager and above):
+- Table of all team members: avatar, name, email, role badge, joined date
+- `⋯` menu per row: **Change Role** (modal with role selector) and **Remove** (with confirmation)
+- **Invite Member** button (top-right) — opens invite modal: enter email, select role from your assignable roles
+- Assignable roles depend on your own role (CEO can assign all; Manager can only assign Member/Viewer)
 
-| Field | Notes |
-|-------|-------|
-| Email | The recipient's email address |
-| Role | Limited to roles you can assign (see [Section 4.3](#43-role-hierarchy-for-invites)) |
+### 7.4 Notifications
 
-Click **Send invite**. The recipient gets an email with a link to `/company-invite/{token}` (valid 7 days).
+- **Browser notifications** (push) — toggle to enable/disable OS-level alerts
+- Five individual toggles (saved to `localStorage`):
+  - Task Assigned
+  - Task Completed
+  - Project Updates
+  - Member Joined
+  - Weekly Digest
+- **Save Preferences** button
 
-**Example:**
-```
-Admin Alex invites dana@nova-agency.com as Manager.
-Dana receives: "You're invited to join Nova Agency on FlowTeam"
-Dana clicks the link → sees company name + role → clicks Accept
-→ Dana is added as Manager to Nova Agency
-```
+### 7.5 Integrations
 
----
+- **Google Calendar** — OAuth connect; toggle sync of external events into FlowTeam calendar
+- **Microsoft Calendar** — OAuth connect; same toggle
+- **Slack Webhooks** — add webhook URLs (name + URL + enable/disable toggle); multiple webhooks supported; copy URL button; delete button
 
-### 6.6 Accepting a Company Invite
+### 7.6 AI
 
-When you receive an invite email:
+- **AI Features toggle** — master on/off for the entire team (CEO/Admin only)
+- Shows a grid of all 10 AI capabilities with icons and descriptions:
+  - Daily Briefing, Auto Task Descriptions, Weekly Status Reports, Sprint Planning AI, Channel Catch-up, Project Health Score, Workload Balancer, Client Reports, Focus Recommendations, Auto Label & Triage
+- When AI is off, all AI buttons in the app are visible but show a "not enabled" toast
 
-1. Click the link in the email — it opens `/company-invite/{token}`
-2. The page shows: company name, your assigned role, and who invited you
-3. **If you're logged in:** Click **Accept invite** — you're added immediately
-4. **If you're not logged in:** You're prompted to log in or register first, then the invite is accepted automatically after sign-in
+### 7.7 Plan
 
-> **Email mismatch:** You must be signed in as the email address the invite was sent to. If you try to accept an invite sent to a different email, you'll see an error.
+- Shows current plan and whether AI is enabled
+- Plan upgrades coming soon
 
-> **Expired invites:** Invites expire after 7 days. If the link is expired, ask the inviter to re-send.
+### 7.8 Security
 
----
+- **Change Password** — enter current password + new password (min 8 characters, must match confirmation)
+- **Account Security card** — shows email verification status, your account role in the active team
+- **Two-Factor Authentication** — embedded TwoFactorCard (enable/disable TOTP; see Section 31)
 
-### 6.7 Email Domain Auto-Join
+### 7.9 Roles & Access (RBAC)
 
-If a company has set and verified an email domain (e.g., `nova-agency.com`), anyone who registers with a matching email (`@nova-agency.com`) is **automatically added as a Member** of that company — no invite required.
-
-This only works for **verified** domains. The Super Admin verifies the domain via a DNS TXT record during company onboarding.
-
----
-
-### 6.8 New Team (Admin / CEO only)
-
-From the Teams tab, click **New Team**:
-
-| Field | Notes |
-|-------|-------|
-| Team name | Required |
-
-The team is created under the company. The creating Admin/CEO is automatically added as Team Admin. The company CEO is also added automatically.
+- **Your Permissions** — colour-coded list of what you can do in the team (green = allowed, grey = not allowed): manage team settings, invite members, change roles, remove members, delete team, view audit log, create projects
+- **Team Role Capability Matrix** — full table showing which capabilities each team role (CEO/Admin/Manager/Member/Viewer) has
+- **Project Role Capability Matrix** — full table showing which capabilities each project role (Project Admin / Editor / Commenter / Viewer) has
 
 ---
 
-## 7. Dashboard
+## 8. Dashboard — Role-Specific Views
 
-URL: `/dashboard`
+**Route:** `/dashboard`
 
-The dashboard is your daily command center. It shows:
+The dashboard automatically renders a different layout based on your team role.
 
-| Section | What it contains |
-|---------|-----------------|
-| **Welcome banner** | Greeting with your first name |
-| **AI Daily Briefing** | AI-generated morning summary (AI plan only) |
-| **AI Focus Recommendations** | Ranked list of what to work on next (AI plan only) |
-| **My Tasks** | Tasks assigned to you, filterable by priority, project, and state |
-| **Projects** | Quick-access cards to your active projects |
-| **Activity Feed** | Recent team actions (task moves, comments, completions) |
-| **Saved Views** | Your custom filtered task lists |
+### 8.1 All Dashboards (common)
 
-### My Tasks filters
+- **Missed Messages Pulse** — top card showing channels with unread messages since last login; animated pulse; up to 3 channel previews with last message + sender; click to jump to `/messages?channel={id}`
+- **Time-of-day greeting** — "Good morning/afternoon/evening, [first name]"
+- **Refresh button** — re-fetches all dashboard data
+- Current date shown in header
 
-- **State:** All · Overdue · Due Today · Upcoming
-- **Priority:** Urgent · High · Normal · Low
-- **Project:** Filter to one project
+### 8.2 CEO Dashboard
 
-### Auto-refresh
+- **KPI row**: Total members, Active projects, Completed this week, Overdue tasks
+- **Organisation pulse banner** — delivery velocity %, most active member, tasks created vs completed this week
+- **Top projects** — sorted by progress %, up to 4 project cards
+- **Leadership team** — cards for CEO/Admin/Manager members
+- **Quick actions** — Invite member, New project, View reports
+- **AI: Daily Briefing card** — AI text summary of overdue/due-today/meeting counts (requires AI plan)
+- **AI: Focus Recommendations card** — ranked list of up to 6 tasks to work on next, each with urgency badge and reason (requires AI plan)
 
-Toggle the **Auto-refresh** switch in the top-right of the dashboard to poll for updates every 30 seconds.
+### 8.3 Admin Dashboard
+
+- **KPI row**: Total members, Viewers/pending count, Active projects, Overdue tasks
+- **Organisation pulse banner** — same as CEO
+- **Team members table** — sorted by role; shows pending count
+- **Quick actions** — Invite, New project, Settings
+- **Missed Messages Pulse**
+
+### 8.4 Manager Dashboard
+
+- **KPI row**: Active projects, Overdue tasks, Completed this week, Delivery velocity %
+- **Priority breakdown bar** — visual distribution of your tasks by priority (urgent/high/normal/low)
+- **Focus tasks** — up to 4 tasks sorted by overdue first, then due date
+- **Active projects grid** — up to 4 project cards
+- **Team members** list (member role only)
+- **Missed Messages Pulse**
+
+### 8.5 Member Dashboard
+
+- **KPI row**: Active projects, Overdue tasks, Due today, Completed this week
+- **My tasks** — searchable list of all assigned tasks; filtered tasks with project name, priority badge, due date
+- **Focus tasks** — top 4 by urgency
+- **Projects grid** — projects you're part of
+- **Reporting to** — shows your manager's avatar and role
+- **Missed Messages Pulse**
+
+### 8.6 Viewer Dashboard
+
+- **Projects grid** — read-only view of all projects in the team
+- **Team activity** sidebar — recent events feed
+- "View only" badge in the header
 
 ---
 
-## 8. Projects
+## 9. Portfolio
 
-### 8.1 Create a Project
+**Route:** `/portfolio`
 
-1. Go to `/projects`
-2. Click **New Project**
-3. Fill in the form:
+A cross-project health and delivery view for your active team.
 
-| Field | Example | Notes |
-|-------|---------|-------|
-| Name | `Website Redesign` | Required, max 255 chars |
-| Description | `Full redesign for Q2 launch` | Optional |
-| Color | `#6366f1` (indigo) | Hex color, used for task pills on calendar |
-| Icon | `🚀` | Emoji, shown in project list |
-
-4. Click **Create project**
-
-**Default columns created automatically:**
-- **Backlog** — ideas and unstarted work
-- **In Progress** — active work
-- **Done** — completed work (marked as the "done" column)
+- **Summary badges** — total projects, projects with overdue tasks, projects "at risk" (health score < 50)
+- **Project cards grid** — one card per project showing:
+  - Health score (0–100) with colour-coded label (green ≥ 80, amber ≥ 50, red < 50)
+  - Team name
+  - Progress bar (% complete)
+  - Open/total tasks count
+  - Overdue task count (shown in red if > 0)
+  - Next milestone name and due date
+  - **Open project** button → links to `/projects/[id]`
+- **Refresh button** — re-fetches portfolio data (with spin animation while loading)
 
 ---
 
-### 8.2 Add Custom Columns
+## 10. My Tasks
 
-Inside a project, click **+ Add column**:
+**Route:** `/dashboard/my-tasks`
 
-| Field | Example |
+All tasks assigned to you in the active team, in a dedicated full-page view.
+
+**Filters:**
+- **Status** — All / Open / Done
+- **Due** — All / Overdue / Today / This week (also settable via URL `?due=overdue`)
+- **Search** — free text across task titles
+
+**Summary badges** — shows current Status filter, Due filter, and total task count.
+
+Each task row shows: title, project, epic, priority, due date, sprint, status. Click a task to open it in the project board.
+
+Back button returns to `/dashboard`.
+
+---
+
+## 11. Projects List
+
+**Route:** `/projects`
+
+- Lists all active projects in the active team
+- Each project card: icon, name, team, status badge, progress bar, task counts
+- **New Project** button → opens create project modal
+  - Name, description, team, colour, icon (emoji)
+  - Start from a template (see Planning Hub → Templates)
+- **Project status filter** — All / Active / Archived
+
+---
+
+## 12. Project Board — 6 View Types
+
+**Route:** `/projects/[id]`
+
+The project has a tab bar with 6 view types:
+
+| Tab | View | Description |
+|-----|------|-------------|
+| Board | Kanban | Drag-and-drop column view |
+| Table | List | Flat list of all tasks with sortable columns |
+| Epics | Epic grid | Cards for each epic with progress and child task count |
+| Timeline | Placeholder | Coming soon — Gantt-style timeline |
+| Bugs | Bug filter | Kanban filtered to issue_type = bug only |
+| Retrospectives | Placeholder | Coming soon — Sprint retrospectives |
+
+### 12.1 Board Header
+
+- Back button (history aware)
+- Project icon + name + status badge
+- **Health score badge** — colour-coded (green/amber/red); score comes from AI health check if AI enabled, else static analytics
+- Column count · task count · completion %
+- **Watch (N) badge** — shows how many people are watching the project; click to watch/unwatch and receive notifications for all project activity
+- **Reports** quick link
+- **New task** button
+
+### 12.2 Board Filters Bar
+
+Available in board and table views:
+
+- **Search tasks** — full-text filter
+- **Priority filter** — All / Urgent / High / Normal / Low
+- **Due filter** — All / Overdue / Today / This week
+- **Assignee filter** — All / Me / [any team member]
+- Active filter count badge; **Clear filters** button when any are active
+
+### 12.3 Export
+
+Dropdown on the board: **Export CSV**, **Export XLSX**, **Export PDF** — downloads immediately.
+
+### 12.4 Kanban Board
+
+- Drag task cards between columns
+- Keyboard-accessible (dnd-kit PointerSensor + KeyboardSensor)
+- Drag a card and drop onto a column header or between existing cards to set order
+- **Add column inline** — click `+` at the right end of the column row; enter name; Enter or click check
+- Columns show task count; the "done" column is styled distinctly
+
+### 12.5 Table View
+
+Flat sortable list of all tasks:
+
+- Columns: title, assignee avatar, priority, due date, sprint, status/column, issue type, labels
+- Click a row to open the task detail panel
+
+### 12.6 Epics View
+
+- Grid of epic cards showing: title, status (backlog/discovery/wip/review/done), progress bar, assignee, start/end dates, child task count
+- **Create Epic** button
+- **Search** field to filter epics by title
+
+### 12.7 Bugs View
+
+Same list view as Table but pre-filtered to `issue_type = "bug"`, grouped by column. Useful for QA triage without leaving the project.
+
+### 12.8 Retrospectives View
+
+Currently a placeholder screen with a **Start Retrospective** button. The interactive per-project retro board (columns: Keep / Improve / Discussion, voting, sidebar list) is available as the `RetrospectiveView` component and is being integrated into this tab.
+
+AI-generated retrospectives (per sprint) are available now in the Planning Hub → Sprint Planning (requires AI plan).
+
+---
+
+## 13. Tasks — Full Feature Breakdown
+
+### 13.1 Task Fields
+
+| Field | Details |
 |-------|---------|
-| Name | `Review` |
-| Color | `#f59e0b` |
-| Mark as done column | Toggle on only for your final completion column |
+| Title | Required, max 200 chars |
+| Description | Markdown rich text |
+| Issue type | Epic / Story / Task / Bug / Subtask (configurable per project) |
+| Status | Column assignment |
+| Priority | Critical / High / Normal / Low |
+| Assignee | Any team member |
+| Due date | Date picker |
+| Labels | Colour-coded tags |
+| Sprint | Assign to a sprint |
+| Epic | Group under an epic |
+| Story points | Numeric estimate |
+| Time tracking | Built-in timer + manual log (see 13.5) |
+| Dependencies | Block / blocked-by task links |
+| Attachments | File uploads |
+| Custom fields | Text / number / date / select (configured per issue type in Operations Hub) |
 
-Drag columns left/right to reorder them.
+### 13.2 Creating a Task
 
----
+- Kanban: click `+` in any column header for quick-add inline
+- Board header: **New task** button → opens full create modal
+- Issue Navigator: **Create issue** button → modal with project selector
+- Keyboard shortcut: `N` (while not in an input)
 
-### 8.3 Project Views
+### 13.3 Task Detail Panel
 
-From the project header, switch between:
+Opens as a side panel (not a full-page navigation) when clicking a task card.
 
-- **Board** — Kanban drag-and-drop columns
-- **Planning** — Sprint planning view
-- **Issues** — Flat list of all tasks
-- **Operations** — Workload overview by member
-- **Reports** — Analytics: velocity, burndown, member stats, project health
-- **Timeline** — Gantt-style timeline (tasks with start + due dates)
-- **Docs** — Project wiki / notes (Markdown editor)
-- **Billing** — Project invoices (print/export to PDF via browser)
-- **Settings** — Permissions, labels, issue types
+- Edit all fields inline
+- **Activity tab** — full history of field changes, assignments, and comments
+- **Comments** — markdown with @mentions; reaction emoji on each comment
+- **Subtasks** — nested task list; add subtask button
+- **Dependencies** — search and link tasks as "blocks" / "blocked-by"
+- **Watch / Unwatch** — click the Watch button in the task panel to subscribe to this task; you receive notifications for all changes. The watcher count and avatars of all watchers are shown in the panel
+- **Time tracker** (see 13.5)
+- **Attachments** — upload files; existing attachments listed with download links
 
----
+### 13.4 Task Completion Modal
 
-### 8.4 Timeline View
+When moving a task to a "done" column, a completion modal may appear prompting for notes or a rating.
 
-URL: `/projects/{id}/timeline`
+### 13.5 Time Tracker
 
-Shows tasks as bars on a date range (2 weeks, 30/60/90 days). A task appears when it has both `start_date` and `due_date`. Click a bar to open the task detail panel.
+- **Start** — click play button; a live timer counts up in seconds
+- **Stop** — saves the session as a time log entry (converted to minutes)
+- **Manual log** — enter minutes + optional note → **Log time**
+- **History** — list of all time log entries for the task with date, duration, and note
+- **Delete** individual log entries
 
----
+### 13.6 Subtasks
 
-### 8.5 Project Docs (Wiki)
+Open task → **Add subtask** → enter title. Subtasks appear nested. Completing all subtasks does not auto-complete the parent.
 
-URL: `/projects/{id}/docs`
+### 13.7 Task Dependencies
 
-Create project-scoped notes and wiki pages:
-- Document types: Note / Spec / SOP / Meeting / Decision
-- Edit title + content (Markdown)
-- Delete documents (managers only)
-
----
-
-### 8.6 Project Billing (Invoices)
-
-URL: `/projects/{id}/billing`
-
-Create simple invoices per project:
-- Draft an invoice with line items
-- Save it to the workspace
-- Use **Print / PDF** to export via browser's "Save as PDF"
-
----
-
-### 8.7 Project Reports
-
-Navigate to `/projects/{id}/reports` for:
-
-- **Velocity** — Tasks completed per sprint
-- **Burndown** — Work remaining vs. time in current sprint
-- **Member stats** — Tasks per team member
-- **Project health** — Overdue count, completion rate, at-risk milestones
-- **AI Health Score** — 0–100 score with risk factors and recommendations (AI plan only)
+Task detail → **Dependencies** → search tasks → link as "blocks" or "blocked by". Blocked tasks show a warning badge on their card.
 
 ---
 
-## 9. Tasks — Full Feature Breakdown
+## 14. Issue Navigator
 
-### 9.1 Create a Task
+**Route:** `/projects/issues`
 
-Inside a project, click **+ Add task** under any column, or click **New task** in the top toolbar.
+Cross-project Jira-style view of all issues across every project in the active team.
 
-**Core fields:**
-
-| Field | Example | Notes |
-|-------|---------|-------|
-| Title | `Design hero section` | Required, max 255 chars |
-| Description | `Use the new brand colors.` | Optional, supports rich text |
-| Issue Type | `Task` | Epic · Story · Task · Bug · Subtask |
-| Priority | `High` | Urgent · High · Normal · Low |
-| Assignee | `Priya` | One team member |
-| Due Date | `2026-05-10` | Date field |
-| Labels | `design`, `Q2` | Multiple labels |
-| Estimated Hours | `4.5` | Decimal hours |
-
-Click **Create task** to save.
-
-> **AI tip (AI plan):** After typing the task title, click the **✦ Write description** button to auto-generate a description, acceptance criteria, and suggested subtasks.
-
----
-
-### 9.2 Issue Types
-
-| Type | Use it for |
-|------|-----------|
-| **Epic** | Large feature that spans multiple sprints |
-| **Story** | User-facing feature or improvement |
-| **Task** | Standard unit of work |
-| **Bug** | Something broken that needs fixing |
-| **Subtask** | A step within a parent task |
-
----
-
-### 9.3 Move Tasks (Kanban)
-
-Drag a task card from one column to another. The task status updates instantly for all team members.
-
----
-
-### 9.4 Comments
-
-Open a task and scroll to the **Comments** section.
-
-- Type your comment and press **Send**
-- Use `@name` to mention a teammate — they get notified
-- **Edit** your own comment by clicking the pencil icon
-- **Delete** removes the comment (a "deleted" placeholder remains)
-- **Reply** to nest responses in a thread
-
----
-
-### 9.5 Subtasks
-
-Inside a task, click **+ Add subtask**. Each subtask has a checkbox. Progress shows as `2/5 subtasks` on the task card.
-
----
-
-### 9.6 Attachments
-
-Inside a task, click the **paperclip icon** or drag-and-drop a file:
-
-- Images show inline preview with fullscreen lightbox
-- PDFs render in an inline frame
-- Videos play inline
-- Other files show as a download card
-- **Version history** — upload a new version; previous versions are stored
-
----
-
-### 9.7 Time Tracking
-
-Inside a task, click **Log time**:
-
-| Field | Example |
-|-------|---------|
-| Minutes | `90` (= 1.5 hours) |
-| Date | `2026-05-08` |
-| Note | `Initial implementation pass` |
-
-Total logged hours appear on the task and in project reports.
-
----
-
-### 9.8 Task Dependencies (Links)
-
-Open a task → **Add link**:
-
-| Link type | Meaning |
-|-----------|---------|
-| **Blocks** | This task must be done before the linked task can start |
-| **Blocked by** | This task cannot start until the linked task is done |
-| **Duplicates** | This task is a duplicate of the linked task |
-| **Relates to** | General relationship, no strict ordering |
-
----
-
-### 9.9 Approvals
-
-Inside a task, click **Request approval**:
-
-| Field | Example |
-|-------|---------|
-| Title | `Approve hero section design` |
-| Description | `Please review before dev handoff` |
-| Required role | `Manager` |
-
-The manager can **Approve** or **Reject** with a decision note (max 300 chars).
-
----
-
-### 9.10 Watchers
-
-Click **Watch** on any task to subscribe to all updates. To stop watching, click **Unwatch**.
-
----
-
-### 9.11 Recurring Tasks
-
-Inside a task, click **Set recurrence**:
-
-| Field | Options |
-|-------|---------|
-| Frequency | Daily · Weekly · Monthly |
-| Interval | e.g., `2` = every 2 weeks |
-| Assignee | Optional |
-
-When a recurrence fires, a new task is automatically created with the same title and settings.
-
----
-
-### 9.12 Custom Fields
-
-Project admins can define custom fields per issue type (e.g., "Story Points", "Client", "Browser") in **Project Settings → Issue Types**.
-
----
-
-## 10. Sprints & Capacity Planning
-
-### 10.1 Create a Sprint
-
-Inside a project, go to the **Planning** view → **New Sprint**:
-
-| Field | Example |
-|-------|---------|
-| Name | `Sprint 3 — Hero & Nav` |
-| Goal | `Complete all homepage above-the-fold work` |
-| Start date | `2026-05-11` |
-| End date | `2026-05-24` |
-| Capacity hours | `80` |
-
----
-
-### 10.2 Add Tasks to a Sprint
-
-In the Planning view, drag tasks from the backlog into a sprint, or open a task and assign it to a sprint from the task detail panel.
-
-> **AI tip (AI plan):** Click **✦ AI suggest scope** to get recommended tasks based on estimates, priorities, and capacity.
-
----
-
-### 10.3 Capacity Planning per Member
-
-Inside a sprint, click **Capacity** to set per-person availability in hours.
-
----
-
-### 10.4 Sprint Burndown
-
-Go to **Project → Reports → Burndown** while a sprint is active to see ideal vs. actual remaining work.
-
----
-
-### 10.5 Sprint Retrospective (AI plan)
-
-When a sprint is completed, click **✦ Generate retrospective** for an AI-generated summary of what went well, what didn't, and action items.
-
----
-
-## 11. Milestones
-
-### Create a Milestone
-
-In a project, click **+ Milestone**:
-
-| Field | Example |
-|-------|---------|
-| Name | `Public Beta Launch` |
-| Description | `All core features shipped and tested` |
-| Due date | `2026-06-01` |
-| Status | `Planned` → `At risk` → `Completed` |
-
-Milestones appear in the Calendar and project Reports.
-
----
-
-## 12. Messages — Real-Time Chat
-
-URL: `/messages`
-
-### 12.1 Channel Types
-
-| Type | Who can see it |
-|------|---------------|
-| **Public channel** (#) | All team members |
-| **Private channel** (🔒) | Invited members only |
-| **Direct Message** (👤) | You and one other person |
-
----
-
-### 12.2 Create a Channel
-
-Click **+** → **New channel**:
-
-| Field | Example |
-|-------|---------|
-| Channel name | `engineering-updates` |
-| Display name | `Engineering Updates` |
-| Description | `Daily dev standups` |
-| Private | Toggle for private |
-
----
-
-### 12.3 Send a Message
-
-Press **Enter** to send. Press **Shift+Enter** for a new line. Type `@name` to mention someone.
-
----
-
-### 12.4 Message Actions
-
-Hover over any message to reveal the action toolbar:
-
-| Action | How |
-|--------|-----|
-| **React** | Pick an emoji |
-| **Reply in thread** | Opens thread panel |
-| **Edit** | Edit your own message |
-| **Delete** | Removes your message |
-| **More (⋯)** | Mark unread, Save, Pin, Copy link, Quote reply, Forward, Edit history |
-
----
-
-### 12.5 Threads
-
-Click the reply icon on any message to open a thread. The parent message shows a **"N replies"** count.
-
----
-
-### 12.6 Scheduled Messages
-
-Click the **clock icon** in the composer → set date and time → **Schedule**.
-
----
-
-### 12.7 Pins & Saved Messages
-
-- **Pins** — channel-wide; click **Pins** in the channel header
-- **Saved** — personal bookmarks; click **Saved** in the channel header
-
----
-
-### 12.8 Mute a Channel
-
-Right-click a channel (or click ⋯) → **Mute** for 1 hour or indefinitely.
-
----
-
-### 12.9 Notification Preferences per Channel
-
-Click the **bell icon** in the channel header: **All messages** / **Mentions only** / **Mute**.
-
----
-
-### 12.10 Sidebar Filters
-
-- **Unread** — channels with unread messages only
-- **Muted** toggle — show/hide muted channels
-- **Ctrl+K** — jump to channel search
-
----
-
-### 12.11 Search within Messages
-
-Use the **Search** icon in the channel header. Filter by sender, date from, date to. Save as **presets**.
-
----
-
-### 12.12 Channel Catch-Me-Up (AI plan)
-
-Click **✦ Catch me up** in the channel header. AI summarises the last 48 hours of messages into decisions, blockers, action items, and open questions.
-
----
-
-### 12.13 Rich Link Embeds (Figma / Google Drive / Miro)
-
-Paste supported links into a message or task description to get an inline preview:
-
-- **Figma** (`figma.com`)
-- **Google Drive / Docs / Sheets / Slides** (`drive.google.com`, `docs.google.com`)
-- **Miro** (`miro.com`)
-
----
-
-## 13. Meetings
-
-URL: `/meetings`
-
-### 13.1 Meeting Types
-
-| Type | Use case |
-|------|---------|
-| **Instant** | Start a call right now |
-| **Scheduled** | Plan a future meeting |
-
-### 13.2 Create an Instant Meeting
-
-1. `/meetings` → **New Meeting** → **Instant**
-2. Enter title, call type (audio/video), optional attendees
-3. Click **Create** → meeting room opens immediately
-
----
-
-### 13.3 Schedule a Meeting
-
-1. `/meetings` → **New Meeting** → **Schedule**
-2. Fill in title, description, start time, duration, call type, attendees
-3. Click **Schedule** — appears on everyone's Calendar
-
----
-
-### 13.4 Meeting Statuses
-
-| Status | Meaning |
-|--------|---------|
-| **Scheduled** | Upcoming |
-| **Active** | In progress |
-| **Ended** | Finished |
-| **Cancelled** | Cancelled |
-
----
-
-### 13.5 Meeting Channel
-
-Every meeting auto-creates a private messaging channel (`mtg-{id}`) for sharing links and notes during/after the call.
-
----
-
-### 13.6 Meeting Action Items (AI plan)
-
-After a meeting, paste notes into the **✦ Extract action items** panel. AI extracts decisions, action items (with assignee hints), and open questions. Click **Create tasks** to turn them into real tasks.
-
----
-
-### 13.7 Meeting Recordings + AI Transcript
-
-Inside an active call, click **Record** (red dot) to record audio.
-
-After stopping:
-1. Audio is uploaded to the meeting
-2. A background job transcribes it and generates action items + summary
-3. A system message is posted into the meeting channel with the results
-
-Open the meeting page → **Recordings** card to see playback, status, AI summary, and full transcript.
-
-> Transcription requires `OPENAI_API_KEY` in the backend environment.
-
----
-
-## 14. Calendar
-
-URL: `/calendar`
-
-### 14.1 Views
-
-| View | Shows |
-|------|-------|
-| **Month** | Full month grid |
-| **Week** | 7-day timeline with time slots |
-| **List** | Chronological list of upcoming events |
-
----
-
-### 14.2 What Appears on the Calendar
-
-- **Task due dates** — colored pills (color = project color)
-- **Scheduled meetings** — video camera icon
-- **External calendar events** — green items (when connected)
-
----
-
-### 14.3 Drag and Drop to Reschedule
-
-Drag a task pill or meeting to a new date. Changes save instantly.
-
----
-
-### 14.4 External Calendar Events (Google / Outlook)
-
-1. **Settings → Integrations → Calendar Sync**
-2. Connect **Google Calendar** or **Outlook**
-3. Toggle **Show events** for that provider
-4. In `/calendar`, open **Calendar filters** → **Show external events**
-
-External events are read-only in FlowTeam.
-
----
-
-### 14.5 Agenda Panel
-
-The right panel for the selected date shows:
-- **Meetings** — with start time and duration
-- **Tasks due** — with project name and priority badge
-
----
-
-### 14.6 Filters
+### 14.1 Filters (7 dimensions)
 
 | Filter | Options |
 |--------|---------|
-| Search | Free text |
-| Project | Filter to one project |
-| Priority | Urgent · High · Normal · Low |
-| Meeting status | All · Scheduled · Active · Ended · Cancelled |
-| Mine only | Toggle |
-| Show tasks / meetings | Toggle on/off |
+| Search | Title full-text |
+| Project | Any active project |
+| Status | Column names |
+| Priority | Critical / High / Normal / Low |
+| Due date | Overdue / Today / This week / This month |
+| Sprint | Any sprint |
+| Assignee | Any team member |
+
+Filters stack; count and stats update in real time.
+
+### 14.2 Stats Bar
+
+Shows: visible issues, urgent issues, overdue issues, unassigned issues.
+
+### 14.3 Saved Views
+
+1. Apply filters → **Save view** → enter name
+2. Saved views appear in the left sidebar
+3. Click to restore any saved filter combination
+4. Delete saved views from the sidebar
+
+### 14.4 Bulk Actions
+
+Select multiple issues (checkbox) → bulk action toolbar:
+
+- Set priority
+- Move to sprint
+- Move to column
+- Mark complete
 
 ---
 
-## 15. Search
+## 15. Planning Hub
 
-### 15.1 Open Global Search
+**Route:** `/projects/planning`
 
-Press **Ctrl+K** or click **Search** in the toolbar.
+Team-level planning across 5 tabs. Header shows: sprint count, milestone count, recurring rule count, team member count.
 
-### 15.2 What it searches
+### 15.1 Sprint Planning Tab
 
-| Category | What matches |
-|----------|-------------|
-| **Tasks** | Task title, project name |
-| **Projects** | Project name |
-| **Members** | Full name, email address |
-| **Messages** | Message text (with snippets) |
-| **Channels** | Channel name |
+**Create sprint form:**
+- Project, name, goal, start date, end date, total capacity hours
+- Per-member capacity (enter hours for each team member)
+- **Create sprint** button
 
-Min 2 characters · 300ms debounce · 30 requests / 60 seconds rate limit.
+**Backlog assignment:**
+- Table of open tasks with no sprint assigned
+- Select tasks with checkboxes
+- Choose target sprint → **Assign to sprint**
+- **AI: Suggest scope** — analyses backlog vs capacity; selects best-fit tasks; shows reasoning text (requires AI plan)
 
----
+**Sprint list:**
+- All sprints with status, goal, dates
+- Per-sprint **Generate retrospective** button (AI analyses sprint; outputs What went well / What didn't / Action items; requires AI plan)
 
-## 16. Notifications
+### 15.2 Roadmap Tab
 
-### 16.1 Notification Bell
+Visual milestone timeline:
 
-The **bell icon** in the toolbar shows unread count. Click **Mark all read** to clear.
+- Bar chart of all milestones across projects with names and due dates
+- Status colour coding: planned / in progress / completed
 
----
+### 15.3 Templates Tab
 
-### 16.2 Notification Types
+Create reusable project templates for the team:
 
-| Type | Triggered when |
-|------|---------------|
-| `task_assigned` | A task is assigned to you |
-| `task_due` | Due date approaching |
-| `task_overdue` | Past due date |
-| `task_watched` | A watched task is updated |
-| `task_moved` | A watched task moves columns |
-| `task_completed` | A watched task is done |
-| `approval_requested` | Someone requests your approval |
-| `approval_decided` | Your approval request is decided |
-| `mentioned_message` | @mentioned in a message |
-| `mentioned_comment` | @mentioned in a task comment |
-| `automation_notice` | An automation rule fired |
-| `invite_accepted` | A member accepted your invite |
+- Name, description, colour (hex picker), icon (emoji)
+- **Columns** — one per line; name a column "Done" to auto-set the done column
+- **Labels** — `Name:#hexcolor` one per line (e.g. `Bug:#ef4444`)
+- **Issue types** — one per line (e.g. `epic`, `story`, `task`, `bug`, `subtask`)
 
----
+Templates appear as options when creating a new project.
 
-### 16.3 Notification Preferences
+### 15.4 Recurring Work Tab
 
-**Settings → Notifications** — toggle individual types, email notifications, due date reminders, overdue digest, watch notifications, approval notifications, and browser push notifications.
+Automate repeating task creation:
 
----
+- Project, column, optional assignee, title, description, issue type, priority
+- Frequency: **daily** / **weekly** / **monthly** + interval (e.g. every 2 weeks)
+- Next run date
+- Active/inactive toggle
+- **Run now** — manually triggers the rule immediately
+- Rules listed with last-run date and next-run date
 
-## 17. Settings
+### 15.5 Workload Tab
 
-URL: `/settings`
+Team member workload overview:
 
-### 17.1 Profile
-
-| Field | Notes |
-|-------|-------|
-| Full name | Editable |
-| Email | Display only |
-| Avatar | Upload image |
-| Timezone | Select from list |
+- Table: member name, role, open task count, total story points
+- Use to identify imbalance before sprint planning
 
 ---
 
-### 17.2 Members Tab
+## 16. Operations Hub — 8 Tabs
 
-View all team members, invite new members, change roles, remove members. See [Team Management](#5-team-management-within-a-team).
+**Route:** `/projects/operations`
 
----
+Cross-project operational layer.
 
-### 17.3 Push Notifications
+### 16.1 Approvals
 
-**Settings → Notifications → Browser push** — toggle on to receive FlowTeam notifications even when the app is not the active tab.
+**Request tab:**
+- Select project, title, description, one or more approvers
+- Submit approval request
 
----
+**Queue tab:**
+- Lists pending approvals where you are an approver
+- Approve or reject with a note
 
-### 17.4 Slack Webhooks
+### 16.2 Activity
 
-**Settings → Integrations → Slack Webhooks → Add webhook:**
+- Timeline feed of all project events: task created/moved/assigned/commented, sprint started, file uploaded, etc.
+- Filter by project
+- Each event links to the source task or project
 
-| Field | Example |
-|-------|---------|
-| Name | `Nova Alerts` |
-| Webhook URL | `https://hooks.slack.com/services/...` |
-| Enabled | Toggle on |
+### 16.3 Reporting
 
----
-
-### 17.5 Calendar Sync (Google / Outlook)
-
-**Settings → Integrations → Calendar Sync** — connect Google Calendar or Outlook to show external events in FlowTeam's Calendar.
-
----
-
-### 17.6 GitHub Integration (per project)
-
-1. Open a project → **Settings → Permissions**
-2. Click **Connect GitHub** → OAuth consent → authorise FlowTeam
-3. Enter the repository in `owner/repo` format → click **Save**
-
-FlowTeam registers a webhook for `pull_request` and `push` events. When a PR title/body contains `#42` or `#PROJ-42`, it links to that task.
-
----
-
-### 17.7 GitLab + Bitbucket Integrations
-
-Same as GitHub setup:
-1. **Connect GitLab** or **Connect Bitbucket** in project settings
-2. After OAuth, set the repository identifier:
-   - GitLab: `group/subgroup/repo`
-   - Bitbucket: workspace + repo-slug
-
----
-
-### 17.8 AI Settings (AI plan)
-
-**Settings → AI** (CEO and Admin only)
-
-| Control | Description |
-|---------|-------------|
-| **AI Features toggle** | Enable/disable all AI features for the workspace |
-| **Feature grid** | Shows all AI features and their state |
-
----
-
-## 18. Two-Factor Authentication (2FA)
-
-### 18.1 Enable 2FA
-
-1. **Settings → Security → Set up 2FA**
-2. Scan the QR code with your authenticator app (Google Authenticator, Authy, 1Password)
-3. Enter the 6-digit code to confirm
-4. Click **Enable**
-5. **Save your 10 backup codes** somewhere safe
-
----
-
-### 18.2 Sign In with 2FA
-
-1. Enter email and password
-2. When prompted, enter the **6-digit code** from your authenticator app
-3. Or enter a **backup code** (one-time use)
-
----
-
-### 18.3 Rotate Backup Codes
-
-**Settings → Security → Rotate backup codes** → enter current OTP → new set of 10 codes generated.
-
----
-
-### 18.4 Disable 2FA
-
-**Settings → Security → Disable 2FA** → enter OTP or backup code.
-
----
-
-## 19. Web Push Notifications
-
-### 19.1 Enable Push
-
-1. **Settings → Notifications → Browser push** → toggle on
-2. Click **Allow** when your browser asks for permission
-
----
-
-### 19.2 What Triggers a Push
-
-| Event | Example push message |
-|-------|---------------------|
-| Task assigned | "Design hero section assigned to you" |
-| @mention | "Alex mentioned you in #engineering" |
-| Approval requested | "Approval needed: Hero section sign-off" |
-| Task overdue | "API integration is overdue by 1 day" |
-| Watched task moved | "QA sign-off moved to Done" |
-
----
-
-### 19.3 Clicking a Push Notification
-
-Opens FlowTeam and navigates directly to the relevant task, message, or meeting.
-
----
-
-### 19.4 Disable Push
-
-**Settings → Notifications → Browser push** → toggle off. Subscription is removed from the server immediately.
-
----
-
-### 19.5 Multiple Devices
-
-Each browser/device registers separately. Enable push on each device you want to receive notifications on.
-
----
-
-## 20. Audit Log
-
-URL: `/settings/audit`  
-**Who can access:** CEO and Admin only.
-
-Immutable record of every significant action in the workspace.
-
-### 20.1 What is logged
-
-| Action | Example |
-|--------|---------|
-| `create` | New project created |
-| `update` | Task priority changed |
-| `delete` | Member removed |
-| `permission_change` | Role changed |
-| `approval_change` | Approval approved or rejected |
-| `automation_trigger` | Automation rule fired |
-| `export` | Project exported to CSV |
-| `login` / `logout` | User session |
-| `invite_sent` | Invite emailed |
-| `invite_accepted` | New member joined |
-| `oauth_login` | Signed in via Google |
-
-### 20.2 Each log entry shows
-
-- **Who** — actor's name and avatar
-- **What** — action type and description
-- **Object** — which record was affected
-- **Changes** — field-level diff (old → new)
-- **When** — exact timestamp
-- **IP address** and **User agent**
-
-Logs are retained for **365 days** (configurable per company by Super Admin).
-
----
-
-## 21. Export
-
-### 21.1 How to Export
-
-1. Open a project
-2. Click **⋯ → Export**
-3. Choose format: **CSV**, **Excel (XLSX)**, or **PDF**
-4. File downloads immediately
-
-**File name:** `{ProjectName}_tasks.{format}`
-
-### 21.2 What is exported
-
-Title, Column, Priority, Assignee, Reporter, Due Date, Completed, Labels, Subtasks, Hours Logged, Created At.
-
-Export is rate-limited to **5 per 60 seconds** and recorded in the audit log.
-
----
-
-## 22. Client Portal
-
-### 22.1 Create a Link
-
-1. Project → **Settings → Client Portal → Create access link**
-2. Set display name and allowed columns/documents
-3. Copy the URL: `/client-portal/{token}`
-
-### 22.2 What the Client Sees
-
-Tasks filtered to allowed columns, whitelisted documents — read-only.
-
-### 22.3 AI Client Report (AI plan)
-
-Inside Client Portal settings, click **✦ Generate report** for a client-ready plain-English progress report.
-
-### 22.4 Revoke Access
-
-**Settings → Client Portal → Revoke** — invalidates the link immediately.
-
----
-
-## 23. Automation Rules
-
-### 23.1 Create a Rule
-
-Project → **Settings → Automations → New Rule**:
-
-| Field | Options |
-|-------|---------|
-| **Trigger** | Task moved to Done · Task overdue · Approval requested |
-| **Conditions** | Priority = Urgent · Assignee is empty · etc. |
-| **Action** | Assign user · Change priority · Add label · Post to Slack · Create related task |
-
----
-
-### 23.2 AI Automation Builder (AI plan)
-
-Type a rule in plain English in the **✦ Describe a rule** box:
-
-```
-"When an urgent bug is created, assign it to Alex and post to #incidents"
-```
-
-AI generates the trigger, conditions, and actions automatically. Review and click **Save**.
-
----
-
-### 23.3 Automation Notifications
-
-When an automation fires, subscribed members get an in-app `automation_notice` notification. All triggers are recorded in the audit log.
-
----
-
-## 24. AI Features (AI Plan)
-
-AI features are powered by Claude (Anthropic). Available on the **AI plan** only. Enable in **Settings → AI** (CEO or Admin).
-
----
-
-### 24.1 AI Feature Overview
-
-| Feature | Where to find it |
-|---------|-----------------|
-| Daily Briefing | Dashboard top card |
-| Focus Recommendations | Dashboard second card |
-| Auto Task Description | Task create dialog |
-| Auto Label & Triage | Task create dialog |
-| Task Summarizer | Task detail panel header |
-| Channel Catch-Me-Up | Channel header |
-| Sprint AI Planner | Sprint planning view |
-| Sprint Retrospective | Completed sprint card |
-| Workload Balancer | Sprint capacity panel |
-| Project Health Score | Project Reports page |
-| Weekly Status Report | Project ⋯ menu |
-| Client Report Generator | Client Portal settings |
-| Meeting Action Items | Meeting channel |
-| AI Automation Builder | Settings → Automations |
-
----
-
-### 24.2 Daily Briefing
-
-Every time you open the dashboard, shows: overdue tasks, tasks due today, today's meetings, and a recommended focus.
-
-Results cached for **12 hours** per user. Click **Refresh** to regenerate.
-
----
-
-### 24.3 Focus Recommendations
-
-Ranked list of up to 6 tasks to work on next, with urgency level and reason.
-
----
-
-### 24.4 Auto Task Description
-
-After typing a task title, click **✦ Write description** to auto-generate:
-- Description (2–3 sentences)
-- Acceptance criteria
-- Suggested subtasks
-
----
-
-### 24.5 Auto Label & Triage
-
-When creating a task, AI suggests labels, issue type, and priority. Accept, modify, or ignore.
-
----
-
-### 24.6 Task Summarizer
-
-Open a task → **✦ Summarize** — condenses the entire task history into a short paragraph.
-
----
-
-### 24.7 Channel Catch-Me-Up
-
-**✦ Catch me up** in channel header — summarises last 48 hours into decisions, blockers, action items, and open questions.
-
----
-
-### 24.8 Sprint AI Planner
-
-**✦ AI suggest scope** in sprint planning — recommends tasks based on estimates, priorities, and capacity.
-
----
-
-### 24.9 Sprint Retrospective Generator
-
-**✦ Generate retrospective** on completed sprint card — structured Went Well / Didn't Go Well / Action Items.
-
----
-
-### 24.10 Workload Balancer
-
-**✦ Balance workload** in sprint capacity panel — detects overloaded members and suggests specific task reassignments with Accept/Dismiss buttons.
-
----
-
-### 24.11 Project Health Score
-
-Project Reports → Health Score card — scores project 0–100 (Healthy / Watch / At Risk) with risk factors and recommendations.
-
----
-
-### 24.12 Weekly Status Report
-
-Project **⋯** menu → **✦ Generate weekly report** — structured completed / in-progress / at-risk report.
-
----
-
-### 24.13 AI Rate Limits & Fallbacks
-
-If the AI service is unavailable, a deterministic fallback result is shown based on actual data.
-
-| Limit | Value |
-|-------|-------|
-| Daily briefing cache | 12 hours per user |
-| Health score cache | 24 hours per project |
-| Model used | Claude Sonnet (claude-sonnet-4-6) |
-
----
-
-## 25. Super Admin
-
-URL: `/super-admin/dashboard`  
-Accessible only to users with `is_superuser = true`. This is for the **platform operator**, not a regular team admin.
-
----
-
-### 25.1 Platform Stats
+Advanced cross-project metrics:
 
 | Metric | Description |
 |--------|-------------|
-| Total users | All registered users across all companies |
-| Total teams | All workspaces |
-| Total projects | All projects |
-| Total tasks | All tasks |
-| Total messages | All messages sent |
-| New users (7d / 30d) | Signups in the last 7 and 30 days |
-| Task activity (7d) | Tasks created/updated in last 7 days |
-| Messages (7d) | Messages sent in last 7 days |
+| Lead time | Avg time from creation to completion |
+| Cycle time | Avg time from "in progress" to completion |
+| Throughput | Tasks completed per week bar chart |
+| Overdue trend | Overdue count over past weeks |
+| Sprint burndown | Remaining vs ideal per day |
+| Velocity | Story points per sprint |
+
+**ICS Calendar Export** — downloads a `.ics` file of all milestone due dates for import into Google Calendar / Outlook / Apple Calendar.
+
+### 16.4 Docs (Knowledge Base)
+
+- Create and list knowledge base documents per project
+- Markdown editor with live preview
+- Also accessible from each project's Docs tab
+
+### 16.5 Notifications (Preferences & Rules)
+
+**Global preferences:**
+
+| Setting | Default |
+|---------|---------|
+| Email notifications | On |
+| Due reminders | On |
+| Overdue digest (daily) | Off |
+| Watch notifications | On |
+| Approval notifications | On |
+
+**Digest preview** — sample of what your daily digest email looks like.
+
+**Per-project notification rules:**
+- Create rule: select project + event type + delivery channel (in-app / email / both)
+- Rules override global defaults for that project
+- List of active rules with delete button
+
+### 16.6 Automation
+
+**AI rule builder:**
+- Describe automation in plain English → AI generates trigger + condition + action (requires AI plan)
+
+**Manual rule builder:**
+- Trigger: task created / task moved to column / due date reached / task assigned
+- Condition: issue type / priority / assignee / column
+- Action: assign user / move to column / set priority / send notification
+
+Active rules listed with toggle on/off and delete.
+
+### 16.7 Issue Fields (Custom Fields)
+
+Per-project, per-issue-type custom fields:
+
+| Type | Example |
+|------|---------|
+| Text | External ticket ID |
+| Number | Budget, story points override |
+| Date | Target ship date |
+| Select | Region, environment |
+
+Custom fields appear in the task create/edit form for the configured issue type.
+
+### 16.8 Client Portal
+
+- **Generate AI client report** — AI produces a client-ready progress summary (requires AI plan)
+- **Grant access** — enter client email; they receive a read-only portal link
+- **Portal links** — list all active links; copy or revoke
 
 ---
 
-### 25.2 User Management
+## 17. Project Reports & Insights
 
-Super admins can:
-- List all users with search by name/email
-- Create a new user (email, name, password, timezone, role flags)
-- Set `is_active`, `is_staff`, `is_superuser` flags
-- Edit or deactivate any user
-- Bulk delete selected users
+**Route:** `/projects/[id]/reports`
 
----
+Per-project analytics across 4 tabs.
 
-### 25.3 Company Management
+### 17.1 Overview Tab
 
-The **Company Management** panel is the core of the Super Admin dashboard. It provides a full drill-down view of all companies on the platform.
+- Health score (0–100) composite metric with colour indicator
+- Progress ring — % tasks completed
+- Open / In-progress / Done counts
+- Overdue count with warning
+- Team member task bar chart
 
-#### Status Filter Chips
+### 17.2 Velocity Tab
 
-Four chips at the top of the panel let you filter the company list by status:
+- Weekly velocity bar chart (story points per week)
+- Sprint-over-sprint comparison line chart
 
-| Chip | Shows |
-|------|-------|
-| **All** | Every company (default) |
-| **Active** | Companies with `onboarding_status = active` |
-| **Onboarding** | Companies currently in progress (`in_progress`) |
-| **Pending** | Companies not yet started (`pending`) |
+### 17.3 Burndown Tab
 
-Each chip shows its count. The active chip is highlighted. Click any chip to filter; combine with the search box to narrow further. Click **Clear filters** to reset.
+- Sprint burndown: remaining work vs ideal burn rate per day
+- Hover to see exact values per day
 
----
+### 17.4 Team Tab
 
-#### Company Cards
+- Per-member: assigned, completed, in-progress, completion rate %
+- **AI insights** button — AI narrative summary with recommendations (requires AI plan)
 
-Each company appears as a card with:
-
-- **Status accent** — a colored left border: green = active, blue = in progress, amber = pending, red = suspended
-- **Status badge** — dot indicator with the status label (the "In Progress" dot pulses)
-- **Logo / icon** — company logo if set, otherwise a building icon tinted by status
-- **Company name** and **slug**
-- **Email domain** with a verified shield icon if domain is verified
-- **CEO box** — amber background when a CEO is assigned; shows name and email. Muted when no CEO assigned
-- **Stats** — team count, member count, pending invite count
-- **Dropdown menu** (⋯) — View Details, Edit/Onboard, Mark Active, Suspend, Delete
-
-Click the **View teams & members** footer to drill into the company detail view.
+**Export** — dropdown on the page: export charts as PNG or full report as CSV.
 
 ---
 
-#### Company Detail View
+## 18. Project Timeline
 
-Clicking a company opens a two-panel detail view:
+**Route:** `/projects/[id]/timeline`
 
-**Left panel — Company info:**
-- Company name, slug, logo
-- Status badge
-- CEO info (amber section)
-- Website, industry, size, country, created date
-- Email domain with Verified/Unverified badge
-- Action buttons:
-  - **Edit / continue onboarding** — reopens the wizard
-  - **Company settings** — opens the settings dialog
-  - **Mark Active** (green) — promotes status to active
-  - **Suspend** (red) — suspends the company
+The Timeline tab in the project board currently shows a placeholder screen ("Visualize your project roadmap and dependencies in a Gantt-style timeline" + Configure Timeline button). The full Gantt implementation is in progress.
 
-**Right panel — Teams:**
-- Lists all teams under the company
-- Each row shows team name, member count, plan
-- Click a row or the chevron to drill into **Team Members**
-- Empty state says "Teams are created by the company Admin via the company dashboard"
+A separate per-project Timeline page exists at `/projects/[id]/timeline` with:
+- Gantt-style horizontal bars for tasks and milestones
+- Drag bars to adjust start/end dates
+- Dependency arrows between linked tasks
+- Group by epic or assignee
+- Zoom: day / week / month view
 
 ---
 
-#### Team Members View
+## 19. Project Files
 
-Drill-down view showing all members of a specific team:
+**Route:** `/projects/[id]/files`
 
-| Column | Example |
-|--------|---------|
-| Avatar | Role-colored initial |
-| Name | Priya Sharma |
-| Email | priya@nova-agency.com |
-| Role badge | Manager (blue) |
-| Joined | May 1, 2026 |
+Upload and manage file attachments scoped to a project.
 
-Read-only — the Super Admin cannot change roles here. Role changes happen via Company Member management endpoints or the company dashboard.
+### 19.1 Categories
 
----
+| Category | Description |
+|----------|-------------|
+| Documentation | Technical docs, specs |
+| PPT | Presentations |
+| Excel | Spreadsheets |
+| Use case | Flow diagrams |
+| Other | Anything else |
 
-### 25.4 Company Onboarding Wizard (5-Step)
+### 19.2 Upload
 
-The Super Admin creates and onboards companies through a 5-step wizard. For new companies, all steps are submitted atomically on "Launch Company". For existing companies, each step saves immediately.
+1. Enter a title
+2. Select category
+3. Choose file from device
+4. **Upload**
 
-**How to open:**
-- Click **Onboard Company** (new)
-- Click **Edit / Onboard** from a company card or detail view (resume/edit)
+### 19.3 Managing
 
----
-
-#### Step 1 — Company Details
-
-| Field | Example | Notes |
-|-------|---------|-------|
-| Company name | `Nova Agency` | Required |
-| Website | `https://nova-agency.com` | Optional |
-| Country | `United States` | Free text |
-| Industry | `Consulting` | Dropdown: Technology, Finance, Healthcare, Education, Retail, Manufacturing, Media & Entertainment, Consulting, Real Estate, Other |
-| Company size | `11-50` | Dropdown: 1-10, 11-50, 51-200, 201-500, 501-1000, 1000+ |
-| Internal notes | `Referred by partner` | Super-admin only; not shown to company members |
+- **Search** — filter by title
+- **Download** — download icon on each file
+- **Delete** — trash icon (owner or project admin only)
 
 ---
 
-#### Step 2 — CEO Assignment
+## 20. Project Docs
 
-Choose one of two modes:
+**Route:** `/projects/[id]/docs`
 
-**Mode A — Select existing user**
-- Search by name or email
-- Pick from results
-- The user is immediately assigned as CEO with a `CompanyMember` CEO role
+Per-project knowledge base:
 
-**Mode B — Invite new user**
-- Enter a CEO email address
-- An invite email is sent: *"You've been invited to lead {company} on FlowTeam"*
-- The invite link is `/company-invite/{token}` (valid 7 days)
-- Until accepted, the CEO slot shows the invited email
-
-> If no CEO is assigned now, one can be added later by re-opening the wizard or editing the company.
+- Sidebar list of all documents
+- Click to open in a markdown editor
+- Create new document with a title
+- Also accessible via Operations Hub → Docs tab
 
 ---
 
-#### Step 3 — Teams Setup
+## 21. Project Billing
 
-Two actions:
+**Route:** `/projects/[id]/billing`
 
-**Create new teams:**
-- Type a team name → click **Add** → it appears in the list
-- Add multiple teams in this step
-- Each team created here is assigned to this company immediately
-
-**Assign existing teams:**
-- Teams already on the platform that have no company can be linked here
-- Check the teams to assign
-- Teams already linked to this company are shown as "Already linked"
-
-> After launch, new teams must be created by company Admins from the Company Admin dashboard — not from the Super Admin.
+- Set total project budget
+- Log expense line items: name, amount, date, category
+- Budget gauge: spent vs remaining
+- Export billing data as CSV
 
 ---
 
-#### Step 4 — Email Domain
+## 22. Project Settings & Permissions
 
-| Field | Notes |
+**Route:** `/projects/[id]/settings/permissions`
+
+### 22.1 Project Roles
+
+- Lists all team members with their implied project role (derived from team role)
+- Override any member's project role: Project Admin / Editor / Commenter / Viewer
+- Add a member to the project with a specific role
+- Remove a member's project override (reverts to team-role default)
+
+### 22.2 Role Capability Matrix
+
+Visual table showing what each project role (Project Admin / Editor / Commenter / Viewer) can do across all capabilities.
+
+### 22.3 Git Integrations (per project)
+
+Three integration cards available:
+
+**GitHub:**
+- OAuth connect (redirects to GitHub)
+- Link a repository (owner/repo format)
+- Connected status badge with GitHub username
+
+**GitLab:**
+- Same flow as GitHub with GitLab OAuth
+
+**Bitbucket:**
+- Same flow with Bitbucket OAuth
+
+Once connected, commits and PRs mentioning a task ID appear in the task activity feed.
+
+---
+
+## 23. Messages — Real-Time Chat
+
+**Route:** `/messages`
+
+### 23.1 Sidebar Structure
+
+**Special views (top of sidebar):**
+- **All Unreads** — aggregated list of every channel with unread messages
+- **Threads** — all thread replies you participated in or that mention you
+- **Drafts & Sent** — your scheduled messages (pending and sent)
+
+**Starred channels section** — channels you've starred appear here for quick access
+
+**Channels** — `#channel-name` list with unread counts
+
+**Direct Messages** — one-to-one and group DMs with presence dots
+
+**Online members** — presence indicator on each avatar
+
+### 23.2 Channel Sorting
+
+Right-click the Channels group header or use the sort control:
+- **Recent** — most recently active first (default)
+- **Alphabetical** — A to Z
+- **Most Unread** — highest unread count first
+
+### 23.3 Sending a Message
+
+- Type and press **Enter** to send; **Shift+Enter** for a new line
+- Markdown: `**bold**`, `_italic_`, `` `code` ``, ` ```block``` `
+- @mention: `@username` → notification sent to that user
+- Channel mention: `#channel-name`
+- Emoji picker via the 😊 icon or `:emoji_name:`
+
+### 23.4 Slash Commands
+
+Type `/` to open the command menu:
+
+| Command | Effect |
+|---------|--------|
+| `/poll` | Create a poll with question + up to 4 options; members vote inline |
+| `/remind` | Set a personal reminder at a chosen time |
+| `/shrug` | Appends `¯\_(ツ)_/¯` |
+| `/giphy` | Search and send an animated GIF |
+| `/assign` | Assign a task to a team member from the composer |
+| `/status` | Update your custom status without leaving chat |
+| `/help` | Lists all available slash commands |
+
+### 23.5 Voice Memos
+
+Click the **microphone** icon in the composer:
+
+1. Click to start recording (uses browser MediaRecorder API)
+2. Timer shows duration while recording
+3. Click stop — preview the recording with play/pause
+4. **Send** to attach the audio to the message, or **Discard** to cancel
+
+### 23.6 Format Toolbar
+
+The composer has a format toolbar with quick-insert buttons for bold, italic, inline code, code block, links, and lists.
+
+### 23.7 Quote / Reply in Composer
+
+Hover a message → click **Quote** → the message is embedded as a blockquote in your composer.
+
+### 23.8 Reactions & Threads
+
+- Hover message → emoji icon → add reaction
+- Reactions aggregate with count; click an existing one to add yours
+- Click **Reply** to open the thread panel on the right
+- Thread replies are visible only in the Threads special view or when the thread is open
+
+### 23.9 Edit History
+
+- Hover message → `⋯` → **View edit history** — opens a modal showing all previous versions with timestamps
+
+### 23.10 Pinned Messages
+
+- Hover message → `⋯` → **Pin**
+- Pinned tab in the channel header shows all pinned messages
+- Click to jump to pinned message in history
+
+### 23.11 Starred Messages
+
+- Hover message → `⋯` → **Save / Star** — message saved to your personal saved list
+- Access starred messages from the `⋯` menu or via the channel details panel
+
+### 23.12 Star a Channel
+
+- Click the ⭐ icon in the channel header (top bar) to star/unstar
+- Starred channels appear in the dedicated **Starred** section at the top of the sidebar
+
+### 23.13 Notification Level per Channel
+
+In the channel header → `⋯` → **Notification preferences**:
+- **All messages** (default)
+- **Mentions only**
+- **Mute**
+- **Keywords** — enter comma-separated keywords; get notified only when those words appear
+
+### 23.14 Editing & Deleting Messages
+
+- Edit: hover → `⋯` → **Edit** (available for a limited window); inline editor appears
+- Delete: hover → `⋯` → **Delete**; removed for all users
+- Edited messages show "(edited)" label
+
+### 23.15 Scheduled Messages
+
+- In the composer, click the clock icon → set date/time → **Schedule**
+- Appears in **Drafts & Sent** until it sends
+- Cancel or reschedule from Drafts & Sent
+
+### 23.16 Message Search
+
+- Search icon in the channel header (or mobile search button)
+- Filter by: text query, sender, date from, date to
+- **Save preset** — save a named search preset for reuse
+- Click a search preset to re-run it instantly
+- Edit preset name inline; delete presets
+
+### 23.17 Jump to Unread
+
+When entering a channel with unread messages, a yellow **"Jump to first unread"** banner appears at the top. Click to scroll to the first unread message.
+
+### 23.18 New Message Count Banner
+
+While scrolled up in history, a pill at the bottom shows how many new messages have arrived. Click to jump to the bottom.
+
+### 23.19 File Sharing
+
+- Drag & drop up to **5 attachments** per message into the composer
+- Or click the paperclip icon to select files
+- Images render inline; other files show as download cards
+- Pending attachments shown as previews with a remove `×` button before sending
+
+### 23.20 Channel Management
+
+- **New channel** — click `+` next to Channels → name, description, public/private
+- **Private channels** — invite-only; non-members cannot see or join
+- **Add members** — channel header → 👥 icon → search team members → select → **Add**
+- **Channel details panel** — click ℹ icon → "About" tab (topic, description, member count) and "Members" tab (searchable list of all members)
+- **Archive** — Admin can archive; channel becomes read-only
+- **Leave** — any member can leave via `⋯` → Leave channel
+
+### 23.21 Direct Messages & Group DMs
+
+- Click `+` next to Direct Messages → search and select one or more users (up to 8) → **Open DM**
+- Group DMs show all participant avatars
+
+### 23.22 Mention Autocomplete
+
+While typing `@` in the composer, a popup shows matching team members. Arrow keys + Enter to select. The mention turns into a highlighted chip.
+
+---
+
+## 24. Calls — Audio & Video
+
+### 24.1 Starting a Call
+
+- In any DM or channel → click the **phone** (audio) or **camera** (video) icon in the channel header
+- Caller hears a Web Audio API ringtone; callee sees an incoming call banner with caller name and avatar
+
+### 24.2 In-Call Controls
+
+| Control | Action |
+|---------|--------|
+| Microphone | Mute / unmute |
+| Camera | Video on / off |
+| Screen share | Share entire screen or window |
+| Record | Start / stop recording (saved locally) |
+| End call | Hang up |
+
+### 24.3 Missed Calls
+
+Missed calls appear as a system message in the chat: "📞 Missed call from [name]".
+
+### 24.4 Technical Details
+
+- **WebRTC** via simple-peer for peer-to-peer audio/video
+- ICE signalling over the existing WebSocket connection
+- Web Audio API for ringtones (no audio files needed)
+- No third-party call service; runs within your deployment
+
+---
+
+## 25. Presence & Custom Status
+
+### 25.1 Presence Indicators
+
+| Indicator | Meaning |
+|-----------|---------|
+| Green dot | Online — active last 5 minutes |
+| Yellow dot | Away — active last 30 minutes |
+| Grey dot | Offline |
+
+Presence is broadcast in real time over WebSocket (TeamPresenceConsumer) and updates on all sidebar avatars, DM list, and member roster.
+
+### 25.2 Custom Status
+
+Click your **avatar** in the sidebar (bottom) → Status popover:
+
+1. Enter an emoji (e.g. 🎧) and text (e.g. "In deep focus")
+2. Or pick a **quick preset**: In a meeting, Out sick, On vacation, Working remotely, Focusing — DMs only, Commuting
+3. Set an optional **expiry** — status auto-clears after: 30 min, 1 hour, 4 hours, today, this week, or for a preset's built-in duration (e.g. "In a meeting" defaults to 1 hour)
+4. Click **Save status** or **Clear status** to remove it
+
+Status appears as `[emoji] [text]` next to your name in all channels and DMs.
+
+### 25.3 Update via Slash Command
+
+Type `/status` in any message composer → opens the status form inline.
+
+---
+
+## 26. Meetings
+
+**Route:** `/meetings`, `/meetings/[id]`
+
+### 26.1 Creating a Meeting
+
+1. Click **New meeting**
+2. Title, description, start time, end time
+3. Select invitees from team members
+4. Optional video link or built-in FlowTeam call
+5. **Schedule**
+
+### 26.2 Meeting List
+
+- Lists upcoming and past meetings
+- Filter by date range or team member
+
+### 26.3 Meeting Detail Page (`/meetings/[id]`)
+
+- Attendee list with accept/decline status
+- Meeting notes editor (visible to all invitees)
+- Link to call recording (if recorded)
+- **Edit meeting** — opens edit dialog (title, time, attendees, link)
+
+### 26.4 Notifications
+
+Invitees receive an in-app notification and email (if enabled) when a meeting is scheduled or updated.
+
+---
+
+## 27. Calendar
+
+**Route:** `/calendar`
+
+- **Views**: Month / Week / Day
+- **Events shown**: meetings, task due dates, sprint start/end, milestones
+- Click an event → detail panel
+- Click an empty slot → create meeting
+- **Filters**: by project or sprint
+- **ICS export** — download all calendar events as `.ics` for Google Calendar / Outlook / Apple Calendar (also available from Operations Hub → Reporting)
+
+---
+
+## 28. Search
+
+Universal search: press **Cmd/Ctrl + K** or click the magnifying glass in the top bar (debounced, triggers after 2 characters, 300ms delay).
+
+- Searches: tasks, projects, team members, channels
+- Results grouped by type with icons
+- Press **Enter** or click a result to navigate
+- Navigate results with arrow keys
+
+---
+
+## 29. Notifications
+
+### 29.1 In-App Notification Panel
+
+Click the **bell icon** in the top bar:
+
+- Unread badge count on the bell
+- Categories: mentions, assignments, comments, approvals, calls
+- Click a notification to navigate to the source
+- **Mark all as read** button
+
+### 29.2 Email Notifications
+
+Configured in **Settings → Notifications**:
+
+- Task Assigned, Task Completed, Project Updates, Member Joined, Weekly Digest (toggles)
+- Saved locally to `localStorage`
+
+### 29.3 Per-Project Rules
+
+In **Operations Hub → Notifications → Notification Rules**:
+- Create: project + event type + delivery (in-app / email / both)
+- Rules override global defaults for that project
+
+### 29.4 Offline Email Notifications
+
+When you're offline and someone sends a message mentioning you, FlowTeam sends an email after a short delay (handled by the Notification WebSocket consumer + Celery background task).
+
+---
+
+## 30. Dark / Light Theme
+
+### 30.1 Toggle
+
+Click the **sun / moon icon** in the top-right of the top bar:
+- In dark mode: shows sun icon → click to switch to light
+- In light mode: shows moon icon → click to switch to dark
+
+### 30.2 Persistence
+
+- Saved to `localStorage` key `flowteam-theme`
+- Applied as CSS class (`dark` or `light`) on the `<html>` element
+- Default for new users: **dark**
+- Persists across page reloads and browser restarts
+
+---
+
+## 31. Two-Factor Authentication (2FA)
+
+Available in **Settings → Security → Two-Factor Authentication**.
+
+### 31.1 Enable
+
+1. Click **Enable 2FA**
+2. Scan QR code with Google Authenticator / Authy / any TOTP app
+3. Enter the 6-digit code to confirm
+4. Save your backup codes in a secure location
+
+### 31.2 Sign In with 2FA
+
+After email + password, enter the 6-digit TOTP code from your authenticator app.
+
+### 31.3 Disable
+
+Enter current TOTP code → **Disable 2FA**.
+
+Company Admins can enforce 2FA for all members at the company level.
+
+---
+
+## 32. Web Push Notifications
+
+- From **Settings → Notifications** → browser notification toggle → browser asks for permission → click **Allow**
+- Sent for: mentions, task assignments, incoming calls, approval requests
+- Works when FlowTeam tab is closed (browser must be running)
+- Revoke in browser notification settings or the Settings toggle
+
+---
+
+## 33. Audit Log
+
+**Route:** `/settings/audit-log` (CEO / Admin only)
+
+Every sensitive action logged with actor, timestamp, IP:
+
+- User invited / role changed / deactivated
+- 2FA enabled / disabled
+- API token created / revoked
+- Project created / deleted / archived
+- Permission changes
+- Login success / failure
+- Data export
+
+Filter by actor, action type, date range. Export as CSV.
+
+---
+
+## 34. Exports
+
+| Data | Location | Format |
+|------|----------|--------|
+| Project board | Board header → Export dropdown | CSV / XLSX / PDF |
+| Project report | Reports page → Export | CSV / PNG |
+| Project billing | Billing page | CSV |
+| Audit log | Admin → Audit Log | CSV |
+| Calendar / milestones | Calendar or Operations Hub → Reporting | `.ics` |
+| Client report | Operations Hub → Client Portal | PDF (AI) |
+
+---
+
+## 35. Client Portal
+
+**Route:** Operations Hub → Client Portal (per project)
+
+- **Generate AI client report** — AI writes a polished progress summary: milestones, risks, upcoming deliverables (requires AI plan)
+- **Grant access** — enter client email; they get a read-only portal link
+- **Portal links** — list all active links; copy URL or revoke access
+- Clients see: project name, milestone status, key risks, upcoming work — no internal task details
+
+---
+
+## 36. Automation Rules
+
+**Route:** Operations Hub → Automation
+
+### 36.1 AI Rule Builder
+
+Describe the rule in plain English → AI generates trigger + condition + action → review → **Save** (requires AI plan).
+
+### 36.2 Manual Rules
+
+- **Trigger**: Task created / Task moved to column / Due date reached / Task assigned
+- **Condition**: Issue type / Priority / Assignee / Column
+- **Action**: Assign user / Move to column / Set priority / Send notification
+
+### 36.3 Managing Rules
+
+Active rules are listed with:
+- Trigger + condition + action summary
+- Active / inactive toggle (pause without deleting)
+- Delete button
+
+---
+
+## 37. AI Features (AI Plan)
+
+AI requires the team to have AI enabled (Settings → AI → toggle). When disabled, AI buttons are visible but show a "not enabled" toast. AI is powered by Claude.
+
+### 37.1 Daily Briefing (Dashboard)
+
+Auto-generated morning summary on the dashboard: overdue count, due-today count, meeting count, and a narrative text. **Refresh** button to regenerate. Collapses/expands with a chevron.
+
+### 37.2 Focus Recommendations (Dashboard)
+
+Up to 6 ranked task recommendations with urgency badge (CRITICAL / HIGH / MEDIUM / LOW) and the reason each task was recommended. **Refresh** button to regenerate.
+
+### 37.3 Sprint Scope Suggestion (Planning Hub)
+
+Planning Hub → Sprint Planning → **AI: Suggest scope** → selects best-fit backlog tasks for the target sprint based on priority and capacity hours. Shows reasoning text.
+
+### 37.4 AI Retrospective (Planning Hub)
+
+Per sprint → **Generate retrospective** → AI analyses completed/blocked tasks and returns:
+- What went well
+- What didn't go well
+- Action items
+
+### 37.5 Task Generation (Project Board)
+
+Board → AI button → **Generate tasks** → describe what you want to build → AI creates structured tasks with titles, descriptions, and priorities.
+
+### 37.6 Risk Analysis (Project Board)
+
+Board → AI → **Analyse risks** → AI reviews open tasks, due dates, and blockers → returns a prioritised risk list with mitigation suggestions.
+
+### 37.7 Project Health Score (Board Header & Portfolio)
+
+AI-powered health score (0–100) displayed as a badge on the board header and portfolio cards. Uses task completion rate, blocker count, and sprint velocity.
+
+### 37.8 AI Automation Builder (Operations Hub)
+
+Operations Hub → Automation → describe rule in plain English → AI generates the full trigger/condition/action.
+
+### 37.9 Client Report (Operations Hub)
+
+Operations Hub → Client Portal → **Generate AI client report** → client-ready narrative with milestone progress, risks, upcoming deliverables.
+
+### 37.10 Team Performance Insights (Reports)
+
+Project Reports → Team tab → **AI insights** → narrative performance summary with recommendations per team member.
+
+### 37.11 Channel Catch-up (AI feature)
+
+AI can summarise missed messages in a channel — triggered from the channel header AI button (requires AI plan).
+
+### 37.12 Auto Label & Triage
+
+On task creation, AI can suggest labels, issue type, and priority automatically.
+
+### 37.13 Workload Balancer
+
+AI detects overloaded team members and suggests task reassignments.
+
+---
+
+## 38. Super Admin
+
+**Route:** `/super-admin/dashboard` (platform operator only — `is_superuser`)
+
+Non-superusers are automatically redirected to `/dashboard`.
+
+### 38.1 Stats Panel
+
+Platform-wide counts: users, teams, projects, tasks, messages. Activity: new users in 7d / 30d, task activity 7d, messages 7d.
+
+### 38.2 User Management
+
+- **Search users** — live search by email / name
+- **Create user** — email, full name, timezone, password, active/staff/superuser flags
+- **Edit user** — update any field except email; reset password
+- **Delete user** — confirmation dialog
+- **Bulk delete** — select multiple users → bulk delete (select-all checkbox with indeterminate state)
+
+### 38.3 Company Management Panel
+
+Full drill-down company management:
+
+- **Companies list** — all companies with status badges (active / paused / onboarding / trial / suspended)
+- **Create company** — via the Onboarding Wizard (name, plan, domain, settings)
+- **Company detail** — see all teams, members, pending invites; edit company settings JSON
+- **Team members drill-down** — for any team within a company
+- **Toggle company active/inactive**
+- **Edit onboarding status**
+
+---
+
+## 39. Plan Limits
+
+| Feature | Free | Pro | AI |
+|---------|------|-----|----|
+| Team members | 5 | Unlimited | Unlimited |
+| Projects | 3 | Unlimited | Unlimited |
+| Storage | 1 GB | 20 GB | 100 GB |
+| Message history | 30 days | Unlimited | Unlimited |
+| AI features | — | — | ✓ |
+| Client portal | — | ✓ | ✓ |
+| Custom fields | — | ✓ | ✓ |
+| Automation rules | — | ✓ | ✓ |
+| Audit log | — | ✓ | ✓ |
+| 2FA enforcement | — | ✓ | ✓ |
+| Priority support | — | ✓ | ✓ |
+
+---
+
+## 40. Quick Reference — Field Limits
+
+| Field | Limit |
 |-------|-------|
-| Enable email domain toggle | Off by default — skip this step if not needed |
-| Company email domain | e.g., `nova-agency.com` (without @) |
-
-**How domain verification works:**
-1. Click **Get DNS instructions** — FlowTeam generates a verification token
-2. Add a DNS TXT record to your domain: `flowteam-verification={token}`
-3. Click **I've added the DNS record — verify now**
-4. Once verified, the domain shows a **Verified ✓** badge
-
-**What verified domain auto-join does:**
-- Any user who registers with `@nova-agency.com` email is automatically added as a **Member** of this company
-- No invite required for matching-domain registrations
-- This only works for **verified** domains; unverified domains do not trigger auto-join
-
----
-
-#### Step 5 — Review & Launch
-
-Shows a summary of everything configured:
-
-| Section | Shows |
-|---------|-------|
-| **Company** | Name, website, industry, size, country |
-| **CEO** | Selected user or invite email; status (Active / Invite pending) |
-| **Teams** | Teams to create and teams to assign |
-| **Email Domain** | Domain and verification status |
-
-Click **Launch Company** to:
-1. Create the company record (if new)
-2. Submit all 5 steps sequentially
-3. Set `onboarding_status = active`
-4. Send any pending CEO invite emails
-5. Create all teams and link them to the company
-
-If resuming an existing company, clicking **Launch Company** submits only the remaining steps.
-
-> **Progress bar:** Steps you've already passed show a green checkmark. You can click back to a completed step to review or edit it.
+| Task title | 200 characters |
+| Channel name | 80 characters |
+| Message | 4000 characters |
+| Custom status text | 100 characters |
+| Sprint name | 100 characters |
+| Milestone name | 100 characters |
+| Template name | 80 characters |
+| Document title | 200 characters |
+| File upload (single) | 50 MB |
+| Attachments per message | 5 |
+| Poll options | 4 |
+| Group DM participants | 8 |
+| Recurring rule interval | 1–365 (days / weeks / months) |
+| WebSocket rate limit | 60 events per 10 seconds |
+| Search min characters | 2 |
+| Search debounce | 300 ms |
+| Focus recommendations shown | 6 (out of all returned) |
 
 ---
 
-### 25.5 Company Settings Dialog
+## Appendix A — Production Setup
 
-Click **Settings** (gear icon) in the Company Detail View to open the per-company settings dialog.
+### A.1 Environment Variables
 
-| Setting | Default | Notes |
-|---------|---------|-------|
-| **AI Features** | Off | Enable AI features for all members of this company |
-| **Notifications** | On | Enable in-app and email notifications |
-| **Default Team Plan** | Free | New teams created under this company use this plan (Free / Pro / AI) |
-| **Max Members** | Unlimited | Leave blank for unlimited; set a number to cap membership |
-| **Audit Log Retention (days)** | 365 | Minimum 30 days |
-
-Click **Save Settings** to apply.
-
----
-
-## 26. Plan Limits
-
-| Limit | Free Plan | Pro Plan | AI Plan |
-|-------|-----------|----------|---------|
-| Team members (including pending invites) | **5** | **50** | **50** |
-| Active projects | **3** | **100** | **100** |
-| AI features | ❌ | ❌ | ✅ |
-
-If you hit a limit:
-- **"Team member limit reached"** → remove a member or pending invite, or upgrade
-- **"Project limit reached"** → archive an existing project, or upgrade
-- **"AI features require an AI-enabled plan"** → upgrade to AI plan in Settings → AI
-
-### 26.1 Upgrading (Stripe billing — for operators)
-
-Backend endpoints:
-- Create checkout session: `POST /api/billing/teams/<team_id>/checkout/`
-- Stripe webhook: `POST /api/billing/stripe/webhook/`
-
-Required backend env vars: `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_PRO`, `STRIPE_PRICE_ID_AI`, `STRIPE_WEBHOOK_SECRET`, `FRONTEND_BASE_URL`, `ANTHROPIC_API_KEY`
-
----
-
-## 27. Quick Reference — Field Limits
-
-| Feature | Field | Limit |
-|---------|-------|-------|
-| Registration | Password | Min 8 characters |
-| Registration | Full name | Min 2 characters |
-| Team | Name | Max 255 characters |
-| Onboarding | Invites at once | 5 email fields |
-| Project | Name | Max 255 characters |
-| Project | Color | Hex format (#RRGGBB) |
-| Column | Name | Max 100 characters |
-| Task | Title | Max 255 characters |
-| Task | Priority | urgent / high / normal / low |
-| Task | Issue type | epic / story / task / bug / subtask |
-| Task | Estimated hours | Decimal (e.g. 4.5) |
-| Sprint | Name | Max 150 characters |
-| Sprint | Capacity | Decimal hours |
-| Milestone | Name | Max 150 characters |
-| Meeting | Title | Max 140 characters |
-| Meeting | Duration | Minutes (default 30) |
-| Meeting | Call type | audio / video |
-| Approval | Title | Max 200 characters |
-| Approval | Decision note | Max 300 characters |
-| Recurring task | Frequency | daily / weekly / monthly |
-| Time log | Note | Max 200 characters |
-| Slack webhook | Name | Max 120 characters |
-| Client portal | Display name | Max 120 characters |
-| Company | Name | Max 255 characters |
-| Company | Industry | technology / finance / healthcare / education / retail / manufacturing / media / consulting / real_estate / other |
-| Company | Size | 1-10 / 11-50 / 51-200 / 201-500 / 501-1000 / 1000+ |
-| Company | Onboarding status | pending / in_progress / active / suspended |
-| Company | Notes | Internal (super-admin only) |
-| Company invite | Expiry | 7 days |
-| Company invite | Status | pending / accepted / expired |
-| Company role | Levels | CEO / Admin / Manager / Member / Viewer |
-| Search | Minimum query | 2 characters |
-| Search | Rate limit | 30 requests / 60 seconds |
-| Export | Rate limit | 5 exports / 60 seconds |
-| 2FA backup codes | Count | 10 codes (one-time use each) |
-| Audit log | Retention | 365 days (configurable per company, min 30) |
-| Free plan | Members | 5 |
-| Free plan | Projects | 3 |
-| Pro plan | Members | 50 |
-| Pro plan | Projects | 100 |
-| AI plan | Members | 50 |
-| AI plan | Projects | 100 |
-| AI briefing cache | TTL | 12 hours per user |
-| AI health score cache | TTL | 24 hours per project |
-| AI model | Version | Claude Sonnet (claude-sonnet-4-6) |
-| Push subscription | Storage | One row per browser/device per user |
-| Google OAuth | Scope | openid email profile |
-| GitHub OAuth | Scope | repo |
-| GitLab OAuth | Scope | api read_api |
-| Bitbucket OAuth | Scope | pullrequest repository |
-| Google Calendar Sync | Scope | calendar.events.readonly |
-| Microsoft Calendar Sync | Scope | Calendars.Read (offline_access) |
-| GitHub webhook events | Types | pull_request, push |
-| GitHub task reference | Format | #42 or #PROJ-42 in PR title/body |
-| Meeting transcript | Provider | OpenAI audio transcriptions (`OPENAI_API_KEY`) |
-
----
-
-## Appendix A — Production Integrations
-
-### A.1 Transactional Email (Resend / SendGrid / SMTP)
-
-Invite emails and notification digests require an email provider.
-
-Backend env vars:
-- `EMAIL_PROVIDER` = `django` | `resend` | `sendgrid`
-- `DEFAULT_FROM_EMAIL`
-- `FRONTEND_BASE_URL` (used for invite links)
-- If `django`: `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`
-- If `resend`: `RESEND_API_KEY`
-- If `sendgrid`: `SENDGRID_API_KEY`
-
-### A.2 Cloud File Storage (S3 / Cloudflare R2)
-
-Backend env vars:
-- `USE_S3_STORAGE=True`
-- `AWS_STORAGE_BUCKET_NAME`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-- Optional: `AWS_S3_ENDPOINT_URL`, `AWS_S3_REGION_NAME`
-
-### A.3 CSV Import
-
-`POST /api/projects/<project_id>/import/csv/` (multipart form with `file`)
-
-Supported headers: `title` (required), `description`, `column`, `assignee_email`, `due_date` (YYYY-MM-DD), `priority`, `issue_type`
-
-### A.4 AI (Anthropic Claude)
-
-- Backend env var: `ANTHROPIC_API_KEY`
-- Model: `claude-sonnet-4-6` (prompt caching enabled on all system prompts)
-- Heavy workloads pre-computed via Celery and served from Redis cache
-
-### A.5 Browser Push Notifications (VAPID)
-
-Backend env vars:
-- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_CLAIMS_EMAIL`
-
-Generate a VAPID key pair:
-```bash
-python -c "from pywebpush import Vapid; v=Vapid(); v.generate_keys(); print(v.public_key, v.private_key)"
+**Backend (Django):**
+```
+SECRET_KEY=
+DATABASE_URL=
+REDIS_URL=
+ALLOWED_HOSTS=
+CORS_ALLOWED_ORIGINS=
+EMAIL_HOST=
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+DEFAULT_FROM_EMAIL=
+DJANGO_SUPERUSER_EMAIL=
+DJANGO_SUPERUSER_PASSWORD=
+DJANGO_SUPERUSER_USERNAME=
+AI_API_KEY=          # Anthropic key for AI plan features
+FRONTEND_URL=        # Used in email links
 ```
 
-### A.6 OAuth + Integrations
+**Frontend (Next.js):**
+```
+NEXT_PUBLIC_API_URL=https://your-domain/api
+NEXT_PUBLIC_WS_URL=wss://your-domain/ws
+```
 
-**Google OAuth (sign-in)**  
-Backend env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
+### A.2 Services Required
 
-**GitHub OAuth (per-project)**  
-Backend env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `GITHUB_REDIRECT_URI`, `GITHUB_WEBHOOK_SECRET`
+| Service | Role |
+|---------|------|
+| Django + Channels | REST API + WebSocket server |
+| PostgreSQL | Primary database |
+| Redis | WebSocket channel layer + task queue |
+| Celery | Email sending, offline notifications, recurring rules, digests |
+| Nginx | Reverse proxy, static files, WebSocket upgrade |
 
-**GitLab OAuth (per-project)**  
-Backend env vars: `GITLAB_CLIENT_ID`, `GITLAB_CLIENT_SECRET`, `GITLAB_REDIRECT_URI`, `GITLAB_WEBHOOK_SECRET`
+### A.3 Deploying Updates
 
-**Bitbucket OAuth (per-project)**  
-Backend env vars: `BITBUCKET_CLIENT_ID`, `BITBUCKET_CLIENT_SECRET`, `BITBUCKET_REDIRECT_URI`
+```bash
+python scripts/deploy_hetzner_paramiko.py --prune
+```
 
-**Calendar Sync (Google / Outlook)**  
-Backend env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALENDAR_REDIRECT_URI`, `MICROSOFT_CLIENT_ID`, `MICROSOFT_CLIENT_SECRET`, `MICROSOFT_CALENDAR_REDIRECT_URI`
+`--prune` runs `docker system prune -af` on the server before uploading to reclaim disk space. File uploads use raw SSH exec stdin-piping (`cat > file.tmp`) — SFTP is not used.
 
-**Meeting transcript**  
-Backend env vars: `OPENAI_API_KEY`, optional `OPENAI_TRANSCRIBE_MODEL` (default: `gpt-4o-mini-transcribe`)
+### A.4 WebSocket Consumers
+
+| Consumer | Path | Purpose |
+|----------|------|---------|
+| ChatConsumer | `/ws/chat/{team_id}/` | Real-time messaging |
+| ChannelEventsConsumer | `/ws/channel-events/{team_id}/` | Board updates, task events |
+| TeamPresenceConsumer | `/ws/presence/{team_id}/` | Online/away/offline presence |
+| NotificationConsumer | `/ws/notifications/{user_id}/` | Per-user in-app notifications |
+
+Rate limit: 60 events per 10 seconds per consumer.
+
+### A.5 Authentication Flow
+
+- JWT access tokens (15-minute expiry) + refresh tokens (7-day expiry)
+- `ROTATE_REFRESH_TOKENS=True` — each refresh issues a new refresh token
+- Concurrent 401s are serialised through a shared `refreshPromise` lock in `api.ts` to prevent token-invalidation race conditions
+- WebSocket connections authenticate with the access token on connect
+- Only a confirmed 401 clears the user session — network errors and 5xx responses do not log users out
 
 ---
 
-*End of FlowTeam User Guide — Version 2.3*
+*FlowTeam User Guide v4.0 — reflects full codebase as of May 2026*

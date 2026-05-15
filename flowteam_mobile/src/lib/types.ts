@@ -135,4 +135,74 @@ export type NotificationItem = {
   body: string;
   is_read?: boolean;
   created_at?: string;
+  type?: string;
+  reference_type?: string;
+  reference_id?: string;
+};
+
+export type TeamMember = {
+  id: string;
+  user: User;
+  role: "CEO" | "Admin" | "Manager" | "Member" | "Viewer" | string;
+  joined_at?: string;
+};
+
+export type Meeting = {
+  id: string;
+  title: string;
+  description?: string | null;
+  start_time?: string;
+  end_time?: string;
+  starts_at?: string;
+  organizer?: User | null;
+  attendees?: User[];
+  attendee_count?: number;
+  status?: "upcoming" | "ongoing" | "completed" | string;
+  notes?: string | null;
+  has_recording?: boolean;
+};
+
+export type Sprint = {
+  id: string;
+  name: string;
+  goal?: string | null;
+  start_date?: string;
+  end_date?: string;
+  status?: "planned" | "active" | "completed" | string;
+  capacity_hours?: number;
+  project?: string;
+};
+
+export type Column = {
+  id: string;
+  name: string;
+  order?: number;
+  is_done_column?: boolean;
+  project?: string;
+  task_count?: number;
+};
+
+export type CreateTaskPayload = {
+  title: string;
+  description?: string;
+  project: string;
+  column?: string;
+  priority?: "low" | "normal" | "high" | "urgent";
+  due_date?: string | null;
+  assignee?: string | null;
+  issue_type?: string;
+  sprint?: string | null;
+  story_points?: number | null;
+};
+
+export type UpdateTaskPayload = Partial<CreateTaskPayload> & {
+  column?: string;
+  status?: string;
+};
+
+export type Presence = {
+  user_id: string;
+  status: "online" | "away" | "offline";
+  custom_status?: string | null;
+  custom_status_emoji?: string | null;
 };

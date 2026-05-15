@@ -39,6 +39,34 @@ export default function RootLayout() {
               animation: "slide_from_right",
             }}
           />
+          <Stack.Screen
+            name="tasks/[id]"
+            options={{
+              presentation: "card",
+              animation: "slide_from_right",
+            }}
+          />
+          <Stack.Screen
+            name="my-tasks"
+            options={{
+              presentation: "card",
+              animation: "slide_from_right",
+            }}
+          />
+          <Stack.Screen
+            name="search"
+            options={{
+              presentation: "card",
+              animation: "slide_from_bottom",
+            }}
+          />
+          <Stack.Screen
+            name="team"
+            options={{
+              presentation: "card",
+              animation: "slide_from_right",
+            }}
+          />
         </Stack>
       </QueryClientProvider>
     </SafeAreaProvider>

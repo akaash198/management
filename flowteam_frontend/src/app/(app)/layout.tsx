@@ -23,6 +23,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useThemeStore, initTheme } from "@/store/theme";
 
 /* ── Page label map ── */
 const PAGE_LABELS: Record<string, string> = {
@@ -60,6 +62,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [didInit, setDidInit]         = useState(false);
   const myPresence    = usePresenceStore((s) => s.status);
   const setMyPresence = usePresenceStore((s) => s.setStatus);
+  const theme = useThemeStore((s) => s.theme);
+
+  useEffect(() => {
+    initTheme(theme);
+  }, []);
 
   useEffect(() => { 
     fetchMe().then(() => {
@@ -173,6 +180,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
               {/* Notifications */}
               <NotificationBell />
+
+              {/* Theme toggle */}
+              <ThemeToggle />
 
               {/* Divider */}
               <div className="w-px h-5 bg-border mx-0.5" />

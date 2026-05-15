@@ -76,30 +76,37 @@
 }
 
 /* ─────────────────────────────────────────────
-   DARK MODE fallback (keeps .dark class working)
+   LIGHT MODE TOKENS
    ───────────────────────────────────────────── */
-.dark {
-  --background:         222 60% 10%;
-  --foreground:         0 0% 100%;
+.light {
+  /* ── Page surface ── */
+  --background:         210 25% 97%;        /* #F5F7FA off-white */
+  --foreground:         222 47% 11%;        /* #0F172A dark slate */
 
-  --card:               218 42% 18%;
-  --card-foreground:    0 0% 100%;
+  /* ── Card / panel surfaces ── */
+  --card:               0 0% 100%;          /* #FFFFFF white */
+  --card-foreground:    222 47% 11%;
 
-  --popover:            218 42% 18%;
-  --popover-foreground: 0 0% 100%;
+  --popover:            0 0% 100%;
+  --popover-foreground: 222 47% 11%;
 
-  --primary:            162 100% 74%;
-  --primary-foreground: 222 60% 10%;
+  /* ── Brand — Mint #7CFFCB ── */
+  --primary:            162 100% 40%;       /* darker mint for contrast */
+  --primary-foreground: 0 0% 100%;
 
-  --secondary:          218 42% 18%;
-  --secondary-foreground: 0 0% 100%;
+  /* ── Secondary ── */
+  --secondary:          210 20% 93%;         /* #EDF2F7 */
+  --secondary-foreground: 222 47% 11%;
 
-  --muted:              218 42% 18%;
-  --muted-foreground:   215 16% 47%;
+  /* ── Muted ── */
+  --muted:              210 20% 93%;         /* #EDF2F7 */
+  --muted-foreground:   215 16% 47%;        /* #64748B */
 
-  --accent:             238 84% 62%;
+  /* ── Accent (Indigo) ── */
+  --accent:             238 84% 62%;         /* #6366F1 */
   --accent-foreground:  0 0% 100%;
 
+  /* ── Semantic ── */
   --destructive:        0 72% 58%;
   --destructive-foreground: 0 0% 100%;
   --success:            160 84% 39%;
@@ -109,17 +116,129 @@
   --info:               210 92% 50%;
   --info-foreground:    0 0% 100%;
 
+  /* ── Structural ── */
+  --border:             214 32% 91%;         /* #DDE2EB */
+  --border-strong:      214 28% 80%;
+  --input:              214 32% 91%;
+  --ring:               162 100% 40%;        /* mint focus ring */
+
+  /* ── Sidebar ── */
+  --rail-bg:            222 47% 11%;         /* keep sidebar dark always */
+  --rail-fg:            215 20% 65%;
+  --rail-fg-active:    162 100% 74%;
+  --rail-active-bg:     215 28% 22%;
+  --rail-hover-bg:      215 25% 18%;
+  --rail-border:        0 0% 100% / 0.08;
+  --rail-logo-fg:       162 100% 74%;
+
+  /* ── Topbar ── */
+  --topbar-bg:          0 0% 100%;
+  --topbar-border:      214 32% 91%;
+
+  /* ── Brand Palette ── */
+  --slack-purple: 292 55% 26%;
+  --jira-blue:    221 100% 40%;
+  --teams-purple: 238 28% 52%;
+
+  /* ── Shadows ── */
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.10);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.12);
+  --shadow-glow: 0 0 24px rgba(124, 255, 203, 0.2);
+  --shadow-glow-strong: 0 4px 12px rgba(124, 255, 203, 0.2);
+}
+
+/* ─────────────────────────────────────────────
+   SCROLLBAR — light mode
+   ───────────────────────────────────────────── */
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.20);
+}
+
+/* ─────────────────────────────────────────────
+   RAIL TOOLTIP — light mode
+   ───────────────────────────────────────────── */
+.light .rail-radix-tooltip {
+  background: hsl(222 47% 11%);
+  color: hsl(215 20% 90%);
+  border-color: hsl(215 25% 20%);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.15);
+}
+
+/* ─────────────────────────────────────────────
+   GLASS PANEL — light mode
+   ───────────────────────────────────────────── */
+.light .glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: hsl(214 32% 91%);
+  box-shadow: 0 8px 32px -8px rgb(0 0 0 / 0.08), 0 2px 8px -2px rgb(0 0 0 / 0.05);
+}
+
+/* ─────────────────────────────────────────────
+   KANBAN — light mode fixes
+   ───────────────────────────────────────────── */
+.light .kanban-col {
+  background: hsl(210 20% 93%);
+  border-color: hsl(214 32% 91%);
+}
+.light .kanban-card {
+  background: hsl(0 0% 100%);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+.light .kanban-card:hover {
+  box-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.10);
+}
+
+/* ─────────────────────────────────────────────
+   STAT CARD — light mode
+   ───────────────────────────────────────────── */
+.light .stat-card:hover {
+  box-shadow: 0 2px 8px -2px rgb(0 0 0 / 0.08);
+}
+
+/* ─────────────────────────────────────────────
+   DARK MODE (explicit — same as :root defaults)
+   ───────────────────────────────────────────── */
+.dark {
+  --background:         222 60% 10%;
+  --foreground:         0 0% 100%;
+  --card:               218 42% 18%;
+  --card-foreground:    0 0% 100%;
+  --popover:            218 42% 18%;
+  --popover-foreground: 0 0% 100%;
+  --primary:            162 100% 74%;
+  --primary-foreground: 222 60% 10%;
+  --secondary:          218 42% 18%;
+  --secondary-foreground: 0 0% 100%;
+  --muted:              218 42% 18%;
+  --muted-foreground:   215 16% 47%;
+  --accent:             238 84% 62%;
+  --accent-foreground:  0 0% 100%;
+  --destructive:        0 72% 58%;
+  --destructive-foreground: 0 0% 100%;
+  --success:            160 84% 39%;
+  --success-foreground: 0 0% 100%;
+  --warning:            38 92% 50%;
+  --warning-foreground: 0 0% 0%;
+  --info:               210 92% 50%;
+  --info-foreground:    0 0% 100%;
   --border:             0 0% 100% / 0.08;
   --border-strong:      0 0% 100% / 0.15;
   --input:              0 0% 100% / 0.10;
   --ring:               162 100% 74%;
-
   --topbar-bg:          222 60% 10%;
   --topbar-border:      0 0% 100% / 0.08;
-
   --slack-purple:       292 55% 26%;
   --jira-blue:          221 100% 40%;
   --teams-purple:       238 28% 52%;
+  --shadow-sm:  0 2px 8px rgba(0, 0, 0, 0.2);
+  --shadow-md:  0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg:  0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 24px rgba(124, 255, 203, 0.3);
+  --shadow-glow-strong: 0 4px 12px rgba(124, 255, 203, 0.3);
 }
 
 /* ─────────────────────────────────────────────

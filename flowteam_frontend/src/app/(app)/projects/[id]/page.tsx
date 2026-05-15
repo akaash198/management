@@ -15,7 +15,9 @@ import { KanbanBoard } from "@/components/projects/KanbanBoard";
 import { ProjectListView } from "@/components/projects/ProjectListView";
 import { ProjectTabs, ProjectViewType } from "@/components/projects/ProjectTabs";
 import { EpicView } from "@/components/projects/EpicView";
+import { RetrospectiveView } from "@/components/projects/RetrospectiveView";
 import { TaskDetailPanel } from "@/components/projects/TaskDetailPanel";
+import { ProjectTimelineInline } from "@/components/projects/ProjectTimelineInline";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -27,7 +29,6 @@ import {
   ArrowLeft,
   BarChart3,
   FileText,
-  GanttChartSquare,
   Receipt,
   Shield,
   FolderOpen,
@@ -36,7 +37,6 @@ import {
   UserCircle2,
   AlertCircle,
   X,
-  RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -323,24 +323,14 @@ export default function ProjectBoardPage() {
         {activeView === "epics" && (
           <EpicView projectId={id} />
         )}
-        {activeView === "retrospectives" && (
-          <div className="p-20 flex flex-col items-center justify-center text-muted-foreground bg-background/50 m-12 rounded-3xl border border-dashed border-border shadow-inner">
-             <RotateCcw size={64} className="mb-6 opacity-20" />
-             <h2 className="text-xl font-bold text-foreground mb-2">Sprints Retrospectives</h2>
-             <p className="text-center max-w-md opacity-60">Collect feedback after each sprint. This feature is currently being optimized for your team.</p>
-             <Button className="mt-8 gap-2 font-bold px-8 h-12 shadow-xl shadow-primary/20">
-               <Plus size={18} /> Start Retrospective
-             </Button>
+        {activeView === "retrospectives" && project?.team && (
+          <div className="h-full overflow-auto">
+            <RetrospectiveView teamId={project.team} />
           </div>
         )}
         {activeView === "timeline" && (
-          <div className="p-20 flex flex-col items-center justify-center text-muted-foreground bg-background/50 m-12 rounded-3xl border border-dashed border-border shadow-inner">
-             <GanttChartSquare size={64} className="mb-6 opacity-20" />
-             <h2 className="text-xl font-bold text-foreground mb-2">Project Timeline</h2>
-             <p className="text-center max-w-md opacity-60">Visualize your project roadmap and dependencies in a Gantt-style timeline.</p>
-             <Button variant="outline" className="mt-8 font-bold border-primary text-primary hover:bg-primary/5">
-               Configure Timeline
-             </Button>
+          <div className="h-full overflow-auto">
+            <ProjectTimelineInline projectId={id} />
           </div>
         )}
       </div>
