@@ -1,41 +1,29 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  apiFeatures,
-  appFeatures,
-  caseStudies,
-  coreFeatures,
-  customerLogos,
   faqs,
-  integrations,
-  navItems,
   pricing,
-  securityBadges,
-  stats,
   testimonials,
-  useCases,
 } from "./landingContent";
 import {
   Activity,
-  Apple,
   ArrowRight,
-  ArrowUp,
+  BarChart3,
   Check,
-  CheckCircle2,
   ChevronDown,
+  GitBranch,
   Globe,
   Kanban,
   Lock,
   Menu,
   MessageSquare,
   Play,
-  Quote,
   Shield,
-  Smartphone,
+  Sparkles,
   Star,
-  Terminal,
+  Users,
   Video,
   X,
   Zap,
@@ -43,347 +31,482 @@ import {
 import { cn } from "@/lib/utils";
 
 type BillingCycle = "monthly" | "annual";
-type DemoView = "chat" | "projects" | "meetings";
+
+/* ─── Palette ────────────────────────────────────────────────────── */
+const PURPLE = "#7C3AED";
+const BLUE   = "#2563EB";
+const CYAN   = "#06B6D4";
+const MINT   = "#10B981";
 
 export default function LandingPage() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [showScrollTop, setShowScrollTop] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
-  const [demoView, setDemoView] = useState<DemoView>("chat");
-  const [activeUseCaseId, setActiveUseCaseId] = useState(useCases[0]?.id ?? "software");
-  const [testimonialIndex, setTestimonialIndex] = useState(0);
-  const [testimonialPaused, setTestimonialPaused] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [ctaEmail, setCtaEmail] = useState("");
-  const [ctaSubmitted, setCtaSubmitted] = useState(false);
+  const [isScrolled, setIsScrolled]           = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen]   = useState(false);
+  const [billingCycle, setBillingCycle]       = useState<BillingCycle>("annual");
+  const [openFaq, setOpenFaq]                 = useState<number | null>(null);
+  const [ctaEmail, setCtaEmail]               = useState("");
+  const [ctaSubmitted, setCtaSubmitted]       = useState(false);
+  const [testimonialIdx, setTestimonialIdx]   = useState(0);
+  const marqueeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 24);
-      setShowScrollTop(window.scrollY > 600);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+    const onScroll = () => setIsScrolled(window.scrollY > 16);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close mobile menu on Escape
   useEffect(() => {
     if (!mobileMenuOpen) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileMenuOpen(false); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const fn = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileMenuOpen(false); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
   }, [mobileMenuOpen]);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
   useEffect(() => {
-    const prefersReduced =
-      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
-
-    const id = window.setInterval(() => {
-      setDemoView((prev) => (prev === "chat" ? "projects" : prev === "projects" ? "meetings" : "chat"));
-    }, 4500);
-    return () => window.clearInterval(id);
+    const id = setInterval(() => setTestimonialIdx(i => (i + 1) % testimonials.length), 5500);
+    return () => clearInterval(id);
   }, []);
 
+  /* Scroll-triggered reveal */
   useEffect(() => {
-    if (testimonialPaused) return;
-    const prefersReduced =
-      typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReduced) return;
-
-    const id = window.setInterval(() => {
-      setTestimonialIndex((i) => (i + 1) % testimonials.length);
-    }, 6500);
-    return () => window.clearInterval(id);
-  }, [testimonialPaused]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
     const prefersReduced = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
-
     const els = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal]"));
-    if (!els.length) return;
-
     const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            (entry.target as HTMLElement).classList.add("is-visible");
-            io.unobserve(entry.target);
-          }
-        }
-      },
-      { threshold: 0.12, rootMargin: "40px" }
+      entries => { for (const e of entries) { if (e.isIntersecting) { (e.target as HTMLElement).classList.add("is-visible"); io.unobserve(e.target); } } },
+      { threshold: 0.1, rootMargin: "32px" }
     );
-
-    els.forEach((el) => io.observe(el));
+    els.forEach(el => io.observe(el));
     return () => io.disconnect();
   }, []);
-
-  const activeUseCase = useMemo(() => useCases.find((u) => u.id === activeUseCaseId) ?? useCases[0], [activeUseCaseId]);
-  const activeTestimonial = testimonials[testimonialIndex] ?? testimonials[0];
-  const priceForCycle = (raw: string) => {
-    if (billingCycle === "monthly") return raw;
-    if (!raw.startsWith("$")) return raw;
-    const n = Number(raw.slice(1));
-    if (!Number.isFinite(n) || n === 0) return raw;
-    const discounted = Math.max(1, Math.round(n * 0.8));
-    return `$${discounted}`;
-  };
 
   const scrollTo = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
     setMobileMenuOpen(false);
   };
 
-  const handleCtaSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!ctaEmail.trim()) return;
-    setCtaSubmitted(true);
+  const handleCta = (e: React.FormEvent) => { e.preventDefault(); if (ctaEmail.trim()) setCtaSubmitted(true); };
+
+  const priceForCycle = (raw: string) => {
+    if (billingCycle === "monthly" || !raw.startsWith("$")) return raw;
+    const n = Number(raw.slice(1));
+    return Number.isFinite(n) && n > 0 ? `$${Math.max(1, Math.round(n * 0.8))}` : raw;
   };
 
+  const activeTestimonial = testimonials[testimonialIdx] ?? testimonials[0];
+
+  /* ─── Nav links ───────────────────────────────────────────────── */
+  const NAV = [
+    { label: "Product", anchor: "features" },
+    { label: "Solutions", anchor: "use-cases" },
+    { label: "Pricing", anchor: "pricing" },
+    { label: "Enterprise", anchor: "security" },
+  ];
+
+  /* ─── Core feature bento cards ──────────────────────────────── */
+  const FEATURES: {
+    id: string; icon: React.ElementType; label: string; headline: string;
+    body: string; accent: string; span?: string; preview: React.ReactNode;
+  }[] = [
+    {
+      id: "chat",
+      icon: MessageSquare,
+      label: "Real-Time Chat",
+      headline: "Conversations that become decisions.",
+      body: "Channels, threads, DMs, and reactions — with context that automatically links to tasks.",
+      accent: PURPLE,
+      span: "lg:col-span-2",
+      preview: <BentoChat />,
+    },
+    {
+      id: "boards",
+      icon: Kanban,
+      label: "Project Boards",
+      headline: "Sprints, Kanban, or list — your call.",
+      body: "Plan and track work in the view your team prefers, with real-time progress rollups.",
+      accent: BLUE,
+      preview: <BentoBoard />,
+    },
+    {
+      id: "meetings",
+      icon: Video,
+      label: "Video Meetings",
+      headline: "Meetings with built-in accountability.",
+      body: "Agenda → recording → auto-attached to the project board. No notes lost in email.",
+      accent: CYAN,
+      preview: <BentoMeeting />,
+    },
+    {
+      id: "analytics",
+      icon: BarChart3,
+      label: "Analytics",
+      headline: "Know what's actually happening.",
+      body: "Burndown charts, velocity trends, and team health metrics — built in, not bolted on.",
+      accent: MINT,
+      preview: <BentoAnalytics />,
+    },
+    {
+      id: "ai",
+      icon: Sparkles,
+      label: "AI Assistant",
+      headline: "Summarize, assign, automate.",
+      body: "Let AI surface blockers, draft status updates, and suggest task owners — instantly.",
+      accent: "#EC4899",
+      preview: <BentoAI />,
+    },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col bg-white text-slate-900 overflow-x-hidden selection:bg-indigo-500/30">
-      <nav
-        className={cn(
-          "fixed inset-x-0 top-0 z-[100] transition-all duration-300",
-          isScrolled ? "bg-[#07070c]/70 backdrop-blur-xl py-3 border-b border-white/5" : "bg-transparent py-6"
-        )}
-      >
-        <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
-          <div className="flex items-center gap-6 lg:gap-10">
+    <div className="flex min-h-screen flex-col bg-[#030712] text-white overflow-x-hidden selection:bg-violet-500/25">
+
+      {/* ══════════════════════════ NAV ══════════════════════════════ */}
+      <header className={cn(
+        "fixed inset-x-0 top-0 z-[100] transition-all duration-300",
+        isScrolled
+          ? "bg-[#030712]/80 backdrop-blur-xl border-b border-white/[0.06] py-3"
+          : "py-5"
+      )}>
+        <div className="mx-auto max-w-7xl px-6 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-8 lg:gap-12">
             <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="focus-visible:outline-none">
-              <Logo />
+              <WordMark />
             </button>
-            <div className="hidden lg:flex items-center gap-6 xl:gap-8">
-              {navItems.map((item) => (
-                <div key={item.label} className="group relative">
-                  {item.href && item.href !== "#" && item.href.startsWith("#") ? (
-                    <button
-                      onClick={() => scrollTo(item.href!.slice(1))}
-                      className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors"
-                    >
-                      {item.label}
-                    </button>
-                  ) : (
-                    <button className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors">
-                      {item.label}
-                      {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />}
-                    </button>
-                  )}
-                  {item.children && (
-                    <div className="absolute top-full left-[-18px] pt-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200">
-                      <div className="w-[300px] rounded-2xl border border-white/10 bg-[#0b0b12]/95 backdrop-blur-2xl p-2 shadow-2xl">
-                        {item.children.map((child: any) => (
-                          <button key={child.label} onClick={() => scrollTo("features")} className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors w-full text-left">
-                            {child.icon && <child.icon size={20} className="text-indigo-300 mt-1 shrink-0" />}
-                            <div>
-                              <div className="text-[14px] font-semibold text-white">{child.label}</div>
-                              <div className="text-[12px] text-white/50">{child.description}</div>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
+            <nav className="hidden lg:flex items-center gap-7">
+              {NAV.map(n => (
+                <button
+                  key={n.label}
+                  onClick={() => scrollTo(n.anchor)}
+                  className="text-[14px] font-medium text-white/60 hover:text-white transition-colors"
+                >
+                  {n.label}
+                </button>
               ))}
-            </div>
+            </nav>
           </div>
 
-          <div className="flex items-center gap-4">
-            <Link href="/login" className="hidden sm:block text-[14px] font-medium text-white/70 hover:text-white transition-colors">
-              Sign In
+          <div className="flex items-center gap-3">
+            <Link href="/login" className="hidden sm:block text-[14px] font-medium text-white/60 hover:text-white transition-colors px-3 py-2">
+              Sign in
             </Link>
-            <Link href="/register" className="hidden sm:block">
-              <button className="px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-[14px] font-bold text-white shadow-lg shadow-indigo-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                Get Started Free
+            <Link href="/register">
+              <button className="hidden sm:flex items-center gap-1.5 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-500 text-[14px] font-semibold text-white transition-all hover:shadow-lg hover:shadow-violet-500/25">
+                Get started free
+                <ArrowRight size={14} />
               </button>
             </Link>
-            <button className="lg:hidden text-white/80" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
-              <Menu size={24} />
+            <button className="lg:hidden text-white/70 hover:text-white p-2" onClick={() => setMobileMenuOpen(true)} aria-label="Open menu">
+              <Menu size={22} />
             </button>
           </div>
         </div>
-      </nav>
+      </header>
 
+      {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[200] bg-[#050508]/95 backdrop-blur-2xl flex flex-col p-8" role="dialog" aria-modal="true" aria-label="Navigation menu">
+        <div className="fixed inset-0 z-[200] bg-[#030712] flex flex-col p-6" role="dialog" aria-modal="true">
           <div className="flex items-center justify-between mb-10">
-            <Logo />
-            <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-white/80">
-              <X size={28} />
+            <WordMark />
+            <button onClick={() => setMobileMenuOpen(false)} className="text-white/70 hover:text-white p-2">
+              <X size={22} />
             </button>
           </div>
-          <nav className="space-y-2 text-white flex-1 overflow-y-auto">
-            {navItems.map((item) => (
-              <div key={item.label}>
-                {item.href?.startsWith("#") ? (
-                  <button
-                    onClick={() => scrollTo(item.href!.slice(1))}
-                    className="text-2xl font-black py-3 w-full text-left"
-                  >
-                    {item.label}
-                  </button>
-                ) : (
-                  <div className="text-2xl font-black py-3">{item.label}</div>
-                )}
-                {item.children && (
-                  <div className="space-y-2 pl-4 border-l border-white/10 mb-4">
-                    {item.children.map((child: any) => (
-                      <button
-                        key={child.label}
-                        onClick={() => { scrollTo("features"); }}
-                        className="flex items-center gap-3 py-2 text-[16px] text-white/60 hover:text-white transition-colors w-full text-left"
-                      >
-                        {child.icon && <child.icon size={16} className="text-indigo-300 shrink-0" />}
-                        {child.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+          <nav className="flex-1 space-y-1">
+            {NAV.map(n => (
+              <button key={n.label} onClick={() => scrollTo(n.anchor)} className="w-full text-left py-4 px-3 text-xl font-semibold text-white/80 hover:text-white border-b border-white/5 transition-colors">
+                {n.label}
+              </button>
             ))}
           </nav>
-          <div className="flex flex-col gap-4 pt-6 border-t border-white/10">
-            <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-2xl bg-indigo-600 text-center font-black text-lg text-white">
-              Get Started Free
-            </Link>
-            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-2xl border border-white/10 text-center font-black text-lg text-white">
-              Sign In
-            </Link>
+          <div className="flex flex-col gap-3 pt-8">
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-xl bg-violet-600 text-center font-semibold text-white">Get started free</Link>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-xl border border-white/10 text-center font-semibold text-white/80">Sign in</Link>
           </div>
         </div>
       )}
 
-      <section className="relative pt-28 sm:pt-32 pb-16 lg:pt-56 lg:pb-40 px-6 bg-[#050508] text-white overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-44 left-1/2 -translate-x-1/2 w-[1600px] h-[1000px] opacity-60 bg-[radial-gradient(circle_at_50%_0%,rgba(97,31,105,0.6)_0%,rgba(0,82,204,0.35)_35%,rgba(98,100,167,0.25)_55%,transparent_75%)]" />
-          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_0%_40%,rgba(97,31,105,0.35),transparent_55%),radial-gradient(circle_at_100%_55%,rgba(0,82,204,0.28),transparent_55%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-[#050508]" />
+      {/* ══════════════════════════ HERO ══════════════════════════════ */}
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 px-6 overflow-hidden">
+        {/* Gradient mesh background */}
+        <div className="absolute inset-0 pointer-events-none" aria-hidden>
+          <div className="absolute -top-[30%] left-1/2 -translate-x-1/2 w-[120%] h-[80%] opacity-40"
+            style={{ background: `radial-gradient(ellipse 70% 60% at 50% 0%, ${PURPLE}55 0%, ${BLUE}25 45%, transparent 75%)` }} />
+          <div className="absolute top-[20%] -left-[10%] w-[50%] h-[50%] opacity-20 rounded-full blur-[120px]"
+            style={{ background: PURPLE }} />
+          <div className="absolute top-[15%] -right-[5%] w-[40%] h-[40%] opacity-15 rounded-full blur-[120px]"
+            style={{ background: BLUE }} />
+          {/* Grid lines */}
+          <div className="absolute inset-0 opacity-[0.025]"
+            style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)", backgroundSize: "64px 64px" }} />
         </div>
 
-        <div className="mx-auto max-w-7xl px-0 lg:px-6 relative z-10 grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-          <div data-reveal className="lp-reveal">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[12px] font-bold text-white/80 mb-8">
-              <Zap size={14} className="text-indigo-300" />
-              10M+ teams collaborate daily
-            </div>
-            <h1 className="text-[clamp(2.6rem,5vw,5.2rem)] font-black leading-[1.03] tracking-tight mb-7">
-              Where Teams{" "}
-              <span className="text-gradient bg-gradient-to-r from-[#611f69] via-[#0052CC] to-[#6264A7]">Plan</span>,{" "}
-              Communicate, and Deliver
-            </h1>
-            <p className="text-[18px] lg:text-[20px] text-white/55 leading-relaxed mb-10 max-w-xl">
-              Unite your workflow with real-time chat, agile project tracking, and seamless video collaboration—built for modern enterprises.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <Link href="/register" className="w-full sm:w-auto">
-                <button className="w-full px-8 py-4 rounded-2xl bg-[#611f69] hover:bg-[#6c2576] text-[16px] font-black text-white shadow-2xl shadow-[#611f69]/30 flex items-center justify-center gap-2 group transition-all hover:translate-y-[-1px] active:translate-y-[0px]">
-                  Start Free Trial
-                  <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </button>
-              </Link>
-              <button
-                onClick={() => scrollTo("live-demo")}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/12 bg-white/5 hover:bg-white/10 text-[16px] font-black text-white flex items-center justify-center gap-2 transition-all"
-              >
-                <Play size={18} className="fill-white" />
-                Watch Demo
+        <div className="relative mx-auto max-w-5xl text-center">
+          {/* Eyebrow */}
+          <div data-reveal className="lp-reveal inline-flex items-center gap-2 mb-6 px-3.5 py-1.5 rounded-full border border-violet-500/30 bg-violet-500/10 text-[12px] font-semibold text-violet-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-400 lp-live-dot" />
+            10M+ teams collaborate on FlowTeam every day
+          </div>
+
+          {/* Headline */}
+          <h1 data-reveal className="lp-reveal text-[clamp(2.6rem,7vw,5.5rem)] font-extrabold leading-[1.05] tracking-tight mb-6">
+            The workspace that{" "}
+            <span className="lp-gradient-text" style={{ backgroundImage: `linear-gradient(135deg, ${PURPLE}, ${BLUE}, ${CYAN})` }}>
+              actually connects
+            </span>
+            {" "}your team
+          </h1>
+
+          <p data-reveal className="lp-reveal text-[18px] lg:text-[20px] text-white/55 leading-relaxed max-w-2xl mx-auto mb-10">
+            Chat, plan, and meet in one place — so decisions don&apos;t get lost between Slack, Jira, and Zoom.
+          </p>
+
+          {/* CTA row */}
+          <div data-reveal className="lp-reveal flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <Link href="/register">
+              <button className="group flex items-center gap-2 px-7 py-3.5 rounded-xl bg-violet-600 hover:bg-violet-500 font-semibold text-[15px] text-white shadow-xl shadow-violet-500/30 transition-all hover:-translate-y-0.5">
+                Start for free
+                <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
-            </div>
-            <div className="mt-8 lg:mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-white/40 text-[12px] lg:text-[13px] font-medium">
-              <span className="inline-flex items-center gap-2"><Check size={14} /> No credit card required</span>
-              <span className="inline-flex items-center gap-2"><Check size={14} /> 14-day free trial</span>
-              <span className="inline-flex items-center gap-2"><Check size={14} /> WCAG-friendly UI</span>
-            </div>
+            </Link>
+            <button
+              onClick={() => scrollTo("demo")}
+              className="flex items-center gap-2 px-7 py-3.5 rounded-xl border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] font-semibold text-[15px] text-white/80 transition-all"
+            >
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10">
+                <Play size={10} className="fill-white text-white ml-0.5" />
+              </div>
+              Watch 2-min demo
+            </button>
           </div>
 
-          <div id="live-demo" data-reveal className="lp-reveal relative group">
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-blue-500/20 rounded-[38px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-
-            <div className="relative z-10 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_60px_120px_-18px_rgba(0,0,0,0.8)] overflow-hidden">
-              <ProductDemo view={demoView} onViewChange={setDemoView} />
-            </div>
-
-            <div className="hidden md:block absolute -top-12 -right-10 z-20 p-3 md:p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "0s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center font-black text-white text-[11px] md:text-[13px] shadow-lg shadow-emerald-500/20">JD</div>
-                <div>
-                  <div className="text-[12px] font-black text-white">James joined</div>
-                  <div className="text-[10px] text-white/50">#delivery • thread reply</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="hidden md:block absolute -bottom-10 -left-12 z-20 p-3 md:p-4 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "1.5s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-8 w-8 md:h-10 md:w-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20"><Kanban size={16} /></div>
-                <div>
-                  <div className="text-[12px] font-black text-white">Sprint ready</div>
-                  <div className="text-[10px] text-white/50">12 tasks moved • 3 blockers</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="hidden lg:block absolute top-[15%] -left-20 z-20 p-3 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "0.9s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#6264A7] to-[#4e508a] flex items-center justify-center text-white shadow-lg shadow-indigo-500/20"><Video size={18} /></div>
-                <div>
-                  <div className="text-[12px] font-black text-white">Meeting started</div>
-                  <div className="text-[10px] text-white/50">Sprint review • 4 participants</div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="hidden lg:block absolute bottom-[25%] -right-16 z-20 p-3 rounded-2xl glass-dark border border-white/10 shadow-2xl lp-float" style={{ animationDelay: "2.2s" }}>
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[#611f69] to-[#4d1854] flex items-center justify-center text-white shadow-lg shadow-purple-500/20"><MessageSquare size={18} /></div>
-                <div>
-                  <div className="text-[12px] font-black text-white">New message</div>
-                  <div className="text-[10px] text-white/50">@ava mentioned you in #engineering</div>
-                </div>
-              </div>
-            </div>
+          <div data-reveal className="lp-reveal flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12px] text-white/35 font-medium">
+            <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> No credit card required</span>
+            <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> 14-day free trial</span>
+            <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> Cancel anytime</span>
           </div>
+        </div>
+
+        {/* Hero product screenshot */}
+        <div id="demo" data-reveal className="lp-reveal mt-16 lg:mt-20 relative mx-auto max-w-5xl">
+          <div className="absolute -inset-px rounded-2xl opacity-40" style={{ background: `linear-gradient(135deg, ${PURPLE}55, ${BLUE}33, transparent)`, padding: "1px" }} />
+          <div className="relative rounded-2xl border border-white/[0.08] bg-[#0d1117] overflow-hidden shadow-[0_40px_120px_-16px_rgba(0,0,0,0.8)]">
+            {/* App chrome */}
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-black/40">
+              <div className="flex gap-1.5">
+                <div className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                <div className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                <div className="h-3 w-3 rounded-full bg-[#28c840]" />
+              </div>
+              <div className="mx-auto text-[11px] text-white/30 font-mono">app.flowteam.io — #engineering</div>
+            </div>
+            <HeroAppUI />
+          </div>
+
+          {/* Floating notification cards */}
+          <FloatingCard
+            className="-top-6 -right-4 lg:-right-12"
+            delay="0s"
+            icon={<div className="h-8 w-8 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ background: PURPLE }}>SP</div>}
+            title="Sprint 14 started"
+            sub="12 tasks · 2 sprinters"
+          />
+          <FloatingCard
+            className="-bottom-6 -left-4 lg:-left-12"
+            delay="1.4s"
+            icon={<div className="h-8 w-8 rounded-lg bg-emerald-500/20 flex items-center justify-center"><Check size={14} className="text-emerald-400" /></div>}
+            title="Task completed"
+            sub="Mobile push notifications"
+          />
+          <FloatingCard
+            className="top-[40%] -right-4 lg:-right-16 hidden lg:flex"
+            delay="0.7s"
+            icon={<div className="h-8 w-8 rounded-lg bg-cyan-500/20 flex items-center justify-center"><Video size={14} className="text-cyan-400" /></div>}
+            title="Meeting in 5m"
+            sub="Sprint review · 4 joined"
+          />
         </div>
       </section>
 
-      <section className="py-12 border-y border-slate-100 bg-slate-50">
-        <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat) => (
-            <div key={stat.label} className="text-center" data-reveal>
-              <div className="lp-reveal">
-                <div className="text-3xl lg:text-4xl font-black text-slate-900 mb-2">{stat.value}</div>
-                <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{stat.label}</div>
+      {/* ══════════════════ LOGO MARQUEE ══════════════════════════════ */}
+      <section className="py-12 border-y border-white/[0.04] overflow-hidden">
+        <p className="text-center text-[11px] font-semibold uppercase tracking-widest text-white/25 mb-8">
+          Trusted by teams at the world&apos;s best companies
+        </p>
+        <div className="relative">
+          <div className="flex gap-16 animate-[marquee_28s_linear_infinite] whitespace-nowrap" ref={marqueeRef}>
+            {[...LOGOS, ...LOGOS].map((name, i) => (
+              <span key={i} className="text-[15px] font-bold text-white/20 hover:text-white/40 transition-colors select-none shrink-0">
+                {name}
+              </span>
+            ))}
+          </div>
+          <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-[#030712] to-transparent pointer-events-none" />
+          <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-[#030712] to-transparent pointer-events-none" />
+        </div>
+      </section>
+
+      {/* ══════════════════ STATS STRIP ══════════════════════════════ */}
+      <section className="py-16 px-6">
+        <div className="mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-8">
+          {STATS.map(s => (
+            <div key={s.label} data-reveal className="lp-reveal text-center">
+              <div className="text-[2.6rem] font-extrabold tracking-tight mb-1 lp-gradient-text" style={{ backgroundImage: `linear-gradient(135deg, #fff, rgba(255,255,255,0.55))` }}>
+                {s.value}
               </div>
+              <div className="text-[12px] font-medium text-white/40 uppercase tracking-widest">{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="py-16 lg:py-20 px-6 bg-white border-b border-slate-100">
+      {/* ══════════════════ BENTO FEATURE GRID ═══════════════════════ */}
+      <section id="features" className="py-20 lg:py-32 px-6">
         <div className="mx-auto max-w-7xl">
-          <p className="text-center text-[12px] font-black uppercase tracking-widest text-slate-400 mb-10">
-            Trusted by teams at Fortune 500 companies
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6" data-reveal>
-            <div className="lp-reveal flex flex-wrap items-center justify-center gap-x-12 gap-y-6">
-              {customerLogos.map((name) => (
-                <div
-                  key={name}
-                  className="text-[16px] font-black text-slate-300 hover:text-slate-400 transition-colors tracking-tight select-none"
-                >
-                  {name}
+          <div data-reveal className="lp-reveal text-center mb-16">
+            <div className="inline-block px-3 py-1 rounded-full border border-white/10 bg-white/[0.03] text-[11px] font-semibold text-white/50 uppercase tracking-widest mb-4">
+              Everything in one place
+            </div>
+            <h2 className="text-[clamp(2rem,4.5vw,3.5rem)] font-extrabold tracking-tight mb-4">
+              All-in-one. Actually unified.
+            </h2>
+            <p className="text-[16px] lg:text-[18px] text-white/45 max-w-2xl mx-auto">
+              Slack&apos;s speed, Jira&apos;s structure, Zoom&apos;s reliability — in one workspace your whole company can standardize on.
+            </p>
+          </div>
+
+          {/* Bento grid */}
+          <div className="grid lg:grid-cols-3 gap-5">
+            {FEATURES.map(f => (
+              <div
+                key={f.id}
+                data-reveal
+                className={cn(
+                  "lp-reveal group relative rounded-2xl border border-white/[0.07] bg-[#0d1117] overflow-hidden flex flex-col transition-all duration-300 hover:border-white/[0.12] hover:shadow-2xl",
+                  f.span
+                )}
+                style={{ "--accent": f.accent } as React.CSSProperties}
+              >
+                {/* Top accent bar */}
+                <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg, ${f.accent}, transparent)` }} />
+                <div className="absolute top-0 left-0 right-0 h-40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                  style={{ background: `radial-gradient(ellipse at top left, ${f.accent}20, transparent 60%)` }} />
+
+                <div className="relative z-10 p-6 lg:p-8 flex flex-col flex-1">
+                  {/* Icon + label */}
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="flex h-9 w-9 items-center justify-center rounded-lg" style={{ background: `${f.accent}22` }}>
+                      <f.icon size={17} style={{ color: f.accent }} />
+                    </div>
+                    <span className="text-[12px] font-semibold uppercase tracking-widest" style={{ color: f.accent }}>{f.label}</span>
+                  </div>
+                  <h3 className="text-[18px] lg:text-[20px] font-bold mb-2 text-white leading-snug">{f.headline}</h3>
+                  <p className="text-[14px] text-white/45 leading-relaxed mb-6">{f.body}</p>
+
+                  {/* Preview area */}
+                  <div className="mt-auto rounded-xl border border-white/[0.06] bg-black/30 overflow-hidden">
+                    {f.preview}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ WORKFLOW STEPS ════════════════════════════ */}
+      <section className="py-20 lg:py-32 px-6 border-y border-white/[0.04]">
+        <div className="mx-auto max-w-7xl">
+          <div data-reveal className="lp-reveal grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="text-[12px] font-semibold uppercase tracking-widest text-violet-400 mb-4">How it works</div>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-5">
+                From idea to shipped, in one thread.
+              </h2>
+              <p className="text-[16px] text-white/45 leading-relaxed mb-10">
+                Discuss in chat → turn messages into tasks → review in meetings → ship. Context is preserved at every step.
+              </p>
+
+              <div className="space-y-5">
+                {WORKFLOW.map((step, i) => (
+                  <div key={step.title} className="flex items-start gap-4 group">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-[12px] font-bold text-white/40 group-hover:border-violet-500/40 group-hover:text-violet-300 transition-colors mt-0.5">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <div className="text-[15px] font-semibold text-white mb-0.5">{step.title}</div>
+                      <div className="text-[13px] text-white/40 leading-relaxed">{step.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/[0.07] bg-[#0d1117] overflow-hidden">
+              <WorkflowPreview />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ USE CASES ══════════════════════════════════ */}
+      <section id="use-cases" className="py-20 lg:py-32 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div data-reveal className="lp-reveal text-center mb-16">
+            <h2 className="text-[clamp(2rem,4.5vw,3.5rem)] font-extrabold tracking-tight mb-4">
+              Built for every team.
+            </h2>
+            <p className="text-[16px] text-white/45">Whether you&apos;re a startup of 5 or an enterprise of 5,000.</p>
+          </div>
+
+          <div data-reveal className="lp-reveal grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {USE_CASES.map(uc => (
+              <div key={uc.title} className="group rounded-2xl border border-white/[0.07] bg-[#0d1117] p-6 hover:border-white/[0.14] transition-all">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl mb-4 transition-colors" style={{ background: `${uc.accent}20` }}>
+                  <uc.icon size={18} style={{ color: uc.accent }} />
+                </div>
+                <div className="text-[15px] font-semibold text-white mb-2">{uc.title}</div>
+                <div className="text-[13px] text-white/40 leading-relaxed mb-4">{uc.desc}</div>
+                <ul className="space-y-2">
+                  {uc.features.map(f => (
+                    <li key={f} className="flex items-center gap-2 text-[12px] text-white/50">
+                      <Check size={11} className="text-emerald-400 shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ INTEGRATIONS ══════════════════════════════ */}
+      <section className="py-20 lg:py-28 px-6 border-y border-white/[0.04]">
+        <div className="mx-auto max-w-7xl">
+          <div data-reveal className="lp-reveal grid lg:grid-cols-2 gap-16 items-center">
+            <div>
+              <div className="text-[12px] font-semibold uppercase tracking-widest text-cyan-400 mb-4">Integrations</div>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-4">
+                Works with the tools you already use.
+              </h2>
+              <p className="text-[15px] text-white/45 leading-relaxed mb-8">
+                Connect GitHub, Figma, Google Workspace, Salesforce, and 1,000+ more. Or build your own integration with our REST API and webhooks.
+              </p>
+              <button className="flex items-center gap-2 px-5 py-2.5 rounded-lg border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] text-[14px] font-semibold text-white/70 hover:text-white transition-all">
+                Explore all integrations <ArrowRight size={14} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              {INTEGRATIONS.map(int => (
+                <div key={int.name} className="rounded-xl border border-white/[0.07] bg-[#0d1117] p-4 flex flex-col items-center text-center gap-2 hover:border-white/[0.14] transition-all group">
+                  <div className="h-10 w-10 rounded-lg flex items-center justify-center" style={{ background: `${int.color}20` }}>
+                    <int.icon size={18} style={{ color: int.color }} />
+                  </div>
+                  <div className="text-[12px] font-semibold text-white/60 group-hover:text-white/90 transition-colors">{int.name}</div>
                 </div>
               ))}
             </div>
@@ -391,787 +514,377 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section id="features" className="py-20 lg:py-40 px-6 bg-white">
+      {/* ══════════════════ TESTIMONIALS ══════════════════════════════ */}
+      <section className="py-20 lg:py-32 px-6">
+        <div className="mx-auto max-w-5xl">
+          <div data-reveal className="lp-reveal text-center mb-12">
+            <h2 className="text-[clamp(1.8rem,4vw,3rem)] font-extrabold tracking-tight mb-3">
+              Loved by teams that ship.
+            </h2>
+            <div className="flex items-center justify-center gap-1 mt-3">
+              {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={16} className="fill-amber-400 text-amber-400" />)}
+              <span className="ml-2 text-[13px] text-white/40">4.8 / 5 across 2,400+ reviews</span>
+            </div>
+          </div>
+
+          {/* Featured testimonial */}
+          <div data-reveal className="lp-reveal relative rounded-2xl border border-white/[0.07] bg-[#0d1117] p-8 lg:p-12 mb-6 overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: `linear-gradient(90deg, transparent, ${PURPLE}88, transparent)` }} />
+            <div className="text-[11px] font-semibold uppercase tracking-widest text-emerald-400 mb-4">{activeTestimonial.metric}</div>
+            <p className="text-[18px] lg:text-[22px] font-medium leading-relaxed text-white/80 mb-8 max-w-3xl">
+              &ldquo;{activeTestimonial.quote}&rdquo;
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="h-10 w-10 rounded-full bg-violet-600 flex items-center justify-center font-bold text-white text-[13px]">
+                {activeTestimonial.avatar}
+              </div>
+              <div>
+                <div className="text-[14px] font-semibold text-white">{activeTestimonial.name}</div>
+                <div className="text-[12px] text-white/40">{activeTestimonial.role} · {activeTestimonial.company}</div>
+              </div>
+            </div>
+            {/* Dots */}
+            <div className="absolute bottom-6 right-8 flex items-center gap-1.5">
+              {testimonials.map((_, i) => (
+                <button key={i} onClick={() => setTestimonialIdx(i)}
+                  className={cn("rounded-full transition-all", i === testimonialIdx ? "w-5 h-1.5 bg-violet-500" : "w-1.5 h-1.5 bg-white/20")}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Mini proof points */}
+          <div data-reveal className="lp-reveal grid grid-cols-2 md:grid-cols-4 gap-4">
+            {PROOF_POINTS.map(p => (
+              <div key={p.label} className="rounded-xl border border-white/[0.06] bg-[#0d1117] p-5 text-center">
+                <div className="text-[1.8rem] font-extrabold tracking-tight text-white mb-1">{p.value}</div>
+                <div className="text-[11px] text-white/35 uppercase tracking-widest">{p.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ SECURITY ══════════════════════════════════ */}
+      <section id="security" className="py-20 lg:py-32 px-6 border-y border-white/[0.04]">
         <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-14 lg:mb-24 max-w-3xl mx-auto" data-reveal>
-            <div className="lp-reveal">
-              <h2 className="text-[clamp(2rem,5vw,3.75rem)] font-black mb-6 text-slate-900">All-in-one. Actually unified.</h2>
-              <p className="text-[16px] lg:text-xl text-slate-500">
-                Slack-style communication, Jira-grade planning, and Teams-ready collaboration — in one workspace your enterprise can standardize on.
+          <div data-reveal className="lp-reveal grid lg:grid-cols-2 gap-16 items-start">
+            <div>
+              <div className="text-[12px] font-semibold uppercase tracking-widest text-blue-400 mb-4">Security & Compliance</div>
+              <h2 className="text-[clamp(2rem,4vw,3rem)] font-extrabold tracking-tight mb-5">
+                Enterprise-grade trust, out of the box.
+              </h2>
+              <p className="text-[15px] text-white/45 leading-relaxed mb-8">
+                SSO, audit logs, and data residency controls — without sacrificing the UX your teams will actually use.
               </p>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {coreFeatures.map((feature) => (
-              <div key={feature.id} data-reveal className="lp-reveal group relative rounded-3xl border border-slate-100 bg-white p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300 overflow-hidden">
-                <div className="absolute -top-28 -right-28 w-72 h-72 blur-[90px] opacity-0 group-hover:opacity-15 transition-opacity duration-500" style={{ background: feature.accent }} />
-                <div className="relative z-10">
-                  <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl mb-8 shadow-xl text-white" style={{ backgroundColor: feature.accent }}>
-                    <feature.icon size={28} />
-                  </div>
-                  <h3 className="text-2xl font-black mb-3 text-slate-900">{feature.title}</h3>
-                  <p className="text-slate-500 mb-8 leading-relaxed">{feature.description}</p>
-                  <ul className="space-y-4">
-                    {feature.features.map((f) => (
-                      <li key={f} className="flex items-center gap-3 text-[14px] font-medium text-slate-700">
-                        <div className="h-5 w-5 rounded-full bg-slate-50 flex items-center justify-center">
-                          <Check size={12} className="text-indigo-600" />
-                        </div>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-10 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                    {feature.id === "communication" ? <MiniChat accent={feature.accent} /> : feature.id === "projects" ? <MiniBoard accent={feature.accent} /> : <MiniMeeting accent={feature.accent} />}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-[#050508] text-white relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none opacity-30">
-          <div className="absolute -top-60 left-1/2 -translate-x-1/2 w-[1300px] h-[900px] bg-[radial-gradient(circle_at_50%_10%,rgba(0,82,204,0.35),transparent_60%)]" />
-          <div className="absolute -bottom-60 left-1/2 -translate-x-1/2 w-[1300px] h-[900px] bg-[radial-gradient(circle_at_50%_90%,rgba(97,31,105,0.25),transparent_60%)]" />
-        </div>
-
-        <div className="mx-auto max-w-7xl relative">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div data-reveal className="lp-reveal">
-              <div className="text-indigo-300 font-black uppercase tracking-widest text-[12px] mb-4">From idea to delivery</div>
-              <h2 className="text-4xl lg:text-6xl font-black mb-6">One unified workflow.</h2>
-              <p className="text-lg lg:text-xl text-white/55">
-                Discuss in chat, turn decisions into work, review in meetings, and ship — with context preserved across every step.
-              </p>
-            </div>
-
-            <div data-reveal className="lp-reveal rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl p-6 lg:p-8">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
-                {[
-                  { step: 1, title: "Discuss", desc: "Threads keep decisions searchable and scoped.", icon: Quote },
-                  { step: 2, title: "Plan", desc: "Create tasks straight from messages.", icon: CheckCircle2 },
-                  { step: 3, title: "Review", desc: "Meet with agenda + recordings attached.", icon: Video },
-                  { step: 4, title: "Deliver", desc: "Progress updates roll up automatically.", icon: Activity },
-                ].map((node) => (
-                  <div key={node.step} className="rounded-2xl border border-white/10 bg-black/20 p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="text-[12px] font-black text-white/60 uppercase tracking-widest">Step {node.step}</div>
-                      <node.icon size={18} className="text-indigo-300" />
-                    </div>
-                    <div className="text-xl font-black mb-2">{node.title}</div>
-                    <div className="text-white/55 text-[13px] leading-relaxed">{node.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div data-reveal className="lp-reveal mt-14 lg:mt-20 grid lg:grid-cols-3 gap-6">
-            {[
-              { label: "Productivity increase", value: "+32%" },
-              { label: "Meeting time saved", value: "4.5h/wk" },
-              { label: "Fewer tool switches", value: "-60%" },
-            ].map((metric) => (
-              <div key={metric.label} className="p-8 rounded-3xl border border-white/10 bg-white/[0.03]">
-                <div className="text-3xl font-black mb-1">{metric.value}</div>
-                <div className="text-[12px] font-black text-white/40 uppercase tracking-widest">{metric.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-14 lg:mb-20 max-w-3xl mx-auto" data-reveal>
-            <div className="lp-reveal">
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Works with the tools you already love.</h2>
-              <p className="text-lg lg:text-xl text-slate-500">Connect, automate, and keep your ecosystem — without sacrificing a unified workflow.</p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6" data-reveal>
-            {integrations.map((int) => (
-              <div key={int.name} className="lp-reveal rounded-3xl border border-slate-100 bg-white p-5 md:p-6 hover:shadow-xl hover:shadow-slate-100 transition-all">
-                <div className="h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-slate-50 flex items-center justify-center text-indigo-600 mb-4">
-                  <int.icon size={20} />
-                </div>
-                <div className="text-[14px] md:text-[15px] font-black text-slate-900 mb-1">{int.name}</div>
-                <div className="text-[12px] md:text-[13px] text-slate-500 leading-relaxed">{int.blurb}</div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-12 flex flex-col items-center" data-reveal>
-            <div className="lp-reveal">
-              <p className="text-slate-400 font-black mb-6 uppercase tracking-widest text-[12px]">And 1,000+ more via API & webhooks</p>
-              <button className="px-10 py-4 rounded-2xl border border-slate-200 hover:bg-slate-50 font-black transition-all">Explore integrations</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-white">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div data-reveal className="lp-reveal">
-              <h2 className="text-4xl lg:text-6xl font-black mb-10 text-slate-900">Solutions for every team.</h2>
-              <div className="space-y-4">
-                {useCases.map((uc) => (
-                  <button
-                    key={uc.id}
-                    onClick={() => setActiveUseCaseId(uc.id)}
-                    className={cn(
-                      "w-full p-6 rounded-3xl border text-left transition-all flex items-start gap-5",
-                      activeUseCaseId === uc.id ? "border-indigo-200 bg-indigo-50/40 shadow-lg shadow-indigo-500/10" : "border-slate-100 bg-white hover:bg-slate-50"
-                    )}
-                  >
-                    <div className={cn("h-12 w-12 rounded-2xl flex items-center justify-center transition-all", activeUseCaseId === uc.id ? "bg-indigo-600 text-white" : "bg-slate-50 text-indigo-600")}>
-                      <uc.icon size={22} />
-                    </div>
-                    <div>
-                      <div className="text-[16px] font-black mb-1 text-slate-900">{uc.label}</div>
-                      <div className="text-[13px] text-slate-500 leading-relaxed">{uc.description}</div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div data-reveal className="lp-reveal rounded-[24px] lg:rounded-[36px] overflow-hidden border border-slate-100 bg-slate-50 p-6 lg:p-8 shadow-2xl shadow-slate-200">
-              <div className="flex items-start justify-between gap-6">
-                <div>
-                  <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-3">{activeUseCase?.label}</div>
-                  <div className="text-3xl lg:text-4xl font-black text-slate-900 mb-4">{activeUseCase?.title}</div>
-                  <div className="text-slate-500 mb-6">{activeUseCase?.description}</div>
-                  <div className="space-y-3">
-                    {activeUseCase?.features.map((f) => (
-                      <div key={f} className="flex items-center gap-3 text-[13px] font-medium text-slate-700">
-                        <Check size={16} className="text-indigo-600" /> {f}
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                {SECURITY_FEATS.map(f => (
+                  <div key={f.title} className="rounded-xl border border-white/[0.07] bg-[#0d1117] p-5">
+                    <div className="flex items-center gap-2.5 mb-2">
+                      <div className="h-7 w-7 rounded-lg bg-blue-500/20 flex items-center justify-center">
+                        <f.icon size={14} className="text-blue-400" />
                       </div>
-                    ))}
+                      <div className="text-[13px] font-semibold text-white">{f.title}</div>
+                    </div>
+                    <div className="text-[12px] text-white/35 leading-relaxed">{f.desc}</div>
                   </div>
-                </div>
-                <div className="flex h-10 w-10 md:h-12 md:w-12 rounded-2xl bg-white border border-slate-100 items-center justify-center text-indigo-600 shrink-0">
-                  {activeUseCase?.icon ? <activeUseCase.icon size={20} /> : <Globe size={20} />}
-                </div>
+                ))}
               </div>
+            </div>
 
-              <div className="mt-10 rounded-3xl border border-slate-100 bg-white p-6">
-                <UseCasePreview id={activeUseCaseId} />
-              </div>
+            <div className="grid grid-cols-2 gap-4">
+              {COMPLIANCE_BADGES.map(b => (
+                <div key={b.name} className="rounded-2xl border border-white/[0.07] bg-[#0d1117] p-8 flex flex-col items-center text-center hover:border-blue-500/20 transition-all group">
+                  <div className="h-12 w-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4 group-hover:bg-blue-500/20 transition-colors">
+                    <Shield size={24} className="text-blue-400" />
+                  </div>
+                  <div className="text-[14px] font-bold text-white">{b.name}</div>
+                  <div className="text-[11px] text-white/35 mt-1">{b.sub}</div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </section>
 
-      <section id="pricing" className="py-24 lg:py-40 px-6 bg-slate-50">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-14 lg:mb-20" data-reveal>
-            <div className="lp-reveal">
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Pricing that scales.</h2>
-              <p className="text-lg lg:text-xl text-slate-500">Start free, then upgrade as your team standardizes and scales.</p>
-              <div className="flex items-center justify-center gap-6 mt-10">
-                <span className={cn("text-[14px] font-black transition-colors", billingCycle === "monthly" ? "text-slate-900" : "text-slate-400")}>Monthly</span>
+      {/* ══════════════════ PRICING ═══════════════════════════════════ */}
+      <section id="pricing" className="py-20 lg:py-32 px-6">
+        <div className="mx-auto max-w-6xl">
+          <div data-reveal className="lp-reveal text-center mb-12">
+            <h2 className="text-[clamp(2rem,4.5vw,3.5rem)] font-extrabold tracking-tight mb-4">Simple, transparent pricing.</h2>
+            <p className="text-[16px] text-white/45 mb-8">Start free. Upgrade when you&apos;re ready. No surprises.</p>
+
+            {/* Toggle */}
+            <div className="inline-flex items-center gap-4 p-1 rounded-xl border border-white/[0.08] bg-white/[0.03]">
+              {(["monthly", "annual"] as BillingCycle[]).map(c => (
                 <button
-                  onClick={() => setBillingCycle(billingCycle === "monthly" ? "annual" : "monthly")}
-                  className="w-14 h-8 rounded-full bg-slate-200 border border-slate-300 p-1 relative transition-all"
-                  aria-label="Toggle billing cycle"
+                  key={c}
+                  onClick={() => setBillingCycle(c)}
+                  className={cn(
+                    "px-5 py-2 rounded-lg text-[13px] font-semibold transition-all capitalize",
+                    billingCycle === c ? "bg-white text-slate-900 shadow-sm" : "text-white/50 hover:text-white"
+                  )}
                 >
-                  <div className={cn("h-6 w-6 rounded-full bg-indigo-600 shadow-md transition-all", billingCycle === "annual" ? "translate-x-6" : "translate-x-0")} />
+                  {c} {c === "annual" && <span className="ml-1 text-[10px] text-emerald-400 font-bold">save 20%</span>}
                 </button>
-                <div className="flex items-center gap-2">
-                  <span className={cn("text-[14px] font-black transition-colors", billingCycle === "annual" ? "text-slate-900" : "text-slate-400")}>Annually</span>
-                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider">Save 20%</span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 items-start">
-            {pricing.map((tier) => (
+          <div data-reveal className="lp-reveal grid sm:grid-cols-2 lg:grid-cols-4 gap-5 items-start">
+            {pricing.map(tier => (
               <div
                 key={tier.name}
-                data-reveal
                 className={cn(
-                  "lp-reveal relative flex flex-col p-8 rounded-[32px] border transition-all duration-300",
-                  tier.popular ? "bg-white border-indigo-200 shadow-2xl shadow-indigo-500/10 lg:scale-[1.02]" : "bg-white/70 border-slate-100 hover:border-slate-200"
+                  "relative flex flex-col rounded-2xl border p-7 transition-all duration-300",
+                  tier.popular
+                    ? "border-violet-500/40 bg-[#0d1117] shadow-[0_0_60px_-15px_rgba(124,58,237,0.4)] lg:scale-[1.03]"
+                    : "border-white/[0.07] bg-[#0d1117] hover:border-white/[0.12]"
                 )}
               >
                 {tier.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-indigo-600 text-[11px] font-black uppercase tracking-widest text-white shadow-xl shadow-indigo-500/40">
-                    Most Popular
+                  <div className="absolute -top-px left-1/2 -translate-x-1/2 px-4 py-1 rounded-b-lg bg-violet-600 text-[11px] font-bold uppercase tracking-wider text-white">
+                    Most popular
                   </div>
                 )}
-                <div className="text-xl font-black mb-2 text-slate-900">{tier.name}</div>
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-4xl font-black text-slate-900">{priceForCycle(tier.price)}</span>
-                  <span className="text-slate-400 text-[14px]">
-                    {billingCycle === "annual" && tier.price.startsWith("$") && tier.price !== "$0" ? "per user/mo (billed annually)" : tier.period}
-                  </span>
+                <div className="text-[16px] font-bold text-white mb-1">{tier.name}</div>
+                <div className="flex items-baseline gap-1.5 mb-1">
+                  <span className="text-[2.4rem] font-extrabold tracking-tight text-white">{priceForCycle(tier.price)}</span>
+                  {tier.price !== "Custom" && (
+                    <span className="text-[13px] text-white/35">
+                      {billingCycle === "annual" && tier.price.startsWith("$") && tier.price !== "$0" ? "/mo billed yearly" : tier.period}
+                    </span>
+                  )}
                 </div>
-                <p className="text-[13px] text-slate-500 mb-8 min-h-10">{tier.description}</p>
+                <p className="text-[12px] text-white/35 mb-6 min-h-[2.5rem]">{tier.description}</p>
 
-                <Link href="/register" className="mb-10">
-                  <button
-                    className={cn(
-                      "w-full py-4 rounded-2xl font-black transition-all",
-                      tier.popular ? "bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl shadow-indigo-500/20" : "bg-slate-900 hover:bg-slate-800 text-white shadow-lg"
-                    )}
-                  >
+                <Link href="/register" className="mb-6">
+                  <button className={cn(
+                    "w-full py-2.5 rounded-xl text-[14px] font-semibold transition-all",
+                    tier.popular
+                      ? "bg-violet-600 hover:bg-violet-500 text-white shadow-lg shadow-violet-500/25"
+                      : "border border-white/10 bg-white/[0.04] hover:bg-white/[0.08] text-white"
+                  )}>
                     {tier.cta}
                   </button>
                 </Link>
 
-                <div className="space-y-4">
-                  {tier.features.map((f) => (
-                    <div key={f} className="flex items-start gap-3 text-[13px] font-medium text-slate-600">
-                      <Check size={16} className="text-indigo-600 shrink-0 mt-0.5" />
-                      {f}
-                    </div>
+                <ul className="space-y-3">
+                  {tier.features.map(f => (
+                    <li key={f} className="flex items-start gap-2.5 text-[13px] text-white/50">
+                      <Check size={13} className="text-emerald-400 shrink-0 mt-0.5" /> {f}
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div data-reveal className="lp-reveal">
-              <div className="text-indigo-700 font-black uppercase tracking-widest text-[12px] mb-4">Social proof</div>
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Loved by teams that ship.</h2>
-              <p className="text-lg lg:text-xl text-slate-500 mb-10">Quotes your execs can forward and your ICs will actually agree with.</p>
-
-              <div className="rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: activeTestimonial.stars ?? 5 }).map((_, i) => (
-                      <Star key={i} size={16} className="text-amber-400 fill-amber-400" />
-                    ))}
-                  </div>
-                  <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest">{activeTestimonial.metric}</div>
-                </div>
-                <Quote size={34} className="text-indigo-600 opacity-15 mb-4" />
-                <p className="text-[16px] font-medium leading-relaxed text-slate-800 mb-6">{activeTestimonial.quote}</p>
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white">
-                    {activeTestimonial.avatar}
-                  </div>
-                  <div>
-                    <div className="text-[13px] font-black text-slate-900">{activeTestimonial.name}</div>
-                    <div className="text-[12px] text-slate-400">
-                      {activeTestimonial.role} • {activeTestimonial.company}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-8 flex items-center gap-2">
-                  {testimonials.map((_, i) => (
-                    <button
-                      key={i}
-                      className={cn("h-2.5 rounded-full transition-all", i === testimonialIndex ? "w-8 bg-indigo-600" : "w-2.5 bg-slate-200 hover:bg-slate-300")}
-                      onClick={() => { setTestimonialIndex(i); setTestimonialPaused(true); }}
-                      aria-label={`Show testimonial ${i + 1}`}
-                    />
-                  ))}
-                  {testimonialPaused && (
-                    <button
-                      onClick={() => setTestimonialPaused(false)}
-                      className="ml-2 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
-                      aria-label="Resume auto-rotation"
-                    >
-                      Resume
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div data-reveal className="lp-reveal rounded-[24px] lg:rounded-[36px] border border-slate-100 bg-slate-50 p-6 lg:p-10">
-              <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-4">Proof points</div>
-              <div className="grid grid-cols-2 gap-6">
-                {[
-                  { value: "10M+", label: "Active users" },
-                  { value: "150+", label: "Countries" },
-                  { value: "99.9%", label: "Uptime" },
-                  { value: "4.8★", label: "Average rating" },
-                ].map((p) => (
-                  <div key={p.label} className="rounded-3xl border border-slate-100 bg-white p-6">
-                    <div className="text-2xl font-black text-slate-900">{p.value}</div>
-                    <div className="text-[12px] font-black text-slate-400 uppercase tracking-widest mt-1">{p.label}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-10 flex items-center gap-3 text-slate-500 text-[13px]">
-                <div className="h-10 w-10 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-indigo-600">
-                  <Shield size={18} />
-                </div>
-                <div>
-                  <div className="font-black text-slate-900">Enterprise-ready from day one</div>
-                  <div className="text-slate-500">SSO, audit logs, encryption, and admin controls.</div>
-                </div>
-              </div>
-            </div>
+      {/* ══════════════════ FAQ ═══════════════════════════════════════ */}
+      <section className="py-20 lg:py-28 px-6 border-t border-white/[0.04]">
+        <div className="mx-auto max-w-3xl">
+          <div data-reveal className="lp-reveal text-center mb-12">
+            <h2 className="text-[clamp(1.8rem,3.5vw,2.8rem)] font-extrabold tracking-tight mb-3">Frequently asked questions.</h2>
           </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-white border-y border-slate-100">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-16 max-w-3xl mx-auto" data-reveal>
-            <div className="lp-reveal">
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Customer success stories.</h2>
-              <p className="text-lg lg:text-xl text-slate-500">Real results from teams that made the switch to FlowTeam.</p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8" data-reveal>
-            <div className="lp-reveal grid md:grid-cols-3 gap-8 md:col-span-3">
-              {caseStudies.map((cs) => (
-                <div key={cs.company} className="group rounded-3xl border border-slate-100 bg-white p-6 lg:p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-300">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-600 flex items-center justify-center font-black text-white text-lg">
-                      {cs.logo}
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-[11px] font-black uppercase tracking-wider">{cs.industry}</span>
-                  </div>
-                  <div className="text-2xl font-black text-slate-900 mb-4">{cs.metric}</div>
-                  <p className="text-[14px] text-slate-600 leading-relaxed mb-6">&ldquo;{cs.quote}&rdquo;</p>
-                  <div className="pt-6 border-t border-slate-100">
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Before</div>
-                        <div className="text-[12px] text-slate-700 leading-relaxed">{cs.before}</div>
-                      </div>
-                      <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-3">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-1">After</div>
-                        <div className="text-[12px] text-emerald-800 leading-relaxed">{cs.after}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 rounded-full bg-indigo-600 flex items-center justify-center font-black text-white text-[12px]">
-                        {cs.logo}
-                      </div>
-                      <div>
-                        <div className="text-[13px] font-black text-slate-900">{cs.executive}</div>
-                        <div className="text-[12px] text-slate-400">{cs.role}, {cs.company}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-[#050508] text-white">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div data-reveal className="lp-reveal">
-              <div className="text-indigo-300 font-black uppercase tracking-widest text-[12px] mb-4">Security & compliance</div>
-              <h2 className="text-4xl lg:text-6xl font-black mb-6">Enterprise-grade trust.</h2>
-              <p className="text-lg lg:text-xl text-white/55 mb-10">
-                SSO, encryption, and governance controls designed for regulated teams — without compromising the UX your team will actually use.
-              </p>
-
-              <div className="grid grid-cols-2 gap-6">
-                {[
-                  { title: "SSO & SCIM", desc: "SAML 2.0 + automated provisioning", icon: Lock },
-                  { title: "Encryption", desc: "AES-256 at rest, TLS in transit", icon: Shield },
-                  { title: "Audit Logs", desc: "Full action history for governance", icon: Activity },
-                  { title: "Availability", desc: "99.9% uptime target", icon: Globe },
-                ].map((item) => (
-                  <div key={item.title} className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-indigo-200">
-                        <item.icon size={18} />
-                      </div>
-                      <div className="font-black">{item.title}</div>
-                    </div>
-                    <div className="text-[13px] text-white/55">{item.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div data-reveal className="lp-reveal grid grid-cols-2 gap-6">
-              {securityBadges.map((badge) => (
-                <div key={badge.name} className="p-8 rounded-[28px] glass-dark border border-white/10 flex flex-col items-center text-center hover:bg-white/[0.05] transition-all">
-                  <div className="h-14 w-14 rounded-2xl bg-indigo-500/10 text-indigo-300 flex items-center justify-center mb-5">
-                    {badge.icon === "ShieldCheck" ? <Shield size={28} /> : badge.icon === "Lock" ? <Lock size={28} /> : badge.icon === "Activity" ? <Activity size={28} /> : <CheckCircle2 size={28} />}
-                  </div>
-                  <div className="text-[14px] font-black">{badge.name}</div>
-                </div>
-              ))}
-              <div className="col-span-2 rounded-[28px] border border-white/10 bg-gradient-to-r from-[#611f69]/20 via-[#0052CC]/20 to-[#6264A7]/20 p-8">
-                <div className="flex items-start justify-between gap-6">
-                  <div>
-                    <div className="text-[12px] font-black uppercase tracking-widest text-white/55 mb-2">Admin controls</div>
-                    <div className="text-2xl font-black mb-2">Centralized governance</div>
-                    <div className="text-white/55 text-[13px] leading-relaxed">
-                      Manage access, policies, and compliance requirements across chat, projects, and meetings — from one console.
-                    </div>
-                  </div>
-                  <div className="h-10 w-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 shrink-0">
-                    <Lock size={18} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-slate-50 border-y border-slate-100">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <div data-reveal className="lp-reveal">
-              <div className="text-indigo-600 font-black uppercase tracking-widest text-[12px] mb-4">Developer API</div>
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Build on FlowTeam.</h2>
-              <p className="text-lg lg:text-xl text-slate-500 mb-8">Extend, integrate, and automate with our developer platform. RESTful APIs, webhooks, and SDKs for every major language.</p>
-              <div className="space-y-5">
-                {apiFeatures.map((f) => (
-                  <div key={f.title} className="flex items-start gap-4">
-                    <div className="h-8 w-8 rounded-xl bg-indigo-100 flex items-center justify-center shrink-0 mt-0.5">
-                      <Check size={16} className="text-indigo-600" />
-                    </div>
-                    <div>
-                      <div className="text-[14px] font-black text-slate-900">{f.title}</div>
-                      <div className="text-[13px] text-slate-500">{f.desc}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <button className="mt-10 px-8 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black flex items-center gap-2 transition-all">
-                <Terminal size={18} />
-                Explore API Docs
-              </button>
-            </div>
-            <div data-reveal className="lp-reveal rounded-3xl border border-slate-100 bg-white p-8 shadow-xl shadow-slate-100">
-              <div className="rounded-2xl bg-[#050508] text-white p-4 md:p-6 font-mono text-[12px] md:text-[13px] leading-relaxed overflow-x-auto whitespace-nowrap md:whitespace-normal">
-                <div className="text-emerald-400 mb-3">// Create a task from a message</div>
-                <div className="text-white/80">POST<span className="text-indigo-300"> /api/v1/tasks</span></div>
-                <div className="text-white/60">{"{"}</div>
-                <div className="pl-4 text-white/60">&ldquo;channel_id&rdquo;: <span className="text-amber-300">&ldquo;C01ABC123&rdquo;</span>,</div>
-                <div className="pl-4 text-white/60">&ldquo;message_id&rdquo;: <span className="text-amber-300">&ldquo;m_abc123&rdquo;</span>,</div>
-                <div className="pl-4 text-white/60">&ldquo;title&rdquo;: <span className="text-amber-300">&ldquo;Update onboarding flow&rdquo;</span>,</div>
-                <div className="pl-4 text-white/60">&ldquo;assignee_id&rdquo;: <span className="text-amber-300">&ldquo;U02XYZ&rdquo;</span>,</div>
-                <div className="pl-4 text-white/60">&ldquo;priority&rdquo;: <span className="text-amber-300">&ldquo;high&rdquo;</span></div>
-                <div className="text-white/60">{"}"}</div>
-                <div className="mt-4 pt-4 border-t border-white/10 text-white/50 text-[12px]">
-                  <span className="text-emerald-400">// Response 201</span> Task created from message. Linked in thread.
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-white border-b border-slate-100">
-        <div className="mx-auto max-w-7xl">
-          <div className="text-center mb-14 max-w-3xl mx-auto" data-reveal>
-            <div className="lp-reveal">
-              <div className="text-indigo-600 font-black uppercase tracking-widest text-[12px] mb-4">Mobile App</div>
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Your workspace in your pocket.</h2>
-              <p className="text-lg lg:text-xl text-slate-500">Stay connected, review tasks, and join meetings from anywhere with native iOS and Android apps.</p>
-            </div>
-          </div>
-          <div className="grid lg:grid-cols-2 gap-16 items-center" data-reveal>
-            <div className="lp-reveal">
-              <div className="grid grid-cols-2 gap-6">
-                {appFeatures.map((f) => (
-                  <div key={f.title} className="rounded-2xl border border-slate-100 bg-white p-6">
-                    <Smartphone size={24} className="text-indigo-600 mb-3" />
-                    <div className="text-[15px] font-black text-slate-900 mb-1">{f.title}</div>
-                    <div className="text-[13px] text-slate-500 leading-relaxed">{f.desc}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="lp-reveal flex flex-col items-start">
-              <div className="rounded-3xl border border-slate-100 bg-slate-50 p-8 w-full">
-                <div className="text-[12px] font-black uppercase tracking-widest text-slate-400 mb-4">Download the app</div>
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all">
-                    <Apple size={24} />
-                    <div className="text-left">
-                      <div className="text-[10px] text-white/60">Download on the</div>
-                      <div className="text-[16px] font-black">App Store</div>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white transition-all">
-                    <Smartphone size={24} />
-                    <div className="text-left">
-                      <div className="text-[10px] text-white/60">Get it on</div>
-                      <div className="text-[16px] font-black">Google Play</div>
-                    </div>
-                  </button>
-                </div>
-                <div className="mt-6 flex items-center gap-2 text-[13px] text-slate-500">
-                  <Check size={16} className="text-emerald-500" /> Free with your FlowTeam account
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-24 lg:py-40 px-6 bg-white">
-        <div className="mx-auto max-w-7xl">
-          <div className="grid lg:grid-cols-2 gap-16 items-start">
-            <div data-reveal className="lp-reveal">
-              <h2 className="text-4xl lg:text-6xl font-black mb-6 text-slate-900">Frequently asked questions.</h2>
-              <p className="text-lg lg:text-xl text-slate-500">Fast answers for procurement, IT, and the team shipping the work.</p>
-            </div>
-            <div data-reveal className="lp-reveal space-y-4">
-              {faqs.map((f, idx) => {
-                const open = openFaq === idx;
-                return (
+          <div data-reveal className="lp-reveal space-y-3">
+            {faqs.map((f, i) => {
+              const open = openFaq === i;
+              return (
+                <div key={f.q} className={cn("rounded-xl border transition-all", open ? "border-violet-500/25 bg-violet-500/[0.04]" : "border-white/[0.06] bg-[#0d1117]")}>
                   <button
-                    key={f.q}
-                    className={cn("w-full text-left rounded-3xl border px-6 py-5 transition-all", open ? "border-indigo-200 bg-indigo-50/40" : "border-slate-100 bg-white hover:bg-slate-50")}
-                    onClick={() => setOpenFaq(open ? null : idx)}
+                    className="w-full flex items-center justify-between gap-4 px-6 py-5 text-left"
+                    onClick={() => setOpenFaq(open ? null : i)}
                     aria-expanded={open}
                   >
-                    <div className="flex items-center justify-between gap-6">
-                      <div className="text-[15px] font-black text-slate-900">{f.q}</div>
-                      <div className={cn("h-8 w-8 rounded-full border flex items-center justify-center transition-all", open ? "border-indigo-200 bg-white text-indigo-600" : "border-slate-200 bg-white text-slate-500")}>
-                        {open ? <X size={14} /> : <ChevronDown size={14} />}
-                      </div>
-                    </div>
-                    {open && <div className="mt-3 text-[13px] text-slate-600 leading-relaxed">{f.a}</div>}
+                    <span className="text-[15px] font-semibold text-white/80">{f.q}</span>
+                    <ChevronDown size={16} className={cn("text-white/30 shrink-0 transition-transform", open && "rotate-180")} />
                   </button>
-                );
-              })}
-            </div>
+                  {open && <div className="px-6 pb-5 text-[14px] text-white/45 leading-relaxed">{f.a}</div>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      <section className="py-24 px-6">
-        <div className="mx-auto max-w-7xl relative rounded-[24px] lg:rounded-[56px] overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#611f69] via-[#0052CC] to-[#6264A7] opacity-95" />
-          <div className="absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_55%),radial-gradient(circle_at_80%_40%,rgba(255,255,255,0.2),transparent_60%)]" />
-          <div className="relative z-10 px-5 sm:px-8 py-16 lg:py-24 text-center max-w-4xl mx-auto text-white">
-            <h2 className="text-4xl lg:text-6xl font-black mb-6 tracking-tight">Ready to transform how your team works?</h2>
-            <p className="text-lg lg:text-xl text-white/85 mb-10">
-              Start free in minutes, or schedule a demo for security + procurement workflows.
-            </p>
-
-            {ctaSubmitted ? (
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 border border-white/20">
-                  <Check size={28} className="text-white" />
-                </div>
-                <p className="text-[18px] font-black text-white">You&apos;re on the list!</p>
-                <p className="text-white/70 text-[14px]">We&apos;ll be in touch shortly. In the meantime, explore the app.</p>
-                <Link href="/register">
-                  <button className="mt-2 px-8 py-3 rounded-2xl bg-white text-slate-900 font-black text-[15px] hover:bg-white/90 transition-all">
-                    Start Free Now
-                  </button>
-                </Link>
-              </div>
-            ) : (
-              <form onSubmit={handleCtaSubmit} className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <div className="w-full sm:w-[360px]">
-                  <input
-                    type="email"
-                    required
-                    value={ctaEmail}
-                    onChange={(e) => setCtaEmail(e.target.value)}
-                    placeholder="Work email"
-                    className="w-full px-5 py-4 rounded-2xl bg-white/95 text-slate-900 placeholder:text-slate-400 font-semibold outline-none focus:ring-4 focus:ring-white/30"
-                  />
-                </div>
-                <button type="submit" className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-black/90 hover:bg-black text-white text-[16px] font-black shadow-2xl transition-all">
-                  Start Free
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollTo("live-demo")}
-                  className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm text-white text-[16px] font-black hover:bg-white/15 transition-all"
-                >
-                  See Demo
-                </button>
-              </form>
-            )}
-            <div className="mt-6 text-white/70 text-[13px] font-semibold flex flex-wrap items-center justify-center gap-6">
-              <span className="flex items-center gap-2"><Check size={16} /> No credit card required</span>
-              <span className="flex items-center gap-2"><Check size={16} /> Cancel anytime</span>
-              <span className="flex items-center gap-2"><Check size={16} /> Enterprise onboarding</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <footer className="pt-20 pb-12 px-6 border-t border-white/5 bg-[#050508] text-white">
+      {/* ══════════════════ FINAL CTA ══════════════════════════════════ */}
+      <section className="py-20 px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-8 lg:gap-10 mb-16">
-            <div className="col-span-2 sm:col-span-3 lg:col-span-1">
-              <Logo className="mb-6" />
-              <p className="text-[13px] text-white/50 leading-relaxed max-w-[260px]">
-                FlowTeam is the all-in-one platform for planning, communication, and delivery — built for modern enterprises.
+          <div className="relative rounded-3xl overflow-hidden">
+            {/* Background */}
+            <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, #3b1060 0%, #1e3a8a 50%, #164e63 100%)` }} />
+            <div className="absolute inset-0 opacity-40" style={{ background: `radial-gradient(ellipse 60% 50% at 30% 50%, ${PURPLE}66, transparent 70%)` }} />
+            <div className="absolute inset-0 opacity-[0.06]"
+              style={{ backgroundImage: "linear-gradient(rgba(255,255,255,0.6) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.6) 1px, transparent 1px)", backgroundSize: "48px 48px" }} />
+
+            <div className="relative z-10 px-8 py-16 lg:py-24 text-center max-w-3xl mx-auto">
+              <div className="text-[12px] font-semibold uppercase tracking-widest text-violet-300 mb-4">Get started today</div>
+              <h2 className="text-[clamp(2rem,5vw,3.8rem)] font-extrabold tracking-tight mb-5">
+                Ready to transform how your team works?
+              </h2>
+              <p className="text-[16px] lg:text-[18px] text-white/65 mb-10">
+                Start free in minutes, or schedule a personalized demo for your enterprise.
+              </p>
+
+              {ctaSubmitted ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="h-14 w-14 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+                    <Check size={24} className="text-emerald-400" />
+                  </div>
+                  <p className="text-[18px] font-bold text-white">You&apos;re on the list!</p>
+                  <p className="text-white/50 text-[14px]">We&apos;ll be in touch shortly.</p>
+                  <Link href="/register"><button className="mt-2 px-8 py-3 rounded-xl bg-white text-slate-900 font-bold text-[15px] hover:bg-white/90 transition-all">Start free now</button></Link>
+                </div>
+              ) : (
+                <form onSubmit={handleCta} className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-lg mx-auto">
+                  <input
+                    type="email" required value={ctaEmail} onChange={e => setCtaEmail(e.target.value)}
+                    placeholder="Work email address"
+                    className="flex-1 w-full px-5 py-3.5 rounded-xl bg-white/10 border border-white/15 text-white placeholder:text-white/35 text-[14px] focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:border-transparent backdrop-blur-sm"
+                  />
+                  <button type="submit" className="shrink-0 px-6 py-3.5 rounded-xl bg-white text-slate-900 font-bold text-[14px] hover:bg-white/90 transition-all shadow-xl whitespace-nowrap">
+                    Start free
+                  </button>
+                </form>
+              )}
+
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-5 text-[12px] text-white/40 font-medium">
+                <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> No credit card</span>
+                <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> 14-day trial</span>
+                <span className="flex items-center gap-1.5"><Check size={13} className="text-emerald-400" /> Enterprise onboarding</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════ FOOTER ════════════════════════════════════ */}
+      <footer className="border-t border-white/[0.05] bg-[#030712] pt-16 pb-10 px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 mb-16">
+            <div className="col-span-2 md:col-span-3 lg:col-span-1">
+              <WordMark className="mb-5" />
+              <p className="text-[13px] text-white/35 leading-relaxed max-w-[240px]">
+                The all-in-one workspace for modern teams — chat, plan, and ship together.
               </p>
             </div>
-            <FooterCol title="Product" items={["Chat", "Projects", "Meetings", "Integrations", "Security"]} />
-            <FooterCol title="Solutions" items={["Startups", "Remote", "Enterprise", "Agile teams", "Operations"]} />
-            <FooterCol title="Resources" items={["Docs", "Tutorials", "Community", "Status", "Support"]} />
-            <FooterCol title="Company" items={["About", "Careers", "Press", "Contact", "Legal"]} />
-          </div>
-
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 pt-10 border-t border-white/10">
-            <div className="text-[12px] text-white/30">© 2026 FlowTeam. All rights reserved.</div>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-[12px] text-white/50">
-                <div className="h-2 w-2 rounded-full bg-emerald-400" />
-                All Systems Operational
+            {FOOTER_COLS.map(col => (
+              <div key={col.title}>
+                <h5 className="text-[11px] font-bold uppercase tracking-widest text-white/25 mb-4">{col.title}</h5>
+                <ul className="space-y-3">
+                  {col.links.map(l => (
+                    <li key={l}><Link href="#" className="text-[13px] text-white/45 hover:text-white/80 transition-colors">{l}</Link></li>
+                  ))}
+                </ul>
               </div>
-              <div className="h-4 w-[1px] bg-white/10" />
-              <button className="text-[12px] text-white/50 flex items-center gap-2 hover:text-white transition-colors">
-                <Globe size={14} /> English (US)
+            ))}
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-8 border-t border-white/[0.05]">
+            <div className="text-[12px] text-white/25">© 2026 FlowTeam, Inc. All rights reserved.</div>
+            <div className="flex items-center gap-5">
+              <div className="flex items-center gap-1.5 text-[12px] text-white/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                All systems operational
+              </div>
+              <button className="text-[12px] text-white/30 flex items-center gap-1.5 hover:text-white/60 transition-colors">
+                <Globe size={13} /> EN
               </button>
             </div>
           </div>
         </div>
       </footer>
-
-      {/* Scroll-to-top button */}
-      <button
-        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        aria-label="Scroll to top"
-        className={cn(
-          "fixed bottom-8 right-8 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-500/30 transition-all duration-300",
-          showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
-        )}
-      >
-        <ArrowUp size={18} />
-      </button>
     </div>
   );
 }
 
-function FooterCol({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h5 className="text-[12px] font-black mb-5 uppercase tracking-widest text-white/35">{title}</h5>
-      <ul className="space-y-3 text-[13px] text-white/60">
-        {items.map((i) => (
-          <li key={i}>
-            <Link href="#" className="hover:text-white transition-colors">
-              {i}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
+/* ─── Sub-components ─────────────────────────────────────────────── */
 
-function Logo({ className }: { className?: string }) {
+function WordMark({ className }: { className?: string }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-[#611f69] via-[#0052CC] to-[#6264A7] shadow-xl shadow-indigo-500/20">
+      <div className="relative h-8 w-8 rounded-lg overflow-hidden" style={{ background: "linear-gradient(135deg, #7C3AED, #2563EB)" }}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-[14px] font-black text-white tracking-tighter">FT</span>
+        </div>
         <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-        <span className="relative text-[18px] font-black text-white tracking-tighter">FT</span>
       </div>
-      <span className="text-[20px] font-black tracking-tight text-white">FlowTeam</span>
+      <span className="text-[18px] font-bold tracking-tight text-white">FlowTeam</span>
     </div>
   );
 }
 
-function ProductDemo({ view, onViewChange }: { view: DemoView; onViewChange: (v: DemoView) => void }) {
-  const tabs: Array<{ id: DemoView; label: string; icon: any; color: string }> = [
-    { id: "chat", label: "Chat", icon: Quote, color: "#611f69" },
-    { id: "projects", label: "Boards", icon: CheckCircle2, color: "#0052CC" },
-    { id: "meetings", label: "Meetings", icon: Video, color: "#6264A7" },
-  ];
-
+function FloatingCard({ className, delay, icon, title, sub }: {
+  className: string; delay: string; icon: React.ReactNode; title: string; sub: string;
+}) {
   return (
-    <div>
-      <div className="flex items-center justify-between px-3 md:px-5 py-3 md:py-4 border-b border-white/10 bg-black/30">
-        <div className="hidden sm:flex items-center gap-2 text-white/60 text-[12px] font-black uppercase tracking-widest">
-          Live product view
-        </div>
-        <div className="flex items-center gap-1 rounded-full bg-white/5 border border-white/10 p-1">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => onViewChange(t.id)}
-              className={cn(
-                "px-2 md:px-3 py-1.5 rounded-full text-[12px] font-black transition-all flex items-center gap-1.5",
-                view === t.id ? "bg-white text-slate-900" : "text-white/70 hover:text-white"
-              )}
-            >
-              <t.icon size={14} />
-              <span className="hidden sm:inline">{t.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="p-6">
-        <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/20">
-          <div className="flex items-center gap-2 px-4 py-3 border-b border-white/10 bg-black/30">
-            <div className="flex gap-1.5">
-              <div className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
-              <div className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
-            </div>
-            <div className="ml-3 text-[11px] text-white/45 font-mono">flowteam.app</div>
-          </div>
-
-          <div className="p-4 md:p-6">
-            {view === "chat" ? <DemoChat /> : view === "projects" ? <DemoProjects /> : <DemoMeetings />}
-          </div>
-        </div>
-
-        <div className="mt-3 md:mt-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-[11px] md:text-[12px] text-white/55">
-          <div className="flex items-center gap-2">
-            <div className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
-            <span className="font-semibold">Real-time updates</span>
-          </div>
-          <div className="font-semibold">Switches automatically</div>
-        </div>
+    <div
+      className={cn("absolute z-20 flex items-center gap-3 px-4 py-3 rounded-xl border border-white/[0.08] bg-[#0d1117]/90 backdrop-blur-xl shadow-xl lp-float", className)}
+      style={{ animationDelay: delay }}
+    >
+      {icon}
+      <div>
+        <div className="text-[12px] font-semibold text-white leading-none mb-0.5">{title}</div>
+        <div className="text-[10px] text-white/40">{sub}</div>
       </div>
     </div>
   );
 }
 
-function DemoChat() {
+/* Hero app UI mock */
+function HeroAppUI() {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-[120px_1fr] md:grid-cols-[160px_1fr] gap-3 md:gap-4">
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-        <div className="text-[11px] font-black uppercase tracking-widest text-white/45 mb-3">Channels</div>
-        {["# delivery", "# engineering", "# design", "# launches"].map((c, i) => (
-          <div key={c} className={cn("px-3 py-2 rounded-lg text-[12px] font-semibold", i === 0 ? "bg-white/10 text-white" : "text-white/70 hover:bg-white/5")}>
+    <div className="grid grid-cols-[180px_1fr] min-h-[340px] lg:min-h-[420px]">
+      {/* Sidebar */}
+      <div className="border-r border-white/[0.05] bg-black/20 p-4">
+        <div className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-3">Channels</div>
+        {["# engineering", "# design", "# launches", "# general"].map((c, i) => (
+          <div key={c} className={cn("px-2.5 py-2 rounded-lg text-[12px] mb-0.5 cursor-pointer",
+            i === 0 ? "bg-violet-600/30 text-white font-semibold" : "text-white/40 hover:text-white/60")}>
             {c}
           </div>
         ))}
+        <div className="mt-4 text-[10px] font-bold uppercase tracking-widest text-white/25 mb-3">Direct</div>
+        {["Ava Park", "Noah Chen", "Sam Liu"].map((n, i) => (
+          <div key={n} className="flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer hover:bg-white/[0.03] mb-0.5">
+            <span className="h-1.5 w-1.5 rounded-full" style={{ background: i === 0 ? "#10B981" : "#64748b" }} />
+            <span className="text-[12px] text-white/40">{n}</span>
+          </div>
+        ))}
       </div>
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="flex items-center justify-between mb-4">
+
+      {/* Chat area */}
+      <div className="flex flex-col">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.05] bg-black/10">
           <div>
-            <div className="text-[13px] font-black text-white"># delivery</div>
-            <div className="text-[11px] text-white/45">Decisions + tasks in one thread</div>
+            <div className="text-[13px] font-semibold text-white"># engineering</div>
+            <div className="text-[10px] text-white/30">24 members</div>
           </div>
-          <div className="flex items-center gap-2 text-white/45 text-[11px] font-semibold">
-            <Check size={14} className="text-emerald-400" />
-            Synced
+          <div className="flex items-center gap-2">
+            <div className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-[10px] font-semibold text-emerald-400">Live</div>
           </div>
         </div>
-        <div className="space-y-3">
-          <ChatBubble name="Ava" tag="@ava" text="We should ship the onboarding improvements in Sprint 14." />
-          <ChatBubble name="Noah" tag="@noah" text="Agreed — I created tasks for copy + checklist updates." highlight />
-          <div className="rounded-xl border border-white/10 bg-black/20 p-3">
-            <div className="text-[11px] font-black text-white/60 mb-2">Thread</div>
-            <div className="text-[12px] text-white/70">Decision: Ship in Sprint 14 • Owner: @noah</div>
+        <div className="flex-1 p-5 space-y-4 overflow-hidden">
+          <HeroMsg avatar="AP" name="Ava" time="2:14 PM" text="Sprint 14 just kicked off — who owns the push notification task?" />
+          <HeroMsg avatar="NC" name="Noah" time="2:15 PM" text="That's me! Already created the board card and linked the Figma mockup." accent />
+          <div className="ml-9 rounded-lg border border-violet-500/20 bg-violet-500/[0.06] p-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Kanban size={11} className="text-violet-400" />
+              <span className="text-[10px] font-semibold text-violet-400">Task created from message</span>
+            </div>
+            <div className="text-[11px] text-white/60">Push notification redesign · Assigned to @noah · Sprint 14</div>
+          </div>
+          <HeroMsg avatar="SL" name="Sam" time="2:17 PM" text="Nice! I'll pair with you on this tomorrow. Let's sync after standup." />
+        </div>
+        <div className="px-5 pb-4">
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+            <span className="text-[12px] text-white/25 flex-1">Message #engineering…</span>
+            <div className="flex items-center gap-2 text-white/20">
+              <Zap size={12} />
+              <Users size={12} />
+              <Video size={12} />
+            </div>
           </div>
         </div>
       </div>
@@ -1179,78 +892,66 @@ function DemoChat() {
   );
 }
 
-function ChatBubble({ name, tag, text, highlight }: { name: string; tag: string; text: string; highlight?: boolean }) {
+function HeroMsg({ avatar, name, time, text, accent }: { avatar: string; name: string; time: string; text: string; accent?: boolean }) {
   return (
-    <div className={cn("rounded-xl border p-3", highlight ? "border-indigo-500/30 bg-indigo-500/10" : "border-white/10 bg-white/[0.02]")}>
-      <div className="flex items-center justify-between mb-1">
-        <div className="text-[12px] font-black text-white">{name} <span className="text-white/45 font-semibold">{tag}</span></div>
-        <div className="text-[10px] text-white/35 font-semibold">2m</div>
+    <div className="flex items-start gap-3">
+      <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0",
+        accent ? "bg-violet-600" : "bg-slate-600")}>
+        {avatar}
       </div>
-      <div className="text-[12px] text-white/75 leading-relaxed">{text}</div>
+      <div>
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <span className="text-[12px] font-semibold text-white">{name}</span>
+          <span className="text-[10px] text-white/25">{time}</span>
+        </div>
+        <p className="text-[12px] text-white/55 leading-relaxed">{text}</p>
+      </div>
     </div>
   );
 }
 
-function DemoProjects() {
-  const columns = [
-    { 
-      title: "Backlog", 
-      color: "from-[#0052CC]/25",
-      tasks: [
-        { title: "SSO Integration", tag: "High", owner: "SC", progress: 0 },
-        { title: "Dark mode support", tag: "Low", owner: "JW", progress: 0 },
-      ]
-    },
-    { 
-      title: "In Progress", 
-      color: "from-[#611f69]/25",
-      tasks: [
-        { title: "Mobile UI Polish", tag: "Medium", owner: "AP", progress: 65 },
-        { title: "API Documentation", tag: "High", owner: "SC", progress: 30 },
-        { title: "Video reliability", tag: "High", owner: "ER", progress: 85 },
-      ]
-    },
-    { 
-      title: "Done", 
-      color: "from-emerald-500/25",
-      tasks: [
-        { title: "Landing page V1", tag: "High", owner: "AP", progress: 100 },
-        { title: "User auth flow", tag: "High", owner: "JW", progress: 100 },
-      ]
-    },
-  ];
-
+/* Bento previews */
+function BentoChat() {
   return (
-    <div className="grid grid-cols-3 gap-3">
-      {columns.map((col) => (
-        <div key={col.title} className="rounded-xl border border-white/10 bg-white/[0.03] overflow-hidden flex flex-col">
-          <div className={cn("px-3 py-2 text-[11px] font-black text-white/70 bg-gradient-to-r", col.color, "to-transparent border-b border-white/10 flex items-center justify-between")}>
-            {col.title}
-            <span className="text-[10px] opacity-60">{col.tasks.length}</span>
-          </div>
-          <div className="p-2 space-y-2">
-            {col.tasks.map((task, i) => (
-              <div key={i} className="rounded-lg border border-white/5 bg-white/[0.05] p-2.5 shadow-sm">
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="text-[11px] font-bold text-white leading-tight">{task.title}</div>
-                  <div className={cn(
-                    "text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider",
-                    task.tag === "High" ? "bg-red-500/20 text-red-300" : task.tag === "Medium" ? "bg-amber-500/20 text-amber-300" : "bg-blue-500/20 text-blue-300"
-                  )}>
-                    {task.tag}
-                  </div>
-                </div>
-                <div className="flex items-center justify-between mt-auto">
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-5 w-5 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[9px] font-black text-white/80">
-                      {task.owner}
-                    </div>
-                  </div>
-                  <div className="w-12 h-1 rounded-full bg-white/5 overflow-hidden">
-                    <div className={cn("h-full transition-all duration-1000", task.progress === 100 ? "bg-emerald-400" : "bg-indigo-400")} style={{ width: `${task.progress}%` }} />
-                  </div>
-                </div>
-              </div>
+    <div className="grid grid-cols-[110px_1fr] gap-0" style={{ minHeight: 160 }}>
+      <div className="border-r border-white/[0.05] p-3 text-[10px] space-y-1">
+        {["# delivery", "# eng", "# design"].map((c, i) => (
+          <div key={c} className={cn("px-2 py-1 rounded", i === 0 ? "bg-violet-600/30 text-white" : "text-white/30")}>{c}</div>
+        ))}
+      </div>
+      <div className="p-4 space-y-2.5">
+        <BentoChatBubble name="Ava" text="Decision: ship by Friday." />
+        <BentoChatBubble name="Noah" text="Task created ✓" highlight />
+        <div className="text-[10px] text-white/25 flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          Decision linked to board
+        </div>
+      </div>
+    </div>
+  );
+}
+function BentoChatBubble({ name, text, highlight }: { name: string; text: string; highlight?: boolean }) {
+  return (
+    <div className={cn("rounded-lg p-2.5 text-[11px]", highlight ? "border border-violet-500/25 bg-violet-500/10" : "border border-white/[0.06] bg-white/[0.02]")}>
+      <span className="font-semibold text-white/70">{name}: </span>
+      <span className="text-white/50">{text}</span>
+    </div>
+  );
+}
+
+function BentoBoard() {
+  return (
+    <div className="grid grid-cols-3 gap-2 p-4" style={{ minHeight: 140 }}>
+      {[
+        { col: "To do", tasks: ["API docs", "Dark mode"], color: "#2563EB" },
+        { col: "Doing", tasks: ["Mobile UI"], color: "#7C3AED" },
+        { col: "Done", tasks: ["Auth flow"], color: "#10B981" },
+      ].map(col => (
+        <div key={col.col} className="rounded-lg border border-white/[0.05] overflow-hidden">
+          <div className="px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/40 border-b border-white/[0.05]" style={{ borderTopColor: col.color, borderTopWidth: 2 }}>{col.col}</div>
+          <div className="p-2 space-y-1.5">
+            {col.tasks.map(t => (
+              <div key={t} className="rounded bg-white/[0.04] px-2 py-1.5 text-[10px] text-white/50">{t}</div>
             ))}
           </div>
         </div>
@@ -1259,122 +960,82 @@ function DemoProjects() {
   );
 }
 
-function DemoMeetings() {
+function BentoMeeting() {
   return (
-    <div className="relative">
-      {/* Meeting-started status bar */}
-      <div className="flex items-center gap-3 mb-4 px-3 py-2.5 rounded-xl border border-white/10 bg-white/[0.04]">
-        <div className="relative h-9 w-9 shrink-0 rounded-xl bg-[#6264A7]/30 flex items-center justify-center">
-          <Video size={16} className="text-[#6264A7]" />
-          <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-[#0b0b12]" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-[12px] font-black text-white leading-none">Meeting started</div>
-          <div className="text-[10px] text-white/45 mt-0.5">Sprint review • 4 participants</div>
-        </div>
-        <div className="text-[10px] text-white/30 font-mono shrink-0">flowteam.app</div>
-      </div>
-
-      {/* Header */}
+    <div className="p-4" style={{ minHeight: 140 }}>
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-[13px] font-black text-white">Sprint review</div>
-          <div className="text-[11px] text-white/45">Recording + notes attach to work</div>
+        <div className="text-[11px] font-semibold text-white/60">Sprint review · Live</div>
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 lp-live-dot" /> Recording
         </div>
-        <button className="px-4 py-2 rounded-full bg-white text-slate-900 text-[12px] font-black flex items-center gap-1.5 shadow-lg shadow-white/10 hover:bg-white/90 transition-colors">
-          <Video size={13} />
-          Join
-        </button>
       </div>
-
-      {/* 2×2 video grid */}
-      <div className="grid grid-cols-2 gap-2.5">
-        {[
-          { initials: "AP", active: true, color: "from-indigo-500 to-[#6264A7]" },
-          { initials: "SC", active: false, color: "from-slate-500 to-slate-600" },
-          { initials: "JW", active: false, color: "from-slate-500 to-slate-600" },
-          { initials: "ER", active: false, color: "from-slate-500 to-slate-600" },
-        ].map(({ initials, active, color }) => (
-          <div
-            key={initials}
-            className={cn(
-              "aspect-video rounded-xl border overflow-hidden flex items-center justify-center",
-              active
-                ? "border-[#6264A7]/60 bg-[#6264A7]/10 ring-1 ring-[#6264A7]/40"
-                : "border-white/8 bg-[#13131a]"
-            )}
-          >
-            <div className={cn("h-11 w-11 rounded-full bg-gradient-to-br flex items-center justify-center font-black text-white text-[13px] shadow-lg", color)}>
-              {initials}
-            </div>
+      <div className="grid grid-cols-2 gap-2">
+        {["AP", "NC", "SL", "ER"].map((i, idx) => (
+          <div key={i} className={cn("aspect-video rounded-lg flex items-center justify-center",
+            idx === 0 ? "border border-cyan-500/40 bg-cyan-500/10" : "border border-white/[0.05] bg-white/[0.02]")}>
+            <div className="h-7 w-7 rounded-full bg-slate-600 flex items-center justify-center text-[9px] font-bold text-white">{i}</div>
           </div>
         ))}
-      </div>
-
-      {/* Agenda */}
-      <div className="mt-3 rounded-xl border border-white/10 bg-black/25 p-3">
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-[12px] font-black text-white">Agenda</div>
-          <div className="text-[10px] text-white/40 font-semibold">3 items</div>
-        </div>
-        <div className="space-y-2">
-          {["Sprint outcomes", "Blockers", "Next sprint scope"].map((item, i) => (
-            <div key={item} className="flex items-center gap-2.5 text-[12px] text-white/65">
-              <div className={cn("h-4 w-4 rounded-[4px] border flex items-center justify-center shrink-0", i === 0 ? "border-[#6264A7]/60 bg-[#6264A7]/20" : "border-white/15 bg-white/[0.04]")}>
-                {i === 0 && <Check size={9} className="text-[#6264A7]" />}
-              </div>
-              <span className={i === 0 ? "line-through text-white/30" : ""}>{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* New message notification */}
-      <div className="mt-3 flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-[#611f69]/20 border border-[#611f69]/30">
-        <div className="h-7 w-7 rounded-full bg-[#611f69]/50 flex items-center justify-center shrink-0">
-          <MessageSquare size={13} className="text-[#e879f9]" />
-        </div>
-        <div>
-          <div className="text-[11px] font-black text-white">New message</div>
-          <div className="text-[10px] text-white/45">@ava mentioned you in #engineering</div>
-        </div>
       </div>
     </div>
   );
 }
 
-function MiniChat({ accent }: { accent: string }) {
+function BentoAnalytics() {
   return (
-    <div className="rounded-xl bg-white p-4">
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[12px] font-black text-slate-700"># launches</div>
-        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Threaded</div>
+    <div className="p-4" style={{ minHeight: 140 }}>
+      <div className="text-[10px] text-white/30 mb-3">Velocity · Sprint 14</div>
+      <div className="flex items-end gap-1.5 h-16">
+        {[45, 62, 55, 70, 80, 72, 90].map((h, i) => (
+          <div key={i} className="flex-1 rounded-sm transition-all" style={{ height: `${h}%`, background: `linear-gradient(to top, ${MINT}88, ${MINT}22)` }} />
+        ))}
+      </div>
+      <div className="flex items-center justify-between mt-3 text-[10px] text-white/30">
+        <span>Week 1</span><span>Week 7</span>
+      </div>
+    </div>
+  );
+}
+
+function BentoAI() {
+  return (
+    <div className="p-4" style={{ minHeight: 140 }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Sparkles size={12} className="text-pink-400" />
+        <span className="text-[10px] font-semibold text-pink-400">AI summary</span>
       </div>
       <div className="space-y-2">
-        <div className="rounded-lg border border-slate-100 p-3">
-          <div className="text-[11px] font-black text-slate-900">Decision</div>
-          <div className="text-[12px] text-slate-600">Ship the new pricing page on Monday.</div>
+        <div className="text-[11px] text-white/55 leading-relaxed rounded-lg bg-white/[0.03] p-2.5 border border-white/[0.05]">
+          3 tasks are overdue in Sprint 14. @noah is blocked on API docs — suggest pairing with @sam.
         </div>
-        <div className="rounded-lg border border-slate-100 p-3" style={{ borderColor: `${accent}33`, background: `${accent}0A` }}>
-          <div className="text-[11px] font-black text-slate-900">Task created</div>
-          <div className="text-[12px] text-slate-600">“Finalize tier copy” assigned to @ava.</div>
+        <div className="flex items-center gap-2">
+          <button className="px-2.5 py-1 rounded bg-pink-500/15 text-[10px] font-semibold text-pink-400 border border-pink-500/20">Assign</button>
+          <button className="px-2.5 py-1 rounded bg-white/[0.04] text-[10px] font-semibold text-white/40 border border-white/[0.06]">Dismiss</button>
         </div>
       </div>
     </div>
   );
 }
 
-function MiniBoard({ accent }: { accent: string }) {
+function WorkflowPreview() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-      {["To do", "Doing", "Done"].map((t, i) => (
-        <div key={t} className="rounded-xl border border-slate-100 bg-white p-3">
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">{t}</div>
-          <div className="rounded-lg border border-slate-100 bg-slate-50 p-2">
-            <div className="text-[11px] font-black text-slate-900">Card</div>
-            <div className="mt-2 h-1.5 rounded-full bg-slate-200 overflow-hidden">
-              <div className="h-full" style={{ width: `${35 + i * 20}%`, background: accent }} />
+    <div className="p-6 space-y-3">
+      {[
+        { step: "Discuss", icon: MessageSquare, color: PURPLE, desc: "Ship onboarding by Friday?" },
+        { step: "Plan", icon: Kanban, color: BLUE, desc: "Task created · Sprint 14 · @ava" },
+        { step: "Meet", icon: Video, color: CYAN, desc: "Sprint review · Agenda attached" },
+        { step: "Ship", icon: Zap, color: MINT, desc: "Deploy triggered · 0 blockers" },
+      ].map((s, i) => (
+        <div key={s.step} className="flex items-start gap-4">
+          <div className="flex flex-col items-center">
+            <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: `${s.color}20` }}>
+              <s.icon size={15} style={{ color: s.color }} />
             </div>
+            {i < 3 && <div className="w-px flex-1 mt-1 min-h-[16px]" style={{ background: `linear-gradient(to bottom, ${s.color}40, transparent)` }} />}
+          </div>
+          <div className="pt-1 pb-3">
+            <div className="text-[12px] font-bold text-white/70 mb-0.5">{s.step}</div>
+            <div className="text-[12px] text-white/35">{s.desc}</div>
           </div>
         </div>
       ))}
@@ -1382,131 +1043,90 @@ function MiniBoard({ accent }: { accent: string }) {
   );
 }
 
-function MiniMeeting({ accent }: { accent: string }) {
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { a: "AP", active: true },
-          { a: "SC", active: false },
-          { a: "JW", active: false },
-          { a: "ER", active: false },
-        ].map(({ a, active }) => (
-          <div key={a} className={cn("aspect-video rounded-xl border flex items-center justify-center", active ? "border-slate-300 bg-slate-100" : "border-slate-100 bg-white")}>
-            <div className="h-8 w-8 rounded-full flex items-center justify-center font-black text-white text-[11px] shadow" style={{ background: active ? accent : "#94a3b8" }}>
-              {a}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="rounded-lg border border-slate-100 bg-white px-3 py-2 flex items-center justify-between">
-        <span className="text-[11px] font-black text-slate-600">Agenda · 3 items</span>
-        <div className="h-4 w-4 rounded-[3px] border border-slate-200 bg-slate-50" />
-      </div>
-    </div>
-  );
-}
+/* ─── Static data ────────────────────────────────────────────────── */
+const LOGOS = ["Shopify", "Stripe", "Notion", "Figma", "Vercel", "Linear", "Atlassian", "HubSpot", "Intercom", "Mixpanel", "Segment", "Twilio"];
 
-function UseCasePreview({ id }: { id: string }) {
-  if (id === "marketing") {
-    return (
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Campaign board</div>
-          <div className="space-y-2">
-            {["Draft", "Review", "Approved"].map((s) => (
-              <div key={s} className="rounded-xl border border-slate-100 bg-white p-3 text-[12px] font-semibold text-slate-700">
-                {s}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-white p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Stakeholder thread</div>
-          <div className="space-y-2">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[12px] text-slate-700">“Can we tweak the headline?”</div>
-            <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-[12px] text-slate-700">Approved — ship version B.</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+const STATS = [
+  { value: "10M+", label: "Active users" },
+  { value: "150+", label: "Countries" },
+  { value: "99.9%", label: "Uptime SLA" },
+  { value: "4.8★", label: "Average rating" },
+];
 
-  if (id === "remote") {
-    return (
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-slate-100 bg-white p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Async check-in</div>
-          <div className="space-y-2 text-[12px] text-slate-700">
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">Yesterday: closed 8 tasks</div>
-            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">Today: unblock auth flow</div>
-            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">Blocker: waiting on review</div>
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Handoff</div>
-          <div className="rounded-xl border border-slate-100 bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div className="text-[12px] font-black text-slate-900">Timezone overlap</div>
-              <div className="text-[12px] font-black text-indigo-600">2h</div>
-            </div>
-            <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
-              <div className="h-full bg-indigo-600" style={{ width: "35%" }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+const WORKFLOW = [
+  { title: "Discuss in channels", desc: "Threaded conversations that stay scoped to the right people and context." },
+  { title: "Convert to tasks instantly", desc: "Click any message to create a task — owner, due date, and context attached automatically." },
+  { title: "Review in meetings", desc: "Agenda-driven video calls with recordings that link back to the board." },
+  { title: "Ship with confidence", desc: "Progress rolls up automatically — no weekly status update meetings required." },
+];
 
-  if (id === "enterprise") {
-    return (
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div className="rounded-2xl border border-slate-100 bg-white p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Access policies</div>
-          <div className="space-y-2">
-            {["SSO required", "2FA enforced", "Guest expiry 7d"].map((p) => (
-              <div key={p} className="rounded-xl border border-slate-100 bg-slate-50 p-3 text-[12px] text-slate-700 flex items-center justify-between">
-                <span>{p}</span>
-                <span className="text-emerald-700 font-black">On</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <div className="text-[12px] font-black text-slate-900 mb-2">Audit logs</div>
-          <div className="rounded-xl border border-slate-100 bg-white p-4 space-y-2 text-[12px] text-slate-700">
-            <div className="flex items-center justify-between"><span>Role updated</span><span className="text-slate-400">1m</span></div>
-            <div className="flex items-center justify-between"><span>Workspace created</span><span className="text-slate-400">12m</span></div>
-            <div className="flex items-center justify-between"><span>SSO enabled</span><span className="text-slate-400">2h</span></div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+const USE_CASES = [
+  {
+    title: "Software Teams",
+    desc: "Connect code, tasks, and decisions — no context switching.",
+    accent: PURPLE,
+    icon: GitBranch,
+    features: ["Sprint planning", "Deploy alerts in channels", "PR → task linking"],
+  },
+  {
+    title: "Marketing Teams",
+    desc: "From brief to publish without a single tool handoff.",
+    accent: "#EC4899",
+    icon: Zap,
+    features: ["Editorial calendars", "Asset approval threads", "Campaign analytics"],
+  },
+  {
+    title: "Remote Teams",
+    desc: "Async by default, synchronous when it matters.",
+    accent: CYAN,
+    icon: Globe,
+    features: ["Async video handoffs", "Time zone overlays", "Meeting recordings"],
+  },
+  {
+    title: "Enterprise",
+    desc: "Compliance, governance, and admin control at scale.",
+    accent: BLUE,
+    icon: Shield,
+    features: ["SAML SSO + SCIM", "Data residency", "Audit logs"],
+  },
+];
 
-  return (
-    <div className="grid sm:grid-cols-2 gap-4">
-      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-        <div className="text-[12px] font-black text-slate-900 mb-2">Sprint overview</div>
-        <div className="rounded-xl border border-slate-100 bg-white p-4">
-          <div className="text-[12px] font-black text-slate-900">Sprint 14</div>
-          <div className="mt-3 h-2 rounded-full bg-slate-200 overflow-hidden">
-            <div className="h-full bg-indigo-600" style={{ width: "62%" }} />
-          </div>
-          <div className="mt-2 text-[12px] text-slate-500">12 / 19 tasks complete</div>
-        </div>
-      </div>
-      <div className="rounded-2xl border border-slate-100 bg-white p-4">
-        <div className="text-[12px] font-black text-slate-900 mb-2">PR to task</div>
-        <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-          <div className="flex items-center justify-between">
-            <div className="text-[12px] font-black text-slate-900">#482</div>
-            <div className="text-[12px] font-black text-emerald-700">Merged</div>
-          </div>
-          <div className="text-[12px] text-slate-600 mt-2">“Improve onboarding completion”</div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const INTEGRATIONS = [
+  { name: "GitHub", color: "#e2e8f0", icon: GitBranch },
+  { name: "Figma", color: "#a259ff", icon: Sparkles },
+  { name: "Google", color: "#4285F4", icon: Globe },
+  { name: "Slack", color: "#E01E5A", icon: MessageSquare },
+  { name: "Jira", color: "#0052CC", icon: Kanban },
+  { name: "Salesforce", color: "#00A1E0", icon: BarChart3 },
+  { name: "Okta", color: "#007DC1", icon: Lock },
+  { name: "Webhooks", color: "#10B981", icon: Zap },
+  { name: "Analytics", color: "#F59E0B", icon: Activity },
+];
+
+const PROOF_POINTS = [
+  { value: "10M+", label: "Active users" },
+  { value: "150+", label: "Countries" },
+  { value: "99.9%", label: "Uptime" },
+  { value: "4.8★", label: "Rating" },
+];
+
+const SECURITY_FEATS = [
+  { title: "SSO & SCIM", desc: "SAML 2.0 + automated provisioning via Okta, Azure AD", icon: Lock },
+  { title: "Encryption", desc: "AES-256 at rest, TLS 1.3 in transit, end-to-end option", icon: Shield },
+  { title: "Audit Logs", desc: "Full tamper-proof action history for compliance", icon: Activity },
+  { title: "Data Residency", desc: "US, EU, and APAC data centers — your data, your region", icon: Globe },
+];
+
+const COMPLIANCE_BADGES = [
+  { name: "SOC 2 Type II", sub: "Certified" },
+  { name: "GDPR", sub: "Compliant" },
+  { name: "HIPAA", sub: "Eligible" },
+  { name: "ISO 27001", sub: "Certified" },
+];
+
+const FOOTER_COLS = [
+  { title: "Product", links: ["Chat", "Projects", "Meetings", "Analytics", "AI Assistant"] },
+  { title: "Solutions", links: ["Startups", "Remote teams", "Enterprise", "Agile", "Operations"] },
+  { title: "Resources", links: ["Documentation", "Tutorials", "Community", "Status", "Support"] },
+  { title: "Company", links: ["About", "Careers", "Press", "Contact", "Legal"] },
+];
