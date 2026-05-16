@@ -35,7 +35,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, isValid } from "date-fns";
+
+function safeTimeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  if (!isValid(d)) return "—";
+  return formatDistanceToNow(d, { addSuffix: true });
+}
 
 type ViewMode = "grid" | "list";
 
@@ -81,12 +88,12 @@ export default function ProjectsPage() {
       return p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
     });
     const pct = (p: Project) => (p.task_count ? (p.completed_task_count ?? 0) / p.task_count : 0);
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       if (sortBy === "name")       return a.name.localeCompare(b.name);
       if (sortBy === "tasks")      return (b.task_count ?? 0) - (a.task_count ?? 0);
       if (sortBy === "completion") return pct(b) - pct(a);
       if (sortBy === "overdue")    return (b.overdue_count ?? 0) - (a.overdue_count ?? 0);
-      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+      return (b.updated_at ? new Date(b.updated_at).getTime() : 0) - (a.updated_at ? new Date(a.updated_at).getTime() : 0);
     });
   }, [allProjects, searchText, sortBy]);
 
@@ -172,7 +179,7 @@ export default function ProjectsPage() {
         />
         <StatTile
           label="Team members"
-          value={allProjects.reduce((s, p) => Math.max(s, p.member_count ?? 0), 0)}
+          value={allProjects.reduce((s, p) => s + (p.member_count ?? 0), 0)}
           sub="Across all projects"
           icon={Users}
           iconColor="text-violet-600 dark:text-violet-400"
@@ -497,7 +504,7 @@ function ProjectGridCard({
           </span>
           <span className="flex items-center gap-1 ml-auto">
             <Clock size={10} />
-            {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+            {safeTimeAgo(project.updated_at)}
           </span>
         </div>
       </Link>
