@@ -271,7 +271,7 @@ export default function DashboardScreen() {
             <Ionicons name="people-outline" size={15} color={colors.violet} />
             <AppText style={[styles.navPillText, { color: colors.violet }]}>Team</AppText>
           </Pressable>
-          <Pressable style={styles.navPill} onPress={() => router.push("/(tabs)/meetings")}>
+          <Pressable style={styles.navPill} onPress={() => router.push("/meetings")}>
             <Ionicons name="videocam-outline" size={15} color={colors.blue} />
             <AppText style={[styles.navPillText, { color: colors.blue }]}>Meetings</AppText>
           </Pressable>

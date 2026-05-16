@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { StyleSheet, View, Pressable } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -5,9 +6,11 @@ import { router, useLocalSearchParams } from "expo-router";
 import { AppText } from "../../src/components/AppText";
 import { Button } from "../../src/components/Button";
 import { Card } from "../../src/components/Card";
+import { EmptyState } from "../../src/components/EmptyState";
 import { Header } from "../../src/components/Header";
 import { Screen } from "../../src/components/Screen";
 import { StatusPill } from "../../src/components/StatusPill";
+import { TaskCreateModal } from "../../src/components/TaskCreateModal";
 import { useProjects, useTasks } from "../../src/lib/queries";
 import { colors, radius, shadow, spacing } from "../../src/lib/theme";
 import { useAuthStore } from "../../src/store/authStore";
@@ -19,6 +22,8 @@ export default function ProjectDetailScreen() {
   const { activeTeamId, isDemoMode } = useAuthStore();
   const { data: projects = [] } = useProjects(isDemoMode, activeTeamId);
   const { data: tasks = [] } = useTasks(isDemoMode, id);
+  const [showCreate, setShowCreate] = useState(false);
+
   const project = projects.find((item) => item.id === id) ?? projects[0];
   const pct = project?.progress ?? 0;
 
@@ -105,7 +110,12 @@ export default function ProjectDetailScreen() {
 
       {/* ── Quick Actions ── */}
       <View style={styles.actions}>
-        <Button variant="primary" icon="add-circle-outline" style={{ flex: 1 }}>
+        <Button
+          variant="primary"
+          icon="add-circle-outline"
+          style={{ flex: 1 }}
+          onPress={() => setShowCreate(true)}
+        >
           New task
         </Button>
         <Button variant="secondary" icon="sparkles-outline" style={{ flex: 1 }}>
@@ -121,62 +131,81 @@ export default function ProjectDetailScreen() {
         </View>
       </View>
 
-      <View style={styles.list}>
-        {sorted.map((task) => {
-          const isDone = task.column_name?.toLowerCase().includes("done") || task.status === "done";
-          const assigneeName = task.assignee?.full_name ?? task.assignee_name ?? "Unassigned";
-          return (
-          <Pressable
-            key={task.id}
-            style={({ pressed }) => [pressed && styles.taskPressed]}
-          >
-            <Card style={styles.taskCard}>
-              <View style={styles.taskTop}>
-                <View style={styles.checkCircle}>
-                  {isDone ? (
-                    <Ionicons name="checkmark" size={12} color={colors.surface} />
-                  ) : null}
-                </View>
-                <View style={styles.taskCopy}>
-                  <AppText
-                    variant="bodyBold"
-                    numberOfLines={2}
-                    style={isDone ? styles.doneText : undefined}
-                  >
-                    {task.title}
-                  </AppText>
-                  <View style={styles.taskMeta}>
-                    <View style={styles.assigneeRow}>
-                      <View style={styles.avatarMini}>
-                        <AppText style={styles.avatarMiniText}>
-                          {(assigneeName)[0].toUpperCase()}
-                        </AppText>
-                      </View>
-                      <AppText variant="caption">{assigneeName}</AppText>
+      {tasks.length === 0 ? (
+        <EmptyState
+          icon="checkbox-outline"
+          title="No tasks yet"
+          subtitle="Add your first task to get started."
+          actionLabel="New task"
+          iconColor={colors.primary}
+        />
+      ) : (
+        <View style={styles.list}>
+          {sorted.map((task) => {
+            const isDone = task.column_name?.toLowerCase().includes("done") || task.status === "done";
+            const assigneeName = task.assignee?.full_name ?? task.assignee_name ?? "Unassigned";
+            return (
+              <Pressable
+                key={task.id}
+                onPress={() => router.push(`/tasks/${task.id}`)}
+                style={({ pressed }) => [pressed && styles.taskPressed]}
+              >
+                <Card style={styles.taskCard}>
+                  <View style={styles.taskTop}>
+                    <View style={styles.checkCircle}>
+                      {isDone ? (
+                        <Ionicons name="checkmark" size={12} color={colors.surface} />
+                      ) : null}
                     </View>
-                    {task.due_date ? (
-                      <View style={styles.dateRow}>
-                        <Ionicons name="time-outline" size={11} color={colors.muted} />
-                        <AppText variant="caption">{task.due_date}</AppText>
+                    <View style={styles.taskCopy}>
+                      <AppText
+                        variant="bodyBold"
+                        numberOfLines={2}
+                        style={isDone ? styles.doneText : undefined}
+                      >
+                        {task.title}
+                      </AppText>
+                      <View style={styles.taskMeta}>
+                        <View style={styles.assigneeRow}>
+                          <View style={styles.avatarMini}>
+                            <AppText style={styles.avatarMiniText}>
+                              {assigneeName[0].toUpperCase()}
+                            </AppText>
+                          </View>
+                          <AppText variant="caption">{assigneeName}</AppText>
+                        </View>
+                        {task.due_date ? (
+                          <View style={styles.dateRow}>
+                            <Ionicons name="time-outline" size={11} color={colors.muted} />
+                            <AppText variant="caption">{task.due_date}</AppText>
+                          </View>
+                        ) : null}
                       </View>
-                    ) : null}
+                    </View>
+                    <Ionicons name="chevron-forward" size={14} color={colors.line} />
                   </View>
-                </View>
-              </View>
-              <View style={styles.taskPills}>
-                <StatusPill label={task.column_name ?? task.status ?? "todo"} />
-                <StatusPill label={task.priority ?? "medium"} />
-              </View>
-            </Card>
-          </Pressable>
-        )})}
-      </View>
+                  <View style={styles.taskPills}>
+                    <StatusPill label={task.column_name ?? task.status ?? "todo"} />
+                    <StatusPill label={task.priority ?? "medium"} />
+                  </View>
+                </Card>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      <TaskCreateModal
+        visible={showCreate}
+        onClose={() => setShowCreate(false)}
+        isDemoMode={isDemoMode}
+        defaultProjectId={id}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  // Hero card
   heroCard: {
     borderRadius: radius.xl,
     padding: spacing.lg,
@@ -293,15 +322,11 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },
-
-  // Actions
   actions: {
     flexDirection: "row",
     gap: spacing.sm,
     marginBottom: spacing.lg,
   },
-
-  // Section header
   sectionHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -321,8 +346,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-
-  // Task list
   list: {
     gap: spacing.xs + 2,
   },

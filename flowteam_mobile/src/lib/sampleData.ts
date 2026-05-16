@@ -64,7 +64,7 @@ export const sampleMessagesByChannel: Record<string, Message[]> = {
     {
       id: "m5",
       channel: "design",
-      text: "Nice — I’ll leave comments in the prototype.",
+      text: "Nice — I'll leave comments in the prototype.",
       created_at: new Date(Date.now() - 1000 * 60 * 12).toISOString(),
       sender: { id: sampleUser.id, full_name: sampleUser.full_name, avatar: null },
     },

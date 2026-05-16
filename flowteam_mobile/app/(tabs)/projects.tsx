@@ -1,12 +1,15 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { AppText } from "../../src/components/AppText";
 import { Card } from "../../src/components/Card";
+import { EmptyState } from "../../src/components/EmptyState";
 import { Header } from "../../src/components/Header";
 import { Screen } from "../../src/components/Screen";
 import { StatusPill } from "../../src/components/StatusPill";
+import { TaskCreateModal } from "../../src/components/TaskCreateModal";
 import { useProjects, useTasks } from "../../src/lib/queries";
 import { colors, radius, spacing } from "../../src/lib/theme";
 import { useAuthStore } from "../../src/store/authStore";
@@ -15,114 +18,168 @@ const accents = [colors.primary, colors.blue, colors.accent, colors.violet, colo
 
 export default function ProjectsScreen() {
   const { activeTeamId, isDemoMode } = useAuthStore();
-  const { data: projects = [] } = useProjects(isDemoMode, activeTeamId);
-  const { data: tasks = [] } = useTasks(isDemoMode);
-  const openProjects = projects.filter((project) => (project.status ?? "active") !== "archived").length;
+  const { data: projects = [], refetch: refetchProjects } = useProjects(isDemoMode, activeTeamId);
+  const { data: tasks = [], refetch: refetchTasks } = useTasks(isDemoMode);
+  const [refreshing, setRefreshing] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+
+  const openProjects = projects.filter((p) => (p.status ?? "active") !== "archived").length;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([refetchProjects(), refetchTasks()]);
+    setRefreshing(false);
+  };
 
   return (
-    <Screen>
-      <Header
-        title="Projects"
-        subtitle={`${projects.length} active workspaces`}
-        actionIcon="add-circle-outline"
-      />
-
-      <Card style={styles.summary} glass>
-        <View>
-          <AppText variant="label" style={styles.summaryLabel}>Portfolio</AppText>
-          <AppText style={styles.summaryValue}>{openProjects}</AppText>
-          <AppText variant="caption">Live initiatives</AppText>
+    <Screen scroll={false} noPadding>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        <View style={styles.headerWrap}>
+          <Header
+            title="Projects"
+            subtitle={`${projects.length} active workspaces`}
+            actionIcon="add-circle-outline"
+            onAction={() => setShowCreate(true)}
+          />
         </View>
-        <View style={styles.summaryDivider} />
-        <View style={styles.summaryMeta}>
-          <View style={styles.metaLine}>
-            <Ionicons name="checkbox-outline" size={14} color={colors.primary} />
-            <AppText variant="caption">{tasks.length} tasks tracked</AppText>
-          </View>
-          <View style={styles.metaLine}>
-            <Ionicons name="pulse-outline" size={14} color={colors.accent} />
-            <AppText variant="caption">Delivery health synced</AppText>
-          </View>
-        </View>
-      </Card>
 
-      <View style={styles.list}>
-        {projects.map((project, index) => {
-          const accent = project.color ?? accents[index % accents.length];
-          const pct = project.task_count
-            ? Math.round(((project.completed_task_count ?? 0) / project.task_count) * 100)
-            : (project.progress ?? 0);
-          const projectTasks = project.task_count ?? tasks.filter((task) => task.project === project.id).length;
+        <View style={styles.inner}>
+          <Card style={styles.summary} glass>
+            <View>
+              <AppText variant="label" style={styles.summaryLabel}>Portfolio</AppText>
+              <AppText style={styles.summaryValue}>{openProjects}</AppText>
+              <AppText variant="caption">Live initiatives</AppText>
+            </View>
+            <View style={styles.summaryDivider} />
+            <View style={styles.summaryMeta}>
+              <View style={styles.metaLine}>
+                <Ionicons name="checkbox-outline" size={14} color={colors.primary} />
+                <AppText variant="caption">{tasks.length} tasks tracked</AppText>
+              </View>
+              <View style={styles.metaLine}>
+                <Ionicons name="pulse-outline" size={14} color={colors.accent} />
+                <AppText variant="caption">Delivery health synced</AppText>
+              </View>
+            </View>
+          </Card>
 
-          return (
-            <Pressable
-              key={project.id}
-              onPress={() => router.push(`/projects/${project.id}`)}
-              style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
-            >
-              <Card style={styles.project} elevated>
-                <View style={[styles.accentRail, { backgroundColor: accent }]} />
+          {projects.length === 0 ? (
+            <EmptyState
+              icon="briefcase-outline"
+              title="No projects yet"
+              subtitle="Create your first project to get started."
+              actionLabel="New project"
+              iconColor={colors.primary}
+            />
+          ) : (
+            <View style={styles.list}>
+              {projects.map((project, index) => {
+                const accent = project.color ?? accents[index % accents.length];
+                const pct = project.task_count
+                  ? Math.round(((project.completed_task_count ?? 0) / project.task_count) * 100)
+                  : (project.progress ?? 0);
+                const projectTasks = project.task_count ?? tasks.filter((t) => t.project === project.id).length;
 
-                <View style={styles.projectHeader}>
-                  <View style={[styles.projectIconWrap, { backgroundColor: `${accent}24`, borderColor: `${accent}55` }]}>
-                    <Ionicons name={project.icon ? project.icon as any : "layers"} size={18} color={accent} />
-                  </View>
+                return (
+                  <Pressable
+                    key={project.id}
+                    onPress={() => router.push(`/projects/${project.id}`)}
+                    style={({ pressed }) => [styles.pressable, pressed && styles.pressed]}
+                  >
+                    <Card style={styles.project} elevated>
+                      <View style={[styles.accentRail, { backgroundColor: accent }]} />
 
-                  <View style={styles.projectTitle}>
-                    <AppText variant="heading" numberOfLines={1}>
-                      {project.name}
-                    </AppText>
-                    <AppText variant="caption" numberOfLines={2}>
-                      {project.description ?? "Mobile-ready project workspace"}
-                    </AppText>
-                  </View>
+                      <View style={styles.projectHeader}>
+                        <View style={[styles.projectIconWrap, { backgroundColor: `${accent}24`, borderColor: `${accent}55` }]}>
+                          <Ionicons name={project.icon ? project.icon as any : "layers"} size={18} color={accent} />
+                        </View>
 
-                  <StatusPill label={project.status ?? "active"} size="sm" />
-                </View>
+                        <View style={styles.projectTitle}>
+                          <AppText variant="heading" numberOfLines={1}>
+                            {project.name}
+                          </AppText>
+                          <AppText variant="caption" numberOfLines={2}>
+                            {project.description ?? "Mobile-ready project workspace"}
+                          </AppText>
+                        </View>
 
-                <View style={styles.progressSection}>
-                  <View style={styles.progressMeta}>
-                    <AppText variant="caption">Progress</AppText>
-                    <AppText style={[styles.progressPct, { color: accent }]}>{pct}%</AppText>
-                  </View>
-                  <View style={styles.progressTrack}>
-                    <LinearGradient
-                      colors={[accent, colors.primaryLight]}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 0 }}
-                      style={[styles.progressFill, { width: `${pct}%` }]}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.footer}>
-                  <View style={styles.footerMeta}>
-                    <View style={styles.metaItem}>
-                      <Ionicons name="checkbox-outline" size={13} color={colors.muted} />
-                      <AppText variant="caption">{projectTasks} tasks</AppText>
-                    </View>
-                    {project.deadline ? (
-                      <View style={styles.metaItem}>
-                        <Ionicons name="calendar-outline" size={13} color={colors.muted} />
-                        <AppText variant="caption">{project.deadline}</AppText>
+                        <StatusPill label={project.status ?? "active"} size="sm" />
                       </View>
-                    ) : null}
-                  </View>
-                  <View style={styles.openBtn}>
-                    <AppText style={[styles.openBtnText, { color: accent }]}>Open board</AppText>
-                    <Ionicons name="arrow-forward" size={13} color={accent} />
-                  </View>
-                </View>
-              </Card>
-            </Pressable>
-          );
-        })}
-      </View>
+
+                      <View style={styles.progressSection}>
+                        <View style={styles.progressMeta}>
+                          <AppText variant="caption">Progress</AppText>
+                          <AppText style={[styles.progressPct, { color: accent }]}>{pct}%</AppText>
+                        </View>
+                        <View style={styles.progressTrack}>
+                          <LinearGradient
+                            colors={[accent, colors.primaryLight]}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
+                            style={[styles.progressFill, { width: `${pct}%` }]}
+                          />
+                        </View>
+                      </View>
+
+                      <View style={styles.footer}>
+                        <View style={styles.footerMeta}>
+                          <View style={styles.metaItem}>
+                            <Ionicons name="checkbox-outline" size={13} color={colors.muted} />
+                            <AppText variant="caption">{projectTasks} tasks</AppText>
+                          </View>
+                          {project.deadline ? (
+                            <View style={styles.metaItem}>
+                              <Ionicons name="calendar-outline" size={13} color={colors.muted} />
+                              <AppText variant="caption">{project.deadline}</AppText>
+                            </View>
+                          ) : null}
+                        </View>
+                        <View style={styles.openBtn}>
+                          <AppText style={[styles.openBtnText, { color: accent }]}>Open board</AppText>
+                          <Ionicons name="arrow-forward" size={13} color={accent} />
+                        </View>
+                      </View>
+                    </Card>
+                  </Pressable>
+                );
+              })}
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      <TaskCreateModal
+        visible={showCreate}
+        onClose={() => setShowCreate(false)}
+        isDemoMode={isDemoMode}
+      />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  scroll: { flex: 1 },
+  content: { paddingBottom: 100 },
+  headerWrap: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+  },
+  inner: {
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.xs,
+  },
   summary: {
     flexDirection: "row",
     alignItems: "center",

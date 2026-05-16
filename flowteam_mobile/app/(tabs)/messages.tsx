@@ -1,21 +1,27 @@
-import { Pressable, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { AppText } from "../../src/components/AppText";
-import { Card } from "../../src/components/Card";
-import { Header } from "../../src/components/Header";
-import { Screen } from "../../src/components/Screen";
-import { colors, radius, shadow, spacing } from "../../src/lib/theme";
-import { useChannels } from "../../src/lib/queries";
-import { useAuthStore } from "../../src/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { AppText } from "../../src/components/AppText";
+import { Screen } from "../../src/components/Screen";
+import { useChannels } from "../../src/lib/queries";
+import { colors, radius, spacing } from "../../src/lib/theme";
+import { useAuthStore } from "../../src/store/authStore";
 
-const channelColors: Array<readonly [string, string]> = [
-  [colors.primaryDark, colors.primary],
-  ["#1a3f8c", colors.blueLight],
-  ["#4a2e8c", colors.violetLight],
-  [colors.accent, colors.accentLight],
-  [colors.teal, "#0ab3d8"],
+const ONLINE_MEMBERS = [
+  { initials: "SC", grad: [colors.primaryDark, colors.primary] as string[] },
+  { initials: "AK", grad: ["#1a3f8c", colors.blueLight] as string[] },
+  { initials: "MR", grad: ["#4a2e8c", colors.violetLight] as string[] },
+  { initials: "JB", grad: [colors.teal, "#0ab3d8"] as string[] },
+  { initials: "PR", grad: [colors.accent, colors.accentLight] as string[] },
 ];
 
 function timeAgo(dateStr?: string | null): string {
@@ -30,247 +36,363 @@ function timeAgo(dateStr?: string | null): string {
   return `${Math.floor(hrs / 24)}d`;
 }
 
+const CHANNEL_GRADS: string[][] = [
+  [colors.primaryDark, colors.primary],
+  ["#1a3f8c", colors.blue],
+  ["#4a2e8c", colors.violet],
+  [colors.teal, "#0ab3d8"],
+  [colors.accent, colors.accentLight],
+];
+
 export default function MessagesScreen() {
   const { activeTeamId, isDemoMode } = useAuthStore();
-  const { data: channels = [] } = useChannels(isDemoMode, activeTeamId);
+  const { data: channels = [], refetch } = useChannels(isDemoMode, activeTeamId);
+  const [search, setSearch] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
   const totalUnread = channels.reduce((s, c) => s + (c.unread_count ?? 0), 0);
+  const filtered = search.trim()
+    ? channels.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()))
+    : channels;
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refetch();
+    setRefreshing(false);
+  };
 
   return (
-    <Screen>
-      <Header
-        title="Messages"
-        subtitle="Real-time team conversation"
-        actionIcon="create-outline"
-        badge={totalUnread}
-      />
-
-      {/* ── Online Members Strip ── */}
-      <View style={styles.onlineRow}>
-        {["YO", "MK", "AS", "JL", "RD"].map((initials, i) => (
-          <View key={i} style={styles.onlineAvatarWrap}>
-            <LinearGradient
-              colors={channelColors[i % channelColors.length]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.onlineAvatar}
-            >
-              <AppText style={styles.onlineAvatarText}>{initials}</AppText>
-            </LinearGradient>
-            <View style={styles.onlineDot} />
+    <Screen scroll={false} noPadding>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
+      >
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <View style={styles.brandRow}>
+              <LinearGradient colors={[colors.primaryDark, colors.primary]} style={styles.brandDot} />
+              <AppText variant="micro" style={styles.eyebrow}>FlowTeam</AppText>
+            </View>
+            <AppText variant="title" style={styles.title}>Messages</AppText>
+            {totalUnread > 0 && (
+              <View style={styles.unreadChip}>
+                <AppText style={styles.unreadChipText}>{totalUnread} unread</AppText>
+              </View>
+            )}
           </View>
-        ))}
-        <View style={styles.onlineMore}>
-          <AppText style={styles.onlineMoreText}>+8</AppText>
+          <Pressable style={styles.composeBtn}>
+            <Ionicons name="create-outline" size={20} color={colors.ink} />
+          </Pressable>
         </View>
-      </View>
 
-      {/* ── Channel list ── */}
-      <View style={styles.list}>
-        {channels.map((channel, index) => {
-          const grad = channelColors[index % channelColors.length];
-          const hasUnread = (channel.unread_count ?? 0) > 0;
+        {/* ── Search ── */}
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={16} color={colors.muted} style={styles.searchIcon} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search channels…"
+            placeholderTextColor={colors.muted}
+            style={styles.searchInput}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch("")}>
+              <Ionicons name="close-circle" size={16} color={colors.muted} />
+            </Pressable>
+          )}
+        </View>
 
-          return (
-            <Pressable
-              key={channel.id}
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/messages/[id]",
-                  params: { id: channel.id, name: channel.name },
-                })
-              }
-              style={({ pressed }) => [pressed && styles.pressed]}
-            >
-              <Card style={[styles.channel, hasUnread && styles.channelUnread]}>
-                {/* Avatar */}
-                <LinearGradient
-                  colors={grad}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.avatar}
-                >
-                  <AppText style={styles.avatarText}>#</AppText>
-                </LinearGradient>
-
-                {/* Text */}
-                <View style={styles.channelText}>
-                  <View style={styles.channelTop}>
-                    <AppText variant="bodyBold" numberOfLines={1} style={styles.channelName}>
-                      {channel.name}
-                    </AppText>
-                    <AppText variant="caption" style={styles.timeText}>
-                      {timeAgo(channel.last_message_at)}
-                    </AppText>
-                  </View>
-                  <View style={styles.channelBottom}>
-                    <AppText variant="caption" numberOfLines={1} style={styles.preview}>
-                      {channel.last_message_text ?? "No recent messages"}
-                    </AppText>
-                    {hasUnread ? (
-                      <View style={styles.badge}>
-                        <AppText style={styles.badgeText}>{channel.unread_count}</AppText>
-                      </View>
-                    ) : (
-                      <Ionicons name="checkmark-done" size={14} color={colors.primary} />
-                    )}
+        {/* ── Online strip ── */}
+        {!search && (
+          <View style={styles.onlineSection}>
+            <AppText variant="label" style={styles.onlineLabel}>Online now</AppText>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineRow}>
+              {ONLINE_MEMBERS.map((m, i) => (
+                <View key={i} style={styles.onlineItem}>
+                  <View style={styles.onlineAvatarWrap}>
+                    <LinearGradient
+                      colors={m.grad}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.onlineAvatar}
+                    >
+                      <AppText style={styles.onlineAvatarText}>{m.initials}</AppText>
+                    </LinearGradient>
+                    <View style={styles.onlineDot} />
                   </View>
                 </View>
-              </Card>
-            </Pressable>
-          );
-        })}
-      </View>
+              ))}
+              <View style={styles.onlineItem}>
+                <View style={[styles.onlineAvatar, styles.onlineMore]}>
+                  <AppText style={styles.onlineMoreText}>+8</AppText>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+        )}
 
-      {/* ── Compose FAB hint ── */}
-      <View style={styles.composeHint}>
-        <Ionicons name="lock-closed-outline" size={12} color={colors.muted} />
-        <AppText variant="micro" style={styles.composeHintText}>
-          End-to-end encrypted messages
-        </AppText>
-      </View>
+        {/* ── Section label ── */}
+        <View style={styles.sectionRow}>
+          <AppText variant="label" style={styles.sectionLabel}>
+            {search ? `Results · ${filtered.length}` : `Channels · ${channels.length}`}
+          </AppText>
+        </View>
+
+        {/* ── Channel list ── */}
+        <View style={styles.list}>
+          {filtered.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="chatbubbles-outline" size={28} color={colors.muted} />
+              <AppText variant="caption" style={styles.emptyText}>No channels found</AppText>
+            </View>
+          ) : (
+            filtered.map((channel, index) => {
+              const grad = CHANNEL_GRADS[index % CHANNEL_GRADS.length];
+              const hasUnread = (channel.unread_count ?? 0) > 0;
+              const ago = timeAgo(channel.last_message_at);
+
+              return (
+                <Pressable
+                  key={channel.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(tabs)/messages/[id]",
+                      params: { id: channel.id, name: channel.name },
+                    })
+                  }
+                  style={({ pressed }) => [styles.channelRow, pressed && styles.channelRowPressed]}
+                >
+                  {/* Avatar */}
+                  <LinearGradient
+                    colors={grad}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.channelAvatar}
+                  >
+                    <AppText style={styles.channelAvatarText}>#</AppText>
+                  </LinearGradient>
+
+                  {/* Content */}
+                  <View style={styles.channelBody}>
+                    <View style={styles.channelTop}>
+                      <AppText
+                        variant="bodyBold"
+                        numberOfLines={1}
+                        style={[styles.channelName, hasUnread && styles.channelNameUnread]}
+                      >
+                        {channel.name}
+                      </AppText>
+                      <AppText style={styles.timeText}>{ago}</AppText>
+                    </View>
+                    <View style={styles.channelBottom}>
+                      <AppText variant="caption" numberOfLines={1} style={styles.preview}>
+                        {channel.last_message_text ?? "No recent messages"}
+                      </AppText>
+                      {hasUnread ? (
+                        <View style={styles.unreadBadge}>
+                          <AppText style={styles.unreadBadgeText}>{channel.unread_count}</AppText>
+                        </View>
+                      ) : (
+                        <Ionicons name="checkmark-done" size={15} color={colors.primary} />
+                      )}
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })
+          )}
+        </View>
+
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <Ionicons name="lock-closed-outline" size={11} color={colors.muted} />
+          <AppText variant="micro" style={styles.footerText}>End-to-end encrypted</AppText>
+        </View>
+      </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  // Online strip
-  onlineRow: {
+  scroll: { flex: 1 },
+  content: { paddingBottom: 110 },
+
+  // Header
+  header: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  headerLeft: { gap: 4 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: 5, marginBottom: 2 },
+  brandDot: { width: 18, height: 3, borderRadius: 2 },
+  eyebrow: { color: colors.primary, letterSpacing: 1.2 },
+  title: { letterSpacing: 0, lineHeight: 34 },
+  unreadChip: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: "rgba(248,113,113,0.22)",
+    marginTop: 2,
+  },
+  unreadChipText: { color: colors.danger, fontSize: 10, fontWeight: "800" },
+  composeBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Search
+  searchWrap: {
     flexDirection: "row",
     alignItems: "center",
-    gap: -6,
+    marginHorizontal: spacing.md,
     marginBottom: spacing.md,
+    paddingHorizontal: spacing.sm + 2,
+    paddingVertical: spacing.xs + 2,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.glassBorderDark,
+    gap: spacing.xs,
   },
-  onlineAvatarWrap: {
-    position: "relative",
-    marginRight: 6,
+  searchIcon: { flexShrink: 0 },
+  searchInput: {
+    flex: 1,
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: "600",
+    paddingVertical: 4,
   },
+
+  // Online strip
+  onlineSection: { paddingHorizontal: spacing.md, marginBottom: spacing.md },
+  onlineLabel: { color: colors.muted, letterSpacing: 0.7, marginBottom: spacing.sm },
+  onlineRow: { gap: spacing.sm, paddingBottom: 2 },
+  onlineItem: {},
+  onlineAvatarWrap: { position: "relative" },
   onlineAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     borderColor: colors.canvas,
   },
-  onlineAvatarText: {
-    color: "rgba(255,255,255,0.95)",
-    fontSize: 10,
-    fontWeight: "900",
-    letterSpacing: 0.3,
-  },
+  onlineAvatarText: { color: "rgba(255,255,255,0.95)", fontSize: 12, fontWeight: "900" },
   onlineDot: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: "#3de8a0",
-    borderWidth: 1.5,
+    bottom: 1,
+    right: 1,
+    width: 11,
+    height: 11,
+    borderRadius: 6,
+    backgroundColor: colors.presenceOnline,
+    borderWidth: 2,
     borderColor: colors.canvas,
   },
   onlineMore: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: colors.faint,
-    borderWidth: 2,
-    borderColor: colors.canvas,
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: 6,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.glassBorderDark,
   },
-  onlineMoreText: {
-    color: colors.muted,
-    fontSize: 11,
-    fontWeight: "800",
-  },
+  onlineMoreText: { color: colors.muted, fontSize: 11, fontWeight: "800" },
 
-  // Channels
-  list: {
-    gap: spacing.xs + 2,
+  // Section
+  sectionRow: {
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
   },
-  pressed: {
-    opacity: 0.88,
-    transform: [{ scale: 0.99 }],
-  },
-  channel: {
+  sectionLabel: { color: colors.muted, letterSpacing: 0.7 },
+
+  // Channel list
+  list: { paddingHorizontal: spacing.md, gap: 2 },
+  channelRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: spacing.sm,
-    minHeight: 78,
-    padding: spacing.sm + 4,
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.lg,
   },
-  channelUnread: {
-    borderColor: colors.primaryGlow,
-    backgroundColor: colors.primarySofter,
+  channelRowPressed: {
+    backgroundColor: colors.surfaceElevated,
   },
-  avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: radius.md + 2,
+  channelAvatar: {
+    width: 52,
+    height: 52,
+    borderRadius: radius.lg,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  avatarText: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 20,
-    fontWeight: "900",
-  },
-  channelText: {
-    flex: 1,
-    gap: 4,
-  },
+  channelAvatarText: { color: "rgba(255,255,255,0.9)", fontSize: 22, fontWeight: "900" },
+  channelBody: { flex: 1, gap: 4 },
   channelTop: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  channelName: {
-    flex: 1,
-    letterSpacing: 0,
-  },
-  timeText: {
-    color: colors.muted,
-    fontSize: 11,
-  },
+  channelName: { flex: 1, color: colors.inkLight, letterSpacing: 0 },
+  channelNameUnread: { color: colors.ink },
+  timeText: { color: colors.muted, fontSize: 11, fontWeight: "600" },
   channelBottom: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: spacing.sm,
   },
-  preview: {
-    flex: 1,
-    color: colors.muted,
-  },
-  badge: {
-    minWidth: 22,
-    height: 22,
-    borderRadius: 11,
+  preview: { flex: 1, color: colors.muted },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
     paddingHorizontal: 5,
   },
-  badgeText: {
-    color: colors.surface,
-    fontSize: 10,
-    fontWeight: "900",
-  },
+  unreadBadgeText: { color: colors.canvas, fontSize: 10, fontWeight: "900" },
 
-  // Footer hint
-  composeHint: {
+  // Footer
+  footer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 5,
     marginTop: spacing.lg,
-    opacity: 0.55,
+    opacity: 0.5,
   },
-  composeHintText: {
-    color: colors.muted,
+  footerText: { color: colors.muted },
+
+  // Empty
+  empty: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: spacing.sm,
+    paddingVertical: spacing.xxl,
   },
+  emptyText: { color: colors.muted },
 });
