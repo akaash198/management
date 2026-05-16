@@ -21,6 +21,7 @@ import {
   Activity,
   Apple,
   ArrowRight,
+  ArrowUp,
   Check,
   CheckCircle2,
   ChevronDown,
@@ -46,19 +47,40 @@ type DemoView = "chat" | "projects" | "meetings";
 
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [showScrollTop, setShowScrollTop] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual");
   const [demoView, setDemoView] = useState<DemoView>("chat");
   const [activeUseCaseId, setActiveUseCaseId] = useState(useCases[0]?.id ?? "software");
   const [testimonialIndex, setTestimonialIndex] = useState(0);
+  const [testimonialPaused, setTestimonialPaused] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [ctaEmail, setCtaEmail] = useState("");
+  const [ctaSubmitted, setCtaSubmitted] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 24);
+      setShowScrollTop(window.scrollY > 600);
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Close mobile menu on Escape
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setMobileMenuOpen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [mobileMenuOpen]);
+
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const prefersReduced =
@@ -72,6 +94,7 @@ export default function LandingPage() {
   }, []);
 
   useEffect(() => {
+    if (testimonialPaused) return;
     const prefersReduced =
       typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (prefersReduced) return;
@@ -80,7 +103,7 @@ export default function LandingPage() {
       setTestimonialIndex((i) => (i + 1) % testimonials.length);
     }, 6500);
     return () => window.clearInterval(id);
-  }, []);
+  }, [testimonialPaused]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -117,6 +140,17 @@ export default function LandingPage() {
     return `$${discounted}`;
   };
 
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    setMobileMenuOpen(false);
+  };
+
+  const handleCtaSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ctaEmail.trim()) return;
+    setCtaSubmitted(true);
+  };
+
   return (
     <div className="flex min-h-screen flex-col bg-white text-slate-900 overflow-x-hidden selection:bg-indigo-500/30">
       <nav
@@ -127,25 +161,36 @@ export default function LandingPage() {
       >
         <div className="mx-auto max-w-7xl px-6 flex items-center justify-between">
           <div className="flex items-center gap-6 lg:gap-10">
-            <Logo />
+            <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="focus-visible:outline-none">
+              <Logo />
+            </button>
             <div className="hidden lg:flex items-center gap-6 xl:gap-8">
               {navItems.map((item) => (
                 <div key={item.label} className="group relative">
-                  <button className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors">
-                    {item.label}
-                    {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />}
-                  </button>
+                  {item.href && item.href !== "#" && item.href.startsWith("#") ? (
+                    <button
+                      onClick={() => scrollTo(item.href!.slice(1))}
+                      className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors"
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <button className="flex items-center gap-1 text-[14px] font-medium text-white/75 hover:text-white transition-colors">
+                      {item.label}
+                      {item.children && <ChevronDown size={14} className="group-hover:rotate-180 transition-transform duration-300" />}
+                    </button>
+                  )}
                   {item.children && (
                     <div className="absolute top-full left-[-18px] pt-4 opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all duration-200">
                       <div className="w-[300px] rounded-2xl border border-white/10 bg-[#0b0b12]/95 backdrop-blur-2xl p-2 shadow-2xl">
                         {item.children.map((child: any) => (
-                          <Link key={child.label} href="#" className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group/item">
-                            {child.icon && <child.icon size={20} className="text-indigo-300 mt-1" />}
+                          <button key={child.label} onClick={() => scrollTo("features")} className="flex items-start gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors w-full text-left">
+                            {child.icon && <child.icon size={20} className="text-indigo-300 mt-1 shrink-0" />}
                             <div>
                               <div className="text-[14px] font-semibold text-white">{child.label}</div>
                               <div className="text-[12px] text-white/50">{child.description}</div>
                             </div>
-                          </Link>
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -172,34 +217,48 @@ export default function LandingPage() {
       </nav>
 
       {mobileMenuOpen && (
-        <div className="fixed inset-0 z-[200] bg-[#050508]/95 backdrop-blur-2xl flex flex-col p-8">
+        <div className="fixed inset-0 z-[200] bg-[#050508]/95 backdrop-blur-2xl flex flex-col p-8" role="dialog" aria-modal="true" aria-label="Navigation menu">
           <div className="flex items-center justify-between mb-10">
             <Logo />
             <button onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="text-white/80">
               <X size={28} />
             </button>
           </div>
-          <div className="space-y-8 text-white">
+          <nav className="space-y-2 text-white flex-1 overflow-y-auto">
             {navItems.map((item) => (
               <div key={item.label}>
-                <div className="text-2xl font-black mb-4">{item.label}</div>
+                {item.href?.startsWith("#") ? (
+                  <button
+                    onClick={() => scrollTo(item.href!.slice(1))}
+                    className="text-2xl font-black py-3 w-full text-left"
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <div className="text-2xl font-black py-3">{item.label}</div>
+                )}
                 {item.children && (
-                  <div className="space-y-4 pl-4 border-l border-white/10">
+                  <div className="space-y-2 pl-4 border-l border-white/10 mb-4">
                     {item.children.map((child: any) => (
-                      <div key={child.label} className="text-lg text-white/60">
+                      <button
+                        key={child.label}
+                        onClick={() => { scrollTo("features"); }}
+                        className="flex items-center gap-3 py-2 text-[16px] text-white/60 hover:text-white transition-colors w-full text-left"
+                      >
+                        {child.icon && <child.icon size={16} className="text-indigo-300 shrink-0" />}
                         {child.label}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
               </div>
             ))}
-          </div>
-          <div className="mt-auto flex flex-col gap-4">
-            <Link href="/register" className="w-full py-4 rounded-2xl bg-indigo-600 text-center font-black text-lg text-white">
+          </nav>
+          <div className="flex flex-col gap-4 pt-6 border-t border-white/10">
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-2xl bg-indigo-600 text-center font-black text-lg text-white">
               Get Started Free
             </Link>
-            <Link href="/login" className="w-full py-4 rounded-2xl border border-white/10 text-center font-black text-lg text-white">
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} className="w-full py-4 rounded-2xl border border-white/10 text-center font-black text-lg text-white">
               Sign In
             </Link>
           </div>
@@ -234,7 +293,10 @@ export default function LandingPage() {
                   <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
                 </button>
               </Link>
-              <button className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/12 bg-white/5 hover:bg-white/10 text-[16px] font-black text-white flex items-center justify-center gap-2 transition-all">
+              <button
+                onClick={() => scrollTo("live-demo")}
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl border border-white/12 bg-white/5 hover:bg-white/10 text-[16px] font-black text-white flex items-center justify-center gap-2 transition-all"
+              >
                 <Play size={18} className="fill-white" />
                 Watch Demo
               </button>
@@ -246,9 +308,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div data-reveal className="lp-reveal relative group">
+          <div id="live-demo" data-reveal className="lp-reveal relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-blue-500/20 rounded-[38px] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-            
+
             <div className="relative z-10 rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl shadow-[0_60px_120px_-18px_rgba(0,0,0,0.8)] overflow-hidden">
               <ProductDemo view={demoView} onViewChange={setDemoView} />
             </div>
@@ -329,7 +391,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="py-20 lg:py-40 px-6 bg-white">
+      <section id="features" className="py-20 lg:py-40 px-6 bg-white">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-14 lg:mb-24 max-w-3xl mx-auto" data-reveal>
             <div className="lp-reveal">
@@ -506,7 +568,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="py-24 lg:py-40 px-6 bg-slate-50" id="pricing">
+      <section id="pricing" className="py-24 lg:py-40 px-6 bg-slate-50">
         <div className="mx-auto max-w-7xl">
           <div className="text-center mb-14 lg:mb-20" data-reveal>
             <div className="lp-reveal">
@@ -614,10 +676,19 @@ export default function LandingPage() {
                     <button
                       key={i}
                       className={cn("h-2.5 rounded-full transition-all", i === testimonialIndex ? "w-8 bg-indigo-600" : "w-2.5 bg-slate-200 hover:bg-slate-300")}
-                      onClick={() => setTestimonialIndex(i)}
+                      onClick={() => { setTestimonialIndex(i); setTestimonialPaused(true); }}
                       aria-label={`Show testimonial ${i + 1}`}
                     />
                   ))}
+                  {testimonialPaused && (
+                    <button
+                      onClick={() => setTestimonialPaused(false)}
+                      className="ml-2 text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+                      aria-label="Resume auto-rotation"
+                    >
+                      Resume
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -894,22 +965,43 @@ export default function LandingPage() {
               Start free in minutes, or schedule a demo for security + procurement workflows.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <div className="w-full sm:w-[360px]">
-                <input
-                  placeholder="Work email"
-                  className="w-full px-5 py-4 rounded-2xl bg-white/95 text-slate-900 placeholder:text-slate-400 font-semibold outline-none focus:ring-4 focus:ring-white/30"
-                />
+            {ctaSubmitted ? (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 border border-white/20">
+                  <Check size={28} className="text-white" />
+                </div>
+                <p className="text-[18px] font-black text-white">You&apos;re on the list!</p>
+                <p className="text-white/70 text-[14px]">We&apos;ll be in touch shortly. In the meantime, explore the app.</p>
+                <Link href="/register">
+                  <button className="mt-2 px-8 py-3 rounded-2xl bg-white text-slate-900 font-black text-[15px] hover:bg-white/90 transition-all">
+                    Start Free Now
+                  </button>
+                </Link>
               </div>
-              <Link href="/register" className="w-full sm:w-auto">
-                <button className="w-full px-10 py-4 rounded-2xl bg-black/90 hover:bg-black text-white text-[16px] font-black shadow-2xl transition-all">
+            ) : (
+              <form onSubmit={handleCtaSubmit} className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <div className="w-full sm:w-[360px]">
+                  <input
+                    type="email"
+                    required
+                    value={ctaEmail}
+                    onChange={(e) => setCtaEmail(e.target.value)}
+                    placeholder="Work email"
+                    className="w-full px-5 py-4 rounded-2xl bg-white/95 text-slate-900 placeholder:text-slate-400 font-semibold outline-none focus:ring-4 focus:ring-white/30"
+                  />
+                </div>
+                <button type="submit" className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-black/90 hover:bg-black text-white text-[16px] font-black shadow-2xl transition-all">
                   Start Free
                 </button>
-              </Link>
-              <button className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm text-white text-[16px] font-black hover:bg-white/15 transition-all">
-                Schedule a Demo
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={() => scrollTo("live-demo")}
+                  className="w-full sm:w-auto px-10 py-4 rounded-2xl border border-white/20 bg-white/10 backdrop-blur-sm text-white text-[16px] font-black hover:bg-white/15 transition-all"
+                >
+                  See Demo
+                </button>
+              </form>
+            )}
             <div className="mt-6 text-white/70 text-[13px] font-semibold flex flex-wrap items-center justify-center gap-6">
               <span className="flex items-center gap-2"><Check size={16} /> No credit card required</span>
               <span className="flex items-center gap-2"><Check size={16} /> Cancel anytime</span>
@@ -949,6 +1041,18 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Scroll-to-top button */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        aria-label="Scroll to top"
+        className={cn(
+          "fixed bottom-8 right-8 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-indigo-600 text-white shadow-xl shadow-indigo-500/30 transition-all duration-300",
+          showScrollTop ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4 pointer-events-none"
+        )}
+      >
+        <ArrowUp size={18} />
+      </button>
     </div>
   );
 }
