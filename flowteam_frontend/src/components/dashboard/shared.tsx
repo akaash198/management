@@ -2,10 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow, format, isToday, isTomorrow, isPast } from "date-fns";
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Circle, TrendingDown, TrendingUp as TrendingUpIcon, Minus } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import type { DashboardData, ActivityItem as ActivityItemType, ProjectProgress } from "@/types/dashboard";
 import type { TeamMember } from "@/types";
@@ -16,12 +15,12 @@ export type PriorityKey = keyof DashboardData["my_tasks"]["by_priority"];
 // ─── Layout primitives ─────────────────────────────────────────────────────────
 
 export function Section({
-  title, icon, action, children,
+  title, icon, action, children, className,
 }: {
-  title: string; icon?: ReactNode; action?: ReactNode; children: ReactNode;
+  title: string; icon?: ReactNode; action?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow duration-200 hover:shadow-md">
+    <div className={cn("overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow duration-200 hover:shadow-md", className)}>
       <div className="flex items-center justify-between border-b border-border/60 px-5 py-3 bg-muted/5">
         <h2 className="flex items-center gap-2 text-[12.5px] font-semibold tracking-[-0.01em] text-foreground">
           {icon}{title}
@@ -75,33 +74,53 @@ export function DashboardSkeleton() {
 // ─── Stat card ─────────────────────────────────────────────────────────────────
 
 export function StatCard({
-  title, value, icon: Icon, iconColor, iconBg, danger, href,
+  title, value, icon: Icon, iconColor, iconBg, danger, href, delta, deltaLabel,
 }: {
   title: string; value: number | string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   iconColor: string; iconBg: string; danger?: boolean; href?: string;
+  delta?: number; deltaLabel?: string;
 }) {
   const inner = (
     <div className={cn(
       "group rounded-2xl border border-border bg-card p-5 transition-all duration-200",
-      "shadow-sm hover:shadow-md hover:border-border-strong hover:-translate-y-0.5",
+      "shadow-sm hover:shadow-md hover:-translate-y-0.5",
       href && "cursor-pointer"
     )}>
-      <div className="mb-4 flex items-start justify-between">
+      <div className="mb-3 flex items-start justify-between">
         <p className="text-[11.5px] font-medium tracking-[-0.01em] text-muted-foreground leading-snug">{title}</p>
-        <Icon className={cn("h-4 w-4 shrink-0", iconColor)} />
+        <div className={cn("flex h-7 w-7 shrink-0 items-center justify-center rounded-lg", iconBg)}>
+          <Icon className={cn("h-3.5 w-3.5", iconColor)} />
+        </div>
       </div>
       <p className={cn(
-        "text-[30px] font-semibold leading-none tracking-[-0.04em]",
+        "text-[28px] font-bold leading-none tracking-[-0.04em]",
         danger ? "text-destructive" : "text-foreground"
       )}>
         {value}
       </p>
-      {href && (
-        <p className="mt-2.5 text-[11px] font-medium text-primary/60 group-hover:text-primary transition-colors">
+      {delta !== undefined ? (
+        <div className="mt-2 flex items-center gap-1">
+          {delta > 0 ? (
+            <TrendingUpIcon size={10} className={danger ? "text-destructive" : "text-emerald-500"} />
+          ) : delta < 0 ? (
+            <TrendingDown size={10} className={danger ? "text-emerald-500" : "text-destructive"} />
+          ) : (
+            <Minus size={10} className="text-muted-foreground/40" />
+          )}
+          <span className={cn(
+            "text-[10.5px] font-medium",
+            delta === 0 ? "text-muted-foreground/40"
+              : (delta > 0) === !danger ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+          )}>
+            {delta > 0 ? "+" : ""}{delta} {deltaLabel ?? "vs last week"}
+          </span>
+        </div>
+      ) : href ? (
+        <p className="mt-2.5 text-[11px] font-medium text-primary/50 group-hover:text-primary transition-colors">
           View details →
         </p>
-      )}
+      ) : null}
     </div>
   );
   return href ? <Link href={href}>{inner}</Link> : inner;
@@ -110,14 +129,16 @@ export function StatCard({
 // ─── Project card ──────────────────────────────────────────────────────────────
 
 export function ProjectCard({ project }: { project: ProjectProgress }) {
+  const health = project.overdue_count > 0
+    ? (project.overdue_count >= 3 ? "at-risk" : "warning")
+    : "on-track";
+
   return (
     <Link href={`/projects/${project.id}`} className="block">
-      <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 shadow-sm hover:shadow-md hover:border-border-strong hover:-translate-y-0.5">
-        {/* Color accent strip */}
+      <div className="group overflow-hidden rounded-2xl border border-border bg-card transition-all duration-200 shadow-sm hover:shadow-md hover:-translate-y-0.5">
         <div className="h-[3px] w-full" style={{ backgroundColor: project.color ?? "#7CFFCB" }} />
         <div className="p-4">
-          {/* Header */}
-          <div className="mb-3.5 flex items-start gap-2.5">
+          <div className="mb-3 flex items-start gap-2.5">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-muted/60 text-[15px]">
               {project.icon ?? "📋"}
             </div>
@@ -125,24 +146,35 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
               <p className="truncate text-[13px] font-semibold tracking-[-0.01em] group-hover:text-primary transition-colors">
                 {project.name}
               </p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">
-                {project.status}
-              </p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">
+                  {project.status}
+                </span>
+                {health !== "on-track" && (
+                  <>
+                    <span className="h-0.5 w-0.5 rounded-full bg-muted-foreground/30" />
+                    <span className={cn(
+                      "text-[10px] font-semibold",
+                      health === "at-risk" ? "text-destructive" : "text-amber-500"
+                    )}>
+                      {health === "at-risk" ? "At risk" : "Watch"}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
-            <span className="shrink-0 text-[12px] font-semibold tabular-nums text-muted-foreground">
+            <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: project.color ?? undefined }}>
               {project.progress_percent}%
             </span>
           </div>
 
-          {/* Progress */}
-          <div className="h-1 w-full overflow-hidden rounded-full bg-muted/70">
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               className="h-full rounded-full transition-all duration-700"
               style={{ width: `${project.progress_percent}%`, backgroundColor: project.color ?? "#7CFFCB" }}
             />
           </div>
 
-          {/* Footer */}
           <div className="mt-3 flex items-center justify-between">
             <div className="flex -space-x-1.5">
               {(project.members ?? []).slice(0, 4).map((m) => (
@@ -161,7 +193,7 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
               )}
             </div>
             <span className="text-[11px] text-muted-foreground/70 tabular-nums">
-              {project.completed_tasks}/{project.total_tasks} tasks
+              {project.completed_tasks}/{project.total_tasks} done
               {project.overdue_count > 0 && (
                 <span className="ml-1.5 font-semibold text-destructive">· {project.overdue_count} late</span>
               )}
@@ -175,11 +207,47 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
 
 // ─── Task row ──────────────────────────────────────────────────────────────────
 
-export function TaskRow({ task }: { task: DashboardTask }) {
+const PRIORITY_DOT: Record<string, string> = {
+  urgent: "bg-red-500",
+  high:   "bg-amber-500",
+  normal: "bg-primary",
+  low:    "bg-muted-foreground/30",
+};
+
+function formatDueDate(due: string | null): { label: string; tone: "danger" | "warning" | "muted" } {
+  if (!due) return { label: "No date", tone: "muted" };
+  const d = new Date(due);
+  if (isPast(d) && !isToday(d)) return { label: `Overdue · ${format(d, "MMM d")}`, tone: "danger" };
+  if (isToday(d)) return { label: "Due today", tone: "warning" };
+  if (isTomorrow(d)) return { label: "Tomorrow", tone: "muted" };
+  return { label: format(d, "MMM d"), tone: "muted" };
+}
+
+export function TaskRow({ task, onComplete }: { task: DashboardTask; onComplete?: (id: string) => void }) {
+  const { label, tone } = formatDueDate(task.due_date ?? null);
+  const isDone = (task as any).is_done ?? false;
+
   return (
-    <div className="group flex items-center justify-between gap-4 px-5 py-3 transition-colors hover:bg-muted/25">
+    <div className={cn(
+      "group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20",
+      isDone && "opacity-50"
+    )}>
+      {onComplete ? (
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); onComplete(task.id); }}
+          className="shrink-0 text-muted-foreground/40 hover:text-primary transition-colors"
+        >
+          {isDone ? <CheckCircle2 size={15} className="text-primary" /> : <Circle size={15} />}
+        </button>
+      ) : (
+        <div className={cn("h-1.5 w-1.5 shrink-0 rounded-full", PRIORITY_DOT[task.priority] ?? PRIORITY_DOT.normal)} />
+      )}
       <div className="min-w-0 flex-1">
-        <p className="truncate text-[12.5px] font-medium tracking-[-0.01em] group-hover:text-primary transition-colors">
+        <p className={cn(
+          "truncate text-[12.5px] font-medium tracking-[-0.01em] group-hover:text-primary transition-colors",
+          isDone && "line-through"
+        )}>
           {task.title}
         </p>
         <div className="mt-0.5 flex items-center gap-1.5">
@@ -191,11 +259,11 @@ export function TaskRow({ task }: { task: DashboardTask }) {
       {task.due_date && (
         <span className={cn(
           "shrink-0 rounded-lg border px-2 py-0.5 text-[10.5px] font-semibold tabular-nums",
-          task.is_overdue
-            ? "border-destructive/30 text-destructive"
-            : "border-border text-muted-foreground"
+          tone === "danger"  && "border-destructive/30 bg-destructive/5 text-destructive",
+          tone === "warning" && "border-amber-300/50 bg-amber-50/50 text-amber-600 dark:border-amber-700/30 dark:bg-amber-950/20 dark:text-amber-400",
+          tone === "muted"   && "border-border text-muted-foreground"
         )}>
-          {task.due_date}
+          {label}
         </span>
       )}
     </div>
@@ -257,6 +325,7 @@ export function PriorityBar({ label, value, max }: { label: PriorityKey; value: 
     normal: "bg-primary",
     low:    "bg-muted-foreground/40",
   };
+  const pct = Math.round((value / Math.max(max, 1)) * 100);
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
@@ -266,7 +335,7 @@ export function PriorityBar({ label, value, max }: { label: PriorityKey; value: 
       <div className="h-1.5 overflow-hidden rounded-full bg-muted/70">
         <div
           className={cn("h-full rounded-full transition-all duration-500", tones[label])}
-          style={{ width: `${(value / Math.max(max, 1)) * 100}%` }}
+          style={{ width: `${pct}%` }}
         />
       </div>
     </div>
@@ -282,14 +351,14 @@ export function MiniMetric({
 }) {
   const valueColor = {
     neutral: "text-foreground",
-    success: "text-primary",
+    success: "text-emerald-600 dark:text-emerald-400",
     warning: "text-amber-600 dark:text-amber-400",
     danger:  "text-destructive",
   }[tone];
   return (
-    <div className="rounded-xl border border-border/70 bg-card px-3.5 py-3 shadow-sm hover:shadow-md transition-shadow duration-200">
+    <div className="rounded-xl border border-border/70 bg-background px-3.5 py-3 shadow-sm hover:shadow-md transition-shadow duration-200">
       <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">{label}</p>
-      <p className={cn("mt-1.5 text-[22px] font-semibold tracking-[-0.03em] leading-none", valueColor)}>{value}</p>
+      <p className={cn("mt-1.5 text-[22px] font-bold tracking-[-0.03em] leading-none", valueColor)}>{value}</p>
     </div>
   );
 }
@@ -322,11 +391,11 @@ export function QuickActionLink({
 
 export function RoleBadge({ role }: { role: string }) {
   const styles: Record<string, string> = {
-    ceo:     "text-violet-600 border-violet-200 dark:text-violet-300 dark:border-violet-800",
-    admin:   "text-blue-600 border-blue-200 dark:text-blue-300 dark:border-blue-800",
-    manager: "text-primary border-primary/25",
-    member:  "text-muted-foreground border-border",
-    viewer:  "text-muted-foreground/60 border-border/60",
+    ceo:     "text-violet-600 border-violet-200 bg-violet-50 dark:text-violet-300 dark:border-violet-800 dark:bg-violet-950/30",
+    admin:   "text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:bg-blue-950/30",
+    manager: "text-primary border-primary/25 bg-primary/5",
+    member:  "text-muted-foreground border-border bg-muted/30",
+    viewer:  "text-muted-foreground/60 border-border/60 bg-muted/20",
   };
   return (
     <span className={cn(
@@ -361,6 +430,91 @@ export function MemberRow({ member, action }: { member: TeamMember; action?: Rea
         <RoleBadge role={member.role} />
         {action}
       </div>
+    </div>
+  );
+}
+
+// ─── Velocity gauge ────────────────────────────────────────────────────────────
+
+export function VelocityGauge({ pct, label }: { pct: number; label: string }) {
+  const r = 28;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (pct / 100) * circ * 0.75; // 3/4 arc
+  const color = pct >= 75 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <svg width="72" height="58" viewBox="0 0 72 58">
+        {/* Track */}
+        <circle
+          cx="36" cy="46" r={r}
+          fill="none" stroke="currentColor" strokeWidth="5"
+          strokeDasharray={`${circ * 0.75} ${circ}`}
+          strokeDashoffset={0}
+          strokeLinecap="round"
+          className="text-muted/60"
+          transform="rotate(-225 36 46)"
+        />
+        {/* Fill */}
+        <circle
+          cx="36" cy="46" r={r}
+          fill="none" stroke={color} strokeWidth="5"
+          strokeDasharray={`${circ * 0.75} ${circ}`}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          transform="rotate(-225 36 46)"
+          style={{ transition: "stroke-dashoffset 0.8s ease" }}
+        />
+        <text x="36" y="43" textAnchor="middle" fill={color} fontSize="12" fontWeight="700" fontFamily="inherit">
+          {pct}%
+        </text>
+      </svg>
+      <span className="text-[11px] text-muted-foreground/60 font-medium">{label}</span>
+    </div>
+  );
+}
+
+// ─── Today banner ──────────────────────────────────────────────────────────────
+
+export function TodayBanner({ overdue, dueToday }: { overdue: number; dueToday: number }) {
+  if (overdue === 0 && dueToday === 0) {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl border border-emerald-200/60 bg-emerald-50/60 dark:border-emerald-900/40 dark:bg-emerald-950/20 px-5 py-3.5">
+        <CheckCircle2 size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+        <p className="text-[13px] font-semibold text-emerald-700 dark:text-emerald-300">
+          You&apos;re all clear — no overdue or due-today tasks.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className={cn(
+      "flex items-center gap-4 rounded-2xl border px-5 py-3.5",
+      overdue > 0
+        ? "border-destructive/20 bg-destructive/5"
+        : "border-amber-200/60 bg-amber-50/60 dark:border-amber-900/40 dark:bg-amber-950/20"
+    )}>
+      <div className="min-w-0 flex-1">
+        <p className={cn(
+          "text-[13px] font-semibold",
+          overdue > 0 ? "text-destructive" : "text-amber-700 dark:text-amber-300"
+        )}>
+          {overdue > 0
+            ? `${overdue} overdue task${overdue > 1 ? "s" : ""} need${overdue === 1 ? "s" : ""} attention`
+            : `${dueToday} task${dueToday > 1 ? "s" : ""} due today`}
+        </p>
+        <p className="mt-0.5 text-[11.5px] text-muted-foreground/70">
+          {overdue > 0 && dueToday > 0
+            ? `Plus ${dueToday} more due today`
+            : overdue > 0 ? "Review and take action below" : "Stay on track — complete these today"}
+        </p>
+      </div>
+      <Link
+        href="/dashboard/my-tasks?due=overdue"
+        className="shrink-0 rounded-lg border border-current px-3 py-1.5 text-[12px] font-semibold text-destructive hover:bg-destructive/10 transition-colors"
+      >
+        Review →
+      </Link>
     </div>
   );
 }
