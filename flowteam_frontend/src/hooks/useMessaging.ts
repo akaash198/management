@@ -130,6 +130,11 @@ export function useChatSocket(
       case "call.ended":
       case "call.missed":
       case "call.signal":
+      case "call.screen_share":
+      case "call.hand_raise":
+      case "call.reaction":
+      case "call.chat":
+      case "call.mute_state":
         opts?.onCallEvent?.(type, data);
         break;
     }
@@ -322,7 +327,12 @@ export function useChannelEventsSocket(
         const increment = typeof payload.increment === "number" ? payload.increment : 1;
         if (!channelId) return;
         onUnread?.(channelId, increment);
-      } else if (["call.started", "call.ended", "call.missed"].includes(event.type)) {
+      } else if ([
+        "call.started", "call.ended", "call.missed",
+        "call.participant_joined", "call.participant_left",
+        "call.signal", "call.screen_share", "call.hand_raise",
+        "call.reaction", "call.chat", "call.mute_state",
+      ].includes(event.type)) {
         onCallEvent?.(event.type, event.data);
       }
     },
