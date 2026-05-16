@@ -1,7 +1,6 @@
 "use client";
 
 import { useDeleteProject, useProjects, useRestoreProject } from "@/hooks/useProjects";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -636,7 +635,7 @@ function ProjectListRow({
 
       {/* Updated */}
       <span className="text-[11px] text-muted-foreground/60 text-right">
-        {formatDistanceToNow(new Date(project.updated_at), { addSuffix: true })}
+        {safeTimeAgo(project.updated_at)}
       </span>
 
       {/* Actions */}
