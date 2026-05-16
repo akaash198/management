@@ -51,12 +51,30 @@ import type { ComponentType, ReactNode, SVGProps } from "react";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 import { FocusCard } from "@/components/ai/FocusCard";
-import { CEODashboard } from "@/components/dashboard/CEODashboard";
-import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import { ManagerDashboard } from "@/components/dashboard/ManagerDashboard";
-import { MemberDashboard } from "@/components/dashboard/MemberDashboard";
-import { ViewerDashboard } from "@/components/dashboard/ViewerDashboard";
+import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/dashboard/shared";
+
+// Role-specific dashboards are large and mutually exclusive — load only the one needed
+const CEODashboard = dynamic(
+  () => import("@/components/dashboard/CEODashboard").then((m) => ({ default: m.CEODashboard })),
+  { loading: () => <DashboardSkeleton /> }
+);
+const AdminDashboard = dynamic(
+  () => import("@/components/dashboard/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+  { loading: () => <DashboardSkeleton /> }
+);
+const ManagerDashboard = dynamic(
+  () => import("@/components/dashboard/ManagerDashboard").then((m) => ({ default: m.ManagerDashboard })),
+  { loading: () => <DashboardSkeleton /> }
+);
+const MemberDashboard = dynamic(
+  () => import("@/components/dashboard/MemberDashboard").then((m) => ({ default: m.MemberDashboard })),
+  { loading: () => <DashboardSkeleton /> }
+);
+const ViewerDashboard = dynamic(
+  () => import("@/components/dashboard/ViewerDashboard").then((m) => ({ default: m.ViewerDashboard })),
+  { loading: () => <DashboardSkeleton /> }
+);
 
 type DashboardTask = DashboardData["my_tasks"]["recent"][number];
 type DashboardProject = DashboardData["projects"]["items"][number];

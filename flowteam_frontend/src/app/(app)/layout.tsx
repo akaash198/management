@@ -6,7 +6,12 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Loader2, Search, ChevronRight, Check } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { SearchModal } from "@/components/search/SearchModal";
+import dynamic from "next/dynamic";
+
+// SearchModal is only opened on Cmd+K — no need to load it upfront
+const SearchModal = dynamic(
+  () => import("@/components/search/SearchModal").then((m) => ({ default: m.SearchModal }))
+);
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
 import Link from "next/link";

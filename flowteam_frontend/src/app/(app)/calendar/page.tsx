@@ -2,12 +2,21 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import listPlugin from "@fullcalendar/list";
+import dynamic from "next/dynamic";
+import type { CalendarApi } from "@fullcalendar/core";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// FullCalendar bundles ~500KB across 6 packages — load only in the browser, only for this route
+const CalendarWidget = dynamic(() => import("./CalendarWidget"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-full flex flex-col gap-3 p-6">
+      {[...Array(5)].map((_, i) => (
+        <div key={i} className="h-10 rounded-lg bg-muted/50 animate-pulse" />
+      ))}
+    </div>
+  ),
+});
 import api from "@/lib/api";
 import type { CalendarTask } from "@/types/dashboard";
 import type { Meeting } from "@/types/meetings";
@@ -104,7 +113,7 @@ export default function CalendarPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { activeTeamId, fetchTeams } = useTeamStore();
-  const calendarRef = useRef<FullCalendar | null>(null);
+  const calendarRef = useRef<{ getApi(): CalendarApi } | null>(null);
 
   const [view, setView] = useState("dayGridMonth");
   const [dateRange, setDateRange] = useState({ start: "", end: "" });
@@ -487,18 +496,13 @@ export default function CalendarPage() {
                   </div>
                 </div>
               )}
-              <FullCalendar
-                ref={calendarRef as React.RefObject<FullCalendar>}
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
-                initialView={view}
-                headerToolbar={false}
+              <CalendarWidget
+                calendarRef={calendarRef}
+                view={view}
                 events={events}
-                datesSet={handleDatesSet}
-                editable={true}
-                eventDrop={handleEventDrop}
-                height="100%"
-                eventContent={(eventInfo) => <CalendarEventChip event={eventInfo.event} />}
-                eventClick={(info) => {
+                onDatesSet={handleDatesSet}
+                onEventDrop={handleEventDrop}
+                onEventClick={(info) => {
                   const props = info.event.extendedProps as Record<string, unknown>;
                   const kind = props?.kind as string;
                   setEventDetail({
@@ -519,7 +523,8 @@ export default function CalendarPage() {
                     duration_minutes: props?.duration_minutes as number | undefined,
                   });
                 }}
-                dateClick={(info) => setSelectedDate(info.dateStr.slice(0, 10))}
+                onDateClick={(info) => setSelectedDate(info.dateStr.slice(0, 10))}
+                eventContent={(eventInfo) => <CalendarEventChip event={eventInfo.event} />}
               />
             </CardContent>
           </Card>

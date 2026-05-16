@@ -4,40 +4,41 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
-import { 
-  ProjectHealth, 
-  VelocityWeek, 
-  BurndownPoint, 
-  MemberStat 
-} from "@/types/analytics";
+import { ProjectHealth, MemberStat } from "@/types/analytics";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
-  Legend
-} from "recharts";
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
+import {
+  TrendingUp,
+  TrendingDown,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
   Users,
   Download,
   Calendar,
   Activity,
   ArrowUpRight
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
 import { saveAs } from "file-saver";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AIGate } from "@/components/ai/AIGate";
 import { AIButton } from "@/components/ai/AIButton";
 import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
+
+// Recharts (~150KB) — only load when chart tabs are visited
+const VelocityTabDynamic = dynamic(() => import("./VelocityTab"), {
+  ssr: false,
+  loading: () => <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />,
+});
+
+const BurndownTabDynamic = dynamic(() => import("./BurndownTab"), {
+  ssr: false,
+  loading: () => <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />,
+});
 
 export default function ReportsPage() {
   const { id } = useParams();
@@ -67,10 +68,10 @@ export default function ReportsPage() {
           <OverviewTab projectId={id as string} />
         </TabsContent>
         <TabsContent value="velocity" className="outline-none">
-          <VelocityTab projectId={id as string} />
+          <VelocityTabDynamic projectId={id as string} />
         </TabsContent>
         <TabsContent value="burndown" className="outline-none">
-          <BurndownTab projectId={id as string} />
+          <BurndownTabDynamic projectId={id as string} />
         </TabsContent>
         <TabsContent value="members" className="outline-none">
           <MembersTab projectId={id as string} />
@@ -268,97 +269,6 @@ function OverviewTab({ projectId }: { projectId: string }) {
   );
 }
 
-function VelocityTab({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useQuery<VelocityWeek[]>({
-    queryKey: ["analytics", "velocity", projectId],
-    queryFn: async () => {
-      const res = await api.get(`/analytics/velocity/?project_id=${projectId}`);
-      return res.data.data;
-    }
-  });
-
-  if (isLoading) return <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />;
-
-  return (
-    <Card className="p-8">
-      <div className="mb-8">
-        <h3 className="text-xl font-bold">Team Velocity</h3>
-        <p className="text-sm text-muted-foreground">Tasks created vs. completed by week.</p>
-      </div>
-      <div className="h-[400px]">
-        <ResponsiveContainer width="100%" height="100%">
-           <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-              <XAxis dataKey="week_start" tickFormatter={(v) => format(new Date(v), "MMM d")} stroke="var(--color-muted-foreground)" />
-              <YAxis stroke="var(--color-muted-foreground)" />
-              <Tooltip 
-                cursor={{ fill: 'var(--color-muted)' }}
-                contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-card)', color: 'var(--color-foreground)', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.4)' }}
-              />
-              <Legend verticalAlign="top" align="right" height={36} />
-              <Bar name="Created" dataKey="created" fill="#94a3b8" radius={[4, 4, 0, 0]} />
-              <Bar name="Completed" dataKey="completed" fill="#6366f1" radius={[4, 4, 0, 0]} />
-           </BarChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
-  );
-}
-
-function BurndownTab({ projectId }: { projectId: string }) {
-  const { data, isLoading } = useQuery<BurndownPoint[]>({
-    queryKey: ["analytics", "burndown", projectId],
-    queryFn: async () => {
-      const res = await api.get(`/analytics/burndown/?project_id=${projectId}`);
-      return res.data.data;
-    }
-  });
-
-  if (isLoading) return <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />;
-
-  return (
-    <Card className="p-8">
-       <div className="mb-8">
-        <h3 className="text-xl font-bold">Burndown Chart</h3>
-        <p className="text-sm text-muted-foreground">Actual remaining work vs. ideal linear progression.</p>
-      </div>
-      <div className="h-[400px]">
-        <ResponsiveContainer width="100%" height="100%">
-           <AreaChart data={data}>
-              <defs>
-                <linearGradient id="colorOpen" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.1}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--color-border)" />
-              <XAxis dataKey="date" tickFormatter={(v) => format(new Date(v), "MMM d")} stroke="var(--color-muted-foreground)" />
-              <YAxis stroke="var(--color-muted-foreground)" />
-              <Tooltip contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-card)', color: 'var(--color-foreground)' }} />
-              <Legend verticalAlign="top" align="right" height={36} />
-              <Area 
-                name="Remaining Tasks" 
-                type="monotone" 
-                dataKey="open_tasks" 
-                stroke="#ef4444" 
-                fillOpacity={1} 
-                fill="url(#colorOpen)" 
-                strokeWidth={2}
-              />
-              <Line 
-                name="Ideal Burndown" 
-                type="monotone" 
-                dataKey="ideal" 
-                stroke="var(--color-muted-foreground)" 
-                strokeDasharray="5 5" 
-                dot={false}
-              />
-           </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </Card>
-  );
-}
 
 function MembersTab({ projectId }: { projectId: string }) {
   // Static for now, would fetch from /analytics/member-stats/

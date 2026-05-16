@@ -14,14 +14,32 @@ import { useAIStore } from "@/store/ai";
 import { KanbanBoard } from "@/components/projects/KanbanBoard";
 import { ProjectListView } from "@/components/projects/ProjectListView";
 import { ProjectTabs, ProjectViewType } from "@/components/projects/ProjectTabs";
-import { EpicView } from "@/components/projects/EpicView";
-import { RetrospectiveView } from "@/components/projects/RetrospectiveView";
-import { TaskDetailPanel } from "@/components/projects/TaskDetailPanel";
-import { ProjectTimelineInline } from "@/components/projects/ProjectTimelineInline";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { CreateTaskModal } from "@/components/projects/CreateTaskModal";
+
+// Tab-specific views — only one is visible at a time
+const EpicView = dynamic(
+  () => import("@/components/projects/EpicView").then((m) => ({ default: m.EpicView })),
+  { loading: () => <div className="h-64 w-full animate-pulse bg-muted rounded-xl m-6" /> }
+);
+const RetrospectiveView = dynamic(
+  () => import("@/components/projects/RetrospectiveView").then((m) => ({ default: m.RetrospectiveView })),
+  { loading: () => <div className="h-64 w-full animate-pulse bg-muted rounded-xl m-6" /> }
+);
+const ProjectTimelineInline = dynamic(
+  () => import("@/components/projects/ProjectTimelineInline").then((m) => ({ default: m.ProjectTimelineInline })),
+  { loading: () => <div className="h-64 w-full animate-pulse bg-muted rounded-xl m-6" /> }
+);
+
+// Panel and modal — only mount on user interaction
+const TaskDetailPanel = dynamic(
+  () => import("@/components/projects/TaskDetailPanel").then((m) => ({ default: m.TaskDetailPanel }))
+);
+const CreateTaskModal = dynamic(
+  () => import("@/components/projects/CreateTaskModal").then((m) => ({ default: m.CreateTaskModal }))
+);
 import {
   Plus,
   Filter,

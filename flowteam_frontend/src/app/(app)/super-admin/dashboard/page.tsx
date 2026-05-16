@@ -30,7 +30,14 @@ import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import CompanyManagementPanel from "@/components/super-admin/CompanyManagementPanel";
+import dynamic from "next/dynamic";
+
+// CompanyManagementPanel is 955 lines and imports CompanyOnboardingWizard (1,131 lines)
+// Only superusers ever reach this page — load on demand
+const CompanyManagementPanel = dynamic(
+  () => import("@/components/super-admin/CompanyManagementPanel"),
+  { loading: () => <div className="h-64 w-full animate-pulse bg-muted rounded-xl" /> }
+);
 
 type SuperAdminDashboard = {
   counts: {

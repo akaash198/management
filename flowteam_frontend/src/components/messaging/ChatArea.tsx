@@ -9,10 +9,19 @@ import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
 import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon, Check } from "lucide-react";
-import { EmojiPicker } from "./EmojiPicker";
 import { FormatToolbar } from "./FormatToolbar";
-import { CallComponent } from "./CallComponent";
-import { VoiceMemo } from "./VoiceMemo";
+import dynamic from "next/dynamic";
+
+// Interaction-triggered features — load only when user clicks emoji/call/voice
+const EmojiPicker = dynamic(
+  () => import("./EmojiPicker").then((m) => ({ default: m.EmojiPicker }))
+);
+const CallComponent = dynamic(
+  () => import("./CallComponent").then((m) => ({ default: m.CallComponent }))
+);
+const VoiceMemo = dynamic(
+  () => import("./VoiceMemo").then((m) => ({ default: m.VoiceMemo }))
+);
 import { SlashCommandMenu, SLASH_COMMANDS } from "./SlashCommandMenu";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
