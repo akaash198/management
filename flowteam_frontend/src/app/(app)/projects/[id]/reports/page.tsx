@@ -19,7 +19,9 @@ import {
   Download,
   Calendar,
   Activity,
-  ArrowUpRight
+  ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -40,9 +42,22 @@ const BurndownTabDynamic = dynamic(() => import("./BurndownTab"), {
   loading: () => <div className="h-96 w-full animate-pulse bg-muted rounded-xl" />,
 });
 
+const REPORT_TABS = ["overview", "velocity", "burndown", "members"] as const;
+type ReportTab = typeof REPORT_TABS[number];
+const REPORT_TAB_LABELS: Record<ReportTab, string> = {
+  overview: "Overview",
+  velocity: "Velocity",
+  burndown: "Burndown",
+  members: "Members",
+};
+
 export default function ReportsPage() {
   const { id } = useParams();
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState<ReportTab>("overview");
+
+  const activeIdx = REPORT_TABS.indexOf(activeTab);
+  const prevTab = activeIdx > 0 ? REPORT_TABS[activeIdx - 1] : null;
+  const nextTab = activeIdx < REPORT_TABS.length - 1 ? REPORT_TABS[activeIdx + 1] : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -56,13 +71,41 @@ export default function ReportsPage() {
         <ExportDropdown projectId={id as string} />
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-        <TabsList className="bg-card border p-1 h-12 gap-1 rounded-xl">
-          <TabsTrigger value="overview" className="rounded-lg px-6">Overview</TabsTrigger>
-          <TabsTrigger value="velocity" className="rounded-lg px-6">Velocity</TabsTrigger>
-          <TabsTrigger value="burndown" className="rounded-lg px-6">Burndown</TabsTrigger>
-          <TabsTrigger value="members" className="rounded-lg px-6">Members</TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ReportTab)} className="space-y-8">
+        <div className="flex items-center gap-3">
+          <TabsList className="bg-card border p-1 h-12 gap-1 rounded-xl">
+            <TabsTrigger value="overview" className="rounded-lg px-6">Overview</TabsTrigger>
+            <TabsTrigger value="velocity" className="rounded-lg px-6">Velocity</TabsTrigger>
+            <TabsTrigger value="burndown" className="rounded-lg px-6">Burndown</TabsTrigger>
+            <TabsTrigger value="members" className="rounded-lg px-6">Members</TabsTrigger>
+          </TabsList>
+
+          {/* Prev / Next tab buttons */}
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1 text-[12px]"
+              disabled={!prevTab}
+              onClick={() => prevTab && setActiveTab(prevTab)}
+              title={prevTab ? `Previous: ${REPORT_TAB_LABELS[prevTab]}` : undefined}
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+              {prevTab ? REPORT_TAB_LABELS[prevTab] : "Prev"}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 gap-1 text-[12px]"
+              disabled={!nextTab}
+              onClick={() => nextTab && setActiveTab(nextTab)}
+              title={nextTab ? `Next: ${REPORT_TAB_LABELS[nextTab]}` : undefined}
+            >
+              {nextTab ? REPORT_TAB_LABELS[nextTab] : "Next"}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
 
         <TabsContent value="overview" className="space-y-8 outline-none">
           <OverviewTab projectId={id as string} />

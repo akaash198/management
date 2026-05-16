@@ -115,15 +115,18 @@ export default function OnboardingPage() {
         <CardFooter className="flex justify-between">
           {step === 1 ? (
             <Button className="w-full" onClick={handleCreateTeam} disabled={!teamName || loading}>
-              {loading ? "Creating..." : "Continue"}
+              {loading ? "Creating..." : "Continue →"}
             </Button>
           ) : (
             <div className="flex w-full gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => router.push("/dashboard")}>
+              <Button variant="outline" className="flex-none" onClick={() => setStep(1)} disabled={loading}>
+                ← Back
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={() => router.push("/dashboard")} disabled={loading}>
                 Skip
               </Button>
               <Button className="flex-1" onClick={handleInvite} disabled={loading}>
-                {loading ? "Inviting..." : "Finish"}
+                {loading ? "Inviting..." : "Finish →"}
               </Button>
             </div>
           )}

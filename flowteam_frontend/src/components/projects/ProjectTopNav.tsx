@@ -2,8 +2,8 @@
 
 import type { ComponentType } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { ArrowLeft, BarChart3, FileText, FolderOpen, GanttChartSquare, Receipt, Shield } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, FileText, FolderOpen, GanttChartSquare, Kanban, Receipt, Shield } from "lucide-react";
 import { useProject } from "@/hooks/useProjects";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,7 +20,7 @@ const NAV: NavItem[] = [
   {
     href: (id) => `/projects/${id}`,
     label: "Board",
-    icon: ArrowLeft,
+    icon: Kanban,
     match: (p, id) => p === `/projects/${id}`,
   },
   {
@@ -63,16 +63,22 @@ const NAV: NavItem[] = [
 
 export function ProjectTopNav({ projectId }: { projectId: string | string[] | undefined }) {
   const pathname = usePathname() || "";
+  const router = useRouter();
   const normalizedProjectId =
     typeof projectId === "string" ? projectId : Array.isArray(projectId) ? projectId[0] ?? "" : "";
   const { data: project } = useProject(normalizedProjectId);
 
   if (!normalizedProjectId) return null;
 
+  const activeIdx = NAV.findIndex((item) => item.match(pathname, normalizedProjectId));
+  const prevItem = activeIdx > 0 ? NAV[activeIdx - 1] : null;
+  const nextItem = activeIdx < NAV.length - 1 ? NAV[activeIdx + 1] : null;
+
   return (
     <div className="border-b border-border bg-background">
       <div className="px-6 pt-5 pb-3">
         <div className="flex items-start justify-between gap-4 flex-wrap">
+          {/* Left: back + project title */}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <Button asChild variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -87,28 +93,60 @@ export function ProjectTopNav({ projectId }: { projectId: string | string[] | un
                 </Badge>
               )}
             </div>
-            <p className="text-[12px] text-muted-foreground/70 mt-1">Project navigation</p>
+            {/* Breadcrumb hint */}
+            <p className="text-[11px] text-muted-foreground/50 mt-0.5 pl-10">
+              All projects &rsaquo; {project?.name ?? "Project"}{activeIdx >= 0 ? ` › ${NAV[activeIdx].label}` : ""}
+            </p>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap">
-            {NAV.map((item) => {
-              const active = item.match(pathname, normalizedProjectId);
-              const Icon = item.icon;
-              return (
-                <Button
-                  key={item.label}
-                  asChild
-                  variant={active ? "secondary" : "ghost"}
-                  size="sm"
-                  className={cn("h-8 px-2 text-[12px]", active && "bg-muted")}
-                >
-                  <Link href={item.href(normalizedProjectId)}>
-                    <Icon className="mr-1.5 h-3.5 w-3.5" />
-                    {item.label}
-                  </Link>
-                </Button>
-              );
-            })}
+          {/* Right: section tabs + prev/next */}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {NAV.map((item) => {
+                const active = item.match(pathname, normalizedProjectId);
+                const Icon = item.icon;
+                return (
+                  <Button
+                    key={item.label}
+                    asChild
+                    variant={active ? "secondary" : "ghost"}
+                    size="sm"
+                    className={cn("h-8 px-2 text-[12px]", active && "bg-muted")}
+                  >
+                    <Link href={item.href(normalizedProjectId)}>
+                      <Icon className="mr-1.5 h-3.5 w-3.5" />
+                      {item.label}
+                    </Link>
+                  </Button>
+                );
+              })}
+            </div>
+
+            {/* Prev / Next arrows */}
+            <div className="flex items-center gap-0.5 border-l border-border pl-2 ml-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={!prevItem}
+                onClick={() => prevItem && router.push(prevItem.href(normalizedProjectId))}
+                aria-label={prevItem ? `Go to ${prevItem.label}` : "No previous section"}
+                title={prevItem ? `Previous: ${prevItem.label}` : undefined}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                disabled={!nextItem}
+                onClick={() => nextItem && router.push(nextItem.href(normalizedProjectId))}
+                aria-label={nextItem ? `Go to ${nextItem.label}` : "No next section"}
+                title={nextItem ? `Next: ${nextItem.label}` : undefined}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>

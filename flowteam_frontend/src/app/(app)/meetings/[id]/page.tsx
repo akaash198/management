@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft, Calendar, CheckCircle2, ChevronDown, ChevronUp, Clock,
+  ArrowLeft, Calendar, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock,
   Copy, ExternalLink, Loader2, Mic, MonitorPlay, Phone, Play,
   Users, Video, Volume2, Zap,
 } from "lucide-react";
@@ -12,6 +12,7 @@ import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
 import type { Meeting, MeetingCallType, MeetingRecording } from "@/types/meetings";
 import { useAuthStore } from "@/store/auth";
+import { useTeamStore } from "@/store/team";
 import { useChatSocket } from "@/hooks/useMessaging";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,7 @@ export default function MeetingDetailPage() {
   const queryClient = useQueryClient();
   const meetingId = params.id;
   const { user } = useAuthStore();
+  const { activeTeamId } = useTeamStore();
 
   const [callOpen, setCallOpen] = useState(false);
   const [callType, setCallType] = useState<MeetingCallType>("video");
@@ -92,6 +94,38 @@ export default function MeetingDetailPage() {
     enabled: !!meetingId,
     refetchInterval: 5_000,
   });
+
+  /* ── Sibling meetings for Prev / Next navigation ─────────────── */
+  const siblingRange = useMemo(() => {
+    const now = meeting ? new Date(meeting.starts_at) : new Date();
+    const start = new Date(now);
+    start.setMonth(start.getMonth() - 3);
+    const end = new Date(now);
+    end.setMonth(end.getMonth() + 3);
+    return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) };
+  }, [meeting]);
+
+  const { data: siblingMeetings = [] } = useQuery<Meeting[]>({
+    queryKey: ["meetings-siblings", activeTeamId, siblingRange.start, siblingRange.end],
+    queryFn: async () => {
+      if (!activeTeamId) return [];
+      const qs = new URLSearchParams({ start: siblingRange.start, end: siblingRange.end });
+      const res = await api.get<ApiResponse<Meeting[]>>(`/meetings/teams/${activeTeamId}/meetings/?${qs}`);
+      return (res.data.data ?? []).sort(
+        (a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()
+      );
+    },
+    enabled: !!activeTeamId,
+    staleTime: 60_000,
+  });
+
+  const { prevMeeting, nextMeeting } = useMemo(() => {
+    const idx = siblingMeetings.findIndex((m) => m.id === meetingId);
+    return {
+      prevMeeting: idx > 0 ? siblingMeetings[idx - 1] : null,
+      nextMeeting: idx >= 0 && idx < siblingMeetings.length - 1 ? siblingMeetings[idx + 1] : null,
+    };
+  }, [siblingMeetings, meetingId]);
 
   const { sendCallMessage } = useChatSocket(meeting?.channel_id ?? null, {
     currentUser,
@@ -168,7 +202,7 @@ export default function MeetingDetailPage() {
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push("/meetings")}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push("/meetings")} aria-label="Back to meetings">
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2">
@@ -184,6 +218,36 @@ export default function MeetingDetailPage() {
                   Audio
                 </Badge>
               )}
+            </div>
+
+            {/* Prev / Next meeting */}
+            <div className="flex items-center gap-0.5 border-l border-border pl-3 ml-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 text-[12px] px-2"
+                disabled={!prevMeeting}
+                onClick={() => prevMeeting && router.push(`/meetings/${prevMeeting.id}`)}
+                title={prevMeeting ? `Previous: ${prevMeeting.title}` : undefined}
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline max-w-[100px] truncate">
+                  {prevMeeting ? prevMeeting.title : "Prev"}
+                </span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 text-[12px] px-2"
+                disabled={!nextMeeting}
+                onClick={() => nextMeeting && router.push(`/meetings/${nextMeeting.id}`)}
+                title={nextMeeting ? `Next: ${nextMeeting.title}` : undefined}
+              >
+                <span className="hidden sm:inline max-w-[100px] truncate">
+                  {nextMeeting ? nextMeeting.title : "Next"}
+                </span>
+                <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
           </div>
 
