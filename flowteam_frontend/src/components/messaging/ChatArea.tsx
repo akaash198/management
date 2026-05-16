@@ -1410,112 +1410,184 @@ export function ChatArea({
   return (
     <div className="relative flex-1 flex h-full flex-col overflow-hidden bg-background">
       {/* ── Header ── */}
-      <div className="z-10 flex h-[52px] shrink-0 items-center border-b border-border bg-card/80 backdrop-blur-md px-5 xl:pr-[348px] gap-2 overflow-hidden">
-        {/* Channel identity — hide when search is open to reclaim space */}
-        {!searchOpen && (
-          <div className="flex items-center gap-2.5 min-w-0 shrink mr-2">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-primary/20 bg-primary/10 text-primary">
-              {channel.is_private ? <Lock size={13} /> : <Hash size={13} />}
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <h2 className="truncate text-[15px] font-bold tracking-tight text-foreground leading-tight">
-                  {channel.display_name}
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setDetailsOpen(true)}
-                  className="rounded-full p-1 hover:bg-muted transition-colors"
-                >
-                  <ChevronDown size={14} className="text-muted-foreground" />
-                </button>
-              </div>
-            </div>
+      <div className="z-10 flex h-[52px] shrink-0 items-center border-b border-border bg-card/95 backdrop-blur-md px-4 xl:pr-[348px] gap-3 overflow-hidden">
+
+        {/* ── Left: Channel identity ── */}
+        <div className={cn("flex items-center gap-2.5 min-w-0 transition-all duration-200", searchOpen ? "w-0 overflow-hidden opacity-0 pointer-events-none" : "flex-1 opacity-100")}>
+          {/* Icon */}
+          <div className={cn(
+            "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
+            channel.dm_other_user_id
+              ? "bg-gradient-to-br from-violet-500/20 to-indigo-500/20 border border-violet-500/20"
+              : channel.is_private
+                ? "bg-amber-500/10 border border-amber-500/20"
+                : "bg-primary/10 border border-primary/20"
+          )}>
+            {channel.dm_other_user_id
+              ? <span className="text-[13px]">💬</span>
+              : channel.is_private
+                ? <Lock size={13} className="text-amber-500" />
+                : <Hash size={13} className="text-primary" />
+            }
           </div>
-        )}
 
-        {/* Spacer to push actions right when channel identity is visible */}
-        {!searchOpen && <div className="flex-1" />}
+          {/* Name + chevron */}
+          <button
+            type="button"
+            onClick={() => setDetailsOpen(true)}
+            className="group flex items-center gap-1 min-w-0 rounded-lg px-1 py-0.5 hover:bg-muted/50 transition-colors"
+          >
+            <h2 className="truncate text-[15px] font-bold tracking-tight text-foreground leading-tight group-hover:text-primary transition-colors">
+              {channel.display_name}
+            </h2>
+            <ChevronDown size={13} className="text-muted-foreground/60 group-hover:text-primary shrink-0 transition-colors" />
+          </button>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Member stack & Huddle — Slack style */}
+          {/* Description preview — desktop only */}
+          {channel.description && (
+            <>
+              <div className="hidden lg:block h-4 w-px bg-border/70 shrink-0" />
+              <p className="hidden lg:block text-[12px] text-muted-foreground/70 truncate max-w-[200px] xl:max-w-[300px]">
+                {channel.description}
+              </p>
+            </>
+          )}
+        </div>
+
+        {/* Search bar — expands when open */}
+        <div className={cn(
+          "flex items-center gap-1.5 transition-all duration-200",
+          searchOpen ? "flex-1" : "w-0 overflow-hidden opacity-0 pointer-events-none"
+        )}>
+          <div className="relative flex-1 max-w-md">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Search in #${channel.display_name}…`}
+              className="h-8 pl-8 pr-3 rounded-lg border-border bg-background text-[12px] focus-visible:ring-1 focus-visible:ring-primary/30"
+              autoFocus={searchOpen}
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60"
+            onClick={() => setSearchMobileOpen(true)}
+            title="Advanced search filters"
+          >
+            <SlidersHorizontal size={13} />
+          </Button>
+          {(searchSenderId || searchDateFrom || searchDateTo) && (
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] text-muted-foreground hover:bg-muted/60 shrink-0" onClick={resetSearch}>
+              Clear
+            </Button>
+          )}
+        </div>
+
+        {/* ── Right: Actions ── */}
+        <div className="flex items-center gap-1.5 shrink-0">
+
+          {/* Member avatars + count */}
           {!searchOpen && (
-            <div className="flex items-center gap-3">
-              {/* Member Avatars */}
-              <button
-                onClick={() => { setDetailsTab("members"); setDetailsOpen(true); }}
-                className="group flex items-center gap-2 rounded-full border border-border/50 bg-muted/30 px-2 py-1 transition-all hover:bg-muted/50 hover:border-border"
-              >
-                <div className="flex -space-x-1.5 overflow-hidden">
-                  {(channelMembers ?? []).slice(0, 3).map((m, i) => (
-                    <Avatar key={m.id} className="h-5 w-5 border border-background ring-1 ring-background">
-                      <AvatarImage src={m.avatar || ""} />
-                      <AvatarFallback className="text-[7px]">{(m.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  ))}
-                </div>
-                <span className="text-[11px] font-semibold text-muted-foreground group-hover:text-foreground">
-                  {channel.member_count ?? (channelMembers ?? []).length}
-                </span>
-              </button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => startCall('audio')}
-                className="h-8 rounded-lg bg-muted/30 border-border/50 hover:bg-muted/50 text-[11px] font-semibold gap-1.5 px-3"
-              >
-                <Phone size={12} className="opacity-70" />
-                Huddle
-              </Button>
-            </div>
+            <button
+              onClick={() => { setDetailsTab("members"); setDetailsOpen(true); }}
+              className="group hidden sm:flex items-center gap-1.5 h-8 rounded-lg border border-border/40 bg-muted/20 px-2 hover:bg-muted/50 hover:border-border transition-all"
+              title="View members"
+            >
+              <div className="flex -space-x-1.5">
+                {(channelMembers ?? []).slice(0, 3).map((m) => (
+                  <Avatar key={m.id} className="h-5 w-5 border-[1.5px] border-background">
+                    <AvatarImage src={m.avatar || ""} />
+                    <AvatarFallback className="text-[7px] bg-muted">{(m.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+              <span className="text-[11px] font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
+                {channel.member_count ?? (channelMembers ?? []).length}
+              </span>
+            </button>
           )}
 
-          {!searchOpen && <div className="mx-1 h-5 w-px bg-border/70" />}
+          {/* Separator */}
+          {!searchOpen && <div className="hidden sm:block h-5 w-px bg-border/60 mx-0.5" />}
 
-          {/* Pill tab group — always hidden when search is open */}
+          {/* Huddle (audio call) */}
           {!searchOpen && (
-            <div className="hidden sm:flex h-8 items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setPinsOpen(true)}
-                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60"
-                title="Pinned messages"
-              >
-                <Clock3 size={14} className="rotate-[-135deg]" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setSavedOpen(true)}
-                className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60"
-                title="Saved messages"
-              >
-                <Info size={14} />
-              </Button>
-            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => startCall("audio")}
+              className="h-8 gap-1.5 px-3 rounded-lg border-border/50 bg-muted/20 hover:bg-muted/50 text-[12px] font-semibold text-foreground/80 hover:text-foreground transition-all"
+              title="Start audio call"
+            >
+              <Phone size={13} className="text-primary" />
+              <span className="hidden sm:inline">Huddle</span>
+            </Button>
           )}
 
-          {/* Divider — only when pills are visible */}
-          {!searchOpen && <div className="mx-1 hidden h-5 w-px bg-border/70 sm:block" />}
+          {/* Video call */}
+          {!searchOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => startCall("video")}
+              className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              title="Start video call"
+            >
+              <Video size={14} />
+            </Button>
+          )}
 
-          {/* Mute */}
+          {/* Separator */}
+          <div className="h-5 w-px bg-border/60 mx-0.5" />
+
+          {/* Pinned messages */}
+          {!searchOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPinsOpen(true)}
+              className="hidden sm:flex h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              title="Pinned messages"
+            >
+              <Clock3 size={14} className="rotate-[-135deg]" />
+            </Button>
+          )}
+
+          {/* Saved messages */}
+          {!searchOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setSavedOpen(true)}
+              className="hidden sm:flex h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              title="Saved messages"
+            >
+              <Star size={14} className={cn(isStarred && "fill-amber-400 text-amber-400")} />
+            </Button>
+          )}
+
+          {/* Mute / notifications */}
           {!searchOpen && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon"
-                  className="h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground"
-                  aria-label={channel.is_muted ? "Muted" : "Mute"} title={channel.is_muted ? "Muted" : "Mute"}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                  title={channel.is_muted ? "Muted — click to change" : "Notifications"}
                 >
-                  {channel.is_muted ? <BellOff size={14} /> : <Bell size={14} />}
+                  {channel.is_muted
+                    ? <BellOff size={14} className="text-muted-foreground/50" />
+                    : <Bell size={14} />
+                  }
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-52">
                 {channel.is_muted ? (
                   <>
-                    <DropdownMenuItem onClick={() => void unmuteChannel()}>Unmute</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => void unmuteChannel()}>Unmute notifications</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => void muteChannel({ minutes: 60 })}>Mute 1 hour</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => void muteChannel({ minutes: 8 * 60 })}>Mute 8 hours</DropdownMenuItem>
@@ -1533,64 +1605,47 @@ export function ChatArea({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-        </div>
 
-        {/* Search section — when open, it takes all remaining space */}
-        {searchOpen && (
-          <div className="flex flex-1 items-center gap-1.5 animate-in fade-in slide-in-from-right-2 duration-200">
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search messages…"
-              className="h-8 flex-1 max-w-[320px] rounded-lg border-border bg-background text-[12px] focus-visible:ring-1 focus-visible:ring-primary/30"
-              autoFocus
-            />
-            {(searchSenderId || searchDateFrom || searchDateTo) && (
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-[11px] text-muted-foreground hover:bg-muted/60 hover:text-foreground shrink-0" onClick={resetSearch}>
-                Clear filters
-              </Button>
-            )}
-          </div>
-        )}
+          {/* Separator */}
+          <div className="h-5 w-px bg-border/60 mx-0.5" />
 
-        {/* Right-side icon buttons — always visible */}
-        <div className="flex items-center gap-1 shrink-0">
-          <Button variant="ghost" size="icon"
+          {/* Search toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
             className={cn(
-              "h-8 w-8 rounded-xl border text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
-              searchOpen ? "border-primary/30 bg-primary/5 text-primary" : "border-transparent"
+              "h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all",
+              searchOpen && "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
             )}
-            onClick={() => setSearchOpen((v) => !v)} aria-label="Search" title="Search"
+            onClick={() => setSearchOpen((v) => !v)}
+            title="Search messages"
           >
             {searchOpen ? <X size={14} /> : <Search size={14} />}
           </Button>
-          <Button variant="ghost" size="icon"
-            className={cn(
-              "h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
-              !searchOpen && "md:hidden"
-            )}
-            onClick={() => setSearchMobileOpen(true)} aria-label="Search filters" title="Advanced search filters"
-          >
-            <SlidersHorizontal size={14} />
-          </Button>
 
-          {firstUnreadId && !hasSearchFilters && (
-            <Button variant="ghost" size="sm"
-              className="h-8 gap-1 rounded-xl bg-primary/8 px-3 text-[11px] font-medium text-primary hover:bg-primary/12"
-              onClick={() => focusMessage(firstUnreadId)} aria-label="Jump to first unread"
+          {/* Jump to unread */}
+          {firstUnreadId && !hasSearchFilters && !searchOpen && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 gap-1.5 rounded-lg bg-primary/8 px-2.5 text-[11px] font-semibold text-primary hover:bg-primary/15"
+              onClick={() => focusMessage(firstUnreadId)}
             >
-              <MessageSquare size={12} /> Unread
+              <MessageSquare size={12} />
+              <span className="hidden md:inline">Unread</span>
             </Button>
           )}
 
-          <div className="mx-1 h-5 w-px bg-border/70" />
-
-          <Button variant="ghost" size="icon"
+          {/* Details panel toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
             className={cn(
-              "h-8 w-8 rounded-xl border border-transparent text-muted-foreground hover:border-border/70 hover:bg-muted/60 hover:text-foreground",
-              detailsOpen && "bg-muted text-foreground border-border/70"
+              "h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all",
+              detailsOpen && "bg-muted text-foreground"
             )}
-            onClick={() => setDetailsOpen(prev => !prev)} aria-label="Details" title="Details"
+            onClick={() => setDetailsOpen((prev) => !prev)}
+            title="Channel details"
           >
             <Info size={14} />
           </Button>
