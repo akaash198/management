@@ -116,7 +116,17 @@ export default function CalendarPage() {
   const calendarRef = useRef<{ getApi(): CalendarApi } | null>(null);
 
   const [view, setView] = useState("dayGridMonth");
-  const [dateRange, setDateRange] = useState({ start: "", end: "" });
+  // Pre-seed with the current month so the API fires immediately,
+  // in parallel with FullCalendar loading — not after it mounts.
+  const [dateRange, setDateRange] = useState(() => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end   = new Date(now.getFullYear(), now.getMonth() + 1, 0 + 14); // include next-month overflow
+    return {
+      start: dateOnly(start),
+      end:   dateOnly(end),
+    };
+  });
   const [rangeTitle, setRangeTitle] = useState<string>("");
 
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -161,6 +171,7 @@ export default function CalendarPage() {
       return res.data.data;
     },
     enabled: !!activeTeamId && !!dateRange.start && !!dateRange.end,
+    staleTime: 60_000,
   });
 
   const updateTaskMutation = useMutation({
@@ -489,11 +500,8 @@ export default function CalendarPage() {
           <Card className="h-full overflow-hidden">
             <CardContent className="p-0 h-full relative">
               {isLoading && (
-                <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/60 backdrop-blur-sm rounded-xl">
-                  <div className="flex items-center gap-3 text-[13px] text-muted-foreground">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    Loading events…
-                  </div>
+                <div className="absolute top-0 left-0 right-0 z-10 h-0.5 overflow-hidden rounded-t-xl">
+                  <div className="h-full bg-primary animate-[shimmer_1.2s_ease-in-out_infinite]" style={{ width: "40%", animation: "progress-bar 1.2s ease-in-out infinite" }} />
                 </div>
               )}
               <CalendarWidget
