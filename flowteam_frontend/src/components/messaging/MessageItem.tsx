@@ -442,9 +442,13 @@ export function MessageItem({
       className={cn(
         "group relative flex items-start gap-3 px-4 py-0.5 hover:bg-muted/30 transition-colors",
         showAvatar && "mt-3",
-        isHighlighted && "bg-primary/5 hover:bg-primary/8"
+        isHighlighted && "bg-primary/5 hover:bg-primary/8",
+        isPinned && "bg-amber-50/40 dark:bg-amber-950/10 hover:bg-amber-50/60 dark:hover:bg-amber-950/20"
       )}
     >
+      {isPinned && (
+        <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-amber-400/60 rounded-r-full" />
+      )}
       {/* ── Avatar / timestamp ghost ── */}
       <div className="w-9 shrink-0 pt-0.5">
         {showAvatar ? (
@@ -465,13 +469,18 @@ export function MessageItem({
       <div className="flex-1 min-w-0">
         {/* Sender + timestamp */}
         {showAvatar && (
-          <div className="flex items-baseline gap-2 mb-0.5">
+          <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
             <span className="text-[13px] font-semibold text-foreground leading-none">
               {message.sender.full_name}
             </span>
             <span className="text-[11px] text-muted-foreground/60 font-normal">
               {format(createdAt, "h:mm a")}
             </span>
+            {isPinned && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 leading-none">
+                <Pin className="h-2.5 w-2.5" />Pinned
+              </span>
+            )}
             {message.pending && (
               <span className="text-[10px] text-muted-foreground/50 italic">Sending…</span>
             )}
@@ -502,6 +511,13 @@ export function MessageItem({
             <span className="font-semibold text-foreground/70">{parentPreview.senderName}</span>
             <span className="truncate">{parentPreview.text}</span>
           </button>
+        )}
+
+        {/* Pinned badge for consecutive messages (no header row) */}
+        {!showAvatar && isPinned && (
+          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 mb-0.5">
+            <Pin className="h-2.5 w-2.5" />Pinned
+          </span>
         )}
 
         {/* Edit mode */}
