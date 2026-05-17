@@ -201,10 +201,10 @@ export default function MeetingsPage() {
   };
 
   return (
-    <div className="max-w-[1100px] mx-auto p-6 space-y-5">
+    <div className="max-w-[1100px] mx-auto p-4 sm:p-6 space-y-5">
 
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">Meetings</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">Schedule calls, run standups, and review recordings.</p>
@@ -213,25 +213,25 @@ export default function MeetingsPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-8 px-3 text-[12.5px] gap-1.5"
+            className="h-8 px-3 text-[12.5px] gap-1.5 flex-1 sm:flex-none"
             onClick={() => { setCreateOpen(true); }}
             disabled={!activeTeamId}
           >
-            <Zap size={13} />Instant meeting
+            <Zap size={13} />Instant
           </Button>
           <Button
             size="sm"
-            className="h-8 px-3 text-[13px] gap-1.5"
+            className="h-8 px-3 text-[13px] gap-1.5 flex-1 sm:flex-none"
             onClick={() => setCreateOpen(true)}
             disabled={!activeTeamId}
           >
-            <Plus size={14} />Schedule meeting
+            <Plus size={14} />Schedule
           </Button>
         </div>
       </div>
 
       {/* ── Stats strip ── */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className={cn(
           "rounded-xl border bg-card px-4 py-3 flex items-center gap-3 shadow-sm",
           stats.live > 0 ? "border-green-300/60 dark:border-green-800/40 bg-green-50/50 dark:bg-green-950/20" : "border-border"
@@ -279,7 +279,7 @@ export default function MeetingsPage() {
       {/* ── Next up hero ── */}
       {nextUp && getMeetingPhase(nextUp) !== "past" && (
         <div className={cn(
-          "rounded-2xl border p-5 flex items-center gap-5",
+          "rounded-2xl border p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5",
           getMeetingPhase(nextUp) === "live"
             ? "border-green-300/60 dark:border-green-800/40 bg-green-50/40 dark:bg-green-950/20"
             : "border-primary/20 bg-primary/5"
@@ -310,14 +310,14 @@ export default function MeetingsPage() {
               ) : ""}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Button variant="outline" size="sm" className="h-8 px-2.5 text-[12px] gap-1.5" onClick={() => copyLink(nextUp.id)}>
+          <div className="flex items-center gap-2 sm:ml-auto shrink-0 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="h-8 px-2.5 text-[12px] gap-1.5 flex-1 sm:flex-none" onClick={() => copyLink(nextUp.id)}>
               <Copy size={12} />Copy link
             </Button>
             <Button
               size="sm"
               className={cn(
-                "h-8 px-3 text-[12.5px] gap-1.5",
+                "h-8 px-3 text-[12.5px] gap-1.5 flex-1 sm:flex-none",
                 getMeetingPhase(nextUp) === "live" && "bg-green-600 hover:bg-green-700 shadow-[0_0_12px_rgba(22,163,74,0.3)]"
               )}
               onClick={() => router.push(`/meetings/${nextUp.id}`)}
@@ -331,7 +331,7 @@ export default function MeetingsPage() {
       {/* ── Week strip ── */}
       <div className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/60 bg-muted/10">
-          <p className="text-[12px] font-semibold text-muted-foreground">
+          <p className="text-[11px] sm:text-[12px] font-semibold text-muted-foreground">
             Week of {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
           </p>
           <div className="flex items-center gap-1">
@@ -351,7 +351,8 @@ export default function MeetingsPage() {
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-7">
+        <div className="overflow-x-auto">
+        <div className="grid grid-cols-7 min-w-[420px]">
           {weekDays.map((day) => {
             const key = dateOnly(day);
             const dayMeetings = meetingsByDay.get(key) ?? [];
@@ -399,11 +400,12 @@ export default function MeetingsPage() {
             );
           })}
         </div>
+        </div>
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
           <Input
             value={q}

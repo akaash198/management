@@ -76,8 +76,8 @@ export function ProjectTopNav({ projectId }: { projectId: string | string[] | un
 
   return (
     <div className="border-b border-border bg-background">
-      <div className="px-6 pt-5 pb-3">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+      <div className="px-3 sm:px-6 pt-4 sm:pt-5 pb-3">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
           {/* Left: back + project title */}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
@@ -94,7 +94,7 @@ export function ProjectTopNav({ projectId }: { projectId: string | string[] | un
               )}
             </div>
             {/* Breadcrumb hint */}
-            <p className="text-[11px] text-muted-foreground/50 mt-0.5 pl-10">
+            <p className="hidden sm:block text-[11px] text-muted-foreground/50 mt-0.5 pl-10">
               All projects &rsaquo; {project?.name ?? "Project"}{activeIdx >= 0 ? ` › ${NAV[activeIdx].label}` : ""}
             </p>
           </div>

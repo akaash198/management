@@ -273,9 +273,9 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-[1100px] mx-auto p-6">
+      <div className="max-w-[1100px] mx-auto p-4 sm:p-6">
         {/* ── Header ── */}
-        <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="mb-4 sm:mb-6 flex items-start justify-between gap-4">
           <div>
             <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">Settings</h1>
             <p className="text-[13px] text-muted-foreground mt-0.5">Manage your account and team preferences.</p>
@@ -287,9 +287,22 @@ export default function SettingsPage() {
           )}
         </div>
 
+        {/* ── Mobile tab selector ── */}
+        <div className="sm:hidden mb-4">
+          <select
+            value={activeTab}
+            onChange={(e) => setActiveTab(e.target.value as TabId)}
+            className="w-full h-10 rounded-lg border border-border bg-card px-3 text-[13px] text-foreground outline-none focus:ring-2 focus:ring-ring"
+          >
+            {NAV_ITEMS.map((item) => (
+              <option key={item.id} value={item.id}>{item.label}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="flex gap-6">
-          {/* ── Sidebar nav ── */}
-          <nav className="w-52 shrink-0 space-y-0.5">
+          {/* ── Sidebar nav (desktop only) ── */}
+          <nav className="hidden sm:block w-52 shrink-0 space-y-0.5">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const active = activeTab === item.id;

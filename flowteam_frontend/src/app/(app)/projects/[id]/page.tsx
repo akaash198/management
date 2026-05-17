@@ -302,7 +302,7 @@ export default function ProjectBoardPage() {
               asChild
               variant="ghost"
               size="sm"
-              className="h-8 px-2.5 text-[12px] font-semibold text-muted-foreground hover:text-primary"
+              className="hidden sm:inline-flex h-8 px-2.5 text-[12px] font-semibold text-muted-foreground hover:text-primary"
             >
               <Link href={`/projects/${id}/reports`}>
                 <BarChart3 className="mr-1.5 h-3.5 w-3.5" />Reports
@@ -343,9 +343,9 @@ export default function ProjectBoardPage() {
         <ProjectTabs activeView={activeView} onViewChange={setActiveView} tasksCount={filteredTasks.length} />
 
         {/* ── Filter bar ── */}
-        <div className="px-4 py-2.5 flex flex-wrap items-center gap-2 bg-muted/5 border-t border-border/30">
+        <div className="px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2 bg-muted/5 border-t border-border/30">
           {/* Search */}
-          <div className="relative min-w-[200px] max-w-[280px] flex-1">
+          <div className="relative min-w-[160px] max-w-[280px] flex-1">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/40 pointer-events-none" />
             <Input
               placeholder="Search tasks…"
@@ -439,7 +439,7 @@ export default function ProjectBoardPage() {
           </div>
         )}
         {(activeView === "list" || activeView === "bugs") && (
-          <div className="p-6 max-w-[1600px] mx-auto">
+          <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
             <ProjectListView
               tasks={filteredTasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))}
               groupBy={activeView === "bugs" ? "column" : "sprint"}

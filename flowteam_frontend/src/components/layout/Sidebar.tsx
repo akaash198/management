@@ -19,6 +19,7 @@ import {
   Smile,
   X,
   ChevronsUpDown,
+  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
@@ -142,12 +143,14 @@ function RailItem({
   icon: Icon,
   active,
   badge,
+  onNavigate,
 }: {
   href: string;
   label: string;
   icon: React.ElementType;
   active?: boolean;
   badge?: number;
+  onNavigate?: () => void;
 }) {
   return (
     <TooltipPrimitive.Root delayDuration={300}>
@@ -155,6 +158,7 @@ function RailItem({
         <Link
           href={href}
           aria-label={label}
+          onClick={onNavigate}
           className={cn("rail-item", active && "active")}
         >
           <Icon size={18} strokeWidth={active ? 2.2 : 1.8} />
@@ -182,7 +186,7 @@ function RailItem({
 /* ═══════════════════════════════════════════
    SIDEBAR — Icon rail
    ═══════════════════════════════════════════ */
-export function Sidebar() {
+export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const pathname      = usePathname();
   const [statusOpen, setStatusOpen] = useState(false);
   const { user, logout } = useAuthStore();
@@ -224,12 +228,21 @@ export function Sidebar() {
       style={{ borderRightColor: "hsl(var(--rail-border))" }}
     >
       {/* ── Logo mark ── */}
-      <div className="flex h-[56px] shrink-0 items-center justify-center border-b" style={{ borderColor: "hsl(var(--rail-border))" }}>
+      <div className="flex h-[56px] shrink-0 items-center justify-center border-b relative" style={{ borderColor: "hsl(var(--rail-border))" }}>
         <div
           className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-primary text-primary-foreground font-black text-[14px] tracking-tighter"
         >
           CW
         </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            aria-label="Close navigation"
+          >
+            <ChevronLeft size={16} />
+          </button>
+        )}
       </div>
 
       {/* ── Team switcher (icon-only) ── */}
@@ -246,6 +259,7 @@ export function Sidebar() {
             label={item.name}
             icon={item.icon}
             active={isActive(item.href)}
+            onNavigate={onClose}
           />
         ))}
 
@@ -254,10 +268,10 @@ export function Sidebar() {
           <>
             <div className="w-7 border-t my-1" style={{ borderColor: "hsl(var(--rail-border))" }} />
             {isCompanyAdmin && !user?.is_superuser && (
-              <RailItem href="/company-admin/dashboard" label="Company" icon={Building2} active={isActive("/company-admin/dashboard")} />
+              <RailItem href="/company-admin/dashboard" label="Company" icon={Building2} active={isActive("/company-admin/dashboard")} onNavigate={onClose} />
             )}
             {user?.is_superuser && (
-              <RailItem href="/super-admin/dashboard" label="Super Admin" icon={ShieldCheck} active={isActive("/super-admin/dashboard")} />
+              <RailItem href="/super-admin/dashboard" label="Super Admin" icon={ShieldCheck} active={isActive("/super-admin/dashboard")} onNavigate={onClose} />
             )}
           </>
         )}
@@ -265,7 +279,7 @@ export function Sidebar() {
 
       {/* ── Bottom: settings + user ── */}
       <div className="shrink-0 flex flex-col items-center gap-1 pb-3 border-t pt-2" style={{ borderColor: "hsl(var(--rail-border))" }}>
-        <RailItem href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} />
+        <RailItem href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} onNavigate={onClose} />
 
         {/* User avatar dropdown */}
         <DropdownMenu>

@@ -8,7 +8,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Channel, SidebarViewType } from "@/types/messaging";
 import { useAuthStore } from "@/store/auth";
 import api from "@/lib/api";
-import { MessageSquare, Phone } from "lucide-react";
+import { MessageSquare, Phone, ChevronLeft } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
 import { useChannelEventsSocket, useTeamPresenceSocket } from "@/hooks/useMessaging";
 import { toast } from "sonner";
@@ -30,6 +31,7 @@ export default function MessagingPage() {
   const { activeTeamId, fetchTeams } = useTeamStore();
   const selectedChannelIdRef = useRef<string>("");
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
   const [incomingCall, setIncomingCall] = useState<{ 
     callId: string; 
     channelId: string;
@@ -258,6 +260,7 @@ export default function MessagingPage() {
   const handleSelect = useCallback((channel: Channel) => {
     setSelectedChannel(channel);
     setActiveView("all");
+    setMobileSidebarOpen(false);
     router.replace(`${pathname}?channel=${channel.id}`);
     setChannels((prev) => prev.map((c) => (c.id === channel.id ? { ...c, unread_count: 0 } : c)));
     void markChannelRead(channel.id);
@@ -278,38 +281,70 @@ export default function MessagingPage() {
   }, [channels, pathname, router, selectedChannel]);
 
   return (
-    <div className="flex h-full overflow-hidden">
-      <ChatSidebar
-        channels={channels}
-        selectedId={selectedChannel?.id || ""}
-        activeView={activeView}
-        onSelect={handleSelect}
-        onViewChange={handleViewChange}
-        isLoading={isLoading}
-        teamId={activeTeamId ?? ""}
-        onRefreshChannels={refreshChannels}
-        onStartDirectMessage={startDirectMessage}
-        onCreateChannel={createChannel}
-        onlineUserIds={onlineUserIds}
-      />
+    <div className="flex h-full overflow-hidden relative">
+      {/* Mobile sidebar overlay */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar — full width on mobile (shown/hidden), fixed width on desktop */}
+      <div className={cn(
+        "absolute inset-y-0 left-0 z-40 md:relative md:z-auto md:translate-x-0 transition-transform duration-200",
+        mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
+        <ChatSidebar
+          channels={channels}
+          selectedId={selectedChannel?.id || ""}
+          activeView={activeView}
+          onSelect={handleSelect}
+          onViewChange={handleViewChange}
+          isLoading={isLoading}
+          teamId={activeTeamId ?? ""}
+          onRefreshChannels={refreshChannels}
+          onStartDirectMessage={startDirectMessage}
+          onCreateChannel={createChannel}
+          onlineUserIds={onlineUserIds}
+        />
+      </div>
 
       {activeView !== "all" ? (
         <SpecialViews view={activeView} onRefreshChannels={refreshChannels} />
       ) : selectedChannel ? (
-        <ChatArea
-          channel={selectedChannel}
-          focusMessageId={focusMessageId}
-          onRefreshChannels={refreshChannels}
-          onStartDirectMessage={startDirectMessage}
-          onlineUserIds={onlineUserIds}
-          acceptedCallId={acceptedCallId}
-          onClearAcceptedCall={() => setAcceptedCallId(null)}
-        />
+        <div className="flex flex-col flex-1 min-w-0">
+          {/* Mobile back button */}
+          <div className="md:hidden flex items-center gap-2 px-3 py-2 border-b border-border bg-card shrink-0">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ChevronLeft size={15} />Channels
+            </button>
+          </div>
+          <ChatArea
+            channel={selectedChannel}
+            focusMessageId={focusMessageId}
+            onRefreshChannels={refreshChannels}
+            onStartDirectMessage={startDirectMessage}
+            onlineUserIds={onlineUserIds}
+            acceptedCallId={acceptedCallId}
+            onClearAcceptedCall={() => setAcceptedCallId(null)}
+          />
+        </div>
       ) : (
         <div className="flex-1 flex items-center justify-center relative overflow-hidden bg-background">
+          {/* Mobile menu button when no channel selected */}
+          <button
+            onClick={() => setMobileSidebarOpen(true)}
+            className="md:hidden absolute top-4 left-4 flex items-center gap-1.5 text-[12.5px] font-medium text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ChevronLeft size={15} />Channels
+          </button>
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 blur-[120px] rounded-full pointer-events-none bg-primary/10" />
-          
-          <div className="relative z-10 max-w-sm space-y-8 p-12 rounded-2xl border border-border bg-card shadow-lg text-center">
+
+          <div className="relative z-10 max-w-sm space-y-8 p-8 sm:p-12 rounded-2xl border border-border bg-card shadow-lg text-center">
             <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-primary to-accent shadow-glow-strong">
               <MessageSquare size={32} className="text-primary-foreground" />
             </div>

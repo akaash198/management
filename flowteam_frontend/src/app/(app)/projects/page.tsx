@@ -100,7 +100,7 @@ export default function ProjectsPage() {
 
   if (isLoading || (!activeTeamId && !user?.is_superuser)) {
     return (
-      <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <Skeleton className="h-7 w-32 rounded-lg" />
           <Skeleton className="h-8 w-28 rounded-lg" />
@@ -118,25 +118,25 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-5">
+    <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-5">
       {/* ── Header ── */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="text-[22px] font-bold tracking-[-0.03em] text-foreground">Projects</h1>
           <p className="text-[13px] text-muted-foreground mt-0.5">
             {stats.active} active · {stats.archived} archived · {stats.totalT} total tasks
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+        <div className="flex items-center gap-2 flex-wrap sm:shrink-0 sm:justify-end">
           {canCreate && (
             <>
-              <Button asChild variant="outline" size="sm" className="h-8 px-3 text-[12.5px] gap-1.5">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
                 <Link href="/projects/issues"><LayoutList size={13} />Issues</Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="h-8 px-3 text-[12.5px] gap-1.5">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
                 <Link href="/projects/planning"><LayoutPanelTop size={13} />Planning</Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="h-8 px-3 text-[12.5px] gap-1.5">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
                 <Link href="/projects/operations"><ShieldCheck size={13} />Operations</Link>
               </Button>
               <Button onClick={() => setIsModalOpen(true)} size="sm" className="h-8 px-3 text-[13px] gap-1.5">
@@ -146,10 +146,10 @@ export default function ProjectsPage() {
           )}
           {!canCreate && (
             <>
-              <Button asChild variant="outline" size="sm" className="h-8 px-3 text-[12.5px] gap-1.5">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
                 <Link href="/projects/issues"><LayoutList size={13} />Issues</Link>
               </Button>
-              <Button asChild variant="outline" size="sm" className="h-8 px-3 text-[12.5px] gap-1.5">
+              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
                 <Link href="/projects/planning"><LayoutPanelTop size={13} />Planning</Link>
               </Button>
             </>
@@ -212,8 +212,8 @@ export default function ProjectsPage() {
       )}
 
       {/* ── Toolbar ── */}
-      <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+        <div className="relative flex-1 sm:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
           <Input
             value={searchText}

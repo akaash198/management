@@ -4,7 +4,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { useAuthStore } from "@/store/auth";
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Loader2, Search, ChevronRight, Check } from "lucide-react";
+import { Loader2, Search, ChevronRight, Check, Menu } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 
@@ -62,6 +62,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router    = useRouter();
   const pathname  = usePathname();
   const [searchOpen, setSearchOpen]   = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const { teams, activeTeamId }       = useTeamStore();
   const [queryClient]                 = useState(() => new QueryClient());
   const [didInit, setDidInit]         = useState(false);
@@ -124,7 +125,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex h-screen overflow-hidden bg-background">
-        <Sidebar />
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+        <div className={cn(
+          "fixed inset-y-0 left-0 z-50 md:relative md:z-auto md:translate-x-0 transition-transform duration-200",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        )}>
+          <Sidebar onClose={() => setSidebarOpen(false)} />
+        </div>
 
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
@@ -132,14 +145,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               TOPBAR — clean, editorial
               ══════════════════════════════════════════════ */}
           <header
-            className="h-[56px] shrink-0 z-20 flex items-center justify-between gap-3 px-5 border-b backdrop-blur-md"
+            className="h-[56px] shrink-0 z-20 flex items-center justify-between gap-3 px-3 sm:px-5 border-b backdrop-blur-md"
             style={{
               background: "hsl(var(--topbar-bg))",
               borderColor: "hsl(var(--topbar-border))",
             }}
           >
+            {/* ── Mobile hamburger ── */}
+            <button
+              className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-colors shrink-0"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open navigation"
+            >
+              <Menu size={18} />
+            </button>
+
             {/* ── Breadcrumb ── */}
-            <nav className="flex items-center gap-1.5 text-[12.5px] min-w-0 overflow-hidden" aria-label="Breadcrumb">
+            <nav className="hidden sm:flex items-center gap-1.5 text-[12.5px] min-w-0 overflow-hidden" aria-label="Breadcrumb">
               <Link
                 href="/dashboard"
                 className="font-semibold text-muted-foreground/40 hover:text-muted-foreground transition-colors tracking-tight shrink-0 select-none"
