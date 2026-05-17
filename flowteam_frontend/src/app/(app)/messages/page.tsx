@@ -39,11 +39,16 @@ export default function MessagingPage() {
     callerName: string 
   } | null>(null);
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
+  const acceptedCallIdRef = useRef<string | null>(null);
   const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
 
   useEffect(() => {
     selectedChannelIdRef.current = selectedChannel?.id ?? "";
   }, [selectedChannel?.id]);
+
+  useEffect(() => {
+    acceptedCallIdRef.current = acceptedCallId;
+  }, [acceptedCallId]);
 
   const fetchChannels = useCallback(async (teamId: string) => {
     try {
@@ -245,12 +250,18 @@ export default function MessagingPage() {
           const existing = prev.find((c) => c.id === fresh.id);
           return existing ? { ...existing, ...fresh } : fresh;
         }));
+        // Read current acceptedCallId without adding it to deps (would restart interval)
+        const currentAcceptedId = acceptedCallIdRef.current;
         for (const ch of data) {
           if (!ch.active_call_id) continue;
           const startedById = ch.active_call_started_by?.id;
+          // Skip calls started by self
           if (startedById && String(startedById) === String(user?.id)) continue;
+          // Skip if already showing this call
           if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
           if (incomingCall?.callId === ch.active_call_id) continue;
+          // Skip if user is already in this call
+          if (currentAcceptedId === ch.active_call_id) continue;
           seenCallIdsRef.current.add(ch.active_call_id);
           setIncomingCall({
             callId: ch.active_call_id,
@@ -299,8 +310,12 @@ export default function MessagingPage() {
   }, [incomingCall, channels, router, pathname]);
 
   const declineCall = useCallback(() => {
+    if (incomingCall) {
+      // Notify server so caller knows the call was declined
+      api.post(`/messaging/calls/${incomingCall.callId}/decline/`).catch(() => { /* best-effort */ });
+    }
     setIncomingCall(null);
-  }, []);
+  }, [incomingCall]);
 
   useTeamPresenceSocket(
     activeTeamId,

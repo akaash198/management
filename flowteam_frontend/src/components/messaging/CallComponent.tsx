@@ -515,13 +515,20 @@ export function CallComponent({
         case "call.mute_state":
           handleMuteState(data);
           break;
+        case "call.ended":
+        case "call.end":
+        case "call.missed":
+        case "call.declined":
+          // Remote party ended/declined — close this side too
+          onClose();
+          break;
       }
     };
     return () => { onCallEventRef.current = null; };
   }, [
     onCallEventRef, handleCallSignal, handleParticipantJoined, handleParticipantLeft,
     handleScreenShare, handleHandRaise, handleReaction, handleInCallChat, handleMuteState,
-    sendCallMessage,
+    sendCallMessage, onClose,
   ]);
 
   // ─── Controls auto-hide ───────────────────────────────────────────────────
@@ -605,6 +612,18 @@ export function CallComponent({
     })();
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Stop media tracks when the tab is closed mid-call
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => {
+      localStreamRef.current?.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current?.getTracks().forEach((t) => t.stop());
+      peersRef.current.forEach((p) => { try { p.destroy(); } catch { /* ignore */ } });
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isOpen]);
+
   // Start network monitoring once connected
   useEffect(() => {
     if (callStatus === "connected") startNetworkMonitoring();
@@ -623,7 +642,7 @@ export function CallComponent({
   const toggleMute = useCallback(() => {
     if (!localStreamRef.current) return;
     const next = !isMuted;
-    localStreamRef.current.getAudioTracks().forEach((t) => { t.enabled = isMuted; });
+    localStreamRef.current.getAudioTracks().forEach((t) => { t.enabled = !next; });
     setIsMuted(next);
     sendCallMessage("call.mute_state", { call_id: callIdRef.current, muted: next });
   }, [isMuted, sendCallMessage]);
@@ -631,13 +650,15 @@ export function CallComponent({
   const toggleVideo = useCallback(() => {
     if (!localStreamRef.current) return;
     const next = !isVideoOff;
-    localStreamRef.current.getVideoTracks().forEach((t) => { t.enabled = isVideoOff; });
+    localStreamRef.current.getVideoTracks().forEach((t) => { t.enabled = !next; });
     setIsVideoOff(next);
     sendCallMessage("call.mute_state", { call_id: callIdRef.current, muted: isMuted, video_off: next });
   }, [isVideoOff, isMuted, sendCallMessage]);
 
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
+      // Capture the screen track BEFORE nulling the ref so replaceTrack has the right old track
+      const screenTrack = screenStreamRef.current?.getVideoTracks()[0] ?? null;
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
       setIsScreenSharing(false);
@@ -647,32 +668,37 @@ export function CallComponent({
       if (cam) {
         localStreamRef.current = cam;
         if (localVideoRef.current) localVideoRef.current.srcObject = cam;
-        peersRef.current.forEach((peer) => {
-          const oldVideo = (screenStreamRef.current ?? cam).getVideoTracks()[0];
-          const newVideo = cam.getVideoTracks()[0];
-          if (newVideo) peer.replaceTrack(oldVideo ?? newVideo, newVideo, cam);
-        });
+        const newVideo = cam.getVideoTracks()[0];
+        if (screenTrack && newVideo) {
+          peersRef.current.forEach((peer) => {
+            try { peer.replaceTrack(screenTrack, newVideo, cam); } catch { /* ignore if track already removed */ }
+          });
+        }
       }
     } else {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const oldVideo = cameraStreamRef.current?.getVideoTracks()[0] ?? null;
+        const newVideo = stream.getVideoTracks()[0];
         screenStreamRef.current = stream;
         setIsScreenSharing(true);
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
         localStreamRef.current = stream;
         sendCallMessage("call.screen_share", { call_id: callIdRef.current, is_sharing: true });
 
-        const cam = cameraStreamRef.current;
-        peersRef.current.forEach((peer) => {
-          const oldVideo = cam?.getVideoTracks()[0];
-          const newVideo = stream.getVideoTracks()[0];
-          if (cam && oldVideo && newVideo) peer.replaceTrack(oldVideo, newVideo, cam);
-        });
+        if (oldVideo && newVideo && cameraStreamRef.current) {
+          peersRef.current.forEach((peer) => {
+            try { peer.replaceTrack(oldVideo, newVideo, cameraStreamRef.current!); } catch { /* ignore */ }
+          });
+        }
 
-        stream.getVideoTracks()[0]?.addEventListener("ended", () => {
+        // Auto-stop when user ends share via browser UI
+        newVideo?.addEventListener("ended", () => {
           void toggleScreenShare();
         }, { once: true });
-      } catch {
+      } catch (err: unknown) {
+        // DOMException name === "NotAllowedError" means user cancelled — don't toast
+        if (err instanceof DOMException && err.name === "NotAllowedError") return;
         toast.error("Failed to share screen");
       }
     }

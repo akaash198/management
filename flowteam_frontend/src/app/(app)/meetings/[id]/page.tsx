@@ -147,12 +147,8 @@ export default function MeetingDetailPage() {
   const joinCall = () => {
     if (!meeting) return;
     setCallType(meeting.call_type);
-    if (meeting.active_call_id) {
-      setAcceptedCallId(meeting.active_call_id);
-      sendCallMessage("call.join", { call_id: meeting.active_call_id });
-    } else {
-      setAcceptedCallId(null);
-    }
+    // CallComponent sends call.join itself on mount when existingCallId is set
+    setAcceptedCallId(meeting.active_call_id ?? null);
     setCallOpen(true);
   };
 
