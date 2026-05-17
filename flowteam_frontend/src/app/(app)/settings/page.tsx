@@ -111,6 +111,9 @@ export default function SettingsPage() {
 
   const [fullName, setFullName] = useState(user?.full_name || "");
   const [timezone, setTimezone] = useState(user?.timezone || "UTC");
+  const [savedFullName, setSavedFullName] = useState(user?.full_name || "");
+  const [savedTimezone, setSavedTimezone] = useState(user?.timezone || "UTC");
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [teamName, setTeamName] = useState("");
   const [savingTeam, setSavingTeam] = useState(false);
@@ -196,8 +199,22 @@ export default function SettingsPage() {
     );
   }, [members, memberSearch]);
 
+  const profileDirty = fullName.trim() !== savedFullName.trim() || timezone !== savedTimezone;
+
+  const handleSaveClick = () => {
+    if (!profileDirty) { toast.info("No changes to save."); return; }
+    setConfirmSaveOpen(true);
+  };
+
   const handleUpdateProfile = async () => {
-    try { setSavingProfile(true); await api.patch("/auth/me/", { full_name: fullName, timezone }); toast.success("Profile updated"); }
+    try {
+      setSavingProfile(true);
+      await api.patch("/auth/me/", { full_name: fullName, timezone });
+      setSavedFullName(fullName);
+      setSavedTimezone(timezone);
+      setConfirmSaveOpen(false);
+      toast.success("Profile updated");
+    }
     catch (err) { toast.error(toErrorMessage(err, "Failed to update profile")); }
     finally { setSavingProfile(false); }
   };
@@ -375,11 +392,17 @@ export default function SettingsPage() {
                       </div>
                     </div>
                   </CardContent>
-                  <CardFooter>
-                    <Button onClick={handleUpdateProfile} disabled={savingProfile} size="sm" className="gap-2">
+                  <CardFooter className="flex items-center gap-3">
+                    <Button onClick={handleSaveClick} disabled={savingProfile} size="sm" className="gap-2">
                       <Save className="h-3.5 w-3.5" />
-                      {savingProfile ? "Saving…" : "Save Changes"}
+                      Save Changes
                     </Button>
+                    {profileDirty && (
+                      <span className="text-[11.5px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse inline-block" />
+                        Unsaved changes
+                      </span>
+                    )}
                   </CardFooter>
                 </Card>
 
@@ -824,6 +847,56 @@ export default function SettingsPage() {
             <Button variant="outline" size="sm" onClick={() => setChangeRoleTarget(null)}>Cancel</Button>
             <Button size="sm" onClick={handleChangeRole} disabled={savingRole} className="gap-2">
               <Save className="h-3.5 w-3.5" />{savingRole ? "Saving…" : "Save Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Save Profile Confirmation ── */}
+      <Dialog open={confirmSaveOpen} onOpenChange={(open) => { if (!savingProfile) setConfirmSaveOpen(open); }}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Save className="h-4 w-4 text-primary" />
+              Save profile changes?
+            </DialogTitle>
+            <DialogDescription>Review your changes before saving.</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-1">
+            {fullName.trim() !== savedFullName.trim() && (
+              <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Full Name</p>
+                <div className="flex items-center gap-2 text-[13px]">
+                  <span className="line-through text-muted-foreground">{savedFullName || "—"}</span>
+                  <span className="text-muted-foreground/40">→</span>
+                  <span className="font-semibold text-foreground">{fullName}</span>
+                </div>
+              </div>
+            )}
+            {timezone !== savedTimezone && (
+              <div className="rounded-xl border border-border bg-muted/30 p-3 space-y-1.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Timezone</p>
+                <div className="flex items-center gap-2 text-[13px]">
+                  <span className="line-through text-muted-foreground">
+                    {TIMEZONES.find((tz) => tz.value === savedTimezone)?.label ?? savedTimezone}
+                  </span>
+                  <span className="text-muted-foreground/40">→</span>
+                  <span className="font-semibold text-foreground">
+                    {TIMEZONES.find((tz) => tz.value === timezone)?.label ?? timezone}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setConfirmSaveOpen(false)} disabled={savingProfile}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleUpdateProfile} disabled={savingProfile} className="gap-2">
+              <Save className="h-3.5 w-3.5" />
+              {savingProfile ? "Saving…" : "Confirm & Save"}
             </Button>
           </DialogFooter>
         </DialogContent>
