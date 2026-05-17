@@ -25,6 +25,7 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectCountRef = useRef(0);
+  const sendQueueRef = useRef<string[]>([]);
 
   const onMessageRef = useRef<WebSocketOptions["onMessage"]>(options.onMessage);
   const shouldReconnectRef = useRef<WebSocketOptions["shouldReconnect"]>(options.shouldReconnect);
@@ -73,6 +74,11 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
     socket.onopen = () => {
       setConnectionState("connected");
       reconnectCountRef.current = 0;
+      // Flush any messages queued while the socket was connecting
+      const queued = sendQueueRef.current.splice(0);
+      for (const msg of queued) {
+        socket.send(msg);
+      }
     };
 
     socket.onmessage = (event) => {
@@ -85,6 +91,7 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
     };
 
     socket.onclose = (event) => {
+      sendQueueRef.current = [];
       if (event.code === 4001) {
         // Auth failure — try refreshing the JWT once, then reconnect.
         // If refresh fails the user will be redirected to login by the API interceptor.
@@ -132,8 +139,14 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
   }, [connect]);
 
   const send = useCallback((type: string, data: any) => {
+    const msg = JSON.stringify({ type, data });
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type, data }));
+      socketRef.current.send(msg);
+      return true;
+    }
+    // Queue the message to be sent once the socket opens
+    if (socketRef.current?.readyState === WebSocket.CONNECTING) {
+      sendQueueRef.current.push(msg);
       return true;
     }
     return false;
