@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -161,12 +162,7 @@ export default function CompanyInvitePage() {
       <div className="w-full max-w-md space-y-4">
         {/* ── Logo ── */}
         <div className="flex justify-center mb-2">
-          <div className="flex items-center gap-2">
-            <span className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-black text-[12px] tracking-tighter">
-              CW
-            </span>
-            <span className="text-lg font-bold tracking-tight">cowrk</span>
-          </div>
+          <Image src="/logo.png" alt="cowrk" width={110} height={36} className="object-contain dark:brightness-100 brightness-0" style={{ height: 24, width: "auto" }} />
         </div>
 
         {/* ── Loading ── */}

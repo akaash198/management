@@ -7,6 +7,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Loader2, Search, ChevronRight, Check, Menu } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 
 // SearchModal is only opened on Cmd+K — no need to load it upfront
 const SearchModal = dynamic(
@@ -162,11 +163,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* ── Breadcrumb ── */}
             <nav className="hidden sm:flex items-center gap-1.5 text-[12.5px] min-w-0 overflow-hidden" aria-label="Breadcrumb">
-              <Link
-                href="/dashboard"
-                className="font-semibold text-muted-foreground/40 hover:text-muted-foreground transition-colors tracking-tight shrink-0 select-none"
-              >
-                cowrk
+              <Link href="/dashboard" className="shrink-0 select-none opacity-60 hover:opacity-90 transition-opacity">
+                <Image src="/logo.png" alt="cowrk" width={72} height={24} className="object-contain dark:brightness-100 brightness-0" style={{ height: 16, width: "auto" }} />
               </Link>
               {crumbs.map((crumb, i) => (
                 <span key={i} className="flex items-center gap-1.5 min-w-0">

@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: { default: "Cowrk", template: "%s · Cowrk" },
   description: "Work together, ship together.",
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/favicon.png" },
 };
 
 export const viewport: Viewport = {

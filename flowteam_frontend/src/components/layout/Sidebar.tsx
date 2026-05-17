@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
@@ -229,10 +230,8 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     >
       {/* ── Logo mark ── */}
       <div className="flex h-[56px] shrink-0 items-center justify-center border-b relative" style={{ borderColor: "hsl(var(--rail-border))" }}>
-        <div
-          className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-primary text-primary-foreground font-black text-[14px] tracking-tighter"
-        >
-          CW
+        <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-[#0a0a0a] overflow-hidden">
+          <Image src="/logo.png" alt="cowrk" width={36} height={36} className="object-contain" />
         </div>
         {onClose && (
           <button

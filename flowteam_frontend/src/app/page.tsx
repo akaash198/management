@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -803,14 +804,8 @@ export default function LandingPage() {
 
 function WordMark({ className }: { className?: string }) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="relative h-8 w-8 rounded-lg overflow-hidden" style={{ background: "linear-gradient(135deg, #7C3AED, #2563EB)" }}>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-[14px] font-black text-white tracking-tighter">FT</span>
-        </div>
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
-      </div>
-      <span className="text-[18px] font-bold tracking-tight text-white">FlowTeam</span>
+    <div className={cn("flex items-center", className)}>
+      <Image src="/logo.png" alt="cowrk" width={130} height={44} className="object-contain" style={{ height: 28, width: "auto" }} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -86,11 +87,8 @@ export default function RegisterPage() {
         <div className="absolute bottom-0 left-0 h-[350px] w-[350px] translate-y-16 -translate-x-16 rounded-full blur-[100px]" style={{ background: "rgba(124,255,203,0.06)" }} />
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#0A1628] to-transparent" />
 
-        <div className="relative flex items-center gap-2.5 select-none">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl shadow-[0_0_20px_rgba(124,255,203,0.4)] bg-primary text-primary-foreground font-black text-[15px] tracking-tighter">
-            CW
-          </span>
-          <span className="text-[17px] font-bold tracking-[-0.025em] text-white">cowrk</span>
+        <div className="relative select-none">
+          <Image src="/logo.png" alt="cowrk" width={120} height={40} className="object-contain" style={{ height: 28, width: "auto" }} />
         </div>
 
         <div className="relative space-y-8">
@@ -147,11 +145,8 @@ export default function RegisterPage() {
         }} />
         <div className="absolute left-1/2 top-1/3 h-[400px] w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[100px]" style={{ background: "rgba(124,255,203,0.04)" }} />
 
-        <div className="lg:hidden relative flex items-center gap-2 mb-10 select-none">
-          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-primary-foreground font-black text-[13px] tracking-tighter">
-            CW
-          </span>
-          <span className="text-[16px] font-bold tracking-[-0.025em] text-white">cowrk</span>
+        <div className="lg:hidden relative mb-10 select-none">
+          <Image src="/logo.png" alt="cowrk" width={110} height={36} className="object-contain" style={{ height: 24, width: "auto" }} />
         </div>
 
         <div className="relative w-full max-w-[420px] space-y-6">
