@@ -150,6 +150,8 @@ export function CallComponent({
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
   const callIdRef = useRef<string | null>(existingCallId ?? null);
+  // Buffer signals that arrive before local media is ready
+  const pendingSignalsRef = useRef<Array<{ from_user_id: string; signal_data: object }>>([]);
   const callStartTimeRef = useRef<number | null>(null);
   const ringCtxRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
   const durationTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -382,7 +384,11 @@ export function CallComponent({
     const d = data as { from_user_id: string; signal_data: object; target_user_id: string };
     if (d.target_user_id !== user?.id) return;
     const stream = localStreamRef.current;
-    if (!stream) return;
+    if (!stream) {
+      // Stream not ready yet — buffer and replay once media is acquired
+      pendingSignalsRef.current.push({ from_user_id: d.from_user_id, signal_data: d.signal_data });
+      return;
+    }
     let peer = peersRef.current.get(d.from_user_id);
     if (!peer) {
       peer = createPeer(d.from_user_id, false, stream);
@@ -491,8 +497,8 @@ export function CallComponent({
           break;
         case "call.started":
         case "call_started":
-          callIdRef.current = (data as { id?: string })?.id ?? null;
-          sendCallMessage("call.join", { call_id: callIdRef.current });
+          // Only update the call ID reference; the mount effect already sent call.join
+          callIdRef.current = (data as { id?: string })?.id ?? callIdRef.current;
           break;
         case "call.screen_share":
           handleScreenShare(data);
@@ -584,6 +590,17 @@ export function CallComponent({
         sendCallMessage("call.start", { call_type: callType });
       } else {
         sendCallMessage("call.join", { call_id: existingCallId });
+        // Flush any signals that arrived before media was ready
+        const pending = pendingSignalsRef.current.splice(0);
+        for (const { from_user_id, signal_data } of pending) {
+          let peer = peersRef.current.get(from_user_id);
+          if (!peer) {
+            peer = createPeer(from_user_id, false, stream);
+            peersRef.current.set(from_user_id, peer);
+          }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          peer.signal(signal_data as any);
+        }
       }
     })();
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps

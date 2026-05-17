@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamStore } from "@/store/team";
@@ -47,10 +48,13 @@ type ViewMode = "grid" | "list";
 
 export default function ProjectsPage() {
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
-  const [sortBy, setSortBy] = useState<"updated" | "name" | "tasks" | "completion" | "overdue">("updated");
+  const [sortBy, setSortBy] = useState<"updated" | "name" | "tasks" | "completion" | "overdue">(
+    searchParams.get("filter") === "overdue" ? "overdue" : "updated"
+  );
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const { teams, activeTeamId, fetchTeams } = useTeamStore();
   const archiveProject = useDeleteProject();

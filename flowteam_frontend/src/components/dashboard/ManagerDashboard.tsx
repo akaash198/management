@@ -124,7 +124,10 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
               {atRiskProjects.map((p) => p.name).join(" · ")}
             </p>
           </div>
-          <Link href="/projects" className="shrink-0 text-[12px] font-semibold text-destructive hover:underline whitespace-nowrap">
+          <Link
+            href={atRiskProjects.length === 1 ? `/projects/${atRiskProjects[0].id}` : "/projects?filter=overdue"}
+            className="shrink-0 text-[12px] font-semibold text-destructive hover:underline whitespace-nowrap"
+          >
             Review →
           </Link>
         </div>

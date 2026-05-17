@@ -9,7 +9,7 @@ interface AuthState {
   isLoading: boolean;
   setUser: (user: User | null) => void;
   fetchMe: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(

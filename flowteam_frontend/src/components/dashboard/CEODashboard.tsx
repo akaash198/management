@@ -112,7 +112,12 @@ export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetchin
             </p>
             <p className="text-[11.5px] text-destructive/70 truncate">{atRiskProjects.map((p) => p.name).join(" · ")}</p>
           </div>
-          <Link href="/projects" className="shrink-0 text-[12px] font-semibold text-destructive hover:underline whitespace-nowrap">Review →</Link>
+          <Link
+            href={atRiskProjects.length === 1 ? `/projects/${atRiskProjects[0].id}` : "/projects?filter=overdue"}
+            className="shrink-0 text-[12px] font-semibold text-destructive hover:underline whitespace-nowrap"
+          >
+            Review →
+          </Link>
         </div>
       )}
 

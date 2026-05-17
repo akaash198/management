@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
   LayoutDashboard,
@@ -189,8 +189,14 @@ function RailItem({
    ═══════════════════════════════════════════ */
 export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   const pathname      = usePathname();
+  const router        = useRouter();
   const [statusOpen, setStatusOpen] = useState(false);
   const { user, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push("/login");
+  };
   const myPresence    = usePresenceStore((s) => s.status);
   const customStatus  = usePresenceStore((s) => s.customStatus);
   const setCustomStatus = usePresenceStore((s) => s.setCustomStatus);
@@ -364,7 +370,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
             </Link>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={logout}
+              onClick={handleLogout}
               className="text-[13px] gap-2 text-destructive focus:text-destructive"
             >
               <LogOut size={13} />
