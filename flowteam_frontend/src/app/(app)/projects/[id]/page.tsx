@@ -45,11 +45,11 @@ import {
   BarChart3,
   Download,
   AlertTriangle,
-  CheckCircle2,
   X,
   Search,
   Users,
   ChevronDown,
+  Check,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
@@ -58,7 +58,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -402,45 +401,12 @@ export default function ProjectBoardPage() {
 
           {/* Assignee */}
           {(teamMembers?.length ?? 0) > 0 && (
-            <div className="flex items-center gap-1 rounded-lg border border-border/60 bg-background p-0.5">
-              <button
-                onClick={() => setAssigneeFilter("")}
-                className={cn(
-                  "rounded-md px-2.5 h-6 text-[11.5px] font-semibold transition-colors flex items-center gap-1",
-                  !assigneeFilter
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-              >
-                <Users size={10} />All
-              </button>
-              <button
-                onClick={() => setAssigneeFilter("me")}
-                className={cn(
-                  "rounded-md px-2.5 h-6 text-[11.5px] font-semibold transition-colors",
-                  assigneeFilter === "me"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-              >
-                Mine
-              </button>
-              {(teamMembers ?? []).map((member) => (
-                <button
-                  key={member.user.id}
-                  onClick={() => setAssigneeFilter(assigneeFilter === member.user.id ? "" : member.user.id)}
-                  title={member.user.full_name}
-                  className={cn(
-                    "rounded-md px-2 h-6 text-[11.5px] font-semibold transition-colors truncate max-w-[100px]",
-                    assigneeFilter === member.user.id
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                  )}
-                >
-                  {member.user.full_name.split(" ")[0]}
-                </button>
-              ))}
-            </div>
+            <AssigneePicker
+              members={teamMembers ?? []}
+              value={assigneeFilter}
+              onChange={setAssigneeFilter}
+              currentUserId={user?.id ?? ""}
+            />
           )}
 
           {/* Clear filters */}
@@ -507,6 +473,188 @@ export default function ProjectBoardPage() {
         labels={project.labels || []}
         members={teamMembers || []}
       />
+    </div>
+  );
+}
+
+/* ─── AssigneePicker ─────────────────────────────────────────────────────────
+   Shows All + Mine + up to VISIBLE_LIMIT avatar-pills inline.
+   Any members beyond that collapse into a searchable "+N more" dropdown.
+   ─────────────────────────────────────────────────────────────────────────── */
+const VISIBLE_LIMIT = 4;
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
+
+function AssigneePicker({
+  members,
+  value,
+  onChange,
+  currentUserId,
+}: {
+  members: TeamMember[];
+  value: string;
+  onChange: (id: string) => void;
+  currentUserId: string;
+}) {
+  const [search, setSearch] = useState("");
+
+  const visible = members.slice(0, VISIBLE_LIMIT);
+  const overflow = members.slice(VISIBLE_LIMIT);
+  const hasOverflow = overflow.length > 0;
+
+  /* If the selected member is in the overflow, show their name in the trigger */
+  const selectedOverflow = overflow.find((m) => m.user.id === value);
+
+  const filteredOverflow = overflow.filter((m) =>
+    m.user.full_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const pillBase =
+    "flex items-center gap-1.5 rounded-md px-2 h-7 text-[11.5px] font-semibold transition-all whitespace-nowrap";
+  const pillActive = "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/30";
+  const pillIdle = "text-muted-foreground hover:text-foreground hover:bg-muted/60";
+
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg border border-border/60 bg-background p-0.5">
+      {/* All */}
+      <button
+        onClick={() => onChange("")}
+        className={cn(pillBase, !value ? pillActive : pillIdle)}
+      >
+        <Users size={10} />
+        All
+      </button>
+
+      {/* Mine */}
+      <button
+        onClick={() => onChange(value === "me" ? "" : "me")}
+        className={cn(pillBase, value === "me" ? pillActive : pillIdle)}
+      >
+        Mine
+      </button>
+
+      {/* Visible member avatars */}
+      {visible.map((member) => {
+        const active = value === member.user.id;
+        const isSelf = member.user.id === currentUserId;
+        return (
+          <button
+            key={member.user.id}
+            onClick={() => onChange(active ? "" : member.user.id)}
+            title={member.user.full_name}
+            className={cn(
+              "relative flex items-center gap-1.5 rounded-md px-1.5 h-7 transition-all",
+              active ? pillActive : pillIdle
+            )}
+          >
+            {/* Avatar circle */}
+            <span
+              className={cn(
+                "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+                active
+                  ? "bg-primary-foreground/20 text-primary-foreground"
+                  : "bg-muted text-muted-foreground"
+              )}
+            >
+              {initials(member.user.full_name)}
+            </span>
+            <span className="text-[11.5px] font-semibold">
+              {isSelf ? "Me" : member.user.full_name.split(" ")[0]}
+            </span>
+            {active && <Check size={10} className="shrink-0" />}
+          </button>
+        );
+      })}
+
+      {/* Overflow dropdown */}
+      {hasOverflow && (
+        <DropdownMenu onOpenChange={() => setSearch("")}>
+          <DropdownMenuTrigger asChild>
+            <button
+              className={cn(
+                pillBase,
+                selectedOverflow ? pillActive : pillIdle,
+                "gap-1"
+              )}
+            >
+              {selectedOverflow ? (
+                <>
+                  <span
+                    className={cn(
+                      "flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[9px] font-bold",
+                      "bg-primary-foreground/20 text-primary-foreground"
+                    )}
+                  >
+                    {initials(selectedOverflow.user.full_name)}
+                  </span>
+                  {selectedOverflow.user.full_name.split(" ")[0]}
+                  <Check size={10} className="shrink-0" />
+                </>
+              ) : (
+                <>
+                  +{overflow.length}
+                  <ChevronDown size={10} className="text-muted-foreground" />
+                </>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" className="w-56 p-2" side="bottom">
+            {/* Search */}
+            <div className="relative mb-2">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50 pointer-events-none" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search members…"
+                className="w-full h-7 pl-7 pr-2 text-[12px] rounded-md border border-border/60 bg-background focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
+
+            {filteredOverflow.length === 0 ? (
+              <p className="py-3 text-center text-[12px] text-muted-foreground">No members found</p>
+            ) : (
+              filteredOverflow.map((member) => {
+                const active = value === member.user.id;
+                return (
+                  <DropdownMenuItem
+                    key={member.user.id}
+                    onClick={() => onChange(active ? "" : member.user.id)}
+                    className="flex items-center gap-2.5 rounded-md px-2 py-1.5 cursor-pointer"
+                  >
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-bold text-muted-foreground">
+                      {initials(member.user.full_name)}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12.5px] font-medium truncate">{member.user.full_name}</div>
+                      {member.user.email && (
+                        <div className="text-[10.5px] text-muted-foreground truncate">{member.user.email}</div>
+                      )}
+                    </div>
+                    {active && <Check size={13} className="shrink-0 text-primary" />}
+                  </DropdownMenuItem>
+                );
+              })
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   );
 }
