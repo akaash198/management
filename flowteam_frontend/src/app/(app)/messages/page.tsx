@@ -199,6 +199,22 @@ export default function MessagingPage() {
     return () => stopIncomingRingtone();
   }, [incomingCall, startIncomingRingtone, stopIncomingRingtone]);
 
+  const handleCallEvent = useCallback((type: string, data: any) => {
+    if (type === "call.started") {
+      const startedBy = data?.started_by?.id ?? data?.started_by;
+      if (startedBy && String(startedBy) !== String(user?.id)) {
+        setIncomingCall({
+          callId: data.id,
+          channelId: data.channel?.id ?? data.channel,
+          callType: data.call_type ?? "audio",
+          callerName: data.started_by?.full_name ?? "Someone",
+        });
+      }
+    } else if (type === "call.ended" || type === "call.missed") {
+      setIncomingCall(null);
+    }
+  }, [user?.id]);
+
   useChannelEventsSocket(
     (incomingId, increment) => {
       setChannels((prev) => prev.map((c) => {
@@ -208,37 +224,78 @@ export default function MessagingPage() {
         return { ...c, unread_count: Math.max(0, (c.unread_count || 0) + increment) };
       }));
     },
-    (type, data) => {
-      if (type === "call.started") {
-        const startedBy = data?.started_by?.id ?? data?.started_by;
-        if (startedBy && String(startedBy) !== String(user?.id)) {
-          setIncomingCall({
-            callId: data.id,
-            channelId: data.channel?.id ?? data.channel,
-            callType: data.call_type ?? "audio",
-            callerName: data.started_by?.full_name ?? "Someone",
-          });
-        }
-      } else if (type === "call.ended" || type === "call.missed") {
-        setIncomingCall(null);
-      }
-    }
+    handleCallEvent,
   );
 
-  const acceptCall = useCallback(() => {
+  // Fallback: poll channels every 5 s to detect active calls that the
+  // WebSocket may have missed (e.g. receiver is on a different channel).
+  const seenCallIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!activeTeamId) return;
+    const poll = async () => {
+      try {
+        const res = await api.get<{ success: boolean; data: Channel[] }>(
+          "/messaging/channels/",
+          { params: { team_id: activeTeamId } }
+        );
+        if (!res.data.success) return;
+        const data: Channel[] = res.data.data;
+        // Update channel list silently (unread counts, active_call_id, etc.)
+        setChannels((prev) => data.map((fresh) => {
+          const existing = prev.find((c) => c.id === fresh.id);
+          return existing ? { ...existing, ...fresh } : fresh;
+        }));
+        for (const ch of data) {
+          if (!ch.active_call_id) continue;
+          const startedById = ch.active_call_started_by?.id;
+          if (startedById && String(startedById) === String(user?.id)) continue;
+          if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
+          if (incomingCall?.callId === ch.active_call_id) continue;
+          seenCallIdsRef.current.add(ch.active_call_id);
+          setIncomingCall({
+            callId: ch.active_call_id,
+            channelId: ch.id,
+            callType: ch.active_call_type ?? "audio",
+            callerName: ch.active_call_started_by?.full_name ?? "Someone",
+          });
+        }
+        // Clear seenCallIds for calls that are no longer active
+        const activeIds = new Set(data.map((c) => c.active_call_id).filter(Boolean) as string[]);
+        seenCallIdsRef.current = new Set([...seenCallIdsRef.current].filter((id) => activeIds.has(id)));
+      } catch { /* best-effort */ }
+    };
+    const interval = setInterval(poll, 5000);
+    return () => clearInterval(interval);
+  }, [activeTeamId, user?.id, incomingCall?.callId]);
+
+  const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
     const { channelId, callId } = incomingCall;
-    const target = channels.find(c => c.id === channelId);
+    setIncomingCall(null);
+    let target = channels.find(c => c.id === channelId);
+    if (!target) {
+      // Channel not in list yet — fetch it (e.g. cross-team or not yet loaded)
+      try {
+        const res = await api.get<{ success: boolean; data: Channel }>(
+          `/messaging/channels/${channelId}/`
+        );
+        if (res.data.success) {
+          target = res.data.data;
+          setChannels((prev) => {
+            if (prev.some((c) => c.id === target!.id)) return prev;
+            return [target!, ...prev];
+          });
+        }
+      } catch { /* fall through */ }
+    }
     if (target) {
       setSelectedChannel(target);
       setActiveView("all");
       setAcceptedCallId(callId);
       router.replace(`${pathname}?channel=${channelId}`);
     } else {
-      // If channel not in list, we might need to fetch it or just toast error
       toast.error("Could not find the channel for this call.");
     }
-    setIncomingCall(null);
   }, [incomingCall, channels, router, pathname]);
 
   const declineCall = useCallback(() => {

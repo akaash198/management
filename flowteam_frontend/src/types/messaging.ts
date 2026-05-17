@@ -16,6 +16,10 @@ export interface Channel {
   member_count?: number;
   created_at?: string;
   created_by?: SlimUser;
+  /** Present when there is an active call in this channel. */
+  active_call_id?: string | null;
+  active_call_type?: "audio" | "video" | null;
+  active_call_started_by?: SlimUser | null;
 }
 
 export interface Attachment {
