@@ -131,6 +131,7 @@ export function ChatArea({
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsTab, setDetailsTab] = useState<string>("about");
+  const [infoPanelOpen, setInfoPanelOpen] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
   const [isStarred, setIsStarred] = useState(false);
   const [slashMenuVisible, setSlashMenuVisible] = useState(false);
@@ -459,7 +460,7 @@ export function ChatArea({
       const res = await api.get<ApiResponse<SlimUser[]>>(`/messaging/channels/${channel.id}/members/`);
       return res.data.data ?? [];
     },
-    enabled: channel.is_private || membersOpen || infoOpen || addMembersOpen || searchOpen || searchMobileOpen || detailsOpen,
+    enabled: channel.is_private || membersOpen || infoOpen || addMembersOpen || searchOpen || searchMobileOpen || detailsOpen || infoPanelOpen,
   });
 
   const { data: pins } = useQuery<MessagePin[]>({
@@ -1636,16 +1637,16 @@ export function ChatArea({
             </Button>
           )}
 
-          {/* Details panel toggle */}
+          {/* Info panel toggle */}
           <Button
             variant="ghost"
             size="icon"
             className={cn(
               "h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-all",
-              detailsOpen && "bg-muted text-foreground"
+              infoPanelOpen && "bg-muted text-foreground"
             )}
-            onClick={() => setDetailsOpen((prev) => !prev)}
-            title="Channel details"
+            onClick={() => setInfoPanelOpen((prev) => !prev)}
+            title="Channel info"
           >
             <Info size={14} />
           </Button>
@@ -1653,7 +1654,7 @@ export function ChatArea({
       </div>
 
       {/* Messages */}
-      <div className="relative flex-1 min-h-0 xl:pr-[336px]">
+      <div className={cn("relative flex-1 min-h-0 transition-all duration-200", infoPanelOpen && "xl:pr-[336px]")}>
         <div ref={scrollRef} className="h-full overflow-y-auto px-6 py-5" onScroll={onScroll}>
           <div className="mx-auto w-full max-w-5xl">
             {channelSummary && (
@@ -2381,7 +2382,11 @@ export function ChatArea({
         </div>
       </div>
 
-      <aside className="absolute right-0 top-[52px] hidden h-[calc(100%-52px)] w-[336px] border-l border-border bg-card xl:flex xl:flex-col">
+      <aside className={cn(
+        "absolute right-0 top-[52px] h-[calc(100%-52px)] w-[336px] border-l border-border bg-card flex-col",
+        "transition-all duration-200 z-10",
+        infoPanelOpen ? "flex" : "hidden"
+      )}>
         <div className="border-b border-border p-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
@@ -2420,9 +2425,14 @@ export function ChatArea({
                 </div>
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => setDetailsOpen(true)}>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg" onClick={() => setDetailsOpen(true)} title="More details">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+              <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-muted-foreground hover:text-foreground" onClick={() => setInfoPanelOpen(false)} title="Close">
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="mt-4 flex rounded-lg border border-border overflow-hidden">
             <button
