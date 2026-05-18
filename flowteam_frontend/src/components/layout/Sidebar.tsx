@@ -7,14 +7,14 @@ import { usePathname, useRouter } from "next/navigation";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 import {
   LayoutDashboard,
-  FolderKanban,
-  MessageSquare,
+  Kanban,
+  MessagesSquare,
   Settings,
   LogOut,
   User as UserIcon,
-  Calendar,
-  Video,
-  BarChart3,
+  CalendarDays,
+  Presentation,
+  Briefcase,
   Building2,
   ShieldCheck,
   Smile,
@@ -56,11 +56,11 @@ const STATUS_PRESETS = [
 /* ── Navigation definitions ── */
 const NAV_MAIN = [
   { name: "Dashboard", href: "/dashboard",  icon: LayoutDashboard },
-  { name: "Portfolio",  href: "/portfolio",  icon: BarChart3 },
-  { name: "Projects",   href: "/projects",   icon: FolderKanban },
-  { name: "Messages",   href: "/messages",   icon: MessageSquare },
-  { name: "Calendar",   href: "/calendar",   icon: Calendar },
-  { name: "Meetings",   href: "/meetings",   icon: Video },
+  { name: "Portfolio",  href: "/portfolio",  icon: Briefcase },
+  { name: "Projects",   href: "/projects",   icon: Kanban },
+  { name: "Messages",   href: "/messages",   icon: MessagesSquare },
+  { name: "Calendar",   href: "/calendar",   icon: CalendarDays },
+  { name: "Meetings",   href: "/meetings",   icon: Presentation },
 ];
 
 /* ═══════════════════════════════════════════
