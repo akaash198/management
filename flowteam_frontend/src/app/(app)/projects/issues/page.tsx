@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Circle,
   CircleCheck,
+  Clock,
   Filter,
   FolderKanban,
   Layers,
@@ -22,6 +23,7 @@ import {
   SquarePen,
   Star,
   Trash2,
+  TrendingUp,
   TriangleAlert,
   X,
   Zap,
@@ -299,13 +301,156 @@ export default function ProjectIssuesPage() {
           </div>
         </div>
 
-        {/* ── stats strip ── */}
-        <div className="mt-4 flex items-center gap-3 flex-wrap">
-          <StatChip label="Total" value={stats.total} />
-          <StatChip label="Urgent" value={stats.urgent} accent="error" />
-          <StatChip label="Overdue" value={stats.overdue} accent="warning" />
-          <StatChip label="Unassigned" value={stats.unassigned} accent="muted" />
-          <StatChip label="Done" value={stats.done} accent="success" />
+        {/* ── Analytical Insights Grid ── */}
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Card 1: Resolution Velocity */}
+          <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Resolution Velocity</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                <CheckCircle2 size={14} />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold tracking-tight text-foreground leading-none">
+                {stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0}%
+              </span>
+              <span className="text-[12px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
+                <TrendingUp size={12} /> On track
+              </span>
+            </div>
+            {/* Custom mini progress bar */}
+            <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden flex">
+              <div 
+                className="h-full bg-emerald-500 transition-all duration-700" 
+                style={{ width: `${stats.total > 0 ? (stats.done / stats.total) * 100 : 0}%` }} 
+              />
+            </div>
+            <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+              <span>{stats.done} closed</span>
+              <span>{stats.total - stats.done} open</span>
+            </div>
+          </div>
+
+          {/* Card 2: Priority Spectrum */}
+          <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-amber-500" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Priority Spectrum</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/10 text-amber-500">
+                <Zap size={14} />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold tracking-tight text-foreground leading-none">
+                {stats.urgent}
+              </span>
+              <span className="text-[12px] font-medium text-destructive flex items-center gap-0.5">
+                <TriangleAlert size={12} /> Urgent
+              </span>
+            </div>
+            {/* Multi-segmented priority bar */}
+            <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden flex">
+              <div className="h-full bg-destructive transition-all duration-500" style={{ width: `${stats.total > 0 ? (stats.urgent / stats.total) * 100 : 0}%` }} title={`Urgent: ${stats.urgent}`} />
+              <div className="h-full bg-warning transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.priority === 'high').length / stats.total) * 100 : 0}%` }} title={`High: ${tasks.filter(t => t.priority === 'high').length}`} />
+              <div className="h-full bg-info transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.priority === 'normal').length / stats.total) * 100 : 0}%` }} title={`Normal: ${tasks.filter(t => t.priority === 'normal').length}`} />
+              <div className="h-full bg-slate-400 transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.priority === 'low').length / stats.total) * 100 : 0}%` }} title={`Low: ${tasks.filter(t => t.priority === 'low').length}`} />
+            </div>
+            {/* Interactive priority legend */}
+            <div className="mt-2 grid grid-cols-4 gap-1 text-[10px] font-medium text-center">
+              <button onClick={() => setPriority(priority === "urgent" ? "all" : "urgent")} className={cn("rounded px-1 py-0.5 hover:bg-destructive/10 transition-colors", priority === "urgent" && "bg-destructive/15 text-destructive font-bold")}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-destructive mr-1" />{stats.urgent}
+              </button>
+              <button onClick={() => setPriority(priority === "high" ? "all" : "high")} className={cn("rounded px-1 py-0.5 hover:bg-warning/10 transition-colors", priority === "high" && "bg-warning/15 text-warning font-bold")}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-warning mr-1" />{tasks.filter(t => t.priority === 'high').length}
+              </button>
+              <button onClick={() => setPriority(priority === "normal" ? "all" : "normal")} className={cn("rounded px-1 py-0.5 hover:bg-info/10 transition-colors", priority === "normal" && "bg-info/15 text-info font-bold")}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-info mr-1" />{tasks.filter(t => t.priority === 'normal').length}
+              </button>
+              <button onClick={() => setPriority(priority === "low" ? "all" : "low")} className={cn("rounded px-1 py-0.5 hover:bg-muted/50 transition-colors", priority === "low" && "bg-muted text-foreground font-bold")}>
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-400 mr-1" />{tasks.filter(t => t.priority === 'low').length}
+              </button>
+            </div>
+          </div>
+
+          {/* Card 3: Workstream Breakdown */}
+          <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Workstream Breakdown</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                <Bug size={14} />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold tracking-tight text-foreground leading-none">
+                {tasks.filter(t => t.issue_type === 'bug').length}
+              </span>
+              <span className="text-[12px] font-medium text-blue-500 flex items-center gap-0.5">
+                <Bug size={12} /> Active Bugs
+              </span>
+            </div>
+            {/* Segmented type bar */}
+            <div className="mt-3 h-1.5 w-full rounded-full bg-muted overflow-hidden flex">
+              <div className="h-full bg-red-500 transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.issue_type === 'bug').length / stats.total) * 100 : 0}%` }} title="Bugs" />
+              <div className="h-full bg-blue-500 transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.issue_type === 'story').length / stats.total) * 100 : 0}%` }} title="Stories" />
+              <div className="h-full bg-green-500 transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.issue_type === 'task' || !t.issue_type).length / stats.total) * 100 : 0}%` }} title="Tasks" />
+              <div className="h-full bg-purple-500 transition-all duration-500" style={{ width: `${stats.total > 0 ? (tasks.filter(t => t.issue_type === 'epic').length / stats.total) * 100 : 0}%` }} title="Epics" />
+            </div>
+            {/* Type legend */}
+            <div className="mt-2 grid grid-cols-4 gap-1 text-[10px] font-medium text-center text-muted-foreground">
+              <div className="truncate"><span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500 mr-1" />{tasks.filter(t => t.issue_type === 'bug').length} Bug</div>
+              <div className="truncate"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-500 mr-1" />{tasks.filter(t => t.issue_type === 'story').length} Story</div>
+              <div className="truncate"><span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mr-1" />{tasks.filter(t => t.issue_type === 'task' || !t.issue_type).length} Task</div>
+              <div className="truncate"><span className="inline-block w-1.5 h-1.5 rounded-full bg-purple-500 mr-1" />{tasks.filter(t => t.issue_type === 'epic').length} Epic</div>
+            </div>
+          </div>
+
+          {/* Card 4: Actionable Bottlenecks */}
+          <div className="rounded-xl border border-border bg-card/80 p-4 shadow-sm hover:shadow-md transition-all duration-200 relative overflow-hidden group">
+            <div className="absolute top-0 left-0 w-1 h-full bg-destructive" />
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">Actionable Bottlenecks</span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                <AlertTriangle size={14} />
+              </div>
+            </div>
+            <div className="flex items-baseline gap-2">
+              <span className="text-[28px] font-bold tracking-tight text-foreground leading-none">
+                {stats.overdue}
+              </span>
+              <span className="text-[12px] font-medium text-destructive flex items-center gap-0.5">
+                <Clock size={12} /> Overdue
+              </span>
+            </div>
+            {/* Quick action buttons */}
+            <div className="mt-3 pt-1 grid grid-cols-2 gap-2 text-[11px]">
+              <button
+                onClick={() => setDue(due === "overdue" ? "all" : "overdue")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border transition-all font-medium",
+                  due === "overdue" ? "bg-destructive text-destructive-foreground border-destructive shadow-sm" : "border-destructive/30 bg-destructive/5 text-destructive hover:bg-destructive/10"
+                )}
+              >
+                <Clock size={12} /> {stats.overdue} Overdue
+              </button>
+              <button
+                onClick={() => setStatus(status === "open" ? "all" : "open")}
+                className={cn(
+                  "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border transition-all font-medium",
+                  status === "open" ? "bg-primary text-primary-foreground border-primary shadow-sm" : "border-primary/30 bg-primary/5 text-primary hover:bg-primary/10"
+                )}
+              >
+                <Circle size={12} /> {stats.total - stats.done} Open
+              </button>
+            </div>
+            <div className="mt-2 text-center">
+              <span className="text-[10px] text-muted-foreground">
+                {stats.unassigned} unassigned issue{stats.unassigned !== 1 ? "s" : ""} in backlog
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 

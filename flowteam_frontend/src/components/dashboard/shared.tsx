@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow, format, isToday, isTomorrow, isPast } from "date-fns";
 import Link from "next/link";
-import { ArrowUpRight, CheckCircle2, Circle, TrendingDown, TrendingUp as TrendingUpIcon, Minus } from "lucide-react";
+import { ArrowUpRight, CheckCircle2, Circle, TrendingDown, TrendingUp as TrendingUpIcon, Minus, AlertTriangle, Crown, Shield, Briefcase, User, Eye } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import type { DashboardData, ActivityItem as ActivityItemType, ProjectProgress } from "@/types/dashboard";
 import type { TeamMember } from "@/types";
@@ -300,18 +300,21 @@ export function ActivityRow({ item }: { item: ActivityItemType }) {
 // ─── Priority pill ─────────────────────────────────────────────────────────────
 
 export function PriorityPill({ priority }: { priority: PriorityKey }) {
-  const classes: Record<PriorityKey, string> = {
-    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
-    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
-    normal: "border-primary/25 text-primary",
-    low:    "border-border text-muted-foreground",
+  const classes: Record<PriorityKey, { class: string; icon: any }> = {
+    urgent: { class: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400", icon: AlertTriangle },
+    high:   { class: "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400", icon: TrendingUpIcon },
+    normal: { class: "border-primary/25 text-primary", icon: Minus },
+    low:    { class: "border-border text-muted-foreground", icon: TrendingDown },
   };
+  const current = classes[priority] || classes.normal;
+  const Icon = current.icon;
   return (
     <span className={cn(
-      "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-      classes[priority]
+      "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+      current.class
     )}>
-      {priority}
+      <Icon size={11} className="shrink-0" />
+      <span>{priority}</span>
     </span>
   );
 }
@@ -390,19 +393,22 @@ export function QuickActionLink({
 // ─── Role badge ────────────────────────────────────────────────────────────────
 
 export function RoleBadge({ role }: { role: string }) {
-  const styles: Record<string, string> = {
-    ceo:     "text-violet-600 border-violet-200 bg-violet-50 dark:text-violet-300 dark:border-violet-800 dark:bg-violet-950/30",
-    admin:   "text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:bg-blue-950/30",
-    manager: "text-primary border-primary/25 bg-primary/5",
-    member:  "text-muted-foreground border-border bg-muted/30",
-    viewer:  "text-muted-foreground/60 border-border/60 bg-muted/20",
+  const styles: Record<string, { class: string; icon: any }> = {
+    ceo:     { class: "text-violet-600 border-violet-200 bg-violet-50 dark:text-violet-300 dark:border-violet-800 dark:bg-violet-950/30", icon: Crown },
+    admin:   { class: "text-blue-600 border-blue-200 bg-blue-50 dark:text-blue-300 dark:border-blue-800 dark:bg-blue-950/30", icon: Shield },
+    manager: { class: "text-primary border-primary/25 bg-primary/5", icon: Briefcase },
+    member:  { class: "text-muted-foreground border-border bg-muted/30", icon: User },
+    viewer:  { class: "text-muted-foreground/60 border-border/60 bg-muted/20", icon: Eye },
   };
+  const current = styles[role] || styles.member;
+  const Icon = current.icon;
   return (
     <span className={cn(
-      "inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
-      styles[role] ?? styles.member
+      "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]",
+      current.class
     )}>
-      {role}
+      <Icon size={11} className="shrink-0" />
+      <span>{role}</span>
     </span>
   );
 }

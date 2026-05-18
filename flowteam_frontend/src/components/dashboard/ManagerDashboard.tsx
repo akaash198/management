@@ -12,6 +12,7 @@ import type { DashboardData } from "@/types/dashboard";
 import {
   Section, SectionLink, EmptyNote, StatCard, ProjectCard, ActivityRow,
   MiniMetric, QuickActionLink, PriorityBar, VelocityGauge,
+  PriorityPill, RoleBadge,
   getTimeOfDay, type DashboardTask, type PriorityKey,
 } from "./shared";
 import {
@@ -293,12 +294,6 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
 }
 
 function FocusTaskCard({ task }: { task: DashboardTask }) {
-  const priorityClasses: Record<string, string> = {
-    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
-    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
-    normal: "border-primary/25 text-primary",
-    low:    "border-border text-muted-foreground",
-  };
   return (
     <Link href={`/projects/${task.project}?task=${task.id}`} className="group rounded-xl border border-border bg-background p-4 transition-all duration-150 hover:border-primary/20 hover:shadow-sm block">
       <div className="flex items-start justify-between gap-2">
@@ -306,9 +301,7 @@ function FocusTaskCard({ task }: { task: DashboardTask }) {
           <p className="truncate text-[12.5px] font-semibold tracking-[-0.01em] group-hover:text-primary transition-colors">{task.title}</p>
           <p className="mt-0.5 text-[11px] text-muted-foreground/65">{task.project_name} · {task.column_name}</p>
         </div>
-        <span className={cn("shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]", priorityClasses[task.priority] ?? priorityClasses.normal)}>
-          {task.priority}
-        </span>
+        <PriorityPill priority={task.priority as PriorityKey} />
       </div>
       <div className="mt-3.5 flex items-center justify-between text-[11px]">
         <span className={cn("font-medium", task.is_overdue ? "text-destructive" : "text-muted-foreground/60")}>
@@ -322,11 +315,6 @@ function FocusTaskCard({ task }: { task: DashboardTask }) {
 
 function MemberRow({ member }: { member: TeamMember }) {
   const initials = member.user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
-  const roleColors: Record<string, string> = {
-    manager: "text-primary border-primary/25 bg-primary/5",
-    member:  "text-muted-foreground border-border bg-muted/30",
-    viewer:  "text-muted-foreground/60 border-border/60 bg-muted/20",
-  };
   return (
     <div className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-muted/20">
       <Avatar className="h-7 w-7 shrink-0">
@@ -338,9 +326,7 @@ function MemberRow({ member }: { member: TeamMember }) {
         <p className="truncate text-[11px] text-muted-foreground/55">{member.user.email}</p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <span className={cn("inline-flex items-center rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]", roleColors[member.role] ?? roleColors.member)}>
-          {member.role}
-        </span>
+        <RoleBadge role={member.role} />
         <Link href="/messages" className="rounded-lg border border-border p-1.5 text-muted-foreground hover:border-primary/20 hover:text-primary transition-colors">
           <MessageSquare size={11} />
         </Link>

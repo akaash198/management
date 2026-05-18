@@ -12,7 +12,14 @@ import {
   Circle,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Layers,
+  Columns
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Task, TaskPriority } from "@/types/task";
@@ -87,6 +94,13 @@ export function ProjectListView({ tasks, groupBy, onTaskClick, onAddTask }: Proj
               />
               <button className="flex items-center gap-2 group">
                 <ChevronDown size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                {groupBy === "epic" ? (
+                  <Layers size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                ) : groupBy === "sprint" ? (
+                  <Clock size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                ) : (
+                  <Columns size={15} className="text-muted-foreground group-hover:text-foreground transition-colors" />
+                )}
                 <h3 className="font-semibold text-sm tracking-tight">{group.name}</h3>
                 <span className="text-[11px] text-muted-foreground/60 font-medium bg-muted px-1.5 py-0.5 rounded">
                   {group.tasks.length} tasks
@@ -225,37 +239,43 @@ function UserAvatar({ user }: { user: SlimUser | null }) {
 }
 
 function StatusBadge({ name }: { name: string }) {
-  const isDone = name.toLowerCase().includes("done");
-  const isProgress = name.toLowerCase().includes("progress") || name.toLowerCase().includes("wip");
+  const lower = name.toLowerCase();
+  const isDone = lower.includes("done") || lower.includes("complete") || lower.includes("resolved");
+  const isProgress = lower.includes("progress") || lower.includes("wip") || lower.includes("active") || lower.includes("review") || lower.includes("testing");
   
   return (
     <div className={cn(
-      "px-3 py-1 rounded-md text-[11px] font-semibold w-24 text-center border shadow-sm transition-all",
+      "flex items-center justify-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold w-28 border shadow-sm transition-all",
       isDone ? "bg-emerald-500 text-white border-emerald-600" :
       isProgress ? "bg-sky-500 text-white border-sky-600" :
       "bg-slate-400 text-white border-slate-500"
     )}>
-      {name}
+      {isDone ? <CheckCircle2 size={13} className="shrink-0" /> :
+       isProgress ? <RefreshCw size={13} className="shrink-0 animate-spin" /> :
+       <Circle size={13} className="shrink-0" />}
+      <span className="truncate">{name}</span>
     </div>
   );
 }
 
 function PriorityBadge({ priority }: { priority: TaskPriority }) {
   const config = {
-    urgent: { label: "Urgent", class: "bg-rose-500 text-white border-rose-600" },
-    high: { label: "High", class: "bg-orange-400 text-white border-orange-500" },
-    normal: { label: "Normal", class: "bg-blue-400 text-white border-blue-500" },
-    low: { label: "Low", class: "bg-slate-400 text-white border-slate-500" },
+    urgent: { label: "Urgent", class: "bg-rose-500 text-white border-rose-600", icon: AlertTriangle },
+    high: { label: "High", class: "bg-orange-400 text-white border-orange-500", icon: TrendingUp },
+    normal: { label: "Normal", class: "bg-blue-400 text-white border-blue-500", icon: Minus },
+    low: { label: "Low", class: "bg-slate-400 text-white border-slate-500", icon: TrendingDown },
   };
   
   const current = config[priority] || config.normal;
+  const Icon = current.icon;
   
   return (
     <div className={cn(
-      "px-3 py-1 rounded-md text-[11px] font-semibold w-24 text-center border shadow-sm transition-all",
+      "flex items-center justify-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold w-28 border shadow-sm transition-all",
       current.class
     )}>
-      {current.label}
+      <Icon size={13} className="shrink-0" />
+      <span>{current.label}</span>
     </div>
   );
 }

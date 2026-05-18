@@ -12,7 +12,7 @@ import type { DashboardData } from "@/types/dashboard";
 import type { Task, TaskPriority } from "@/types/task";
 import {
   Section, SectionLink, EmptyNote, StatCard, ProjectCard, TaskRow,
-  TodayBanner, VelocityGauge, QuickActionLink,
+  TodayBanner, VelocityGauge, QuickActionLink, PriorityPill,
   getTimeOfDay, type DashboardTask, type PriorityKey,
 } from "./shared";
 import {
@@ -331,12 +331,6 @@ function WeekStat({ icon, label, value, tone }: {
 function FocusCard({ task, completed, completing, onComplete }: {
   task: DashboardTask; completed: boolean; completing: boolean; onComplete: (id: string) => void;
 }) {
-  const priorityClasses: Record<string, string> = {
-    urgent: "border-red-200 text-red-600 dark:border-red-800 dark:text-red-400",
-    high:   "border-amber-200 text-amber-600 dark:border-amber-800 dark:text-amber-400",
-    normal: "border-primary/25 text-primary",
-    low:    "border-border text-muted-foreground",
-  };
   return (
     <div className={cn("group relative rounded-xl border border-border bg-background p-4 transition-all duration-150 hover:border-primary/20 hover:shadow-sm", completed && "opacity-50")}>
       <button
@@ -360,9 +354,7 @@ function FocusCard({ task, completed, completing, onComplete }: {
         </p>
         <p className="mt-0.5 text-[11px] text-muted-foreground/65">{task.project_name} · {task.column_name}</p>
         <div className="mt-3 flex items-center justify-between">
-          <span className={cn("rounded-md border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em]", priorityClasses[task.priority] ?? priorityClasses.normal)}>
-            {task.priority}
-          </span>
+          <PriorityPill priority={task.priority as PriorityKey} />
           <span className={cn("text-[11px] font-medium", task.is_overdue ? "text-destructive" : "text-muted-foreground/60")}>
             {task.due_date ? (task.is_overdue ? `Overdue · ${task.due_date}` : `Due ${task.due_date}`) : "No due date"}
           </span>
