@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useWebSocket } from "./useWebSocket";
 import { Message, Notification } from "@/types/messaging";
 import api from "@/lib/api";
@@ -34,6 +34,11 @@ export function useChatSocket(
   channelId: string | null,
   opts?: { currentUser?: { id: string; full_name: string; avatar: string | null } | null; onCallEvent?: (type: string, data: any) => void }
 ) {
+  const optsRef = useRef(opts);
+  useEffect(() => {
+    optsRef.current = opts;
+  }, [opts]);
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [typingUsers, setTypingUsers] = useState<Record<string, { name: string; timestamp: number }>>({});
   const [isLoadingOlder, setIsLoadingOlder] = useState(false);
@@ -135,7 +140,7 @@ export function useChatSocket(
       case "call.reaction":
       case "call.chat":
       case "call.mute_state":
-        opts?.onCallEvent?.(type, data);
+        optsRef.current?.onCallEvent?.(type, data);
         break;
     }
   }, []);
