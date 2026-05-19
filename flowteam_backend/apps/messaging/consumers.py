@@ -28,6 +28,16 @@ from apps.projects.models import Task, Comment
 from apps.teams.models import TeamMember
 
 User = get_user_model()
+import uuid
+
+def make_serializable(data):
+    if isinstance(data, dict):
+        return {k: make_serializable(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [make_serializable(x) for x in data]
+    elif isinstance(data, uuid.UUID):
+        return str(data)
+    return data
 
 class ChatConsumer(AsyncWebsocketConsumer):
     MAX_INBOUND_BYTES = 64 * 1024
@@ -165,7 +175,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                         f"channels_{uid}",
                         {
                             "type": "call.started",
-                            "data": call,
+                            "data": make_serializable(call),
                         },
                     )
 
@@ -192,7 +202,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 for uid in recipient_ids:
                     await self.channel_layer.group_send(
                         f"channels_{uid}",
-                        {"type": "call.ended", "data": result},
+                        {"type": "call.ended", "data": make_serializable(result)},
                     )
             duration = payload.get("duration_seconds")
             # Determine if anyone actually joined (connected) or it was unanswered
@@ -269,7 +279,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "chat_message",
                 "message_type": event_type,
-                "data": data
+                "data": make_serializable(data)
             }
         )
 

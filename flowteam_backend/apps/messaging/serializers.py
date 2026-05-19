@@ -332,6 +332,14 @@ class CallSerializer(serializers.ModelSerializer):
     def get_participants(self, obj):
         return CallParticipantSerializer(obj.participants.all(), many=True).data
 
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if "id" in ret and ret["id"]:
+            ret["id"] = str(ret["id"])
+        if "channel" in ret and ret["channel"]:
+            ret["channel"] = str(ret["channel"])
+        return ret
+
 
 class CallParticipantSerializer(serializers.ModelSerializer):
     user = SlimUserSerializer(read_only=True)
@@ -339,3 +347,10 @@ class CallParticipantSerializer(serializers.ModelSerializer):
     class Meta:
         model = CallParticipant
         fields = ["id", "user", "joined_at", "left_at", "is_active"]
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        if "id" in ret and ret["id"]:
+            ret["id"] = str(ret["id"])
+        return ret
+
