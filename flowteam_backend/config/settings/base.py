@@ -43,6 +43,7 @@ TOTP_ISSUER = env("TOTP_ISSUER")
 
 # Application definition
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -265,9 +266,10 @@ else:
 
 # Celery
 CELERY_BROKER_URL = "memory://" if DISABLE_REDIS else env("REDIS_URL", default="redis://localhost:6379")
+CELERY_TASK_ALWAYS_EAGER = _RUNNING_TESTS or DISABLE_REDIS
 if DISABLE_REDIS:
     import warnings
-    warnings.warn("DISABLE_REDIS=True — Celery tasks will NOT execute asynchronously", RuntimeWarning, stacklevel=2)
+    warnings.warn("DISABLE_REDIS=True — Celery tasks will execute synchronously (always eager)", RuntimeWarning, stacklevel=2)
 CELERY_RESULT_BACKEND = "django-db"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_ACCEPT_CONTENT = ["json"]

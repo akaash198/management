@@ -171,7 +171,7 @@ export function GlobalCallListener() {
     if (!incomingCall) return;
     setIncomingCall(null);
     // Navigate to messages page with the channel and call pre-selected
-    router.push(`/messages?channel=${incomingCall.channelId}`);
+    router.push(`/messages?channel=${incomingCall.channelId}&acceptCall=${incomingCall.callId}&callType=${incomingCall.callType}`);
   }, [incomingCall, router]);
 
   const declineCall = useCallback(() => {

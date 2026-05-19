@@ -71,6 +71,7 @@ export function ChatArea({
   onStartDirectMessage,
   onlineUserIds,
   acceptedCallId,
+  acceptedCallType,
   onClearAcceptedCall,
 }: {
   channel: Channel;
@@ -79,6 +80,7 @@ export function ChatArea({
   onStartDirectMessage?: (userId: string) => void;
   onlineUserIds?: Set<string>;
   acceptedCallId?: string | null;
+  acceptedCallType?: 'audio' | 'video' | null;
   onClearAcceptedCall?: () => void;
 }) {
   const { user } = useAuthStore();
@@ -125,9 +127,12 @@ export function ChatArea({
 
   useEffect(() => {
     if (acceptedCallId) {
+      if (acceptedCallType) {
+        setCallType(acceptedCallType);
+      }
       setCallOpen(true);
     }
-  }, [acceptedCallId]);
+  }, [acceptedCallId, acceptedCallType]);
 
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsTab, setDetailsTab] = useState<string>("about");

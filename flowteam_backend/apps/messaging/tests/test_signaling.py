@@ -151,11 +151,11 @@ class SignalingTests(TransactionTestCase):
             })
 
             # User 1 receives call.ended
-            end_resp = await comm1.receive_json_from()
+            end_resp = await comm1.receive_json_from(timeout=10)
             self.assertEqual(end_resp["type"], "call.ended")
 
             # User 1 receives system message "Missed call"
-            sys_resp = await comm1.receive_json_from()
+            sys_resp = await comm1.receive_json_from(timeout=10)
             self.assertEqual(sys_resp["type"], "message.new")
             self.assertIn("Missed", sys_resp["data"]["text"])
 

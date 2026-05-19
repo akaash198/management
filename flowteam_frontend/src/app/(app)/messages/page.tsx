@@ -28,6 +28,8 @@ export default function MessagingPage() {
   const channelId      = searchParams.get("channel");
   const viewId         = searchParams.get("view") as SidebarViewType | null;
   const focusMessageId = searchParams.get("message");
+  const acceptCallIdParam = searchParams.get("acceptCall");
+  const acceptCallTypeParam = searchParams.get("callType") as 'audio' | 'video' | null;
   const { activeTeamId, fetchTeams } = useTeamStore();
   const selectedChannelIdRef = useRef<string>("");
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
@@ -39,8 +41,20 @@ export default function MessagingPage() {
     callerName: string 
   } | null>(null);
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
+  const [acceptedCallType, setAcceptedCallType] = useState<'audio' | 'video' | null>(null);
   const acceptedCallIdRef = useRef<string | null>(null);
   const ringtoneRef = useRef<{ ctx: AudioContext; interval: ReturnType<typeof setInterval> } | null>(null);
+
+  useEffect(() => {
+    if (acceptCallIdParam) {
+      setAcceptedCallId(acceptCallIdParam);
+      if (acceptCallTypeParam) {
+        setAcceptedCallType(acceptCallTypeParam);
+      }
+      const newUrl = window.location.pathname + `?channel=${channelId || searchParams.get("channel")}`;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, [acceptCallIdParam, acceptCallTypeParam, channelId, searchParams]);
 
   useEffect(() => {
     selectedChannelIdRef.current = selectedChannel?.id ?? "";
@@ -430,7 +444,11 @@ export default function MessagingPage() {
             onStartDirectMessage={startDirectMessage}
             onlineUserIds={onlineUserIds}
             acceptedCallId={acceptedCallId}
-            onClearAcceptedCall={() => setAcceptedCallId(null)}
+            acceptedCallType={acceptedCallType}
+            onClearAcceptedCall={() => {
+              setAcceptedCallId(null);
+              setAcceptedCallType(null);
+            }}
           />
         </div>
       ) : (
