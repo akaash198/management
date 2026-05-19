@@ -8,6 +8,7 @@ Pillow==10.3.0
 python-slugify==8.0.4
 channels==4.0.0
 channels-redis==4.2.0
+daphne==4.2.1
 celery==5.3.6
 django-celery-beat==2.6.0
 redis==5.0.1
