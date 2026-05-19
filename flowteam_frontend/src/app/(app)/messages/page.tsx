@@ -275,7 +275,8 @@ export default function MessagingPage() {
         seenCallIdsRef.current = new Set([...seenCallIdsRef.current].filter((id) => activeIds.has(id)));
       } catch { /* best-effort */ }
     };
-    const interval = setInterval(poll, 5000);
+    void poll(); // Run immediately on mount
+    const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
   }, [activeTeamId, user?.id, incomingCall?.callId]);
 

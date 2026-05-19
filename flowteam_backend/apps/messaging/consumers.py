@@ -1,5 +1,8 @@
 import json
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.utils import timezone
@@ -151,10 +154,12 @@ class ChatConsumer(AsyncWebsocketConsumer):
         elif event_type == "call.start":
             call = await self.start_call(payload.get("call_type", "audio"))
             if call:
+                logger.info("[CALL] User %s started %s call %s in channel %s", self.user.id, payload.get('call_type', 'audio'), call.get('id'), self.channel_id)
                 await self.broadcast("call.started", call)
                 # Also notify all members via their personal channel event sockets
                 # so they ring even if they aren't currently viewing this specific channel.
                 recipient_ids = await self.get_channel_member_user_ids_excluding_self()
+                logger.info("[CALL] Broadcasting call.started to %d recipients: %s", len(recipient_ids), recipient_ids)
                 for uid in recipient_ids:
                     await self.channel_layer.group_send(
                         f"channels_{uid}",
@@ -182,6 +187,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             result = await self.end_call(payload.get("call_id"))
             if result:
                 await self.broadcast("call.ended", result)
+                # Notify receivers via personal channel sockets to dismiss incoming call toast
+                recipient_ids = await self.get_channel_member_user_ids_excluding_self()
+                for uid in recipient_ids:
+                    await self.channel_layer.group_send(
+                        f"channels_{uid}",
+                        {"type": "call.ended", "data": result},
+                    )
             duration = payload.get("duration_seconds")
             # Determine if anyone actually joined (connected) or it was unanswered
             was_answered = payload.get("was_answered", False)
@@ -202,6 +214,13 @@ class ChatConsumer(AsyncWebsocketConsumer):
             call_id = payload.get("call_id")
             await self.end_call(call_id)
             await self.broadcast("call.ended", {"call_id": call_id})
+            # Notify receivers via personal channel sockets to dismiss incoming call toast
+            recipient_ids = await self.get_channel_member_user_ids_excluding_self()
+            for uid in recipient_ids:
+                await self.channel_layer.group_send(
+                    f"channels_{uid}",
+                    {"type": "call.missed", "data": {"call_id": call_id}},
+                )
             sys_msg = await self.create_system_message(
                 "call_missed",
                 payload.get("call_type", "audio"),
@@ -575,6 +594,7 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
         self.group_name = f"channels_{self.user_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+        logger.info("[CHANNEL_EVENTS] User %s connected, joined group %s", self.user_id, self.group_name)
 
     async def disconnect(self, close_code):
         if hasattr(self, "group_name"):
@@ -592,6 +612,7 @@ class ChannelEventsConsumer(AsyncWebsocketConsumer):
         )
 
     async def call_started(self, event):
+        logger.info("[CHANNEL_EVENTS] Delivering call.started to user %s, call data: %s", getattr(self, 'user_id', '?'), event.get('data', {}).get('id', '?'))
         await self.send(
             text_data=json.dumps(
                 {

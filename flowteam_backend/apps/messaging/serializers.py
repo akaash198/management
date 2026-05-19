@@ -95,6 +95,9 @@ class ChannelSerializer(serializers.ModelSerializer):
     created_by = SlimUserSerializer(read_only=True)
     dm_other_user_id = serializers.SerializerMethodField()
     dm_other_avatar = serializers.SerializerMethodField()
+    active_call_id = serializers.SerializerMethodField()
+    active_call_type = serializers.SerializerMethodField()
+    active_call_started_by = serializers.SerializerMethodField()
 
     class Meta:
         model = Channel
@@ -116,6 +119,9 @@ class ChannelSerializer(serializers.ModelSerializer):
             "created_by",
             "dm_other_user_id",
             "dm_other_avatar",
+            "active_call_id",
+            "active_call_type",
+            "active_call_started_by",
         ]
 
     def validate(self, attrs):
@@ -211,6 +217,25 @@ class ChannelSerializer(serializers.ModelSerializer):
         if avatar_url and request:
             avatar_url = request.build_absolute_uri(avatar_url)
         return avatar_url
+
+    def _get_active_call(self, obj):
+        if not hasattr(self, "_active_calls_cache"):
+            self._active_calls_cache = {}
+        if obj.id not in self._active_calls_cache:
+            self._active_calls_cache[obj.id] = obj.calls.filter(is_active=True).order_by('-started_at').first()
+        return self._active_calls_cache[obj.id]
+
+    def get_active_call_id(self, obj):
+        call = self._get_active_call(obj)
+        return str(call.id) if call else None
+
+    def get_active_call_type(self, obj):
+        call = self._get_active_call(obj)
+        return call.call_type if call else None
+
+    def get_active_call_started_by(self, obj):
+        call = self._get_active_call(obj)
+        return SlimUserSerializer(call.started_by, context=self.context).data if call and call.started_by else None
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

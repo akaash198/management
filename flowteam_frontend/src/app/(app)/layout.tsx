@@ -8,6 +8,7 @@ import { Loader2, Search, ChevronRight, Check, Menu } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { GlobalCallListener } from "@/components/messaging/GlobalCallListener";
 
 // SearchModal is only opened on Cmd+K — no need to load it upfront
 const SearchModal = dynamic(
@@ -278,6 +279,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <SearchModal open={searchOpen} onOpenChange={setSearchOpen} />
+      <GlobalCallListener />
     </QueryClientProvider>
   );
 }
