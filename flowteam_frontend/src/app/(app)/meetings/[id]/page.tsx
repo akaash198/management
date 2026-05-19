@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Calendar, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock,
@@ -63,6 +63,10 @@ export default function MeetingDetailPage() {
   const { user } = useAuthStore();
   const { activeTeamId } = useTeamStore();
 
+  const searchParams = useSearchParams();
+  const acceptCallIdParam = searchParams.get("acceptCall");
+  const acceptCallTypeParam = searchParams.get("callType") as MeetingCallType | null;
+
   const [callOpen, setCallOpen] = useState(false);
   const [callType, setCallType] = useState<MeetingCallType>("video");
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
@@ -84,6 +88,17 @@ export default function MeetingDetailPage() {
     enabled: !!meetingId,
     refetchInterval: 15_000,
   });
+
+  useEffect(() => {
+    if (meeting && acceptCallIdParam) {
+      setCallType(acceptCallTypeParam || meeting.call_type);
+      setAcceptedCallId(acceptCallIdParam);
+      setCallOpen(true);
+
+      const newUrl = window.location.pathname;
+      window.history.replaceState(null, "", newUrl);
+    }
+  }, [meeting, acceptCallIdParam, acceptCallTypeParam]);
 
   const { data: recordings = [] } = useQuery<MeetingRecording[]>({
     queryKey: ["meeting-recordings", meetingId],
@@ -130,6 +145,18 @@ export default function MeetingDetailPage() {
   const { sendCallMessage } = useChatSocket(meeting?.channel_id ?? null, {
     currentUser,
     onCallEvent: (type, payload) => {
+      if (type === "call.started" || type === "call_started") {
+        const callData = payload as { id: string; call_type?: MeetingCallType };
+        queryClient.setQueryData(["meeting", meetingId], (prev: Meeting | undefined) => {
+          if (!prev) return prev;
+          return { ...prev, active_call_id: callData.id, call_type: callData.call_type || prev.call_type };
+        });
+      } else if (type === "call.ended" || type === "call.end") {
+        queryClient.setQueryData(["meeting", meetingId], (prev: Meeting | undefined) => {
+          if (!prev) return prev;
+          return { ...prev, active_call_id: null };
+        });
+      }
       callEventHandlerRef.current?.(type, payload);
     },
   });

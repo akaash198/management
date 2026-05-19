@@ -98,6 +98,7 @@ class ChannelSerializer(serializers.ModelSerializer):
     active_call_id = serializers.SerializerMethodField()
     active_call_type = serializers.SerializerMethodField()
     active_call_started_by = serializers.SerializerMethodField()
+    meeting_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Channel
@@ -122,6 +123,7 @@ class ChannelSerializer(serializers.ModelSerializer):
             "active_call_id",
             "active_call_type",
             "active_call_started_by",
+            "meeting_id",
         ]
 
     def validate(self, attrs):
@@ -236,6 +238,9 @@ class ChannelSerializer(serializers.ModelSerializer):
     def get_active_call_started_by(self, obj):
         call = self._get_active_call(obj)
         return SlimUserSerializer(call.started_by, context=self.context).data if call and call.started_by else None
+
+    def get_meeting_id(self, obj):
+        return str(obj.meeting.id) if hasattr(obj, "meeting") else None
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)

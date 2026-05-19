@@ -92,9 +92,11 @@ class ChannelViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def get_queryset(self):
-        from django.db.models import Count, Prefetch as DbPrefetch
+        from django.db.models import Count
         team_id = self.request.query_params.get("team_id")
-        qs = Channel.objects.filter(memberships__user=self.request.user).exclude(name__startswith="mtg-")
+        qs = Channel.objects.filter(memberships__user=self.request.user)
+        if self.action == "list":
+            qs = qs.exclude(name__startswith="mtg-")
         if team_id:
             qs = qs.filter(team_id=team_id)
         return qs.prefetch_related("memberships__user").annotate(

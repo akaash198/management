@@ -132,24 +132,51 @@ export function GlobalCallListener() {
           "/messaging/channels/",
           { params: { team_id: activeTeamId } }
         );
-        if (!res.data.success) return;
-        for (const ch of res.data.data) {
-          if (!ch.active_call_id) continue;
-          const startedById = ch.active_call_started_by?.id;
-          if (startedById && String(startedById) === String(user?.id)) continue;
-          if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
-          if (incomingCall?.callId === ch.active_call_id) continue;
-          seenCallIdsRef.current.add(ch.active_call_id);
-          setIncomingCall({
-            callId: ch.active_call_id,
-            channelId: ch.id,
-            callType: ch.active_call_type ?? "audio",
-            callerName: ch.active_call_started_by?.full_name ?? "Someone",
-          });
+        const activeIds = new Set<string>();
+
+        if (res.data.success) {
+          for (const ch of res.data.data) {
+            if (!ch.active_call_id) continue;
+            activeIds.add(ch.active_call_id);
+            const startedById = ch.active_call_started_by?.id;
+            if (startedById && String(startedById) === String(user?.id)) continue;
+            if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
+            if (incomingCall?.callId === ch.active_call_id) continue;
+            seenCallIdsRef.current.add(ch.active_call_id);
+            setIncomingCall({
+              callId: ch.active_call_id,
+              channelId: ch.id,
+              callType: ch.active_call_type ?? "audio",
+              callerName: ch.active_call_started_by?.full_name ?? "Someone",
+            });
+          }
         }
-        const activeIds = new Set(
-          res.data.data.map((c) => c.active_call_id).filter(Boolean) as string[]
-        );
+
+        // Check active meetings as well to catch meeting calls
+        try {
+          const meetingsRes = await api.get<{ success: boolean; data: any[] }>(
+            `/meetings/teams/${activeTeamId}/meetings/`,
+            { params: { status: "active" } }
+          );
+          if (meetingsRes.data.success) {
+            for (const mtg of meetingsRes.data.data) {
+              if (!mtg.active_call_id) continue;
+              activeIds.add(mtg.active_call_id);
+              const startedById = mtg.created_by?.id ?? mtg.created_by;
+              if (startedById && String(startedById) === String(user?.id)) continue;
+              if (seenCallIdsRef.current.has(mtg.active_call_id)) continue;
+              if (incomingCall?.callId === mtg.active_call_id) continue;
+              seenCallIdsRef.current.add(mtg.active_call_id);
+              setIncomingCall({
+                callId: mtg.active_call_id,
+                channelId: mtg.channel_id,
+                callType: mtg.call_type ?? "video",
+                callerName: mtg.created_by?.full_name ?? "Someone",
+              });
+            }
+          }
+        } catch {}
+
         seenCallIdsRef.current = new Set(
           [...seenCallIdsRef.current].filter((id) => activeIds.has(id))
         );
@@ -162,16 +189,30 @@ export function GlobalCallListener() {
       }
     };
     void poll();
-    const interval = setInterval(poll, 3000);
+    const interval = setInterval(poll, 4000);
     return () => clearInterval(interval);
   }, [activeTeamId, user?.id, incomingCall?.callId, isOnMessagesPage]);
 
   // ── Actions ─────────────────────────────────────────────────────────────
-  const acceptCall = useCallback(() => {
+  const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
     setIncomingCall(null);
-    // Navigate to messages page with the channel and call pre-selected
-    router.push(`/messages?channel=${incomingCall.channelId}&acceptCall=${incomingCall.callId}&callType=${incomingCall.callType}`);
+    try {
+      const res = await api.get<{ success: boolean; data: { meeting_id?: string | null } }>(
+        `/messaging/channels/${incomingCall.channelId}/`
+      );
+      if (res.data.success && res.data.data.meeting_id) {
+        router.push(
+          `/meetings/${res.data.data.meeting_id}?acceptCall=${incomingCall.callId}&callType=${incomingCall.callType}`
+        );
+        return;
+      }
+    } catch (err) {
+      console.error("Failed to check channel type:", err);
+    }
+    router.push(
+      `/messages?channel=${incomingCall.channelId}&acceptCall=${incomingCall.callId}&callType=${incomingCall.callType}`
+    );
   }, [incomingCall, router]);
 
   const declineCall = useCallback(() => {
