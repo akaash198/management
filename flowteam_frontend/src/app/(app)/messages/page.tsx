@@ -182,18 +182,45 @@ export default function MessagingPage() {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       const ctx = new AudioCtx() as AudioContext;
       const play = () => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(440, ctx.currentTime);
-        osc.frequency.setValueAtTime(554.37, ctx.currentTime + 0.4);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.8);
+        const now = ctx.currentTime;
+        const notes = [
+          { freq: 622.25, time: 0.00 }, // Eb5
+          { freq: 466.16, time: 0.11 }, // Bb4
+          { freq: 622.25, time: 0.22 }, // Eb5
+          { freq: 466.16, time: 0.44 }, // Bb4
+          { freq: 587.33, time: 0.55 }, // D5
+          { freq: 466.16, time: 0.66 }, // Bb4
+          { freq: 622.25, time: 0.77 }, // Eb5
+        ];
+
+        notes.forEach(({ freq, time }) => {
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gainNode = ctx.createGain();
+
+          osc1.type = "sine";
+          osc1.frequency.setValueAtTime(freq, now + time);
+
+          osc2.type = "triangle";
+          osc2.frequency.setValueAtTime(freq, now + time);
+          osc2.detune.setValueAtTime(6, now + time); // soft chorus
+
+          gainNode.gain.setValueAtTime(0, now + time);
+          gainNode.gain.linearRampToValueAtTime(0.08, now + time + 0.02); // fast soft attack
+          gainNode.gain.exponentialRampToValueAtTime(0.001, now + time + 0.32); // smooth decay
+
+          osc1.connect(gainNode);
+          osc2.connect(gainNode);
+          gainNode.connect(ctx.destination);
+
+          osc1.start(now + time);
+          osc2.start(now + time);
+          osc1.stop(now + time + 0.35);
+          osc2.stop(now + time + 0.35);
+        });
       };
-      ringtoneRef.current = { ctx, interval: setInterval(play, 1500) };
+      // Loop interval 2.0s matches the motif timeline nicely
+      ringtoneRef.current = { ctx, interval: setInterval(play, 2000) };
       play();
     } catch {}
   }, [stopIncomingRingtone]);

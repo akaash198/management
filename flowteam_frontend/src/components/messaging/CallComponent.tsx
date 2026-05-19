@@ -23,7 +23,7 @@ import type { MeetingRecording } from "@/types/meetings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const NO_ANSWER_TIMEOUT_MS = 30_000;
+const NO_ANSWER_TIMEOUT_MS = 45_000;
 const NETWORK_STATS_INTERVAL_MS = 3_000;
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🎉", "👏", "🔥"];
@@ -172,16 +172,32 @@ export function CallComponent({
       if (!AudioCtx) return;
       const ctx = new AudioCtx();
       const play = () => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(480, ctx.currentTime);
-        osc.frequency.setValueAtTime(440, ctx.currentTime + 0.5);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 1.0);
+        const now = ctx.currentTime;
+        // Teams ringback tone: soft double-pulse (e.g. at t=0 and t=0.22)
+        [0.0, 0.22].forEach((delay) => {
+          const osc1 = ctx.createOscillator();
+          const osc2 = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc1.type = "sine";
+          osc1.frequency.setValueAtTime(320, now + delay);
+
+          osc2.type = "sine";
+          osc2.frequency.setValueAtTime(325, now + delay); // slight detune for fullness
+
+          gain.gain.setValueAtTime(0, now + delay);
+          gain.gain.linearRampToValueAtTime(0.12, now + delay + 0.03); // soft attack
+          gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.16); // quick decay
+
+          osc1.connect(gain);
+          osc2.connect(gain);
+          gain.connect(ctx.destination);
+
+          osc1.start(now + delay);
+          osc2.start(now + delay);
+          osc1.stop(now + delay + 0.20);
+          osc2.stop(now + delay + 0.20);
+        });
       };
       ringCtxRef.current = { ctx, interval: setInterval(play, 2000) };
       play();
