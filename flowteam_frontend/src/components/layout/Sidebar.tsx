@@ -21,11 +21,14 @@ import {
   X,
   ChevronsUpDown,
   ChevronLeft,
+  Camera,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
+import { toast } from "sonner";
+import { useTeamStore } from "@/store/team";
 import type { ApiResponse, Company } from "@/types";
 import {
   DropdownMenu,
@@ -207,6 +210,13 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     setCustomStatus(null);
   }
 
+  const queryClient = useQueryClient();
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const activeTeamId = useTeamStore((s) => s.activeTeamId);
+  const teams = useTeamStore((s) => s.teams);
+  const activeTeam = teams.find(t => t.id === activeTeamId);
+
   const { data: myCompanies } = useQuery<Company[]>({
     queryKey: ["my-companies-sidebar"],
     queryFn: async () => {
@@ -216,6 +226,38 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
     enabled: !!user && !user.is_superuser,
     staleTime: 60_000,
   });
+
+  const activeCompany = (myCompanies ?? []).find(c => c.id === activeTeam?.company_id);
+  const canUploadLogo = activeCompany && (user?.is_superuser || activeCompany.your_role === "ceo" || activeCompany.your_role === "admin");
+  const logoUrl = activeCompany?.logo_url || activeTeam?.avatar_url || "/logo.png";
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeCompany) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    try {
+      setIsUploadingLogo(true);
+      const formData = new FormData();
+      formData.append("logo", file);
+
+      await api.patch(`/companies/${activeCompany.id}/`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      toast.success("Workspace logo updated successfully");
+      queryClient.invalidateQueries({ queryKey: ["my-companies-sidebar"] });
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || "Failed to update workspace logo");
+    } finally {
+      setIsUploadingLogo(false);
+      e.target.value = "";
+    }
+  };
 
   const isCompanyAdmin = !!(user?.is_superuser) ||
     (myCompanies ?? []).some((c) => c.your_role === "ceo" || c.your_role === "admin");
@@ -235,9 +277,23 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       style={{ borderRightColor: "hsl(var(--rail-border))" }}
     >
       {/* ── Logo mark ── */}
-      <div className="flex h-[56px] shrink-0 items-center justify-center border-b relative" style={{ borderColor: "hsl(var(--rail-border))" }}>
-        <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-[#0a0a0a] overflow-hidden">
-          <Image src="/logo.png" alt="cowrk" width={36} height={36} className="object-contain" />
+      <div className="flex h-[56px] shrink-0 items-center justify-center border-b relative group" style={{ borderColor: "hsl(var(--rail-border))" }}>
+        <div className="h-8 w-8 rounded-lg flex items-center justify-center shrink-0 bg-[#0a0a0a] overflow-hidden relative">
+          {logoUrl === "/logo.png" ? (
+            <Image src="/logo.png" alt="cowrk" width={36} height={36} className="object-contain" />
+          ) : (
+            <img src={logoUrl} alt={activeCompany?.name || activeTeam?.name || "Workspace"} className="w-full h-full object-cover" />
+          )}
+
+          {canUploadLogo && (
+            <label className={cn(
+              "absolute inset-0 flex items-center justify-center bg-black/60 cursor-pointer transition-opacity",
+              isUploadingLogo ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+            )}>
+              <Camera size={14} className="text-white" />
+              <input type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={isUploadingLogo} />
+            </label>
+          )}
         </div>
         {onClose && (
           <button

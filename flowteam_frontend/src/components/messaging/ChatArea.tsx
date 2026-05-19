@@ -1654,9 +1654,9 @@ export function ChatArea({
       </div>
 
       {/* Messages */}
-      <div className={cn("relative flex-1 min-h-0 transition-all duration-200", infoPanelOpen && "xl:pr-[336px]")}>
+      <div className={cn("relative flex-1 min-h-0 transition-all duration-200", infoPanelOpen && "pr-[336px]")}>
         <div ref={scrollRef} className="h-full overflow-y-auto px-6 py-5" onScroll={onScroll}>
-          <div className="mx-auto w-full max-w-5xl">
+          <div className="w-full">
             {channelSummary && (
               <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-start justify-between gap-3">
@@ -1922,7 +1922,7 @@ export function ChatArea({
             
             {firstUnreadId && (
               <div className="sticky top-2 z-30 px-6 pointer-events-none">
-                <div className="mx-auto max-w-5xl flex justify-center">
+                <div className="w-full flex justify-center">
                   <button
                     type="button"
                     className="pointer-events-auto flex items-center gap-2 rounded-full bg-primary px-4 py-1.5 text-[11px] font-bold text-primary-foreground shadow-lg transition-transform hover:scale-105 active:scale-95"
@@ -2104,7 +2104,7 @@ export function ChatArea({
 
       {lastServerMessage && lastServerMessage.sender.id === user?.id && seenByUsers.length > 0 && (
         <div className="pb-2">
-          <div className="max-w-5xl mx-auto px-6 xl:pr-[320px] flex items-center gap-1.5">
+          <div className={cn("w-full px-6 flex items-center gap-1.5 transition-all duration-200", infoPanelOpen && "pr-[348px]")}>
             <div className="flex -space-x-1.5">
               {seenByUsers.slice(0, 5).map((u) => (
                 <Avatar key={u.id} className="h-4 w-4 border border-card" title={u.full_name}>
@@ -2125,8 +2125,8 @@ export function ChatArea({
       )}
 
       {/* ── Composer ── */}
-      <div className="border-t border-border bg-card px-6 pb-5 pt-3 xl:pr-[348px]">
-        <div className="mx-auto max-w-5xl space-y-2">
+      <div className={cn("border-t border-border bg-card px-6 pb-5 pt-3 transition-all duration-200", infoPanelOpen && "pr-[348px]")}>
+        <div className="w-full space-y-2">
 
           <div
             className="relative rounded-xl border border-border bg-background p-2 transition-all focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15"

@@ -56,6 +56,7 @@ const TIMEZONES = [
   { value: "Europe/Paris", label: "Paris (CET)" },
   { value: "Asia/Tokyo", label: "Tokyo (JST)" },
   { value: "Asia/Singapore", label: "Singapore (SGT)" },
+  { value: "Asia/Kolkata", label: "Indian Standard Time (IST)" },
 ];
 
 type Role = "ceo" | "admin" | "manager" | "member" | "viewer";
@@ -101,7 +102,7 @@ const NAV_ITEMS: { id: TabId; label: string; icon: React.ElementType; adminOnly?
 ];
 
 export default function SettingsPage() {
-  const { user } = useAuthStore();
+  const { user, fetchMe } = useAuthStore();
   const searchParams = useSearchParams();
   const { fetchTeams } = useTeamStore();
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
@@ -210,10 +211,11 @@ export default function SettingsPage() {
     try {
       setSavingProfile(true);
       await api.patch("/auth/me/", { full_name: fullName, timezone });
+      await fetchMe();
       setSavedFullName(fullName);
       setSavedTimezone(timezone);
       setConfirmSaveOpen(false);
-      toast.success("Profile updated");
+      toast.success("Profile updated successfully!");
     }
     catch (err) { toast.error(toErrorMessage(err, "Failed to update profile")); }
     finally { setSavingProfile(false); }

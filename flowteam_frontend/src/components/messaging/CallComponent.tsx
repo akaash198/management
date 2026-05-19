@@ -328,7 +328,12 @@ export function CallComponent({
   // ─── WebRTC peer creation ─────────────────────────────────────────────────
 
   const createPeer = useCallback((userId: string, initiator: boolean, stream: MediaStream) => {
-    const peer = new Peer({ initiator, trickle: false, stream });
+    const peer = new Peer({
+      initiator,
+      trickle: true,
+      stream,
+      config: { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] }
+    });
 
     peer.on("signal", (data) => {
       sendCallMessage("call.signal", {
@@ -399,13 +404,13 @@ export function CallComponent({
   }, [user?.id, createPeer]);
 
   const handleParticipantJoined = useCallback((data: unknown) => {
-    const d = data as { user_id: string; user_name?: string; user_avatar?: string };
+    const d = data as { user_id: string; user?: { full_name?: string; avatar?: string }; user_name?: string; user_avatar?: string };
     if (!d.user_id || d.user_id === user?.id) return;
     const stream = localStreamRef.current;
     if (!stream) return;
     upsertParticipant(d.user_id, {
-      name: d.user_name ?? "Participant",
-      avatar: d.user_avatar,
+      name: d.user?.full_name ?? d.user_name ?? "Participant",
+      avatar: d.user?.avatar ?? d.user_avatar,
     });
     if (!peersRef.current.has(d.user_id)) {
       const peer = createPeer(d.user_id, true, stream);
