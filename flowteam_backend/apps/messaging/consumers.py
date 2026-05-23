@@ -380,6 +380,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not self._rate_key_prefix:
             return True
 
+        # Critical call control events are never rate-limited.
+        if event_type in ("call.start", "call.join", "call.end", "call.leave", "call.missed"):
+            return True
+
         # Down-weight chatty signals.
         weight = 1
         if event_type in ("typing.start", "typing.stop", "call.signal"):
