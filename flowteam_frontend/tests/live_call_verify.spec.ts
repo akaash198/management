@@ -94,17 +94,10 @@ test.describe("Live call E2E", () => {
     await callerPage.waitForTimeout(2000);
     await callerPage.screenshot({ path: "test-results/04-caller-calling.png" });
 
-    // Check for calling overlay — look for "Audio calling" text or "calling" text
-    const callingText = callerPage.locator('text="Audio calling..."').first();
+    // Check for calling overlay — matches "Audio calling…" (unicode ellipsis)
+    const callingText = callerPage.locator(':text-matches("calling", "i")').first();
     const callingVisible = await callingText.isVisible({ timeout: 8000 }).catch(() => false);
     console.log(`[check] Calling UI visible on caller: ${callingVisible}`);
-
-    if (!callingVisible) {
-      // Try alternative selectors
-      const altText = callerPage.locator(':text-matches("calling", "i")').first();
-      const altVisible = await altText.isVisible({ timeout: 3000 }).catch(() => false);
-      console.log(`[check] Calling text (alt) visible on caller: ${altVisible}`);
-    }
 
     // ── 5. Check receiver gets incoming call banner ────────────────────────
     console.log("Step 5: waiting for incoming call on receiver (up to 15s)");
@@ -160,7 +153,7 @@ test.describe("Live call E2E", () => {
 
       if (ended) {
         // Verify caller UI also dismissed
-        const callerCallStillOpen = await callerPage.locator('text="Audio calling..."').first().isVisible({ timeout: 4000 }).catch(() => false);
+        const callerCallStillOpen = await callerPage.locator(':text-matches("calling", "i")').first().isVisible({ timeout: 4000 }).catch(() => false);
         console.log(`[check] Caller call UI still open after receiver hung up: ${callerCallStillOpen}`);
       }
     } else {
@@ -204,7 +197,7 @@ test.describe("Live call E2E", () => {
       await page.waitForTimeout(2000);
       await page.screenshot({ path: "test-results/10-video-calling.png" });
 
-      const callUI = page.locator('text="Video calling..."').first();
+      const callUI = page.locator(':text-matches("calling", "i")').first();
       const visible = await callUI.isVisible({ timeout: 6000 }).catch(() => false);
       console.log(`[check] Video call UI appeared: ${visible}`);
 
