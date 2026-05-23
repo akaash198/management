@@ -42,7 +42,7 @@ def make_serializable(data):
 class ChatConsumer(AsyncWebsocketConsumer):
     MAX_INBOUND_BYTES = 64 * 1024
     RATE_LIMIT_WINDOW_SECONDS = 10
-    RATE_LIMIT_EVENTS_PER_WINDOW = 60
+    RATE_LIMIT_EVENTS_PER_WINDOW = 120  # generous; per-connection not per-user
 
     async def connect(self):
         self.channel_id = self.scope["url_route"]["kwargs"]["channel_id"]
@@ -57,7 +57,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not await self.is_member(self.user, self.channel_id):
             await self.close(code=4001)
             return
-        self._rate_key_prefix = f"ws:chat:{self.channel_id}:user:{self.user.id}"
+        # Rate limit is per-connection (channel_name is unique per WS connection)
+        # so reconnects start with a fresh counter. This prevents stale cache
+        # counts from blocking legitimate reconnecting clients.
+        self._rate_key_prefix = f"ws:chat:conn:{self.channel_name}"
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
