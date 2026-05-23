@@ -345,6 +345,7 @@ export default function MessagingPage() {
       setSelectedChannel(target);
       setActiveView("all");
       setAcceptedCallId(callId);
+      setAcceptedCallType(incomingCall.callType);
       router.replace(`${pathname}?channel=${channelId}`);
     } else {
       toast.error("Could not find the channel for this call.");

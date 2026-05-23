@@ -232,6 +232,7 @@ export function CallComponent({
   // ─── Duration timer ───────────────────────────────────────────────────────
 
   const startDurationTimer = useCallback(() => {
+    if (durationTimerRef.current) return;
     setCallDuration(0);
     callStartTimeRef.current = Date.now();
     durationTimerRef.current = setInterval(() => setCallDuration((d) => d + 1), 1000);
@@ -609,25 +610,48 @@ export function CallComponent({
       const stream = await getUserMedia(callType === "video");
       if (!stream) return;
 
-      if (!existingCallId) {
-        startRinging();
-        noAnswerTimerRef.current = setTimeout(() => {
-          sendCallMessage("call.missed", { call_id: callIdRef.current, call_type: callType });
-          onClose();
-        }, NO_ANSWER_TIMEOUT_MS);
-        sendCallMessage("call.start", { call_type: callType });
-      } else {
-        sendCallMessage("call.join", { call_id: existingCallId });
-        // Flush any signals that arrived before media was ready
-        const pending = pendingSignalsRef.current.splice(0);
-        for (const { from_user_id, signal_data } of pending) {
-          let peer = peersRef.current.get(from_user_id);
-          if (!peer) {
-            peer = createPeer(from_user_id, false, stream);
-            peersRef.current.set(from_user_id, peer);
+      if (meetingId) {
+        // Meeting room: no ringing, no timeout, auto-connect immediately.
+        setCallStatus("connected");
+        startDurationTimer();
+        if (!existingCallId) {
+          sendCallMessage("call.start", { call_type: callType });
+        } else {
+          sendCallMessage("call.join", { call_id: existingCallId });
+          // Flush any signals that arrived before media was ready
+          const pending = pendingSignalsRef.current.splice(0);
+          for (const { from_user_id, signal_data } of pending) {
+            let peer = peersRef.current.get(from_user_id);
+            if (!peer) {
+              peer = createPeer(from_user_id, false, stream);
+              peersRef.current.set(from_user_id, peer);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            peer.signal(signal_data as any);
           }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          peer.signal(signal_data as any);
+        }
+      } else {
+        // DM Call
+        if (!existingCallId) {
+          startRinging();
+          noAnswerTimerRef.current = setTimeout(() => {
+            sendCallMessage("call.missed", { call_id: callIdRef.current, call_type: callType });
+            onClose();
+          }, NO_ANSWER_TIMEOUT_MS);
+          sendCallMessage("call.start", { call_type: callType });
+        } else {
+          sendCallMessage("call.join", { call_id: existingCallId });
+          // Flush any signals that arrived before media was ready
+          const pending = pendingSignalsRef.current.splice(0);
+          for (const { from_user_id, signal_data } of pending) {
+            let peer = peersRef.current.get(from_user_id);
+            if (!peer) {
+              peer = createPeer(from_user_id, false, stream);
+              peersRef.current.set(from_user_id, peer);
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            peer.signal(signal_data as any);
+          }
         }
       }
     })();
@@ -874,9 +898,13 @@ export function CallComponent({
     const duration = callStartTimeRef.current
       ? Math.floor((Date.now() - callStartTimeRef.current) / 1000)
       : undefined;
-    sendCallMessage("call.end", { call_id: callIdRef.current, call_type: callType, duration_seconds: duration });
+    if (meetingId) {
+      sendCallMessage("call.leave", { call_id: callIdRef.current, duration_seconds: duration });
+    } else {
+      sendCallMessage("call.end", { call_id: callIdRef.current, call_type: callType, duration_seconds: duration });
+    }
     onClose();
-  }, [isRecording, stopRecording, sendCallMessage, callType, onClose]);
+  }, [isRecording, stopRecording, sendCallMessage, callType, onClose, meetingId]);
 
   // ─── Derived state ────────────────────────────────────────────────────────
 
