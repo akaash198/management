@@ -192,6 +192,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
             result = await self.leave_call(payload.get("call_id"))
             if result:
                 await self.broadcast("call.participant_left", result)
+                if result.get("was_ended"):
+                    ended_data = {"call_id": result["call_id"]}
+                    await self.broadcast("call.ended", ended_data)
+                    # Notify receivers via personal channel sockets to dismiss incoming call toast
+                    recipient_ids = await self.get_channel_member_user_ids_excluding_self()
+                    for uid in recipient_ids:
+                        await self.channel_layer.group_send(
+                            f"channels_{uid}",
+                            {"type": "call.ended", "data": ended_data},
+                        )
+                    duration = None
+                    if result.get("started_at") and result.get("ended_at"):
+                        duration = (result["ended_at"] - result["started_at"]).total_seconds()
+                    sys_msg = await self.create_system_message(
+                        "call_ended",
+                        result.get("call_type", "audio"),
+                        duration=duration,
+                    )
+                    if sys_msg:
+                        await self.broadcast("message.new", sys_msg)
+                        await self.push_channel_unread_events()
 
         elif event_type == "call.end":
             result = await self.end_call(payload.get("call_id"))
@@ -552,12 +573,21 @@ class ChatConsumer(AsyncWebsocketConsumer):
             
             # Check if call should end
             call = participant.call
+            was_ended = False
             if not call.participants.filter(is_active=True).exists():
                 call.is_active = False
                 call.ended_at = timezone.now()
                 call.save()
+                was_ended = True
             
-            return {"call_id": call_id, "user_id": str(self.user.id)}
+            return {
+                "call_id": str(call_id),
+                "user_id": str(self.user.id),
+                "was_ended": was_ended,
+                "call_type": call.call_type,
+                "started_at": call.started_at,
+                "ended_at": call.ended_at,
+            }
         except CallParticipant.DoesNotExist:
             return None
 

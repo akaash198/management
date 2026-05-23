@@ -162,3 +162,44 @@ class SignalingTests(TransactionTestCase):
             await comm1.disconnect()
 
         async_to_sync(run_test)()
+
+    def test_meeting_call_leave_deactivates_and_broadcasts(self):
+        """Tests that when a user leaves a meeting call and is the last participant, it ends the call and broadcasts call.ended."""
+        async def run_test():
+            comm1 = WebsocketCommunicator(ChatConsumer.as_asgi(), f"/ws/chat/{self.channel.id}/")
+            comm1.scope["user"] = self.user1
+            comm1.scope["url_route"] = {"kwargs": {"channel_id": str(self.channel.id)}}
+            await comm1.connect()
+            await comm1.receive_json_from() # history
+            await comm1.receive_json_from() # history.cursor
+
+            # Start call
+            await comm1.send_json_to({"type": "call.start", "data": {"call_type": "video"}})
+            start_resp = await comm1.receive_json_from()
+            call_id = start_resp["data"]["id"]
+
+            # User 1 leaves the call (is the only/last participant)
+            await comm1.send_json_to({
+                "type": "call.leave",
+                "data": {"call_id": call_id}
+            })
+
+            # User 1 receives participant_left
+            left_resp = await comm1.receive_json_from()
+            self.assertEqual(left_resp["type"], "call.participant_left")
+            self.assertEqual(left_resp["data"]["user_id"], str(self.user1.id))
+
+            # User 1 receives call.ended (since they were the last participant)
+            end_resp = await comm1.receive_json_from()
+            self.assertEqual(end_resp["type"], "call.ended")
+            self.assertEqual(end_resp["data"]["call_id"], call_id)
+
+            # User 1 receives system message "Call ended"
+            sys_resp = await comm1.receive_json_from()
+            self.assertEqual(sys_resp["type"], "message.new")
+            self.assertTrue(sys_resp["data"]["is_system"])
+            self.assertIn("ended", sys_resp["data"]["text"])
+
+            await comm1.disconnect()
+
+        async_to_sync(run_test)()

@@ -9,6 +9,8 @@ function resolveBackendDir() {
 }
 
 function resolvePython(backendDir) {
+  if (fs.existsSync('C:\\Python310\\python.exe')) return 'C:\\Python310\\python.exe';
+
   const windowsPython = path.join(backendDir, 'venv', 'Scripts', 'python.exe');
   if (fs.existsSync(windowsPython)) return windowsPython;
 
@@ -63,7 +65,7 @@ runOrThrow(
       "else:",
       "  u.is_staff=True; u.is_superuser=True; u.set_password(pw); u.full_name=name; u.save()",
       "print('E2E superuser ready:', email, 'created' if created else 'updated')",
-    ].join('; '),
+    ].join('\n'),
   ],
   { cwd: backendDir, env }
 );
