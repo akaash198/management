@@ -42,7 +42,7 @@ def make_serializable(data):
 class ChatConsumer(AsyncWebsocketConsumer):
     MAX_INBOUND_BYTES = 64 * 1024
     RATE_LIMIT_WINDOW_SECONDS = 10
-    RATE_LIMIT_EVENTS_PER_WINDOW = 120  # generous; per-connection not per-user
+    RATE_LIMIT_EVENTS_PER_WINDOW = 600  # 60/s cap; rate limiting is per-connection
 
     async def connect(self):
         self.channel_id = self.scope["url_route"]["kwargs"]["channel_id"]
