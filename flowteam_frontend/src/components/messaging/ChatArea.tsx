@@ -73,6 +73,7 @@ export function ChatArea({
   acceptedCallId,
   acceptedCallType,
   onClearAcceptedCall,
+  onCallEvent,
 }: {
   channel: Channel;
   focusMessageId?: string | null;
@@ -82,6 +83,7 @@ export function ChatArea({
   acceptedCallId?: string | null;
   acceptedCallType?: 'audio' | 'video' | null;
   onClearAcceptedCall?: () => void;
+  onCallEvent?: (type: string, data: any) => void;
 }) {
   const { user } = useAuthStore();
   const { activeTeamId, fetchTeams, teams } = useTeamStore();
@@ -207,7 +209,11 @@ export function ChatArea({
   } = useChatSocket(channel.id, {
     currentUser: user ? { id: user.id, full_name: user.full_name, avatar: user.avatar_url ?? null } : null,
     onCallEvent: (type, data) => {
-      // call.started/missed/ended are handled globally by MessagingPage now.
+      // Forward banner-relevant events to MessagingPage (incoming call / dismissal)
+      if (type === "call.started" || type === "call.ended" || type === "call.missed") {
+        onCallEvent?.(type, data);
+      }
+      // Also route to the open CallComponent (signal, participant, etc.)
       callEventHandlerRef.current?.(type, data);
     },
   });

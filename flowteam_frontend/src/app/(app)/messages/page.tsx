@@ -245,17 +245,26 @@ export default function MessagingPage() {
     return () => stopIncomingRingtone();
   }, [incomingCall, startIncomingRingtone, stopIncomingRingtone]);
 
+  // Tracks call IDs already shown as incoming (dedupes WS + poll delivery)
+  const seenCallIdsRef = useRef<Set<string>>(new Set());
+
   const handleCallEvent = useCallback((type: string, data: any) => {
     if (type === "call.started") {
       const startedBy = data?.started_by?.id ?? data?.started_by;
-      if (startedBy && String(startedBy) !== String(user?.id)) {
-        setIncomingCall({
-          callId: data.id,
-          channelId: data.channel?.id ?? data.channel,
-          callType: data.call_type ?? "audio",
-          callerName: data.started_by?.full_name ?? "Someone",
-        });
-      }
+      if (!startedBy || String(startedBy) === String(user?.id)) return;
+      const callId: string = data.id;
+      const currentAcceptedId = acceptedCallIdRef.current;
+      if (!callId) return;
+      // Deduplicate: don't show banner if already showing or already in this call
+      if (seenCallIdsRef.current.has(callId)) return;
+      if (currentAcceptedId === callId) return;
+      seenCallIdsRef.current.add(callId);
+      setIncomingCall({
+        callId,
+        channelId: data.channel?.id ?? data.channel,
+        callType: data.call_type ?? "audio",
+        callerName: data.started_by?.full_name ?? "Someone",
+      });
     } else if (type === "call.ended" || type === "call.missed") {
       setIncomingCall(null);
     }
@@ -273,9 +282,8 @@ export default function MessagingPage() {
     handleCallEvent,
   );
 
-  // Fallback: poll channels every 5 s to detect active calls that the
+  // Fallback: poll channels every 2 s to detect active calls that the
   // WebSocket may have missed (e.g. receiver is on a different channel).
-  const seenCallIdsRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!activeTeamId) return;
     const poll = async () => {
@@ -298,9 +306,8 @@ export default function MessagingPage() {
           const startedById = ch.active_call_started_by?.id;
           // Skip calls started by self
           if (startedById && String(startedById) === String(user?.id)) continue;
-          // Skip if already showing this call
+          // Skip if already shown via WS or poll
           if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
-          if (incomingCall?.callId === ch.active_call_id) continue;
           // Skip if user is already in this call
           if (currentAcceptedId === ch.active_call_id) continue;
           seenCallIdsRef.current.add(ch.active_call_id);
@@ -319,7 +326,7 @@ export default function MessagingPage() {
     void poll(); // Run immediately on mount
     const interval = setInterval(poll, 2000);
     return () => clearInterval(interval);
-  }, [activeTeamId, user?.id, incomingCall?.callId]);
+  }, [activeTeamId, user?.id]);
 
   const acceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -450,6 +457,7 @@ export default function MessagingPage() {
               setAcceptedCallId(null);
               setAcceptedCallType(null);
             }}
+            onCallEvent={handleCallEvent}
           />
         </div>
       ) : (
