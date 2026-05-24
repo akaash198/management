@@ -13,6 +13,9 @@ const MEDIA_ARGS = [
   "--use-fake-ui-for-media-stream",
   "--use-fake-device-for-media-stream",
   "--no-sandbox",
+  // Treat the test server as a secure origin so navigator.mediaDevices is available
+  "--unsafely-treat-insecure-origin-as-secure=http://65.21.111.177",
+  "--allow-running-insecure-content",
 ];
 
 async function login(page: any, email: string, password: string) {
@@ -37,6 +40,103 @@ async function hangUp(page: any) {
   return false;
 }
 
+// Intercept WebSocket messages on a page by monkey-patching the global WebSocket
+async function installWsInterceptor(page: any, label: string) {
+  await page.addInitScript((lbl: string) => {
+    // Polyfill navigator.mediaDevices.getUserMedia for insecure (HTTP) origins
+    // so CallComponent can get media even without HTTPS.
+    if (!navigator.mediaDevices) {
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: {},
+        writable: true,
+        configurable: true,
+      });
+    }
+    if (!navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia = async (constraints: any) => {
+        console.log(`[${lbl}][MEDIA] getUserMedia called:`, JSON.stringify(constraints));
+        // Return a silent fake MediaStream using AudioContext
+        try {
+          const ctx = new AudioContext();
+          const dest = ctx.createMediaStreamDestination();
+          const stream = dest.stream;
+          console.log(`[${lbl}][MEDIA] fake stream created, tracks:`, stream.getTracks().length);
+          return stream;
+        } catch (e) {
+          console.error(`[${lbl}][MEDIA] fake stream failed:`, String(e));
+          throw e;
+        }
+      };
+    } else {
+      const origGUM = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      navigator.mediaDevices.getUserMedia = async (constraints: any) => {
+        console.log(`[${lbl}][MEDIA] getUserMedia called (real):`, JSON.stringify(constraints));
+        try {
+          const stream = await origGUM(constraints);
+          console.log(`[${lbl}][MEDIA] stream ok, tracks:`, stream.getTracks().length);
+          return stream;
+        } catch(e) {
+          console.error(`[${lbl}][MEDIA] getUserMedia failed:`, String(e));
+          throw e;
+        }
+      };
+    }
+
+    const OrigWS = window.WebSocket;
+    (window as any).OrigWS = OrigWS;
+    (window as any).__wsMessages = [];      // incoming
+    (window as any).__wsSent = [];           // outgoing
+    (window as any).__wsConnections = [];
+
+    // @ts-ignore
+    window.WebSocket = function(url: string, protocols?: any) {
+      const ws = new OrigWS(url, protocols);
+      (window as any).__wsConnections.push(url);
+      console.log(`[${lbl}][WS-OPEN] ${url.split('?')[0]}`);
+
+      // Intercept send to capture outgoing
+      const origSend = ws.send.bind(ws);
+      ws.send = function(data: any) {
+        try {
+          const parsed = JSON.parse(data);
+          (window as any).__wsSent.push({ url, type: parsed.type, data: parsed.data });
+          if (parsed.type && parsed.type.includes('call')) {
+            console.log(`[${lbl}][WS-SEND] ${url.split('/').slice(-2,-1)[0]} ← ${parsed.type} | ${JSON.stringify(parsed.data).slice(0, 200)}`);
+          }
+        } catch {}
+        return origSend(data);
+      };
+
+      ws.addEventListener('message', (evt: MessageEvent) => {
+        try {
+          const data = JSON.parse(evt.data);
+          const entry = { url, type: data.type, data: data.data };
+          (window as any).__wsMessages.push(entry);
+          if (data.type && (data.type.includes('call') || data.type.includes('channel'))) {
+            console.log(`[${lbl}][WS-MSG] ${url.split('/').slice(-2,-1)[0]} → ${data.type} | ${JSON.stringify(data.data).slice(0, 200)}`);
+          }
+        } catch {}
+      });
+
+      ws.addEventListener('close', (evt: CloseEvent) => {
+        console.log(`[${lbl}][WS-CLOSE] ${url.split('/').slice(-2,-1)[0]} code=${evt.code}`);
+      });
+
+      ws.addEventListener('error', () => {
+        console.log(`[${lbl}][WS-ERROR] ${url.split('?')[0]}`);
+      });
+
+      return ws;
+    };
+    // Copy static props
+    (window.WebSocket as any).CONNECTING = 0;
+    (window.WebSocket as any).OPEN = 1;
+    (window.WebSocket as any).CLOSING = 2;
+    (window.WebSocket as any).CLOSED = 3;
+    Object.setPrototypeOf((window as any).WebSocket, OrigWS);
+  }, label);
+}
+
 test.describe("Live call E2E", () => {
   test("audio call: caller initiates, receiver gets banner, connect, hang up", async () => {
     const browser = await chromium.launch({ args: MEDIA_ARGS });
@@ -45,6 +145,29 @@ test.describe("Live call E2E", () => {
     const receiverCtx = await browser.newContext({ permissions: ["microphone", "camera"] });
     const callerPage   = await callerCtx.newPage();
     const receiverPage = await receiverCtx.newPage();
+
+    // Install WS interceptors BEFORE any navigation
+    await installWsInterceptor(callerPage, "CALLER");
+    await installWsInterceptor(receiverPage, "RECEIVER");
+
+    // Forward ALL console from both pages
+    callerPage.on("console", (msg) => {
+      const text = msg.text();
+      const level = msg.type();
+      if (text.includes("[CALLER]") || text.includes("[WS") || text.includes("call") || text.includes("Call") || level === "error" || text.includes("media") || text.includes("Failed")) {
+        console.log(`[caller-browser][${level}] ${text}`);
+      }
+    });
+    receiverPage.on("console", (msg) => {
+      const text = msg.text();
+      const level = msg.type();
+      if (text.includes("[RECEIVER]") || text.includes("[WS") || text.includes("call") || text.includes("Call") || level === "error") {
+        console.log(`[receiver-browser][${level}] ${text}`);
+      }
+    });
+    // Capture page errors (uncaught exceptions)
+    callerPage.on("pageerror", (err) => console.log(`[caller-pageerror] ${err.message}`));
+    receiverPage.on("pageerror", (err) => console.log(`[receiver-pageerror] ${err.message}`));
 
     // ── 1. Login both users ────────────────────────────────────────────────
     console.log("Step 1: logging in both users");
@@ -64,8 +187,15 @@ test.describe("Live call E2E", () => {
     await callerPage.waitForURL(/\/messages/, { timeout: 15000 });
     await receiverPage.waitForURL(/\/messages/, { timeout: 15000 });
     // Wait for channel list and WebSocket connections to establish
-    await callerPage.waitForTimeout(3000);
-    await receiverPage.waitForTimeout(3000);
+    await callerPage.waitForTimeout(4000);
+    await receiverPage.waitForTimeout(4000);
+
+    // Log which WS connections are established
+    const callerWsUrls = await callerPage.evaluate(() => (window as any).__wsConnections || []);
+    const receiverWsUrls = await receiverPage.evaluate(() => (window as any).__wsConnections || []);
+    console.log(`[info] Caller WS connections: ${JSON.stringify(callerWsUrls)}`);
+    console.log(`[info] Receiver WS connections: ${JSON.stringify(receiverWsUrls)}`);
+
     await callerPage.screenshot({ path: "test-results/02-caller-messages.png" });
     await receiverPage.screenshot({ path: "test-results/02-receiver-messages.png" });
 
@@ -77,6 +207,11 @@ test.describe("Live call E2E", () => {
       await callerPage.waitForTimeout(1500);
     }
     await callerPage.screenshot({ path: "test-results/03-caller-channel-selected.png" });
+
+    // Also navigate receiver to messages (auto-selects a channel)
+    console.log("Step 3b: receiver already on messages, let it settle");
+    await receiverPage.waitForTimeout(2000);
+    await receiverPage.screenshot({ path: "test-results/03-receiver-settled.png" });
 
     // ── 4. Caller initiates audio call ─────────────────────────────────────
     console.log("Step 4: initiating audio call");
@@ -90,28 +225,41 @@ test.describe("Live call E2E", () => {
       await callerPage.screenshot({ path: "test-results/04-no-call-button.png" });
     }
 
-    // Wait for calling UI to appear (the "Audio calling..." overlay)
-    await callerPage.waitForTimeout(2000);
+    // Wait for calling UI to appear
+    await callerPage.waitForTimeout(3000);
     await callerPage.screenshot({ path: "test-results/04-caller-calling.png" });
 
-    // Check for calling overlay — matches "Audio calling…" (unicode ellipsis)
+    // Check for calling overlay
     const callingText = callerPage.locator(':text-matches("calling", "i")').first();
     const callingVisible = await callingText.isVisible({ timeout: 8000 }).catch(() => false);
     console.log(`[check] Calling UI visible on caller: ${callingVisible}`);
 
+    // Dump WS sent/received messages captured so far
+    const callerSent = await callerPage.evaluate(() => (window as any).__wsSent || []);
+    const callerMsgs = await callerPage.evaluate(() => (window as any).__wsMessages || []);
+    const receiverMsgs = await receiverPage.evaluate(() => (window as any).__wsMessages || []);
+    console.log(`[info] Caller SENT call msgs: ${JSON.stringify(callerSent.filter((m: any) => m.type?.includes('call')))}`);
+    console.log(`[info] Caller RECEIVED call msgs: ${JSON.stringify(callerMsgs.filter((m: any) => m.type?.includes('call')))}`);
+    console.log(`[info] Receiver RECEIVED call msgs so far: ${JSON.stringify(receiverMsgs.filter((m: any) => m.type?.includes('call')))}`);
+
     // ── 5. Check receiver gets incoming call banner ────────────────────────
-    console.log("Step 5: waiting for incoming call on receiver (up to 15s)");
-    // Give WebSocket + polling time to deliver the call.started event
-    // After our fix: channel WS delivers immediately + 2s polling fallback
+    console.log("Step 5: waiting for incoming call on receiver (up to 20s)");
     await receiverPage.screenshot({ path: "test-results/05-receiver-before-poll.png" });
 
     // The banner shows "Incoming audio call…" text and an "Accept" button
     const incomingBanner = receiverPage.locator('button:has-text("Accept")').first();
-    const bannerVisible = await incomingBanner.waitFor({ state: "visible", timeout: 18000 })
+    const bannerVisible = await incomingBanner.waitFor({ state: "visible", timeout: 20000 })
       .then(() => true)
       .catch(() => false);
     console.log(`[check] Incoming call banner visible on receiver: ${bannerVisible}`);
     await receiverPage.screenshot({ path: "test-results/05-receiver-incoming-call.png" });
+
+    // Dump ALL receiver WS messages after waiting
+    const receiverMsgsAfter = await receiverPage.evaluate(() => (window as any).__wsMessages || []);
+    console.log(`[info] Receiver WS messages after wait (${receiverMsgsAfter.length} total):`);
+    for (const m of receiverMsgsAfter) {
+      console.log(`  [receiver-ws] type=${m.type} url=...${String(m.url).slice(-20)}`);
+    }
 
     if (bannerVisible) {
       // ── 6. Receiver accepts the call ──────────────────────────────────────
@@ -128,7 +276,6 @@ test.describe("Live call E2E", () => {
 
       // ── 7. Test mute toggle on caller ─────────────────────────────────────
       console.log("Step 7: testing mute toggle on caller");
-      // The mute button has title="Mute" or title="Unmute"
       const muteBtn = callerPage.locator('button[title="Mute"], button[title="Unmute"]').first();
       const hasMute = await muteBtn.isVisible({ timeout: 3000 }).catch(() => false);
       if (hasMute) {
@@ -152,7 +299,6 @@ test.describe("Live call E2E", () => {
       console.log(`[check] Call ended by receiver: ${ended}`);
 
       if (ended) {
-        // Verify caller UI also dismissed
         const callerCallStillOpen = await callerPage.locator(':text-matches("calling", "i")').first().isVisible({ timeout: 4000 }).catch(() => false);
         console.log(`[check] Caller call UI still open after receiver hung up: ${callerCallStillOpen}`);
       }
@@ -205,6 +351,150 @@ test.describe("Live call E2E", () => {
       await hangUp(page);
       await page.waitForTimeout(1000);
       await page.screenshot({ path: "test-results/10-video-ended.png" });
+    }
+
+    await browser.close();
+  });
+
+  test("meetings: list, create instant meeting, and start call from detail", async () => {
+    const browser = await chromium.launch({ args: MEDIA_ARGS });
+    const ctx  = await browser.newContext({ permissions: ["microphone", "camera"] });
+    const page = await ctx.newPage();
+
+    await installWsInterceptor(page, "MTG");
+    page.on("console", (msg) => {
+      const text = msg.text();
+      const level = msg.type();
+      if (text.includes("[MTG]") || level === "error" || text.includes("call") || text.includes("MEDIA")) {
+        console.log(`[mtg-browser][${level}] ${text}`);
+      }
+    });
+    page.on("pageerror", (err) => console.log(`[mtg-pageerror] ${err.message}`));
+
+    await login(page, CALLER.email, CALLER.password);
+
+    // ── 1. Meetings page loads with stats ──────────────────────────────────
+    console.log("MTG Step 1: navigate to /meetings");
+    await page.goto(`${BASE}/meetings`);
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: "test-results/11-meetings-list.png" });
+
+    const h1 = page.locator('h1:has-text("Meetings")').first();
+    const pageLoaded = await h1.isVisible({ timeout: 8000 }).catch(() => false);
+    console.log(`[check] Meetings page h1 visible: ${pageLoaded}`);
+
+    // Stats strip: Live now / Today / Upcoming
+    const liveNow   = page.locator(':text("Live now")').first();
+    const todayCard  = page.locator(':text("Today")').first();
+    const upcomingCard = page.locator(':text("Upcoming")').first();
+    const statsOk = (await liveNow.isVisible({ timeout: 3000 }).catch(() => false))
+      && (await todayCard.isVisible({ timeout: 3000 }).catch(() => false))
+      && (await upcomingCard.isVisible({ timeout: 3000 }).catch(() => false));
+    console.log(`[check] Stats strip (Live now / Today / Upcoming) visible: ${statsOk}`);
+
+    // Week strip
+    const weekStrip = page.locator('text="Mon"').first();
+    const weekVisible = await weekStrip.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[check] Week calendar strip visible: ${weekVisible}`);
+
+    // Filter tabs
+    const upcomingTab = page.locator('button:has-text("upcoming")').first();
+    const tabsVisible = await upcomingTab.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[check] Status filter tabs visible: ${tabsVisible}`);
+
+    await page.screenshot({ path: "test-results/11-meetings-list.png" });
+
+    // ── 2. Create an instant meeting (redirects to detail) ─────────────────
+    console.log("MTG Step 2: click Instant to create a meeting and land on detail page");
+    const instantBtn = page.locator('button:has-text("Instant")').first();
+    const hasInstant = await instantBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[check] Instant button visible: ${hasInstant}`);
+
+    if (hasInstant) {
+      await instantBtn.click();
+      // Dialog may open — if there's a title input, fill and submit; otherwise the creation is immediate
+      await page.waitForTimeout(1000);
+      const titleInput = page.locator('input[placeholder*="title" i], input[placeholder*="meeting" i]').first();
+      if (await titleInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await titleInput.fill("E2E Test Meeting");
+        const submitBtn = page.locator('button[type="submit"], button:has-text("Create"), button:has-text("Start")').last();
+        await submitBtn.click();
+      }
+      // Wait for redirect to /meetings/<id>
+      await page.waitForURL(/\/meetings\/[^/]+$/, { timeout: 15000 }).catch(() => {});
+    }
+
+    await page.waitForTimeout(2000);
+    await page.screenshot({ path: "test-results/12-meeting-detail.png" });
+
+    const onDetailPage = /\/meetings\/[^/]/.test(page.url()) && !page.url().endsWith("/meetings/");
+    console.log(`[check] On meeting detail page: ${onDetailPage} (url: ${page.url()})`);
+
+    if (!onDetailPage) {
+      console.log("⚠️  Did not reach detail page — trying to navigate to existing meeting");
+      // Fallback: switch to "all" filter and click first meeting row
+      await page.goto(`${BASE}/meetings`);
+      await page.waitForTimeout(2000);
+      const allTab = page.locator('button:has-text("all")').first();
+      if (await allTab.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await allTab.click();
+        await page.waitForTimeout(1000);
+      }
+      // MeetingRow renders with cursor-pointer and calls router.push on click
+      const firstRow = page.locator('[class*="cursor-pointer"]:has-text("Meeting")').first();
+      if (await firstRow.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await firstRow.click();
+        await page.waitForURL(/\/meetings\/[^/]+$/, { timeout: 10000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+        await page.screenshot({ path: "test-results/12-meeting-detail-fallback.png" });
+      }
+    }
+
+    // ── 3. Verify detail page content ─────────────────────────────────────
+    console.log("MTG Step 3: verify meeting detail content");
+    const titleOnDetail = page.locator('h1, h2').first();
+    const detailTitleVisible = await titleOnDetail.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[check] Meeting title on detail page: ${detailTitleVisible}`);
+
+    const participantsSection = page.locator(':text("Participants"), :text("Attendees"), :text("Members")').first();
+    const participantsVisible = await participantsSection.isVisible({ timeout: 3000 }).catch(() => false);
+    console.log(`[check] Participants section visible: ${participantsVisible}`);
+
+    await page.screenshot({ path: "test-results/13-meeting-detail-content.png" });
+
+    // ── 4. Start call from meeting detail ─────────────────────────────────
+    console.log("MTG Step 4: start call from meeting detail");
+    // The call button may say "Join", "Start call", "Start video", or have a Phone/Video icon
+    const callBtn = page.locator(
+      'button:has-text("Join"), button:has-text("Start call"), button:has-text("Start video"), button:has-text("Start audio"), button[title*="call" i], button[title*="video" i]'
+    ).first();
+    const hasCallBtn = await callBtn.isVisible({ timeout: 5000 }).catch(() => false);
+    console.log(`[check] Call/Join button on meeting detail: ${hasCallBtn}`);
+    await page.screenshot({ path: "test-results/14-meeting-call-btn.png" });
+
+    if (hasCallBtn) {
+      await callBtn.click();
+      await page.waitForTimeout(3000);
+      await page.screenshot({ path: "test-results/14-meeting-call-open.png" });
+
+      // Connected screen shows timer; calling screen shows "calling" or "connected"
+      const callUi = page.locator(':text-matches("00:0|calling|connected", "i")').first();
+      const callVisible = await callUi.isVisible({ timeout: 10000 }).catch(() => false);
+      console.log(`[check] Call UI visible after joining from meeting: ${callVisible}`);
+
+      const wsSent = await page.evaluate(() => (window as any).__wsSent || []);
+      const callMsgs = wsSent.filter((m: any) => m.type?.includes("call"));
+      console.log(`[info] Call WS types sent from meeting: ${JSON.stringify(callMsgs.map((m: any) => m.type))}`);
+
+      // End call
+      await hangUp(page);
+      await page.waitForTimeout(1000);
+      await page.screenshot({ path: "test-results/14-meeting-call-ended.png" });
+      console.log("[check] Call ended from meeting detail");
+    } else {
+      // If no button found the meeting may be in the past (not joinable). Log the DOM.
+      const btns = await page.locator('button').allTextContents();
+      console.log(`[info] Buttons on detail page: ${JSON.stringify(btns.slice(0, 10))}`);
     }
 
     await browser.close();

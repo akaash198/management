@@ -308,6 +308,15 @@ export function CallComponent({
   // ─── Media access ─────────────────────────────────────────────────────────
 
   const getUserMedia = useCallback(async (video: boolean) => {
+    // navigator.mediaDevices is only available in secure contexts (HTTPS or localhost).
+    // On plain HTTP the property is undefined — give a clear error instead of crashing silently.
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast.error(
+        "Camera/microphone access requires a secure connection (HTTPS). Please contact your administrator.",
+        { duration: 8000 }
+      );
+      return null;
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
@@ -317,8 +326,12 @@ export function CallComponent({
       localStreamRef.current = stream;
       if (localVideoRef.current) localVideoRef.current.srcObject = stream;
       return stream;
-    } catch {
-      toast.error("Failed to access camera/microphone");
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "NotAllowedError") {
+        toast.error("Microphone/camera permission denied. Please allow access in your browser settings.");
+      } else {
+        toast.error("Failed to access camera/microphone");
+      }
       return null;
     }
   }, []);

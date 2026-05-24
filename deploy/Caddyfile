@@ -1,18 +1,5 @@
-# Production — replace YOUR_DOMAIN with your actual domain
-# Uncomment and configure the TLS block below for HTTPS.
-# YOUR_DOMAIN {
-#     encode gzip
-#     @api path /api/* /api
-#     reverse_proxy @api backend:8000
-#     @ws path /ws/*
-#     reverse_proxy @ws backend:8000
-#     reverse_proxy frontend:3000
-# }
-#
-# Development / IP-based fallback (no HTTPS):
-:80 {
-    @notws not path /ws/*
-    encode @notws gzip
+app.cowrkflow.com {
+    encode gzip
 
     @api path /api/* /api
     reverse_proxy @api backend:8000
@@ -28,12 +15,6 @@
     reverse_proxy frontend:3000
 }
 
-# Example production config with automatic TLS:
-# flowteam.example.com {
-#     encode gzip
-#     @api path /api/* /api
-#     reverse_proxy @api backend:8000
-#     @ws path /ws/*
-#     reverse_proxy @ws backend:8000
-#     reverse_proxy frontend:3000
-# }
+:80 {
+    redir https://{host}{uri} permanent
+}
