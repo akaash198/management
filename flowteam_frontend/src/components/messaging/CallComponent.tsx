@@ -14,7 +14,7 @@ import {
   MessageSquare, ChevronRight, Wifi, WifiOff,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -308,8 +308,6 @@ export function CallComponent({
   // ─── Media access ─────────────────────────────────────────────────────────
 
   const getUserMedia = useCallback(async (video: boolean) => {
-    // navigator.mediaDevices is only available in secure contexts (HTTPS or localhost).
-    // On plain HTTP the property is undefined — give a clear error instead of crashing silently.
     if (!navigator.mediaDevices?.getUserMedia) {
       toast.error(
         "Camera/microphone access requires a secure connection (HTTPS). Please contact your administrator.",
@@ -329,9 +327,24 @@ export function CallComponent({
     } catch (err) {
       if (err instanceof DOMException && err.name === "NotAllowedError") {
         toast.error("Microphone/camera permission denied. Please allow access in your browser settings.");
-      } else {
-        toast.error("Failed to access camera/microphone");
+        return null;
       }
+      // Video failed (no camera, busy, etc.) — fall back to audio-only
+      if (video) {
+        try {
+          const audioStream = await navigator.mediaDevices.getUserMedia({
+            audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            video: false,
+          });
+          toast("Camera unavailable — joining with audio only.", { duration: 4000 });
+          cameraStreamRef.current = audioStream;
+          localStreamRef.current = audioStream;
+          return audioStream;
+        } catch {
+          // ignore
+        }
+      }
+      toast.error("Failed to access camera/microphone");
       return null;
     }
   }, []);
@@ -621,10 +634,12 @@ export function CallComponent({
     void (async () => {
       setCallStatus("calling");
       const stream = await getUserMedia(callType === "video");
-      if (!stream) return;
 
       if (meetingId) {
-        // Meeting room: no ringing, no timeout, auto-connect immediately.
+        // Meeting room: auto-connect immediately regardless of media result.
+        if (!stream) {
+          toast("Joined without media — check camera/mic permissions.", { duration: 5000 });
+        }
         setCallStatus("connected");
         startDurationTimer();
         if (!existingCallId) {
@@ -634,6 +649,7 @@ export function CallComponent({
           // Flush any signals that arrived before media was ready
           const pending = pendingSignalsRef.current.splice(0);
           for (const { from_user_id, signal_data } of pending) {
+            if (!stream) break;
             let peer = peersRef.current.get(from_user_id);
             if (!peer) {
               peer = createPeer(from_user_id, false, stream);
@@ -645,6 +661,7 @@ export function CallComponent({
         }
       } else {
         // DM Call
+        if (!stream) return;
         if (!existingCallId) {
           startRinging();
           noAnswerTimerRef.current = setTimeout(() => {
@@ -1422,7 +1439,7 @@ interface ParticipantTileProps {
 }
 
 function ParticipantTile({
-  participant, stream, videoRef, onVideoRef, isLocal, isActive, callType, onClick,
+  participant, stream: _stream, videoRef, onVideoRef, isLocal, isActive, callType, onClick,
 }: ParticipantTileProps) {
   const showVideo = callType === "video" && !participant.isVideoOff;
 
