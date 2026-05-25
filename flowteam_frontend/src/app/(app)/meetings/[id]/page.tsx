@@ -5,7 +5,7 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Calendar, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Clock,
-  Copy, ExternalLink, Loader2, Mic, MonitorPlay, Phone, Play,
+  Copy, ExternalLink, Loader2, Mic, MonitorPlay, Pencil, Phone, Play,
   Users, Video, Volume2, Zap,
 } from "lucide-react";
 import api from "@/lib/api";
@@ -24,6 +24,7 @@ import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, formatDistanceToNow, isPast, isWithinInterval, subMinutes } from "date-fns";
+import { EditMeetingDialog } from "@/components/meetings/EditMeetingDialog";
 
 const CallComponent = dynamic(
   () => import("@/components/messaging/CallComponent").then((m) => ({ default: m.CallComponent }))
@@ -71,6 +72,7 @@ export default function MeetingDetailPage() {
   const [callType, setCallType] = useState<MeetingCallType>("video");
   const [acceptedCallId, setAcceptedCallId] = useState<string | null>(null);
   const [expandedRecordingId, setExpandedRecordingId] = useState<string | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const callEventHandlerRef = useRef<((type: string, data: unknown) => void) | null>(null);
 
@@ -275,6 +277,12 @@ export default function MeetingDetailPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {isHost && phase !== "past" && phase !== "cancelled" && (
+              <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </Button>
+            )}
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={copyLink}>
               <Copy className="h-3.5 w-3.5" />
               Copy link
@@ -489,6 +497,14 @@ export default function MeetingDetailPage() {
                     <Separator />
                     <Button
                       variant="outline"
+                      className="w-full justify-start gap-2 text-sm"
+                      onClick={() => setEditOpen(true)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                      Edit meeting
+                    </Button>
+                    <Button
+                      variant="outline"
                       className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/5"
                       onClick={() => cancelMutation.mutate()}
                       disabled={cancelMutation.isPending}
@@ -565,6 +581,18 @@ export default function MeetingDetailPage() {
           meetingId={meeting.id}
         />
       )}
+
+      {/* ── Edit meeting dialog ── */}
+      <EditMeetingDialog
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        teamId={activeTeamId ?? null}
+        meeting={meeting ?? null}
+        onSaved={(updated) => {
+          queryClient.setQueryData(["meeting", meetingId], updated);
+          queryClient.invalidateQueries({ queryKey: ["meetings"] });
+        }}
+      />
     </div>
   );
 }

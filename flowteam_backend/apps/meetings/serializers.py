@@ -6,6 +6,7 @@ from apps.meetings.models import Meeting, MeetingRecording
 
 class MeetingSerializer(serializers.ModelSerializer):
     attendees = SlimUserSerializer(many=True, read_only=True)
+    created_by = SlimUserSerializer(read_only=True)
     channel_id = serializers.UUIDField(source="channel.id", read_only=True)
     ends_at = serializers.DateTimeField(read_only=True)
     active_call_id = serializers.SerializerMethodField()

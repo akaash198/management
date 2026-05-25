@@ -4,18 +4,17 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  CalendarClock, Copy, Pencil, Plus, Search, Trash2, Video,
+  CalendarClock, Copy, Pencil, Plus, Search, Video,
   Phone, Clock, Users, Zap, CalendarDays, ChevronLeft, ChevronRight,
-  MoreHorizontal, ArrowUpRight, CheckCircle2, XCircle, Radio,
+  MoreHorizontal, ArrowUpRight, XCircle, Radio,
 } from "lucide-react";
-import { format, formatDistanceToNowStrict, isToday, isTomorrow, isYesterday, startOfWeek, addDays, isSameDay, isValid, isPast, addMinutes, subMinutes, isWithinInterval } from "date-fns";
+import { format, formatDistanceToNowStrict, isToday, isTomorrow, isYesterday, startOfWeek, addDays, isSameDay, isValid, isPast, subMinutes, isWithinInterval } from "date-fns";
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
 import type { Meeting } from "@/types/meetings";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
@@ -68,11 +67,13 @@ export default function MeetingsPage() {
   const user = useAuthStore((s) => s.user);
 
   const [createOpen, setCreateOpen] = useState(false);
+  const [createDefaultMode, setCreateDefaultMode] = useState<"instant" | "schedule">("schedule");
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Meeting | null>(null);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "past" | "cancelled">("upcoming");
   const [weekOffset, setWeekOffset] = useState(0);
+  const [creatingInstant, setCreatingInstant] = useState(false);
 
   useEffect(() => { fetchTeams(); }, [fetchTeams]);
 
@@ -184,6 +185,24 @@ export default function MeetingsPage() {
       .sort((a, b) => (safeDate(a.starts_at)?.getTime() ?? 0) - (safeDate(b.starts_at)?.getTime() ?? 0))[0] ?? null;
   }, [allMeetings]);
 
+  const createInstant = async () => {
+    if (!activeTeamId) return toast.error("Select a team first.");
+    setCreatingInstant(true);
+    try {
+      const res = await api.post<ApiResponse<Meeting>>(`/meetings/teams/${activeTeamId}/meetings/instant/`, {
+        title: "Instant meeting",
+        call_type: "video",
+      });
+      if (!res.data.success) throw new Error(res.data.error ?? "Failed");
+      toast.success("Instant meeting created");
+      router.push(`/meetings/${res.data.data.id}`);
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to create instant meeting"));
+    } finally {
+      setCreatingInstant(false);
+    }
+  };
+
   const copyLink = async (id: string) => {
     try {
       await navigator.clipboard.writeText(`${window.location.origin}/meetings/${id}`);
@@ -214,15 +233,15 @@ export default function MeetingsPage() {
             variant="outline"
             size="sm"
             className="h-8 px-3 text-[12.5px] gap-1.5 flex-1 sm:flex-none"
-            onClick={() => { setCreateOpen(true); }}
-            disabled={!activeTeamId}
+            onClick={createInstant}
+            disabled={!activeTeamId || creatingInstant}
           >
-            <Zap size={13} />Instant
+            <Zap size={13} />{creatingInstant ? "Creating…" : "Instant"}
           </Button>
           <Button
             size="sm"
             className="h-8 px-3 text-[13px] gap-1.5 flex-1 sm:flex-none"
-            onClick={() => setCreateOpen(true)}
+            onClick={() => { setCreateDefaultMode("schedule"); setCreateOpen(true); }}
             disabled={!activeTeamId}
           >
             <Plus size={14} />Schedule
@@ -485,8 +504,9 @@ export default function MeetingsPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         teamId={activeTeamId ?? null}
-        defaultMode="instant"
+        defaultMode={createDefaultMode}
         redirectToMeeting
+        onCreated={() => qc.invalidateQueries({ queryKey: ["meetings"] })}
       />
       <EditMeetingDialog
         open={editOpen}
