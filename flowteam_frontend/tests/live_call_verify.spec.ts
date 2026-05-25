@@ -4,7 +4,7 @@
  */
 import { test, expect, chromium } from "@playwright/test";
 
-const BASE = "http://65.21.111.177";
+const BASE = "https://app.cowrkflow.com";
 
 const CALLER  = { email: "sarah@nova-agency.com", password: "Demo@123" };
 const RECEIVER = { email: "alex@nova-agency.com",  password: "Demo@123" };
@@ -13,9 +13,7 @@ const MEDIA_ARGS = [
   "--use-fake-ui-for-media-stream",
   "--use-fake-device-for-media-stream",
   "--no-sandbox",
-  // Treat the test server as a secure origin so navigator.mediaDevices is available
-  "--unsafely-treat-insecure-origin-as-secure=http://65.21.111.177",
-  "--allow-running-insecure-content",
+  "--ignore-certificate-errors",
 ];
 
 async function login(page: any, email: string, password: string) {

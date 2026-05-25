@@ -23,7 +23,7 @@ import { Progress } from "@/components/ui/progress";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, formatDistanceToNow, isPast, isWithinInterval, subMinutes, addMinutes } from "date-fns";
+import { format, formatDistanceToNow, isPast, isWithinInterval, subMinutes } from "date-fns";
 
 const CallComponent = dynamic(
   () => import("@/components/messaging/CallComponent").then((m) => ({ default: m.CallComponent }))
@@ -350,9 +350,11 @@ export default function MeetingDetailPage() {
               <div className="mt-5 flex items-center gap-3 p-4 rounded-xl border border-green-500/20 bg-green-500/5">
                 <span className="h-3 w-3 rounded-full bg-green-500 animate-pulse shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-green-600 dark:text-green-400">This call is live right now</p>
+                  <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    {meeting.active_call_id ? "Active call in progress" : "This meeting is live right now"}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    {meeting.active_call_id ? "Active call in progress" : "Click 'Start call' to begin"}
+                    {meeting.active_call_id ? "Join the ongoing call" : "You will start the call for others to join"}
                   </p>
                 </div>
                 <Button
@@ -361,7 +363,7 @@ export default function MeetingDetailPage() {
                   className="bg-green-600 hover:bg-green-700 text-white gap-1.5 shrink-0"
                 >
                   <Play className="h-3.5 w-3.5" />
-                  Join now
+                  {meeting.active_call_id ? "Join now" : "Start call"}
                 </Button>
               </div>
             )}
