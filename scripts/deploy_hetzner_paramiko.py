@@ -46,6 +46,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--bootstrap-ufw", action="store_true", help="Configure UFW to allow only SSH + 80/tcp.")
     parser.add_argument("--prune", action="store_true", help="Run docker system prune -af before uploading to free disk space.")
     parser.add_argument("--upload", action="store_true", help="Upload docker-compose.prod.yml and Caddyfile.")
+    parser.add_argument("--update-env-prod", action="store_true", help="Patch existing .env.prod with current allowed-hosts, cors, frontend-url values.")
     parser.add_argument("--deploy", action="store_true", help="Run docker compose pull/migrate/up.")
 
     return parser.parse_args()
@@ -201,6 +202,30 @@ def _render_env_prod(template_text: str, *, server_ip: Optional[str], allowed_ho
     return text
 
 
+def _patch_env_prod(client: paramiko.SSHClient, remote_env: str, patches: dict) -> None:
+    """Update specific keys in an existing .env.prod on the remote host."""
+    code, out, _ = _run(client, f"cat {remote_env}")
+    if code != 0:
+        print(f"  {remote_env} not found, skipping patch.")
+        return
+    lines = out.splitlines()
+    new_lines = []
+    patched = set()
+    for line in lines:
+        key = line.split("=", 1)[0].strip()
+        if key in patches:
+            new_lines.append(f"{key}={patches[key]}")
+            patched.add(key)
+        else:
+            new_lines.append(line)
+    for key, val in patches.items():
+        if key not in patched:
+            new_lines.append(f"{key}={val}")
+    _upload_text(client, "\n".join(new_lines) + "\n", remote_env, mode=0o600)
+    for key in patches:
+        print(f"  Patched {key}")
+
+
 def _bootstrap_ufw(client: paramiko.SSHClient) -> None:
     cmds = [
         "sudo ufw --force reset",
@@ -289,6 +314,17 @@ def main() -> int:
                 print(f"Created {remote_env}")
             else:
                 print("Skipping .env.prod (already exists).")
+
+        if args.update_env_prod:
+            remote_env = posixpath.join(args.deploy_path, ".env.prod")
+            allowed = args.allowed_hosts or (f"app.cowrkflow.com,{args.server_ip},localhost,127.0.0.1" if args.server_ip else None)
+            patches = {}
+            if allowed:
+                patches["ALLOWED_HOSTS"] = allowed
+                patches["CORS_ALLOWED_ORIGINS"] = "https://app.cowrkflow.com"
+                patches["FRONTEND_BASE_URL"] = "https://app.cowrkflow.com"
+            print(f"Patching {remote_env}...")
+            _patch_env_prod(client, remote_env, patches)
 
         if args.bootstrap_ufw:
             _bootstrap_ufw(client)

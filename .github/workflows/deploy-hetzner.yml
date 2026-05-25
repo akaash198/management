@@ -108,6 +108,8 @@ jobs:
             --prune \
             --upload \
             --write-env-prod \
+            --update-env-prod \
+            --allowed-hosts "app.cowrkflow.com,${HETZNER_HOST},localhost,127.0.0.1" \
             --bootstrap-ufw \
             --ghcr-username "${GHCR_USERNAME}" \
             --ghcr-token "${GHCR_TOKEN}" \
