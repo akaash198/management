@@ -1,0 +1,116 @@
+name: Seed JPMorgan Chase Demo
+
+on:
+  workflow_dispatch:
+    inputs:
+      reset:
+        description: "Reset existing demo data before seeding?"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      demo_password:
+        description: "Demo password (leave blank to use default: JPMorgan@Demo25)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install paramiko
+        run: pip install paramiko pynacl
+
+      - name: Write SSH key
+        env:
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          python - <<'PY'
+          import os, base64, binascii
+          key = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if not key:
+              raise SystemExit("Missing HETZNER_SSH_KEY secret.")
+          if "BEGIN" in key:
+              key = key.replace("\\r", "\r").replace("\\n", "\n")
+              if not key.endswith("\n"):
+                  key += "\n"
+              open("hetzner_key", "w").write(key)
+          else:
+              key = key.replace("\\n","").replace("\\r","").replace(" ","")
+              open("hetzner_key", "wb").write(base64.b64decode(key, validate=True))
+          PY
+          chmod 600 hetzner_key
+
+      - name: Run seed on production
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          RESET: ${{ github.event.inputs.reset }}
+          DEMO_PASSWORD: ${{ github.event.inputs.demo_password }}
+        run: |
+          python - <<'PY'
+          import os, paramiko
+
+          host     = os.environ["HETZNER_HOST"]
+          user     = os.environ.get("HETZNER_USER", "deploy")
+          reset    = os.environ.get("RESET", "false") == "true"
+          password = os.environ.get("DEMO_PASSWORD", "").strip() or "JPMorgan@Demo25"
+
+          def run(client, cmd, timeout=240):
+              print(f"\n$ {cmd}")
+              _, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=True)
+              out = stdout.read().decode("utf-8", errors="replace")
+              err = stderr.read().decode("utf-8", errors="replace")
+              if out: print(out)
+              if err: print("[stderr]", err)
+              return out.strip()
+
+          client = paramiko.SSHClient()
+          client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          client.connect(host, port=22, username=user, key_filename="hetzner_key", timeout=20)
+          print(f"Connected to {host}")
+
+          # Find backend container
+          container = run(client, "docker ps --filter 'name=backend' --format '{{.Names}}' | head -1")
+          if not container:
+              raise SystemExit("No backend container found.")
+          print(f"Backend container: {container}")
+
+          # Upload seed file into container
+          sftp = client.open_sftp()
+          sftp.put(
+              "flowteam_backend/apps/companies/management/commands/seed_jpmorgan_demo.py",
+              "/tmp/seed_jpmorgan_demo.py"
+          )
+          sftp.close()
+
+          run(client, f"docker cp /tmp/seed_jpmorgan_demo.py {container}:/app/apps/companies/management/commands/seed_jpmorgan_demo.py")
+          print("Seed file copied into container.")
+
+          if reset:
+              print("\nResetting existing demo data...")
+              run(client,
+                  f"docker exec -e DEMO_PASSWORD='{password}' {container} "
+                  f"python manage.py seed_jpmorgan_demo --reset --confirm",
+                  timeout=120)
+
+          print("\nRunning seed...")
+          run(client,
+              f"docker exec -e DEMO_PASSWORD='{password}' {container} "
+              f"python manage.py seed_jpmorgan_demo",
+              timeout=300)
+
+          client.close()
+          print("\nSeed complete.")
+          PY
