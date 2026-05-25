@@ -431,12 +431,9 @@ export function CallComponent({
   const handleCallSignal = useCallback((data: unknown) => {
     const d = data as { from_user_id: string; signal_data: object; target_user_id: string };
     if (d.target_user_id !== user?.id) return;
-    const stream = localStreamRef.current;
-    if (!stream) {
-      // Stream not ready yet — buffer and replay once media is acquired
-      pendingSignalsRef.current.push({ from_user_id: d.from_user_id, signal_data: d.signal_data });
-      return;
-    }
+    // Use an empty stream if media hasn't been acquired (meeting without permissions).
+    // simple-peer can still exchange signaling and receive remote audio/video.
+    const stream = localStreamRef.current ?? new MediaStream();
     let peer = peersRef.current.get(d.from_user_id);
     if (!peer) {
       peer = createPeer(d.from_user_id, false, stream);
@@ -449,12 +446,13 @@ export function CallComponent({
   const handleParticipantJoined = useCallback((data: unknown) => {
     const d = data as { user_id: string; user?: { full_name?: string; avatar?: string }; user_name?: string; user_avatar?: string };
     if (!d.user_id || d.user_id === user?.id) return;
-    const stream = localStreamRef.current;
-    if (!stream) return;
     upsertParticipant(d.user_id, {
       name: d.user?.full_name ?? d.user_name ?? "Participant",
       avatar: d.user?.avatar ?? d.user_avatar,
     });
+    // Create a peer even if local stream is null (meeting joined without media).
+    // simple-peer handles a null/empty stream gracefully — we just won't send tracks.
+    const stream = localStreamRef.current ?? new MediaStream();
     if (!peersRef.current.has(d.user_id)) {
       const peer = createPeer(d.user_id, true, stream);
       peersRef.current.set(d.user_id, peer);
@@ -544,10 +542,18 @@ export function CallComponent({
           handleParticipantLeft(data);
           break;
         case "call.started":
-        case "call_started":
-          // Only update the call ID reference; the mount effect already sent call.join
-          callIdRef.current = (data as { id?: string })?.id ?? callIdRef.current;
+        case "call_started": {
+          const callId = (data as { id?: string })?.id;
+          if (callId) {
+            callIdRef.current = callId;
+            // If this is a meeting room and we just started the call (no existingCallId),
+            // we need to join so the backend registers us as a participant.
+            if (meetingId && !existingCallId) {
+              sendCallMessage("call.join", { call_id: callId });
+            }
+          }
           break;
+        }
         case "call.screen_share":
           handleScreenShare(data);
           break;
@@ -576,7 +582,7 @@ export function CallComponent({
   }, [
     onCallEventRef, handleCallSignal, handleParticipantJoined, handleParticipantLeft,
     handleScreenShare, handleHandRaise, handleReaction, handleInCallChat, handleMuteState,
-    sendCallMessage, onClose,
+    sendCallMessage, onClose, meetingId, existingCallId,
   ]);
 
   // ─── Controls auto-hide ───────────────────────────────────────────────────
@@ -643,16 +649,21 @@ export function CallComponent({
         setCallStatus("connected");
         startDurationTimer();
         if (!existingCallId) {
+          // Start a new call. The backend will echo back call.started with the call id;
+          // we then immediately join so we are registered as a participant.
           sendCallMessage("call.start", { call_type: callType });
+          // call.started handler (below) will call sendCallMessage("call.join", ...) once
+          // the call id is known — see the call.started branch in the event switch.
         } else {
+          callIdRef.current = existingCallId;
           sendCallMessage("call.join", { call_id: existingCallId });
           // Flush any signals that arrived before media was ready
+          const localStream = stream ?? new MediaStream();
           const pending = pendingSignalsRef.current.splice(0);
           for (const { from_user_id, signal_data } of pending) {
-            if (!stream) break;
             let peer = peersRef.current.get(from_user_id);
             if (!peer) {
-              peer = createPeer(from_user_id, false, stream);
+              peer = createPeer(from_user_id, false, localStream);
               peersRef.current.set(from_user_id, peer);
             }
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
