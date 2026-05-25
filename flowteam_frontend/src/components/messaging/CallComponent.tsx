@@ -1051,6 +1051,12 @@ export function CallComponent({
                       participant={allParticipants[0]}
                       stream={null}
                       videoRef={localVideoRef}
+                      onVideoRef={(el) => {
+                        if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
+                          el.srcObject = localStreamRef.current;
+                          void el.play().catch(() => {});
+                        }
+                      }}
                       isLocal
                       isActive={activeSpeakerId === null || activeSpeakerId === (user?.id ?? "me")}
                       callType={callType}
@@ -1091,7 +1097,16 @@ export function CallComponent({
                     {/* Main speaker */}
                     <div className="flex-1 relative min-h-0 bg-black/40">
                       {speakerParticipant.userId === (user?.id ?? "me") ? (
-                        <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-contain" />
+                        <video
+                          ref={(el) => {
+                            localVideoRef.current = el;
+                            if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
+                              el.srcObject = localStreamRef.current;
+                              void el.play().catch(() => {});
+                            }
+                          }}
+                          autoPlay muted playsInline className="w-full h-full object-contain"
+                        />
                       ) : (
                         <video
                           ref={(el) => {
@@ -1453,7 +1468,13 @@ function ParticipantTile({
     >
       {showVideo ? (
         isLocal ? (
-          <video ref={videoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+          <video
+            ref={(el) => {
+              (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+              onVideoRef?.(el);
+            }}
+            autoPlay muted playsInline className="w-full h-full object-cover"
+          />
         ) : (
           <video ref={onVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
         )
@@ -1507,7 +1528,12 @@ function FilmstripTile({ participant, stream, isLocal, localRef, isActive, onCli
       )}
     >
       {isLocal ? (
-        <video ref={localRef} autoPlay muted playsInline className="w-full h-full object-cover" />
+        <video
+          ref={(el) => {
+            if (localRef) (localRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
+          }}
+          autoPlay muted playsInline className="w-full h-full object-cover"
+        />
       ) : stream ? (
         <video
           ref={(el) => {
