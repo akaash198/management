@@ -20,7 +20,6 @@ class CookieJWTAuthentication(JWTAuthentication):
         try:
             validated_token = self.get_validated_token(raw_token)
             user = self.get_user(validated_token)
-            request.successful_authenticator = self
             return (user, validated_token)
         except (InvalidToken, AuthenticationFailed):
             return None
