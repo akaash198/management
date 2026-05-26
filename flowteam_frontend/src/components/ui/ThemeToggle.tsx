@@ -2,9 +2,33 @@
 
 import { Moon, Sun } from "lucide-react";
 import { useThemeStore } from "@/store/theme";
+import { useEffect, useState } from "react";
 
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, toggleTheme } = useThemeStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <button
+        className={className}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "36px",
+          height: "36px",
+          borderRadius: "8px",
+          border: "none",
+          background: "transparent",
+        }}
+      />
+    );
+  }
 
   return (
     <button
