@@ -290,34 +290,30 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
               <div className="grid grid-cols-2 gap-x-8 gap-y-6">
                 <div className="space-y-1.5">
                   <span className="text-[11px] uppercase font-medium tracking-wider text-muted-foreground/50 flex items-center gap-2">
-                    <UserIcon size={12} /> Assignees
+                    <UserIcon size={12} /> Assignee
                   </span>
                   <div className="flex items-center gap-2.5">
-                    {(task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : []).length ? (
+                    {(task.assignee || task.assignees?.[0]) ? (
                       (() => {
-                        const assigneesList = task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : [];
-                        const hasUnavailableAssignee = assigneesList.some((a) => !onlineUserIds.has(a.id));
+                        const a = task.assignee || task.assignees?.[0];
+                        if (!a) return null;
+                        const isUnavailable = !onlineUserIds.has(a.id);
                         return (
                           <div className="flex items-center gap-2 flex-wrap">
-                            <div className="flex -space-x-1">
-                              {assigneesList.slice(0, 4).map((a) => (
-                                <div
-                                  key={a.id}
-                                  title={`${a.full_name} (${onlineUserIds.has(a.id) ? "Online" : "Offline"})`}
-                                  className="relative h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary border border-primary/20"
-                                >
-                                  {a.full_name[0]}
-                                  <span className={cn(
-                                    "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
-                                    onlineUserIds.has(a.id) ? "bg-emerald-500" : "bg-slate-400"
-                                  )} />
-                                </div>
-                              ))}
+                            <div
+                              title={`${a.full_name} (${onlineUserIds.has(a.id) ? "Online" : "Offline"})`}
+                              className="relative h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary border border-primary/20"
+                            >
+                              {a.full_name[0]}
+                              <span className={cn(
+                                "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
+                                onlineUserIds.has(a.id) ? "bg-emerald-500" : "bg-slate-400"
+                              )} />
                             </div>
                             <span className="text-[13px] font-medium">
-                              {assigneesList.map((a) => a.full_name).join(", ")}
+                              {a.full_name}
                             </span>
-                            {hasUnavailableAssignee && (
+                            {isUnavailable && (
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button

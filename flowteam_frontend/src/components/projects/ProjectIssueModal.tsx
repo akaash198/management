@@ -307,7 +307,7 @@ function IssueForm({
             </SelectField>
 
             <div className="grid gap-2">
-              <Label className="text-xs font-semibold tracking-wide text-muted-foreground/80">Assignees</Label>
+              <Label className="text-xs font-semibold tracking-wide text-muted-foreground/80">Assignee</Label>
               <div className="flex flex-wrap gap-1.5 p-2 min-h-[42px] rounded-md border border-input bg-background items-center">
                 {assigneeIds.length === 0 ? (
                   <span className="text-sm text-muted-foreground px-1">Unassigned</span>
@@ -326,7 +326,7 @@ function IssueForm({
                         <span className="font-medium">{member.user.full_name}</span>
                         <button
                           type="button"
-                          onClick={() => setAssigneeIds((prev) => prev.filter((aId) => aId !== id))}
+                          onClick={() => setAssigneeIds([])}
                           className="text-muted-foreground hover:text-foreground rounded-full transition-colors ml-0.5"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -344,7 +344,7 @@ function IssueForm({
                   </PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="end">
                     <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2.5 py-1.5 border-b border-border/50 mb-1">
-                      Assignees
+                      Assignee
                     </div>
                     <div className="max-h-48 overflow-y-auto space-y-0.5">
                       {teamMembers.length === 0 ? (
@@ -370,9 +370,9 @@ function IssueForm({
                                 checked={checked}
                                 onCheckedChange={(isChecked) => {
                                   if (isChecked) {
-                                    setAssigneeIds((prev) => [...prev, member.user.id]);
+                                    setAssigneeIds([member.user.id]);
                                   } else {
-                                    setAssigneeIds((prev) => prev.filter((id) => id !== member.user.id));
+                                    setAssigneeIds([]);
                                   }
                                 }}
                               />
