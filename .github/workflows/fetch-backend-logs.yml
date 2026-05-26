@@ -1,0 +1,58 @@
+name: Fetch Backend Logs
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install paramiko pynacl
+
+      - name: Get Django logs
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          python - <<'PY'
+          import os, base64, binascii, paramiko, io
+
+          key_raw = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if "BEGIN" in key_raw:
+              key_raw = key_raw.replace("\\r", "\r").replace("\\n", "\n")
+              if not key_raw.endswith("\n"):
+                  key_raw += "\n"
+              with open("hetzner_key", "w") as f:
+                  f.write(key_raw)
+          else:
+              with open("hetzner_key", "wb") as f:
+                  f.write(base64.b64decode(key_raw.replace("\\n","").replace(" ","")))
+
+          os.chmod("hetzner_key", 0o600)
+
+          client = paramiko.SSHClient()
+          client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          client.connect(
+              os.environ["HETZNER_HOST"],
+              username=os.environ["HETZNER_USER"],
+              key_filename="hetzner_key",
+          )
+
+          # Last 200 lines of backend container logs
+          cmds = [
+              "docker logs --tail 200 flowteam-backend 2>&1 || docker logs --tail 200 $(docker ps --filter name=backend --format '{{.Names}}' | head -1) 2>&1",
+              "docker exec $(docker ps --filter name=backend --format '{{.Names}}' | head -1) python manage.py check 2>&1 || true",
+          ]
+          for cmd in cmds:
+              print(f"\n{'='*60}\n$ {cmd}\n{'='*60}")
+              _, stdout, stderr = client.exec_command(cmd)
+              print(stdout.read().decode())
+              print(stderr.read().decode())
+
+          client.close()
+          PY
