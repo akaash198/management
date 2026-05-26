@@ -109,3 +109,114 @@ class TestModernPM(TestCase):
         detail_url = reverse("task-detail", args=[task_id])
         response = self.client.get(detail_url)
         self.assertIsNotNone(response.data["data"]["resolution_at"])
+
+    def test_parent_task_touched_by_comments_and_updates(self):
+        from apps.projects.models import Comment, TimeLog, TaskApproval, Attachment, SubTask, TaskActivity
+        from django.utils import timezone
+        import time
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        # 1. Create a task (unresolved)
+        task = Task.objects.create(
+            project=self.project,
+            column=self.column,
+            title="Parent Task Test",
+            reporter=self.user,
+        )
+        
+        # Capture original updated_at (need to reload from DB)
+        task.refresh_from_db()
+        orig_updated_at = task.updated_at
+
+        # Sleep briefly to ensure time diff
+        time.sleep(0.01)
+
+        # 2. Add a comment
+        comment = Comment.objects.create(
+            task=task,
+            author=self.user,
+            text="This is a comment"
+        )
+        
+        # Verify updated_at is updated
+        task.refresh_from_db()
+        self.assertGreater(task.updated_at, orig_updated_at)
+        
+        # Verify TaskActivity is created
+        activity = TaskActivity.objects.filter(task=task, verb="commented").first()
+        self.assertIsNotNone(activity)
+        self.assertEqual(activity.actor, self.user)
+        self.assertEqual(activity.detail.get("comment_id"), str(comment.id))
+
+        # Reset updated_at tracker
+        orig_updated_at = task.updated_at
+        time.sleep(0.01)
+
+        # 3. Add a TimeLog
+        TimeLog.objects.create(
+            task=task,
+            user=self.user,
+            minutes=60,
+        )
+        task.refresh_from_db()
+        self.assertGreater(task.updated_at, orig_updated_at)
+
+        # Reset updated_at tracker
+        orig_updated_at = task.updated_at
+        time.sleep(0.01)
+
+        # 4. Add a TaskApproval
+        TaskApproval.objects.create(
+            project=self.project,
+            task=task,
+            title="Approve work",
+            requested_by=self.user,
+        )
+        task.refresh_from_db()
+        self.assertGreater(task.updated_at, orig_updated_at)
+
+        # Reset updated_at tracker
+        orig_updated_at = task.updated_at
+        time.sleep(0.01)
+
+        # 5. Add an Attachment
+        test_file = SimpleUploadedFile("test.txt", b"dummy content")
+        Attachment.objects.create(
+            task=task,
+            file=test_file,
+            original_filename="test.txt",
+            file_size=13,
+            mime_type="text/plain",
+            uploaded_by=self.user,
+        )
+        task.refresh_from_db()
+        self.assertGreater(task.updated_at, orig_updated_at)
+
+        # Reset updated_at tracker
+        orig_updated_at = task.updated_at
+        time.sleep(0.01)
+
+        # 6. Add a SubTask
+        SubTask.objects.create(
+            task=task,
+            title="Subtask 1",
+            created_by=self.user,
+        )
+        task.refresh_from_db()
+        self.assertGreater(task.updated_at, orig_updated_at)
+
+        # 7. Verify resolved tasks do not get touched
+        task.resolution_at = timezone.now()
+        task.save()
+        task.refresh_from_db()
+        resolved_updated_at = task.updated_at
+        time.sleep(0.01)
+
+        # Add another comment
+        Comment.objects.create(
+            task=task,
+            author=self.user,
+            text="Comment on resolved task"
+        )
+        task.refresh_from_db()
+        self.assertEqual(task.updated_at, resolved_updated_at)

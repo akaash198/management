@@ -30,7 +30,15 @@ import { cn } from "@/lib/utils";
 import { CommentSection } from "./CommentSection";
 import { TaskTimeTracker } from "./task-time-tracker";
 import api from "@/lib/api";
-import type { ApiResponse } from "@/types";
+import type { ApiResponse, TeamMember } from "@/types";
+import { useQuery } from "@tanstack/react-query";
+import { useTeamPresenceSocket } from "@/hooks/useMessaging";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AIButton } from "@/components/ai/AIButton";
 import { useAIStore } from "@/store/ai";
 import { useAuthStore } from "@/store/auth";
@@ -72,6 +80,29 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const deleteSubtask = useDeleteSubtask(taskId);
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const [draftDescription, setDraftDescription] = useState<string | null>(null);
+
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+
+  useTeamPresenceSocket(
+    task?.project_team_id,
+    (ids) => setOnlineUserIds(new Set(ids)),
+    (userId, online) => {
+      setOnlineUserIds((prev) => {
+        const next = new Set(prev);
+        if (online) next.add(userId); else next.delete(userId);
+        return next;
+      });
+    }
+  );
+
+  const { data: teamMembers = [] } = useQuery<TeamMember[]>({
+    queryKey: ["project-team-members", task?.project_team_id],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TeamMember[]>>(`/teams/${task?.project_team_id}/members/`);
+      return res.data.data ?? [];
+    },
+    enabled: !!task?.project_team_id,
+  });
   const [summary, setSummary] = useState("");
   const [summarizing, setSummarizing] = useState(false);
   const [pullRequests, setPullRequests] = useState<GitHubPullRequest[]>([]);
@@ -263,26 +294,86 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                   </span>
                   <div className="flex items-center gap-2.5">
                     {(task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : []).length ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex -space-x-1">
-                          {(task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : [])
-                            .slice(0, 4)
-                            .map((a) => (
-                              <div
-                                key={a.id}
-                                title={a.full_name}
-                                className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary border border-primary/20"
-                              >
-                                {a.full_name[0]}
-                              </div>
-                            ))}
-                        </div>
-                        <span className="text-[13px] font-medium">
-                          {(task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : [])
-                            .map((a) => a.full_name)
-                            .join(", ")}
-                        </span>
-                      </div>
+                      (() => {
+                        const assigneesList = task.assignees?.length ? task.assignees : task.assignee ? [task.assignee] : [];
+                        const hasUnavailableAssignee = assigneesList.some((a) => !onlineUserIds.has(a.id));
+                        return (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <div className="flex -space-x-1">
+                              {assigneesList.slice(0, 4).map((a) => (
+                                <div
+                                  key={a.id}
+                                  title={`${a.full_name} (${onlineUserIds.has(a.id) ? "Online" : "Offline"})`}
+                                  className="relative h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-primary/10 text-primary border border-primary/20"
+                                >
+                                  {a.full_name[0]}
+                                  <span className={cn(
+                                    "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
+                                    onlineUserIds.has(a.id) ? "bg-emerald-500" : "bg-slate-400"
+                                  )} />
+                                </div>
+                              ))}
+                            </div>
+                            <span className="text-[13px] font-medium">
+                              {assigneesList.map((a) => a.full_name).join(", ")}
+                            </span>
+                            {hasUnavailableAssignee && (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 px-2 text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-900 rounded-md flex items-center gap-1 transition-all shadow-sm"
+                                  >
+                                    Reassign
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" className="w-56 max-h-64 overflow-y-auto p-1.5 bg-popover text-popover-foreground border border-border rounded-lg shadow-md z-[100]">
+                                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2 py-1 mb-1 border-b border-border/40">
+                                    Reassign to available member
+                                  </div>
+                                  {teamMembers.length === 0 ? (
+                                    <div className="text-xs text-muted-foreground text-center py-3">No team members found</div>
+                                  ) : (
+                                    teamMembers.map((member) => {
+                                      const isOnline = onlineUserIds.has(member.user.id);
+                                      return (
+                                        <DropdownMenuItem
+                                          key={member.user.id}
+                                          onClick={() => {
+                                            updateTask.mutate({
+                                              id: task.id,
+                                              data: {
+                                                assignee: member.user.id,
+                                                assignee_ids: [member.user.id],
+                                              }
+                                            });
+                                          }}
+                                          className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer text-xs hover:bg-accent hover:text-accent-foreground"
+                                        >
+                                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground relative">
+                                            {member.user.full_name[0]?.toUpperCase() || "?"}
+                                            <span className={cn(
+                                              "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
+                                              isOnline ? "bg-emerald-500" : "bg-slate-400"
+                                            )} />
+                                          </span>
+                                          <span className="flex-1 truncate font-medium">{member.user.full_name}</span>
+                                          {isOnline ? (
+                                            <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full font-bold">Online</span>
+                                          ) : (
+                                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full font-bold">Offline</span>
+                                          )}
+                                        </DropdownMenuItem>
+                                      );
+                                    })
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                          </div>
+                        );
+                      })()
                     ) : (
                       <span className="text-[13px] text-muted-foreground/40 italic">Unassigned</span>
                     )}

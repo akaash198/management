@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save, pre_save, m2m_changed
 from django.dispatch import receiver
-from .models import Project, Column, Task, TaskActivity, ProjectRole
+from django.utils import timezone
+from .models import Project, Column, Task, TaskActivity, ProjectRole, Comment, TimeLog, TaskApproval, Attachment, SubTask
 from .permissions import sync_project_permissions
 from django.contrib.auth import get_user_model
 from asgiref.sync import async_to_sync
@@ -123,3 +124,26 @@ def broadcast_activity(sender, instance: TaskActivity, created, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
         logger.error(f"Error broadcasting activity: {e}")
+
+
+@receiver(post_save, sender=Comment)
+@receiver(post_save, sender=TimeLog)
+@receiver(post_save, sender=TaskApproval)
+@receiver(post_save, sender=Attachment)
+@receiver(post_save, sender=SubTask)
+def touch_task_updated_at(sender, instance, created, **kwargs):
+    task = getattr(instance, "task", None)
+    if task:
+        # Only touch if task is not resolved yet
+        if not task.resolution_at:
+            task.updated_at = timezone.now()
+            task.save(update_fields=["updated_at"])
+
+        # Automatically log commenting activity
+        if sender == Comment and created:
+            TaskActivity.objects.create(
+                task=task,
+                actor=instance.author,
+                verb="commented",
+                detail={"comment_id": str(instance.id)}
+            )
