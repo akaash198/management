@@ -186,7 +186,7 @@ export const pricing = [
 
 export const testimonials = [
   {
-    quote: "FlowTeam has transformed how engineering and product collaborate. It's the best of three worlds — Slack's speed, Jira's structure, and Teams' reliability — all in one place.",
+    quote: "Cowrk has transformed how engineering and product collaborate. It's the best of three worlds — Slack's speed, Jira's structure, and Teams' reliability — all in one place.",
     name: "Sarah Chen",
     role: "VP of Engineering",
     company: "TechFlow",
@@ -204,7 +204,7 @@ export const testimonials = [
     stars: 5,
   },
   {
-    quote: "Security was our #1 concern when moving to a unified platform. FlowTeam's enterprise features gave us the confidence to roll out to 3,000 employees globally.",
+    quote: "Security was our #1 concern when moving to a unified platform. Cowrk's enterprise features gave us the confidence to roll out to 3,000 employees globally.",
     name: "Elena Rodriguez",
     role: "CISO",
     company: "BankSafe",
@@ -229,7 +229,7 @@ export const caseStudies = [
     industry: "SaaS",
     logo: "TF",
     metric: "40% faster shipping",
-    quote: "FlowTeam replaced Slack, Jira, and Zoom for our engineering org of 200+ people. The unified context between chat and project boards alone saved us 6 hours per sprint.",
+    quote: "Cowrk replaced Slack, Jira, and Zoom for our engineering org of 200+ people. The unified context between chat and project boards alone saved us 6 hours per sprint.",
     executive: "Sarah Chen",
     role: "VP of Engineering",
     before: "6 context-switching tools, decisions lost in DMs, manual status updates",
@@ -240,7 +240,7 @@ export const caseStudies = [
     industry: "E-commerce",
     logo: "GS",
     metric: "2.5h saved per person/week",
-    quote: "Marketing and engineering used completely different stacks. FlowTeam bridged the gap — campaigns now go from brief to deploy without a single tool handoff.",
+    quote: "Marketing and engineering used completely different stacks. Cowrk bridged the gap — campaigns now go from brief to deploy without a single tool handoff.",
     executive: "James Wilson",
     role: "Product Director",
     before: "Disconnected tools, 3-week onboarding, no cross-team visibility",
@@ -251,7 +251,7 @@ export const caseStudies = [
     industry: "Finance",
     logo: "BS",
     metric: "Zero compliance issues",
-    quote: "We needed SOC 2, HIPAA, and GDPR compliance in a single platform. FlowTeam delivered without sacrificing the UX our teams actually want to use.",
+    quote: "We needed SOC 2, HIPAA, and GDPR compliance in a single platform. Cowrk delivered without sacrificing the UX our teams actually want to use.",
     executive: "Elena Rodriguez",
     role: "CISO",
     before: "Shadow IT with consumer tools, no audit trail, manual compliance reporting",
@@ -268,8 +268,8 @@ export const securityBadges = [
 
 export const faqs = [
   {
-    q: "Is FlowTeam a Jira replacement, a Slack replacement, or both?",
-    a: "Both — plus Teams. FlowTeam combines enterprise project management (Kanban, sprints, roadmaps, analytics) with real-time messaging and HD video meetings in one workspace. Your decisions, tasks, and conversations stay connected by design.",
+    q: "Is Cowrk a Jira replacement, a Slack replacement, or both?",
+    a: "Both — plus Teams. Cowrk combines enterprise project management (Kanban, sprints, roadmaps, analytics) with real-time messaging and HD video meetings in one workspace. Your decisions, tasks, and conversations stay connected by design.",
   },
   {
     q: "What's included in the Free plan?",
@@ -284,8 +284,8 @@ export const faqs = [
     a: "Yes. We provide import tools for channels, projects, and history from all three platforms. Our integration layer also lets you keep existing tools connected during the transition.",
   },
   {
-    q: "How does FlowTeam handle data security and compliance?",
-    a: "We encrypt data at rest (AES-256) and in transit (TLS 1.3). FlowTeam is SOC 2 Type II certified, GDPR compliant, and HIPAA eligible. Enterprise plans include data residency controls and retention policies.",
+    q: "How does Cowrk handle data security and compliance?",
+    a: "We encrypt data at rest (AES-256) and in transit (TLS 1.3). Cowrk is SOC 2 Type II certified, GDPR compliant, and HIPAA eligible. Enterprise plans include data residency controls and retention policies.",
   },
   {
     q: "What kind of support is available?",

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════
@@ -966,3 +967,78 @@ body {
   background-image: radial-gradient(hsl(var(--border-strong)) 1px, transparent 1px);
   background-size: 32px 32px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MONDAY.COM REDESIGN CUSTOM UTILITIES
+   ═══════════════════════════════════════════════════════════════════ */
+:root {
+  --monday-indigo: #6161FF;
+  --monday-blue: #0086F0;
+  --monday-green: #00C875;
+  --monday-orange: #FDAB3D;
+  --monday-red: #E2445C;
+  --monday-purple: #A25DDC;
+  --monday-pink: #FF158A;
+  --monday-cyan: #00CFF4;
+  --monday-yellow: #FFCB00;
+  --monday-light-bg: #F6F6F9;
+  --monday-border: #D0D4E4;
+}
+
+/* Custom fonts */
+
+.font-monday {
+  font-family: 'Outfit', 'Inter', var(--font-sans);
+}
+
+.monday-gradient-bg {
+  background: linear-gradient(135deg, var(--monday-indigo) 0%, var(--monday-cyan) 100%);
+}
+
+.monday-btn-primary {
+  background-color: var(--monday-indigo);
+  color: #ffffff;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(97, 97, 255, 0.3);
+}
+.monday-btn-primary:hover {
+  background-color: #4b4bff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(97, 97, 255, 0.4);
+}
+.monday-btn-primary:active {
+  transform: translateY(0);
+}
+
+.monday-card {
+  background: #ffffff;
+  border: 1px solid rgba(208, 212, 228, 0.5);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.monday-card:hover {
+  border-color: rgba(97, 97, 255, 0.3);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
+}
+
+/* Status block animations and states */
+.status-pill {
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  user-select: none;
+}
+.status-pill:hover {
+  filter: brightness(0.95);
+  transform: scale(1.02);
+}
+
+/* Interactive board visual elements */
+.board-cell {
+  border-right: 1px solid #E6E9F0;
+  border-bottom: 1px solid #E6E9F0;
+}
+.board-cell:last-child {
+  border-right: none;
+}
+
