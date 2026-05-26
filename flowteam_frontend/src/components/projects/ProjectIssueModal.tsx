@@ -11,13 +11,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, Plus } from "lucide-react";
+import { X, Plus, Paperclip } from "lucide-react";
 import { useCreateTask, useTasks, useUpdateTask } from "@/hooks/useTasks";
 import { useProject } from "@/hooks/useProjects";
 import { useCreateTaskLink, useSprints, useTaskLinks } from "@/hooks/usePlanning";
 import type { TeamMember } from "@/types";
 import type { Project } from "@/types/project";
 import type { Task, TaskMutationInput, TaskPriority } from "@/types/task";
+import { toast } from "sonner";
+import api from "@/lib/api";
 
 function initials(name: string) {
   return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
@@ -108,6 +110,20 @@ function IssueForm({
   const updateTask = useUpdateTask();
   const createLink = useCreateTaskLink();
 
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setQueuedFiles((prev) => [...prev, ...filesArray]);
+    }
+  };
+
+  const removeQueuedFile = (index: number) => {
+    setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const resolvedColumnId = columnId || initialColumnId;
   const isPending = createTask.isPending || updateTask.isPending;
   const availableParentTasks = projectTasks.filter((projectTask) => projectTask.id !== task?.id);
@@ -137,12 +153,53 @@ function IssueForm({
       parent_task: parentTaskId || null,
     };
 
+    setUploadingFiles(queuedFiles.length > 0);
+
+    const uploadAttachments = async (targetTaskId: string) => {
+      if (queuedFiles.length > 0) {
+        try {
+          for (const file of queuedFiles) {
+            const formData = new FormData();
+            formData.append("file", file);
+            await api.post(`/projects/tasks/${targetTaskId}/attachments/`, formData, {
+              headers: {
+                "Content-Type": "multipart/form-data"
+              }
+            });
+          }
+          toast.success("Attachments uploaded successfully");
+        } catch (err) {
+          toast.error("Saved, but some attachments failed to upload.");
+        } finally {
+          setUploadingFiles(false);
+        }
+      }
+    };
+
     if (task) {
-      updateTask.mutate({ id: task.id, data: payload }, { onSuccess: onClose });
+      updateTask.mutate({ id: task.id, data: payload }, {
+        onSuccess: async (updatedTask) => {
+          await uploadAttachments(task.id);
+          onClose();
+        },
+        onError: () => {
+          setUploadingFiles(false);
+        }
+      });
       return;
     }
 
-    createTask.mutate(payload, { onSuccess: onClose });
+    createTask.mutate(payload, {
+      onSuccess: async (createdTask) => {
+        if (createdTask && createdTask.id) {
+          await uploadAttachments(createdTask.id);
+        }
+        onClose();
+      },
+      onError: () => {
+        setUploadingFiles(false);
+      }
+    });
   };
 
   const handleCreateLink = async () => {
@@ -173,6 +230,54 @@ function IssueForm({
               placeholder="Add context, acceptance notes, or delivery detail"
               className="min-h-[140px]"
             />
+          </div>
+
+          <div className="grid gap-2">
+            <Label className="text-xs font-semibold tracking-wide text-muted-foreground/80 flex items-center gap-1.5">
+              <Paperclip className="h-3.5 w-3.5" />
+              Attachments / Screenshots
+            </Label>
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-dashed border-input hover:border-primary/50 hover:bg-muted/30 transition-colors cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+                <Plus className="h-3.5 w-3.5" />
+                <span>Upload files</span>
+                <input 
+                  type="file" 
+                  multiple 
+                  className="hidden" 
+                  onChange={handleFileChange} 
+                />
+              </label>
+              {queuedFiles.length > 0 && (
+                <span className="text-[11px] text-muted-foreground/75">
+                  {queuedFiles.length} file{queuedFiles.length !== 1 ? "s" : ""} selected
+                </span>
+              )}
+            </div>
+
+            {queuedFiles.length > 0 && (
+              <div className="mt-1 flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                {queuedFiles.map((file, idx) => (
+                  <Badge 
+                    key={`${file.name}-${idx}`} 
+                    variant="secondary" 
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs bg-muted/50 border border-border/40"
+                  >
+                    <span className="truncate max-w-[150px] font-medium">{file.name}</span>
+                    <span className="text-[10px] text-muted-foreground/60">
+                      ({(file.size / 1024).toFixed(file.size > 1024 * 1024 ? 1 : 0)} {file.size > 1024 * 1024 ? "MB" : "KB"})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removeQueuedFile(idx)}
+                      className="text-muted-foreground hover:text-destructive transition-colors ml-1"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

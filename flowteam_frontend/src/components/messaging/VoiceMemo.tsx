@@ -182,14 +182,35 @@ export function VoiceMemoPlayer({ url, duration }: { url: string; duration?: num
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+  const [localDuration, setLocalDuration] = useState<number | undefined>(duration);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const animRef = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    setLocalDuration(duration);
+  }, [duration]);
 
   useEffect(() => {
     const audio = new Audio(url);
     audioRef.current = audio;
     audio.onended = () => { setIsPlaying(false); setProgress(0); setCurrentTime(0); };
-    return () => { audio.pause(); audio.src = ""; if (animRef.current) cancelAnimationFrame(animRef.current); };
+
+    const handleLoadedMetadata = () => {
+      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+        setLocalDuration(audio.duration);
+      }
+    };
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    if (audio.readyState >= 1 && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      setLocalDuration(audio.duration);
+    }
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
   }, [url]);
 
   const tick = useCallback(() => {
@@ -236,7 +257,7 @@ export function VoiceMemoPlayer({ url, duration }: { url: string; duration?: num
         </div>
         <div className="mt-1 flex justify-between text-[10px] text-muted-foreground font-mono">
           <span>{fmt(currentTime)}</span>
-          <span>{duration ? fmt(duration) : "--:--"}</span>
+          <span>{localDuration ? fmt(localDuration) : "--:--"}</span>
         </div>
       </div>
     </div>

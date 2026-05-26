@@ -17,6 +17,7 @@ import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { Pin, Link as LinkIcon, Star, Send } from "lucide-react";
 import { RichEmbeds } from "@/components/embeds/RichEmbeds";
 import { VoiceMemoPlayer } from "./VoiceMemo";
+import { getAccessToken } from "@/lib/auth";
 
 interface MessageItemProps {
   message: Message;
@@ -226,7 +227,9 @@ function AttachmentList({ items }: { items: Attachment[] }) {
   return (
     <div className="mt-2 flex flex-wrap gap-2">
       {items.map((a) => {
-        const href = norm(a.url);
+        const rawHref = norm(a.url);
+        const token = getAccessToken();
+        const href = token ? `${rawHref}?token=${token}` : rawHref;
         const ct   = a.content_type || "";
         if (ct.startsWith("image/")) {
           return (
@@ -246,9 +249,14 @@ function AttachmentList({ items }: { items: Attachment[] }) {
           );
         }
         if (ct.startsWith("audio/")) {
+          let duration: number | undefined = undefined;
+          const match = a.filename.match(/voice-memo-\d+-(\d+)\.\w+/);
+          if (match) {
+            duration = parseInt(match[1], 10);
+          }
           return (
             <div key={a.id} className="mt-1">
-              <VoiceMemoPlayer url={href} />
+              <VoiceMemoPlayer url={href} duration={duration} />
             </div>
           );
         }

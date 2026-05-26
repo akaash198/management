@@ -15,7 +15,8 @@ import {
   Calendar,
   Tags,
   Plus,
-  Loader2
+  Loader2,
+  Paperclip
 } from "lucide-react";
 import { 
   Dialog, 
@@ -93,6 +94,20 @@ export function CreateTaskModal({
   
   const createTask = useCreateTask();
 
+  const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setQueuedFiles((prev) => [...prev, ...filesArray]);
+    }
+  };
+
+  const removeQueuedFile = (index: number) => {
+    setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
   // Initialize columnId when open
   useEffect(() => {
     if (open && !columnId && columns.length > 0) {
@@ -103,6 +118,7 @@ export function CreateTaskModal({
   const handleCreate = () => {
     if (!title.trim() || !columnId) return;
     
+    setUploadingFiles(queuedFiles.length > 0);
     createTask.mutate({
       title: title.trim(),
       description: description.trim(),
@@ -115,9 +131,30 @@ export function CreateTaskModal({
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       label_ids: Array.from(selectedLabelIds),
     }, {
-      onSuccess: () => {
+      onSuccess: async (createdTask) => {
+        if (queuedFiles.length > 0 && createdTask && createdTask.id) {
+          try {
+            for (const file of queuedFiles) {
+              const formData = new FormData();
+              formData.append("file", file);
+              await api.post(`/projects/tasks/${createdTask.id}/attachments/`, formData, {
+                headers: {
+                  "Content-Type": "multipart/form-data"
+                }
+              });
+            }
+            toast.success("Attachments uploaded successfully");
+          } catch (err) {
+            toast.error("Task created, but some attachments failed to upload.");
+          } finally {
+            setUploadingFiles(false);
+          }
+        }
         resetForm();
         onOpenChange(false);
+      },
+      onError: () => {
+        setUploadingFiles(false);
       }
     });
   };
@@ -133,6 +170,8 @@ export function CreateTaskModal({
     setSelectedLabelIds(new Set());
     setSuggestedLabels([]);
     setGeneratedTasks([]);
+    setQueuedFiles([]);
+    setUploadingFiles(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -339,6 +378,55 @@ export function CreateTaskModal({
                     className="pl-11 pt-3 min-h-[160px] text-[14px] leading-relaxed bg-background/50 border-border/50 focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all resize-none rounded-xl"
                   />
                 </div>
+              </div>
+
+              {/* Attachments */}
+              <div className="space-y-2.5 pt-2">
+                <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
+                  <Paperclip className="h-3.5 w-3.5" />
+                  Attachments / Screenshots
+                </Label>
+                
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 px-4 py-2 border border-dashed border-border/60 hover:border-primary/50 hover:bg-muted/10 transition-all rounded-xl cursor-pointer text-[12px] font-semibold text-muted-foreground hover:text-foreground">
+                    <Plus className="h-4 w-4 text-muted-foreground" />
+                    <span>Upload files</span>
+                    <input 
+                      type="file" 
+                      multiple 
+                      className="hidden" 
+                      onChange={handleFileChange} 
+                    />
+                  </label>
+                  {queuedFiles.length > 0 && (
+                    <span className="text-[11px] text-muted-foreground/70 font-medium">
+                      {queuedFiles.length} file{queuedFiles.length !== 1 ? "s" : ""} selected
+                    </span>
+                  )}
+                </div>
+
+                {queuedFiles.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2 max-h-36 overflow-y-auto pr-1">
+                    {queuedFiles.map((file, idx) => (
+                      <div 
+                        key={`${file.name}-${idx}`} 
+                        className="flex items-center gap-2 bg-muted/40 hover:bg-muted/60 border border-border/50 rounded-xl px-3 py-1.5 text-[12px] group"
+                      >
+                        <span className="truncate max-w-[180px] font-medium">{file.name}</span>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          ({(file.size / 1024).toFixed(file.size > 1024 * 1024 ? 1 : 0)} {file.size > 1024 * 1024 ? "MB" : "KB"})
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeQueuedFile(idx)}
+                          className="text-muted-foreground/50 hover:text-destructive transition-colors ml-1"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Labels */}

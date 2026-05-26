@@ -2333,9 +2333,9 @@ export function ChatArea({
                    <Clock3 size={15} />
                  </button>
                  <VoiceMemo
-                   onSend={async (blob) => {
+                   onSend={async (blob, duration) => {
                      const form = new FormData();
-                     form.append("files", blob, `voice-memo-${Date.now()}.webm`);
+                     form.append("files", blob, `voice-memo-${Date.now()}-${duration}.webm`);
                      try {
                        const res = await api.post<ApiResponse<Attachment[]>>(`/messaging/channels/${channel.id}/uploads/`, form);
                        const atts = res.data.data;
