@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+import imghdr
 from .models import Channel, ChannelMember, Message, Notification, MessageAttachment, MessagePin, MessageSave, MessageEdit, ScheduledMessage, NotificationPreference, Call, CallParticipant
 from .serializers import (
     ChannelSerializer,
@@ -36,6 +37,8 @@ MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024  # 10MB
 MAX_ATTACHMENTS_PER_MESSAGE = 5
 ALLOWED_ATTACHMENT_TYPES = (
     "image/",
+    "audio/",
+    "video/",
     "application/pdf",
     "text/plain",
     "application/msword",
@@ -46,8 +49,74 @@ ALLOWED_ATTACHMENT_TYPES = (
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 )
 
+# Magic-byte signatures for server-side MIME verification (client content_type can be spoofed)
+_MAGIC_SIGNATURES: list[tuple[bytes, str]] = [
+    (b"\xff\xd8\xff", "image/jpeg"),
+    (b"\x89PNG\r\n\x1a\n", "image/png"),
+    (b"GIF87a", "image/gif"),
+    (b"GIF89a", "image/gif"),
+    (b"RIFF", "image/webp"),   # refined below
+    (b"\x00\x00\x00\x0cjP  ", "image/jp2"),
+    (b"\x25PDF", "application/pdf"),
+    (b"PK\x03\x04", None),  # ZIP-based: docx/xlsx/pptx — accept all
+    (b"\xd0\xcf\x11\xe0", None),  # OLE2: doc/xls/ppt — accept all
+    (b"ID3", "audio/"),
+    (b"\xff\xfb", "audio/"),
+    (b"\xff\xf3", "audio/"),
+    (b"\xff\xf2", "audio/"),
+    (b"OggS", "audio/"),
+    (b"fLaC", "audio/"),
+    (b"RIFF", "audio/"),  # WAV also starts with RIFF
+    (b"\x1a\x45\xdf\xa3", "video/"),  # WebM/MKV
+    (b"\x00\x00\x00\x14ftyp", "video/"),  # MP4
+    (b"\x00\x00\x00\x18ftyp", "video/"),
+    (b"\x00\x00\x00\x20ftyp", "video/"),
+    (b"\x1f\x8b", None),  # gzip — reject (not in allowed list)
+    (b"BM", None),        # BMP — not in allowed list, reject
+]
+
+def _verify_mime_by_magic(f) -> bool:
+    """
+    Read the first 32 bytes of the uploaded file to verify it matches an allowed
+    type rather than trusting the client-supplied content_type header.
+    Returns True if the file appears safe to store, False if it should be rejected.
+    """
+    try:
+        header = f.read(32)
+        f.seek(0)
+    except Exception:
+        return False
+
+    if not header:
+        return False
+
+    # Reject obvious script/HTML injections regardless of claimed type
+    lowered = header.lower()
+    if lowered.startswith(b"<html") or lowered.startswith(b"<!doctype") or lowered.startswith(b"<script"):
+        return False
+
+    # Check against known safe signatures
+    for sig, _ in _MAGIC_SIGNATURES:
+        if header.startswith(sig):
+            return True
+
+    # Plain text files have no magic bytes; allow if content_type says so and
+    # the first 512 bytes contain no null bytes (heuristic for binary content masquerading as text).
+    content_type = getattr(f, "content_type", "") or ""
+    if content_type.startswith("text/"):
+        try:
+            sample = f.read(512)
+            f.seek(0)
+            return b"\x00" not in sample
+        except Exception:
+            return False
+
+    # Unknown signature — reject
+    return False
+
 class ChannelViewSet(viewsets.ModelViewSet):
     serializer_class = ChannelSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def _can_manage_team(self, team_id: str) -> bool:
         user = self.request.user
@@ -116,11 +185,19 @@ class ChannelViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         channel = serializer.save(created_by=self.request.user)
         ChannelMember.objects.create(channel=channel, user=self.request.user)
-        
-        # If private, add other initial members
+
+        # Only add members who are verified members of the channel's team
         member_ids = self.request.data.get("member_ids", [])
-        for m_id in member_ids:
-            ChannelMember.objects.get_or_create(channel=channel, user_id=m_id)
+        if member_ids and channel.team_id:
+            valid_user_ids = set(
+                TeamMember.objects.filter(
+                    team_id=channel.team_id,
+                    user_id__in=member_ids,
+                ).values_list("user_id", flat=True)
+            )
+            for m_id in valid_user_ids:
+                if str(m_id) != str(self.request.user.id):
+                    ChannelMember.objects.get_or_create(channel=channel, user_id=m_id)
 
     @action(detail=True, methods=["GET", "POST"])
     def members(self, request, pk=None):
@@ -412,16 +489,19 @@ class ChannelViewSet(viewsets.ModelViewSet):
                 )
 
             content_type = getattr(f, "content_type", "") or ""
-            allowed = (
-                content_type.startswith("image/")
-                or content_type.startswith("audio/")
-                or content_type.startswith("video/")
-                or content_type in ALLOWED_ATTACHMENT_TYPES
-            )
-            if not allowed:
+            # Check declared content_type against allow-list
+            allowed_declared = any(content_type.startswith(t) for t in ALLOWED_ATTACHMENT_TYPES)
+            if not allowed_declared:
                 return standardize_response(
                     success=False,
                     error=f"Unsupported file type: {content_type or 'unknown'}",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Verify actual file bytes match an allowed type (prevents content_type spoofing)
+            if not _verify_mime_by_magic(f):
+                return standardize_response(
+                    success=False,
+                    error="File content does not match declared type",
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
@@ -496,6 +576,7 @@ class ChannelViewSet(viewsets.ModelViewSet):
 
 class MessageViewSet(viewsets.ModelViewSet):
     serializer_class = MessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         channel_id = self.kwargs.get("channel_id")

@@ -81,8 +81,6 @@ class RegisterView(generics.CreateAPIView):
 
 class LoginView(TokenObtainPairView):
     def post(self, request, *args, **kwargs):
-        print(f"DEBUG LOGIN: Origin: {request.headers.get('Origin')}")
-        print(f"DEBUG LOGIN: Host: {request.headers.get('Host')}")
         email = (request.data.get("email") or "").strip().lower()
         password = request.data.get("password") or ""
         otp_code = (request.data.get("otp_code") or "").strip().replace(" ", "")
@@ -140,13 +138,18 @@ class LogoutView(generics.GenericAPIView):
     permission_classes = (permissions.IsAuthenticated,)
 
     def post(self, request):
-        try:
-            refresh_token = request.data.get("refresh")
-            if refresh_token:
+        # Always clear cookies — even if blacklisting fails the client session is ended.
+        # Read refresh from cookie first (httpOnly), fall back to body for API clients.
+        refresh_token = (
+            request.COOKIES.get("refresh_token")
+            or request.data.get("refresh")
+        )
+        if refresh_token:
+            try:
                 token = RefreshToken(refresh_token)
                 token.blacklist()
-        except Exception:
-            pass
+            except Exception as exc:
+                logger.warning("Token blacklist failed during logout: %s", exc)
         response = standardize_response(data={"message": "Logged out successfully"})
         clear_access_token_cookie(response)
         clear_refresh_token_cookie(response)

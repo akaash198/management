@@ -9,13 +9,8 @@ class CookieJWTAuthentication(JWTAuthentication):
     2. `access_token` cookie (fallback for httpOnly cookie flow)
     """
     def authenticate(self, request):
-        print(f"DEBUG AUTH: Path: {request.path}")
-        print(f"DEBUG AUTH: Origin: {request.headers.get('Origin')}")
-        print(f"DEBUG AUTH: Headers: {request.headers.get('Authorization')[:20] if request.headers.get('Authorization') else 'None'}")
-        
         result = super().authenticate(request)
         if result is not None:
-            print(f"DEBUG AUTH: Authenticated via header: {result[0]}")
             return result
 
         raw_token = request.COOKIES.get("access_token")

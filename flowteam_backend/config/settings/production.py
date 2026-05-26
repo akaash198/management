@@ -4,6 +4,11 @@ DEBUG = False
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
+# Production CORS — restrict to actual frontend origins
+_prod_cors = env.list("CORS_ALLOWED_ORIGINS", default=[])
+if _prod_cors:
+    CORS_ALLOWED_ORIGINS = _prod_cors
+
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=SECURE_SSL_REDIRECT)
@@ -38,7 +43,7 @@ if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         integrations=[DjangoIntegration()],
-        send_default_pii=True,
+        send_default_pii=False,  # Never send emails, usernames, IP addresses to Sentry
         traces_sample_rate=env.float("SENTRY_TRACES_SAMPLE_RATE", default=0.1),
         environment="production",
     )

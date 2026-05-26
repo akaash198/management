@@ -28,26 +28,46 @@ urlpatterns = [
 ]
 
 import os
+import urllib.parse
 from django.views.static import serve
 from django.views.decorators.clickjacking import xframe_options_exempt
+from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
+from apps.core.jwt_cookie_auth import CookieJWTAuthentication
+
+def _auth_media_request(request):
+    """Return True if the request carries a valid JWT (header or cookie)."""
+    try:
+        result = CookieJWTAuthentication().authenticate(request)
+        return result is not None
+    except (InvalidToken, AuthenticationFailed):
+        return False
 
 @xframe_options_exempt
 def custom_serve(request, path, document_root=None, **kwargs):
+    # Require authentication for all media files
+    if not _auth_media_request(request):
+        from django.http import HttpResponse
+        return HttpResponse("Unauthorized", status=401)
+
     response = serve(request, path, document_root, **kwargs)
-    filename = os.path.basename(path)
-    if filename:
-        # This helps PDF viewers display the correct filename instead of "(anonymous)"
-        response['Content-Disposition'] = f'inline; filename="{filename}"'
-    
-    # Allow the frontend to embed this file in an iframe
-    # We use CSP frame-ancestors because X-Frame-Options doesn't support multiple ports well
+
+    # Sanitize filename to prevent header injection
+    raw_name = os.path.basename(path)
+    safe_name = urllib.parse.quote(raw_name, safe=" ._-")
+    if safe_name:
+        response['Content-Disposition'] = f"inline; filename*=UTF-8''{safe_name}"
+
+    # Allow the frontend to embed this file in an iframe via CSP
     frontend_url = getattr(settings, 'FRONTEND_BASE_URL', 'http://localhost:3000')
-    response['Content-Security-Policy'] = f"frame-ancestors 'self' {frontend_url}"
-    
-    # Remove X-Frame-Options to let CSP take precedence in modern browsers
+    # Validate frontend_url is a proper origin, not attacker-controlled
+    from urllib.parse import urlparse
+    parsed = urlparse(frontend_url)
+    safe_origin = f"{parsed.scheme}://{parsed.netloc}" if parsed.scheme and parsed.netloc else "'self'"
+    response['Content-Security-Policy'] = f"frame-ancestors 'self' {safe_origin}"
+
     if 'X-Frame-Options' in response:
         del response['X-Frame-Options']
-    
+
     return response
 
 urlpatterns += [

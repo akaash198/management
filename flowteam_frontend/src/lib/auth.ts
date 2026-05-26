@@ -1,5 +1,8 @@
 import { getApiBaseUrl } from "./runtimeConfig";
 
+// Access token is kept in module memory only — never written to localStorage or
+// sessionStorage, which are readable by any script (XSS vector).
+// The httpOnly refresh-token cookie is handled entirely server-side.
 let _accessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
@@ -7,19 +10,12 @@ export const setAccessToken = (token: string | null) => {
 };
 
 export const getAccessToken = (): string | null => {
-  if (!_accessToken && typeof window !== "undefined") {
-    _accessToken = localStorage.getItem("accessToken");
-  }
   return _accessToken;
 };
 
 export const setTokens = (access: string, _refresh: string) => {
   _accessToken = access;
-  if (typeof window !== "undefined") {
-    localStorage.setItem("accessToken", access);
-  }
-  // Refresh token is stored as httpOnly cookie by the server.
-  // The `_refresh` value is ignored here; the server sets the cookie.
+  // Refresh token is stored as httpOnly cookie by the server — no client action needed.
 };
 
 export const ensureAccessTokenCookie = () => {
@@ -28,14 +24,10 @@ export const ensureAccessTokenCookie = () => {
 
 export const clearTokens = () => {
   _accessToken = null;
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("accessToken");
-  }
 };
 
 export const refreshAccessToken = async (): Promise<string | null> => {
   try {
-    // Refresh token is sent as httpOnly cookie — no need to read from localStorage.
     const response = await fetch(`${getApiBaseUrl()}/auth/refresh/`, {
       method: "POST",
       credentials: "include",
@@ -46,9 +38,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     const access = body?.data?.access ?? body?.access ?? null;
     if (access) {
       _accessToken = access;
-      if (typeof window !== "undefined") {
-        localStorage.setItem("accessToken", access);
-      }
     }
     return access;
   } catch {

@@ -13,7 +13,6 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
-    console.log(`[API] Request: ${config.method?.toUpperCase()} ${config.url} - Token: ${token ? "YES" : "NO"}`);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -33,10 +32,7 @@ api.interceptors.request.use(
 let refreshPromise: Promise<string | null> | null = null;
 
 api.interceptors.response.use(
-  (response) => {
-    console.log(`[API] Response: ${response.status} ${response.config.url} - Success: ${response.data?.success}`);
-    return response;
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
