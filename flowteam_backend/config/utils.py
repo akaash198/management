@@ -11,6 +11,8 @@ def custom_exception_handler(exc, context):
         }
     else:
         # For unhandled exceptions
+        import traceback
+        traceback.print_exc()
         return Response({
             "success": False,
             "error": str(exc)
