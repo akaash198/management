@@ -1,10 +1,19 @@
 import type { NextConfig } from "next";
 
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL
-  ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
-  : "http://localhost:8000";
+function getApiOrigin(): string {
+  const raw = process.env.NEXT_PUBLIC_API_URL ?? "";
+  // Relative URLs (e.g. "/api") have no origin — skip CSP source for those
+  // because the frontend and API are on the same origin anyway.
+  if (!raw || raw.startsWith("/")) return "";
+  try {
+    return new URL(raw).origin;
+  } catch {
+    return "";
+  }
+}
 
-const WS_ORIGIN = API_ORIGIN.replace(/^http/, "ws");
+const API_ORIGIN = getApiOrigin();
+const WS_ORIGIN = API_ORIGIN ? API_ORIGIN.replace(/^http/, "ws") : "";
 
 // Content Security Policy
 // - Tightened for production; relaxed only where Next.js/WebRTC genuinely needs it.
@@ -15,11 +24,11 @@ const csp = [
   // Styles: self + inline (Tailwind CSS-in-JS / shadcn uses inline styles)
   "style-src 'self' 'unsafe-inline'",
   // Images: self + data URIs + API origin (avatars, media)
-  `img-src 'self' data: blob: ${API_ORIGIN}`,
+  `img-src 'self' data: blob:${API_ORIGIN ? ` ${API_ORIGIN}` : ""}`,
   // Media: self + API origin (audio/video uploads)
-  `media-src 'self' blob: ${API_ORIGIN}`,
+  `media-src 'self' blob:${API_ORIGIN ? ` ${API_ORIGIN}` : ""}`,
   // WebSockets + API calls
-  `connect-src 'self' ${API_ORIGIN} ${WS_ORIGIN}`,
+  `connect-src 'self'${API_ORIGIN ? ` ${API_ORIGIN}` : ""}${WS_ORIGIN ? ` ${WS_ORIGIN}` : ""}`,
   // Fonts: self only
   "font-src 'self'",
   // Frames: self only (deny embedding from other origins)
