@@ -70,7 +70,7 @@ import csv, io
 from datetime import date
 from django.utils.dateparse import parse_date
 from apps.messaging.models import Notification
-from config.utils import standardize_response
+from config.utils import standardize_response, StandardizedModelViewSet
 
 def apply_template_to_project(project, template, actor):
     columns = template.columns or []
@@ -426,7 +426,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         reorder_items(Column, ordered_ids, extra_filter={"project_id": pk})
         return standardize_response(data={"message": "Columns reordered"})
 
-class ColumnViewSet(viewsets.ModelViewSet):
+class ColumnViewSet(StandardizedModelViewSet):
     serializer_class = ColumnSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -933,7 +933,7 @@ class AttachmentUploadView(generics.CreateAPIView):
         )
         return standardize_response(data=AttachmentSerializer(attachment, context={"request": request}).data)
 
-class SprintViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
@@ -992,7 +992,7 @@ class SprintViewSet(AuditedModelMixin, viewsets.ModelViewSet):
                     notes=capacity.get("notes", ""),
                 )
 
-class MilestoneViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class MilestoneViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = MilestoneSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1018,7 +1018,7 @@ class MilestoneViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
-class TaskLinkViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class TaskLinkViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = TaskLinkSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1044,7 +1044,7 @@ class TaskLinkViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
-class SavedIssueViewViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class SavedIssueViewViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = SavedIssueViewSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1063,7 +1063,7 @@ class SavedIssueViewViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(user=self.request.user)
 
-class ProjectTemplateViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class ProjectTemplateViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = ProjectTemplateSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1084,7 +1084,7 @@ class ProjectTemplateViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
-class RecurringTaskRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class RecurringTaskRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = RecurringTaskRuleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1118,7 +1118,7 @@ class RecurringTaskRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         task = create_task_from_rule(rule, request.user)
         return standardize_response(data=TaskDetailSerializer(task, context={"request": request}).data)
 
-class TaskApprovalViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class TaskApprovalViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = TaskApprovalSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1182,7 +1182,7 @@ class TaskApprovalViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         AuditLog.log(request.user, "approval_change", approval, changes={"status": ["pending", decision]}, request=request)
         return standardize_response(data=TaskApprovalSerializer(approval).data)
 
-class ProjectDocumentViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class ProjectDocumentViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = ProjectDocumentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1219,7 +1219,7 @@ class ProjectDocumentViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         instance.delete()
 
-class NotificationRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class NotificationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = NotificationRuleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1239,7 +1239,7 @@ class NotificationRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
-class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = IssueTypeFieldDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1256,7 +1256,7 @@ class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save()
 
-class TaskCustomFieldValueViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class TaskCustomFieldValueViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = TaskCustomFieldValueSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1273,7 +1273,7 @@ class TaskCustomFieldValueViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save()
 
-class AutomationRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class AutomationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = AutomationRuleSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1293,7 +1293,7 @@ class AutomationRuleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             raise permissions.PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
-class ClientPortalAccessViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class ClientPortalAccessViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = ClientPortalAccessSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1581,7 +1581,7 @@ def client_portal_detail(request, token):
     return standardize_response(data=data)
 
 
-class EpicViewSet(AuditedModelMixin, viewsets.ModelViewSet):
+class EpicViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = EpicSerializer
     permission_classes = [permissions.IsAuthenticated]
 
