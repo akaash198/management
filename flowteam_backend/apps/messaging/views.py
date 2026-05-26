@@ -2,7 +2,6 @@ from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
-import imghdr
 from .models import Channel, ChannelMember, Message, Notification, MessageAttachment, MessagePin, MessageSave, MessageEdit, ScheduledMessage, NotificationPreference, Call, CallParticipant
 from .serializers import (
     ChannelSerializer,
