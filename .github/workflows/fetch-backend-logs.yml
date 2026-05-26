@@ -45,8 +45,10 @@ jobs:
 
           # Last 200 lines of backend container logs
           cmds = [
-              "docker logs --tail 200 flowteam-backend 2>&1 || docker logs --tail 200 $(docker ps --filter name=backend --format '{{.Names}}' | head -1) 2>&1",
-              "docker exec $(docker ps --filter name=backend --format '{{.Names}}' | head -1) python manage.py check 2>&1 || true",
+              # Get the last 300 lines including tracebacks
+              "docker logs --tail 300 flowteam-backend 2>&1 || docker logs --tail 300 $(docker ps --filter name=backend --format '{{.Names}}' | head -1) 2>&1",
+              # Trigger a live request and capture the response + server log
+              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c \"import django,os,traceback; os.environ.setdefault('DJANGO_SETTINGS_MODULE','config.settings.production'); django.setup(); from django.test import RequestFactory; from apps.users.views import UserMeView; print('Import OK')\" 2>&1 || true",
           ]
           for cmd in cmds:
               print(f"\n{'='*60}\n$ {cmd}\n{'='*60}")
