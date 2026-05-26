@@ -20,6 +20,7 @@ export interface Channel {
   active_call_id?: string | null;
   active_call_type?: "audio" | "video" | null;
   active_call_started_by?: SlimUser | null;
+  meeting_id?: string | null;
 }
 
 export interface Attachment {

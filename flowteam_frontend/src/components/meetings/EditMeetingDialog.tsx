@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import api from "@/lib/api";
 import type { ApiResponse, TeamMember } from "@/types";
@@ -39,6 +40,7 @@ export function EditMeetingDialog({
   onSaved?: (meeting: Meeting) => void;
 }) {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [callType, setCallType] = useState<MeetingCallType>("video");
   const [startsAtLocal, setStartsAtLocal] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(30);
@@ -46,16 +48,19 @@ export function EditMeetingDialog({
   const [selectedMemberIds, setSelectedMemberIds] = useState<Record<string, boolean>>({});
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [attendeeSearch, setAttendeeSearch] = useState("");
 
   useEffect(() => {
     if (!open || !meeting) return;
     setTitle(meeting.title ?? "");
+    setDescription(meeting.description ?? "");
     setCallType(meeting.call_type ?? "video");
     setStartsAtLocal(toLocalDatetimeInputValue(meeting.starts_at));
     setDurationMinutes(meeting.duration_minutes ?? 30);
     const next: Record<string, boolean> = {};
     for (const a of meeting.attendees ?? []) next[a.id] = true;
     setSelectedMemberIds(next);
+    setAttendeeSearch("");
   }, [open, meeting]);
 
   useEffect(() => {
@@ -80,14 +85,32 @@ export function EditMeetingDialog({
     [selectedMemberIds]
   );
 
+  const filteredMembers = useMemo(() => {
+    if (!attendeeSearch.trim()) return members;
+    const q = attendeeSearch.toLowerCase().trim();
+    return members.filter(
+      (m) =>
+        m.user.full_name.toLowerCase().includes(q) ||
+        m.user.email.toLowerCase().includes(q)
+    );
+  }, [members, attendeeSearch]);
+
   const save = async () => {
     if (!meeting) return;
     if (!startsAtLocal) return toast.error("Pick a date/time.");
+    const startsDate = new Date(startsAtLocal);
+    if (startsDate.getTime() < Date.now()) {
+      return toast.error("Cannot schedule meetings in the past.");
+    }
+    if (durationMinutes < 5 || durationMinutes > 480) {
+      return toast.error("Duration must be between 5 and 480 minutes.");
+    }
     setSaving(true);
     try {
       const iso = new Date(startsAtLocal).toISOString();
       const res = await api.patch<ApiResponse<Meeting>>(`/meetings/${meeting.id}/`, {
         title: title.trim() || "Meeting",
+        description: description.trim(),
         call_type: callType,
         starts_at: iso,
         duration_minutes: durationMinutes,
@@ -106,7 +129,7 @@ export function EditMeetingDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[680px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[680px]">
         <DialogHeader>
           <DialogTitle>Edit meeting</DialogTitle>
           <DialogDescription>Update the schedule, call type, or attendees.</DialogDescription>
@@ -116,6 +139,18 @@ export function EditMeetingDialog({
           <div className="grid gap-2">
             <Label htmlFor="editTitle">Title</Label>
             <Input id="editTitle" value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="editDesc">Description</Label>
+            <Textarea
+              id="editDesc"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the meeting agenda or topics..."
+              rows={2}
+              className="resize-none"
+            />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -151,16 +186,45 @@ export function EditMeetingDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label>Attendees</Label>
+            <div className="flex items-center justify-between">
+              <Label>Attendees</Label>
+              {filteredMembers.length > 0 && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-5 px-2 text-[10.5px]"
+                  onClick={() => {
+                    const allSelected = filteredMembers.every(m => selectedMemberIds[m.user.id]);
+                    const next = { ...selectedMemberIds };
+                    filteredMembers.forEach(m => {
+                      next[m.user.id] = !allSelected;
+                    });
+                    setSelectedMemberIds(next);
+                  }}
+                >
+                  {filteredMembers.every(m => selectedMemberIds[m.user.id]) ? "Deselect all" : "Select all"}
+                </Button>
+              )}
+            </div>
+            {members.length > 5 && (
+              <Input
+                value={attendeeSearch}
+                onChange={(e) => setAttendeeSearch(e.target.value)}
+                placeholder="Search team members..."
+                className="h-8 text-xs bg-card"
+              />
+            )}
             <div className="rounded-xl border border-border bg-muted/10">
               <ScrollArea className="h-[220px]">
                 <div className="p-3 space-y-2">
                   {loadingMembers ? (
                     <p className="text-sm text-muted-foreground">Loading members…</p>
-                  ) : members.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No team members found.</p>
+                  ) : filteredMembers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">
+                      {attendeeSearch ? "No matching team members." : "No team members found."}
+                    </p>
                   ) : (
-                    members.map((m) => {
+                    filteredMembers.map((m) => {
                       const id = m.user.id;
                       const checked = !!selectedMemberIds[id];
                       return (

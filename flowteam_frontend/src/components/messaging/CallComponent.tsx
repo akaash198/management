@@ -14,7 +14,7 @@ import {
   MessageSquare, ChevronRight, Wifi, WifiOff,
 } from "lucide-react";
 import { useAuthStore } from "@/store/auth";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import api from "@/lib/api";
@@ -757,7 +757,12 @@ export function CallComponent({
         const newVideo = cam.getVideoTracks()[0];
         if (screenTrack && newVideo) {
           peersRef.current.forEach((peer) => {
-            try { peer.replaceTrack(screenTrack, newVideo, cam); } catch { /* ignore if track already removed */ }
+            try {
+              peer.replaceTrack(screenTrack, newVideo, cam);
+            } catch (err) {
+              console.error("Failed to restore camera track:", err);
+              toast.error("Stream update failed for some participants");
+            }
           });
         }
       }
@@ -774,7 +779,12 @@ export function CallComponent({
 
         if (oldVideo && newVideo && cameraStreamRef.current) {
           peersRef.current.forEach((peer) => {
-            try { peer.replaceTrack(oldVideo, newVideo, cameraStreamRef.current!); } catch { /* ignore */ }
+            try {
+              peer.replaceTrack(oldVideo, newVideo, cameraStreamRef.current!);
+            } catch (err) {
+              console.error("Failed to replace video with screen track:", err);
+              toast.error("Stream update failed for some participants");
+            }
           });
         }
 
@@ -914,8 +924,7 @@ export function CallComponent({
         form.append("file", blob, `meeting-${meetingId}-recording.${isVideo ? "webm" : "webm"}`);
         const res = await api.post<ApiResponse<MeetingRecording>>(
           `/meetings/${meetingId}/recordings/`,
-          form,
-          { headers: { "Content-Type": "multipart/form-data" } }
+          form
         );
         const rec = res.data.data;
         toast.success(rec?.status === "failed" ? "Recording uploaded (transcription failed)" : "Recording saved");
@@ -1018,7 +1027,7 @@ export function CallComponent({
                   <span className="absolute inline-flex h-36 w-36 rounded-full bg-white/10 animate-ping" style={{ animationDuration: "2.5s", animationDelay: "0.8s" }} />
                   <span className="absolute inline-flex h-28 w-28 rounded-full border border-white/20 animate-pulse" />
                   <Avatar className="h-24 w-24 border-[3px] border-white/40 shadow-2xl relative z-10">
-                    {remoteUserAvatar && <AvatarFallback className="text-3xl bg-slate-800">{remoteInitials}</AvatarFallback>}
+                    {remoteUserAvatar && <AvatarImage src={remoteUserAvatar} />}
                     <AvatarFallback className="text-3xl font-semibold bg-slate-800 text-white">{remoteInitials}</AvatarFallback>
                   </Avatar>
                 </div>
@@ -1300,7 +1309,7 @@ export function CallComponent({
 
                     <button
                       onClick={endCall}
-                      title="End call"
+                      title={meetingId ? "Leave call" : "End call"}
                       className="h-12 w-12 rounded-full bg-red-500 hover:bg-red-600 transition-all duration-300 flex items-center justify-center shadow-lg hover:shadow-red-500/40 hover:scale-110 active:scale-95"
                     >
                       <PhoneOff size={20} strokeWidth={2.5} />
@@ -1324,7 +1333,7 @@ export function CallComponent({
                         <div key={p.userId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors">
                           <div className="relative">
                             <Avatar className="h-8 w-8">
-                              {p.avatar && <AvatarFallback className="bg-slate-700">{initials(p.name)}</AvatarFallback>}
+                              {p.avatar && <AvatarImage src={p.avatar} />}
                               <AvatarFallback className="bg-slate-700 text-xs">{initials(p.name)}</AvatarFallback>
                             </Avatar>
                             {p.isSpeaking && (
@@ -1351,7 +1360,7 @@ export function CallComponent({
 
               {/* ── In-call chat sidebar ── */}
               {chatOpen && (
-                <div className="w-80 border-l border-white/10 bg-slate-900/90 backdrop-blur flex flex-col shrink-0">
+                <div className="w-full sm:w-80 max-w-sm border-l border-white/10 bg-slate-900/90 backdrop-blur flex flex-col shrink-0">
                   <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
                     <h3 className="text-sm font-semibold">Meeting chat</h3>
                     <button onClick={() => setChatOpen(false)} className="text-white/40 hover:text-white">
@@ -1492,6 +1501,7 @@ function ParticipantTile({
       ) : (
         <div className="flex flex-col items-center gap-2">
           <Avatar className="h-16 w-16 border-2 border-white/20">
+            {participant.avatar && <AvatarImage src={participant.avatar} />}
             <AvatarFallback className="text-xl font-semibold bg-slate-700 text-white">
               {initials(participant.name)}
             </AvatarFallback>
@@ -1559,6 +1569,7 @@ function FilmstripTile({ participant, stream, isLocal, localRef, isActive, onCli
       ) : (
         <div className="w-full h-full flex items-center justify-center">
           <Avatar className="h-10 w-10">
+            {participant.avatar && <AvatarImage src={participant.avatar} />}
             <AvatarFallback className="bg-slate-700 text-sm">{initials(participant.name)}</AvatarFallback>
           </Avatar>
         </div>

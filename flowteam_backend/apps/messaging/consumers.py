@@ -548,7 +548,10 @@ class ChatConsumer(AsyncWebsocketConsumer):
         channel = Channel.objects.get(id=self.channel_id)
         call = Call.objects.create(channel=channel, started_by=self.user, call_type=call_type)
         CallParticipant.objects.create(call=call, user=self.user)
-        return CallSerializer(call).data
+        data = CallSerializer(call).data
+        if hasattr(channel, "meeting"):
+            data["meeting_title"] = channel.meeting.title
+        return data
 
     @database_sync_to_async
     def join_call(self, call_id):

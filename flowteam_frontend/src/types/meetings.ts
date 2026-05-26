@@ -35,6 +35,7 @@ export interface MeetingRecording {
   transcript_text: string;
   action_items: Record<string, unknown>;
   ai_summary: string;
+  created_by?: SlimUser | null;
   created_at: string;
   updated_at: string;
 }

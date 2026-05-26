@@ -76,7 +76,7 @@ export default function MeetingsPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Meeting | null>(null);
   const [q, setQ] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "upcoming" | "past" | "cancelled">("upcoming");
+  const [statusFilter, setStatusFilter] = useState<"all" | "live" | "upcoming" | "past" | "cancelled">("upcoming");
   const [weekOffset, setWeekOffset] = useState(0);
   const [creatingInstant, setCreatingInstant] = useState(false);
 
@@ -139,6 +139,17 @@ export default function MeetingsPage() {
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
+  // Auto-navigate weekOffset to selectedDay's week
+  useEffect(() => {
+    if (selectedDay) {
+      const base = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const targetStart = startOfWeek(selectedDay, { weekStartsOn: 1 });
+      const diffTime = targetStart.getTime() - base.getTime();
+      const diffWeeks = Math.round(diffTime / (7 * 24 * 60 * 60 * 1000));
+      setWeekOffset(diffWeeks);
+    }
+  }, [selectedDay]);
+
   // Filtered + grouped meetings
   const filtered = useMemo(() => {
     const now = Date.now();
@@ -153,6 +164,7 @@ export default function MeetingsPage() {
       list = list.filter((m) => { const s = safeDate(m.starts_at); return s && isSameDay(s, selectedDay); });
     }
 
+    if (statusFilter === "live") list = list.filter((m) => getMeetingPhase(m) === "live");
     if (statusFilter === "upcoming") list = list.filter((m) => {
       const s = safeDate(m.starts_at);
       return s && s.getTime() >= now && m.status !== "cancelled";
@@ -238,10 +250,10 @@ export default function MeetingsPage() {
             variant="outline"
             size="sm"
             className="h-8 px-3 text-[12.5px] gap-1.5 flex-1 sm:flex-none"
-            onClick={createInstant}
-            disabled={!activeTeamId || creatingInstant}
+            onClick={() => { setCreateDefaultMode("instant"); setCreateOpen(true); }}
+            disabled={!activeTeamId}
           >
-            <Zap size={13} />{creatingInstant ? "Creating…" : "Instant"}
+            <Zap size={13} />Instant
           </Button>
           <Button
             size="sm"
@@ -438,8 +450,8 @@ export default function MeetingsPage() {
             className="pl-9 h-9 text-[13px] bg-card"
           />
         </div>
-        <div className="flex rounded-lg border border-border bg-card p-0.5 gap-0.5">
-          {(["upcoming", "all", "past", "cancelled"] as const).map((s) => (
+        <div className="flex rounded-lg border border-border bg-card p-0.5 gap-0.5 overflow-x-auto">
+          {(["live", "upcoming", "all", "past", "cancelled"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -456,8 +468,18 @@ export default function MeetingsPage() {
 
       {/* ── Meeting list ── */}
       {isLoading ? (
-        <div className="space-y-2">
-          {[1, 2, 3].map((i) => <div key={i} className="h-20 rounded-xl bg-muted/30 animate-pulse" />)}
+        <div className="space-y-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border border-border/50 bg-card p-4 flex items-center gap-4 animate-pulse">
+              <div className="h-10 w-10 rounded-lg bg-muted shrink-0" />
+              <div className="flex-1 space-y-2 min-w-0">
+                <div className="h-4 bg-muted rounded w-1/3" />
+                <div className="h-3 bg-muted rounded w-1/2" />
+              </div>
+              <div className="h-6 w-16 bg-muted rounded hidden sm:block shrink-0" />
+              <div className="h-7 w-12 bg-muted rounded shrink-0" />
+            </div>
+          ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-dashed border-border text-center">
@@ -477,9 +499,18 @@ export default function MeetingsPage() {
             return (
               <div key={dateKey}>
                 <div className="flex items-center gap-2 mb-2">
-                  <p className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {dayDate ? friendlyDay(dayDate) : dateKey}
-                  </p>
+                  {dayDate ? (
+                    <button
+                      onClick={() => setSelectedDay(dayDate)}
+                      className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider hover:text-primary transition-colors flex items-center gap-1.5"
+                    >
+                      {friendlyDay(dayDate)}
+                    </button>
+                  ) : (
+                    <p className="text-[12px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {dateKey}
+                    </p>
+                  )}
                   <span className="text-[11px] text-muted-foreground/50 font-medium">
                     {dayDate ? format(dayDate, "MMMM d, yyyy") : ""}
                   </span>
@@ -583,6 +614,9 @@ function MeetingRow({
               {phaseConfig.label}
             </span>
           </div>
+          {meeting.description && (
+            <p className="text-[11.5px] text-muted-foreground/60 line-clamp-1 mb-1">{meeting.description}</p>
+          )}
           <div className="flex items-center gap-3 text-[11.5px] text-muted-foreground/70">
             {starts && (
               <span className="flex items-center gap-1">
@@ -640,7 +674,7 @@ function MeetingRow({
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
                 <MoreHorizontal size={13} />
               </Button>
             </DropdownMenuTrigger>

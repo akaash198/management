@@ -68,6 +68,8 @@ class MeetingPatchSerializer(serializers.Serializer):
 
 
 class MeetingRecordingSerializer(serializers.ModelSerializer):
+    created_by = SlimUserSerializer(read_only=True)
+
     class Meta:
         model = MeetingRecording
         fields = [

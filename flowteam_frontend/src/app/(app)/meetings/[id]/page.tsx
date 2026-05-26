@@ -17,7 +17,7 @@ import { useChatSocket } from "@/hooks/useMessaging";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import dynamic from "next/dynamic";
@@ -246,7 +246,7 @@ export default function MeetingDetailPage() {
             </div>
 
             {/* Prev / Next meeting */}
-            <div className="flex items-center gap-0.5 border-l border-border pl-3 ml-1">
+            <div className="hidden md:flex items-center gap-0.5 border-l border-border pl-3 ml-1">
               <Button
                 variant="ghost"
                 size="sm"
@@ -276,16 +276,16 @@ export default function MeetingDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 shrink-0">
             {isHost && phase !== "past" && phase !== "cancelled" && (
               <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={() => setEditOpen(true)}>
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
+                <span className="hidden sm:inline">Edit</span>
               </Button>
             )}
             <Button variant="outline" size="sm" className="gap-1.5 text-xs h-8" onClick={copyLink}>
               <Copy className="h-3.5 w-3.5" />
-              Copy link
+              <span className="hidden sm:inline">Copy link</span>
             </Button>
             {canJoin && (
               <Button
@@ -297,7 +297,8 @@ export default function MeetingDetailPage() {
                 )}
               >
                 {meeting.call_type === "video" ? <Video className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
-                {meeting.active_call_id ? "Join active call" : "Start call"}
+                <span className="hidden sm:inline">{meeting.active_call_id ? "Join active call" : "Start call"}</span>
+                <span className="sm:hidden">{meeting.active_call_id ? "Join" : "Start"}</span>
               </Button>
             )}
           </div>
@@ -403,6 +404,7 @@ export default function MeetingDetailPage() {
                     {attendees.map((a) => (
                       <div key={a.id} className="flex items-center gap-3 p-3 rounded-xl border border-border bg-muted/30 hover:bg-muted/60 transition-colors">
                         <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={(a as { avatar_url?: string }).avatar_url ?? ""} />
                           <AvatarFallback className="text-xs font-semibold bg-gradient-to-br from-primary/20 to-accent/20">
                             {initials(a.full_name)}
                           </AvatarFallback>
@@ -486,7 +488,7 @@ export default function MeetingDetailPage() {
                   <Button
                     variant="outline"
                     className="w-full justify-start gap-2 text-sm"
-                    onClick={() => router.push(`/messages?channel=${meeting.channel_id}`)}
+                    onClick={() => window.open(`/messages?channel=${meeting.channel_id}`, "_blank")}
                   >
                     <ExternalLink className="h-4 w-4" />
                     Open meeting chat
@@ -506,7 +508,11 @@ export default function MeetingDetailPage() {
                     <Button
                       variant="outline"
                       className="w-full justify-start gap-2 text-sm text-destructive hover:text-destructive border-destructive/20 hover:bg-destructive/5"
-                      onClick={() => cancelMutation.mutate()}
+                      onClick={() => {
+                        if (confirm("Are you sure you want to cancel this meeting? This action cannot be undone.")) {
+                          cancelMutation.mutate();
+                        }
+                      }}
                       disabled={cancelMutation.isPending}
                     >
                       Cancel meeting
@@ -568,7 +574,7 @@ export default function MeetingDetailPage() {
       </div>
 
       {/* ── Call modal ── */}
-      {meeting && (
+      {meeting && callOpen && (
         <CallComponent
           channelId={meeting.channel_id}
           isOpen={callOpen}
@@ -652,8 +658,13 @@ function RecordingCard({
             <Volume2 className="h-4 w-4 text-primary" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium">
-              Recording {format(new Date(recording.created_at), "h:mm a")}
+            <p className="text-sm font-medium flex items-center flex-wrap gap-x-2">
+              <span>Recording {format(new Date(recording.created_at), "h:mm a")}</span>
+              {recording.created_by && (
+                <span className="text-[11px] font-normal text-muted-foreground">
+                  by {recording.created_by.full_name}
+                </span>
+              )}
             </p>
             {recording.duration_seconds > 0 && (
               <p className="text-xs text-muted-foreground">{formatRecordingDuration(recording.duration_seconds)}</p>

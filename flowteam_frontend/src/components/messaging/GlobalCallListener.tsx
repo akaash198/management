@@ -5,7 +5,7 @@ import { useChannelEventsSocket } from "@/hooks/useMessaging";
 import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { usePathname, useRouter } from "next/navigation";
-import { Phone } from "lucide-react";
+import { Phone, Presentation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/api";
 import { Channel } from "@/types/messaging";
@@ -28,6 +28,7 @@ export function GlobalCallListener() {
     channelId: string;
     callType: "audio" | "video";
     callerName: string;
+    meetingTitle?: string;
   } | null>(null);
 
   // Don't show the toast when the user is already on the messages page
@@ -111,6 +112,7 @@ export function GlobalCallListener() {
             channelId: data.channel?.id ?? data.channel,
             callType: data.call_type ?? "audio",
             callerName: data.started_by?.full_name ?? "Someone",
+            meetingTitle: data.meeting_title,
           });
         }
       } else if (type === "call.ended" || type === "call.missed") {
@@ -148,6 +150,7 @@ export function GlobalCallListener() {
               channelId: ch.id,
               callType: ch.active_call_type ?? "audio",
               callerName: ch.active_call_started_by?.full_name ?? "Someone",
+              meetingTitle: ch.meeting_id ? ch.display_name : undefined,
             });
           }
         }
@@ -172,6 +175,7 @@ export function GlobalCallListener() {
                 channelId: mtg.channel_id,
                 callType: mtg.call_type ?? "video",
                 callerName: mtg.created_by?.full_name ?? "Someone",
+                meetingTitle: mtg.title,
               });
             }
           }
@@ -234,14 +238,29 @@ export function GlobalCallListener() {
 
   return (
     <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-4 rounded-2xl border border-accent/30 bg-card shadow-lg p-4 animate-in slide-in-from-bottom-8 duration-500">
-      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent">
-        <Phone size={24} className="animate-pulse" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent shrink-0">
+        {incomingCall.meetingTitle ? (
+          <Presentation size={22} className="animate-pulse" />
+        ) : (
+          <Phone size={22} className="animate-pulse" />
+        )}
       </div>
-      <div className="flex flex-col pr-4">
-        <span className="text-[14px] font-bold text-foreground">{incomingCall.callerName}</span>
-        <span className="text-[12px] text-muted-foreground uppercase tracking-wide font-medium">
-          Incoming {incomingCall.callType} call…
-        </span>
+      <div className="flex flex-col pr-4 min-w-0 max-w-[200px] sm:max-w-[250px]">
+        {incomingCall.meetingTitle ? (
+          <>
+            <span className="text-[13px] font-bold text-foreground truncate">{incomingCall.meetingTitle}</span>
+            <span className="text-[11px] text-muted-foreground truncate">
+              Live meeting by {incomingCall.callerName}…
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="text-[14px] font-bold text-foreground truncate">{incomingCall.callerName}</span>
+            <span className="text-[12px] text-muted-foreground uppercase tracking-wide font-medium truncate">
+              Incoming {incomingCall.callType} call…
+            </span>
+          </>
+        )}
       </div>
       <div className="flex items-center gap-2">
         <Button size="sm" className="rounded-xl px-4" onClick={acceptCall}>
