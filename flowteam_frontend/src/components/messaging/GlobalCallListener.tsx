@@ -126,6 +126,11 @@ export function GlobalCallListener() {
 
   // ── REST fallback polling (catches calls even if WS delivery failed) ──
   const seenCallIdsRef = useRef<Set<string>>(new Set());
+  // True until the first poll completes — used to silently seed seenCallIdsRef
+  // with pre-existing calls so we never ring for a call that was already active
+  // when the user logged in.
+  const initializedRef = useRef(false);
+
   useEffect(() => {
     if (!activeTeamId || isOnMessagesPage) return; // messages page has its own poller
     const poll = async () => {
@@ -140,6 +145,12 @@ export function GlobalCallListener() {
           for (const ch of res.data.data) {
             if (!ch.active_call_id) continue;
             activeIds.add(ch.active_call_id);
+            // On the very first poll, silently mark all active calls as seen
+            // so we don't ring for calls that were already in progress at login.
+            if (!initializedRef.current) {
+              seenCallIdsRef.current.add(ch.active_call_id);
+              continue;
+            }
             const startedById = ch.active_call_started_by?.id;
             if (startedById && String(startedById) === String(user?.id)) continue;
             if (seenCallIdsRef.current.has(ch.active_call_id)) continue;
@@ -165,6 +176,10 @@ export function GlobalCallListener() {
             for (const mtg of meetingsRes.data.data) {
               if (!mtg.active_call_id) continue;
               activeIds.add(mtg.active_call_id);
+              if (!initializedRef.current) {
+                seenCallIdsRef.current.add(mtg.active_call_id);
+                continue;
+              }
               const startedById = mtg.created_by?.id ?? mtg.created_by;
               if (startedById && String(startedById) === String(user?.id)) continue;
               if (seenCallIdsRef.current.has(mtg.active_call_id)) continue;
@@ -181,6 +196,9 @@ export function GlobalCallListener() {
           }
         } catch {}
 
+        // After the first poll completes, future polls will ring normally.
+        initializedRef.current = true;
+
         seenCallIdsRef.current = new Set(
           [...seenCallIdsRef.current].filter((id) => activeIds.has(id))
         );
@@ -194,7 +212,11 @@ export function GlobalCallListener() {
     };
     void poll();
     const interval = setInterval(poll, 4000);
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      // Reset on unmount so a re-login suppresses pre-existing calls again.
+      initializedRef.current = false;
+    };
   }, [activeTeamId, user?.id, incomingCall?.callId, isOnMessagesPage]);
 
   // ── Actions ─────────────────────────────────────────────────────────────

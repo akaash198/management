@@ -361,7 +361,9 @@ export function CallComponent({
       const next = new Map(prev);
       const existing = next.get(userId) ?? {
         userId,
-        name: "Participant",
+        // Use the caller/callee name passed as a prop when we don't yet have
+        // a participant_joined event for this peer (common in 1:1 calls).
+        name: remoteUserName && remoteUserName !== "Unknown" ? remoteUserName : "Unknown",
         isMuted: false,
         isVideoOff: false,
         isScreenSharing: false,
@@ -371,7 +373,7 @@ export function CallComponent({
       next.set(userId, { ...existing, ...update });
       return next;
     });
-  }, []);
+  }, [remoteUserName]);
 
   // ─── WebRTC peer creation ─────────────────────────────────────────────────
 
@@ -1113,7 +1115,7 @@ export function CallComponent({
 
                     {/* Remote tiles */}
                     {remoteEntries.map(([userId, stream]) => {
-                      const p = participants.get(userId) ?? { userId, name: "Participant", isMuted: false, isVideoOff: false, isScreenSharing: false, handRaised: false, isSpeaking: false };
+                      const p = participants.get(userId) ?? { userId, name: remoteUserName && remoteUserName !== "Unknown" ? remoteUserName : "Unknown", isMuted: false, isVideoOff: false, isScreenSharing: false, handRaised: false, isSpeaking: false };
                       return (
                         <ParticipantTile
                           key={userId}

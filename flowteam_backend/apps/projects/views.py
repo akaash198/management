@@ -497,6 +497,10 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if issue_type: queryset = queryset.filter(issue_type=issue_type)
         if priority: queryset = queryset.filter(priority=priority)
         if team_id: queryset = queryset.filter(project__team_id=team_id)
+        # Never surface tasks from archived projects unless the caller explicitly
+        # requests a specific project (e.g. the project detail board itself).
+        if not project_id:
+            queryset = queryset.filter(project__status="active")
         if search: queryset = queryset.filter(Q(title__icontains=search) | Q(description__icontains=search))
         if status_filter == "done":
             queryset = queryset.filter(column__is_done_column=True)
