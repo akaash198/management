@@ -69,6 +69,7 @@ export default function LandingPage() {
   const [ctaSubmitted, setCtaSubmitted]       = useState(false);
   const [testimonialIdx, setTestimonialIdx]   = useState(0);
   const [selectedUseCase, setSelectedUseCase] = useState<"software" | "marketing" | "remote" | "enterprise">("software");
+  const [searchQuery, setSearchQuery] = useState("");
   
   const marqueeRef = useRef<HTMLDivElement>(null);
 
@@ -185,7 +186,35 @@ export default function LandingPage() {
   // Sync board state when category is changed
   useEffect(() => {
     setBoardRows(defaultBoards[selectedUseCase].rows);
+    setSearchQuery("");
   }, [selectedUseCase]);
+
+  const handleAddItem = () => {
+    const defaultOwner = {
+      software: { name: "Ava Park", avatar: "AP", bg: "bg-[#0086F0]" },
+      marketing: { name: "Noah Chen", avatar: "NC", bg: "bg-[#7C3AED]" },
+      remote: { name: "Sam Liu", avatar: "SL", bg: "bg-[#00C875]" },
+      enterprise: { name: "Elena Rodriguez", avatar: "ER", bg: "bg-[#E2445C]" }
+    }[selectedUseCase];
+
+    const defaultNames = {
+      software: "New Authentication Service Mock",
+      marketing: "New Ad Campaign Launch",
+      remote: "Team Alignment Sync Handoff",
+      enterprise: "New Compliance Certificate"
+    }[selectedUseCase];
+
+    const newRow: BoardRow = {
+      id: `new_${Date.now()}`,
+      name: defaultNames,
+      owner: defaultOwner,
+      status: "Not Started",
+      priority: "Medium",
+      timeline: "May 25 - 30",
+      taskRef: "@new"
+    };
+    setBoardRows(rows => [...rows, newRow]);
+  };
 
   const cycleStatus = (id: string) => {
     setBoardRows(rows => rows.map(r => {
@@ -213,6 +242,7 @@ export default function LandingPage() {
   };
 
   const activeBoard = defaultBoards[selectedUseCase];
+  const filteredRows = boardRows.filter(row => row.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
   /* ─── Bento features ────────────────────────────────────────── */
   const FEATURES: {
@@ -436,23 +466,29 @@ export default function LandingPage() {
         {/* Hero Product Monday-style board screenshot */}
         <div id="demo" data-reveal className="lp-reveal mt-12 relative mx-auto max-w-5xl">
           {/* Floating Left Avatar Illustration */}
-          <div className="absolute -left-24 top-[10%] z-20 hidden xl:flex flex-col items-center gap-2 w-28 lp-float select-none">
-            <div className="relative w-24 h-24 rounded-full border border-slate-200 bg-white shadow-md overflow-hidden p-1">
+          <div className="absolute -left-24 top-[10%] z-20 hidden xl:flex flex-col items-center gap-2.5 w-28 lp-float select-none hover:scale-110 hover:-rotate-3 transition-all duration-300 ease-out cursor-pointer group/avatar">
+            <div className="relative w-24 h-24 rounded-full border-2 border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden p-1 group-hover/avatar:border-[#FDAB3D]/40 transition-all duration-300">
               <Image src="/left_avatar.png" alt="Cowrk Build User" width={96} height={96} className="object-cover rounded-full" />
             </div>
-            <div className="bg-white border border-slate-150 px-3 py-1 rounded-full shadow-sm text-[11px] font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap border-b-2 border-b-[#FDAB3D]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#FDAB3D]" />
+            <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 px-3.5 py-1.5 rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.06)] text-[12px] font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap group-hover/avatar:scale-105 group-hover/avatar:shadow-[0_12px_24px_rgba(0,0,0,0.08)] transition-all duration-300 border-b-2 border-b-[#FDAB3D]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FDAB3D] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FDAB3D]"></span>
+              </span>
               Cowrk Build 🚀
             </div>
           </div>
 
           {/* Floating Right Avatar Illustration */}
-          <div className="absolute -right-24 top-[30%] z-20 hidden xl:flex flex-col items-center gap-2 w-28 lp-float-slow select-none">
-            <div className="relative w-24 h-24 rounded-full border border-slate-200 bg-white shadow-md overflow-hidden p-1">
+          <div className="absolute -right-24 top-[30%] z-20 hidden xl:flex flex-col items-center gap-2.5 w-28 lp-float-slow select-none hover:scale-110 hover:rotate-3 transition-all duration-300 ease-out cursor-pointer group/avatar">
+            <div className="relative w-24 h-24 rounded-full border-2 border-slate-100 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden p-1 group-hover/avatar:border-[#00CFF4]/40 transition-all duration-300">
               <Image src="/right_avatar.png" alt="Cowrk Collab User" width={96} height={96} className="object-cover rounded-full" />
             </div>
-            <div className="bg-white border border-slate-150 px-3 py-1 rounded-full shadow-sm text-[11px] font-bold text-slate-800 flex items-center gap-1.5 whitespace-nowrap border-b-2 border-b-[#00CFF4]">
-              <span className="h-1.5 w-1.5 rounded-full bg-[#00CFF4]" />
+            <div className="bg-white/90 backdrop-blur-md border border-slate-200/60 px-3.5 py-1.5 rounded-full shadow-[0_8px_20px_rgba(0,0,0,0.06)] text-[12px] font-bold text-slate-800 flex items-center gap-2 whitespace-nowrap group-hover/avatar:scale-105 group-hover/avatar:shadow-[0_12px_24px_rgba(0,0,0,0.08)] transition-all duration-300 border-b-2 border-b-[#00CFF4]">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00CFF4] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00CFF4]"></span>
+              </span>
               Cowrk Share 🌐
             </div>
           </div>
@@ -460,7 +496,7 @@ export default function LandingPage() {
           <div className="absolute -inset-px rounded-2xl opacity-10 bg-slate-300 blur-sm pointer-events-none" />
           <div className="relative rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.08)]">
             {/* Monday Board Header chrome */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#F6F6F9]">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-[#F8FAFC]">
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
                   <div className="h-3 w-3 rounded-full bg-red-400" />
@@ -491,20 +527,29 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-2 self-start md:self-auto">
                   <div className="relative">
-                    <input type="text" placeholder="Search board..." readOnly className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-[12px] focus:outline-none bg-slate-50 w-40 cursor-default" />
+                    <input 
+                      type="text" 
+                      placeholder="Search board..." 
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      className="pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-[12px] focus:outline-none focus:border-[#6161FF] focus:bg-white bg-slate-50 w-44 hover:border-slate-300 transition-all shadow-inner" 
+                    />
                     <Search size={12} className="absolute left-2.5 top-2.5 text-slate-400" />
                   </div>
-                  <button className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#6161FF] text-white text-[12px] font-semibold shadow-sm hover:bg-[#4b4bff]">
+                  <button 
+                    onClick={handleAddItem}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-[#6161FF] text-white text-[12px] font-semibold shadow-sm hover:bg-[#4E4ED6] hover:shadow-[0_4px_12px_rgba(97,97,255,0.25)] active:scale-98 transition-all"
+                  >
                     <Plus size={12} /> Add Item
                   </button>
                 </div>
               </div>
 
               {/* Table Wrapper */}
-              <div className="overflow-x-auto border border-slate-150 rounded-lg">
+              <div className="overflow-x-auto border border-slate-150 rounded-lg bg-white">
                 <table className="w-full border-collapse text-left text-[13px]">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-150 font-medium text-slate-500 select-none">
+                    <tr className="bg-slate-50 border-b border-slate-150 font-medium text-slate-550 select-none">
                       <th className="py-2.5 px-4 w-[40%]">{activeBoard.groupName}</th>
                       <th className="py-2.5 px-3 text-center w-[12%]">Owner</th>
                       <th className="py-2.5 px-3 text-center w-[16%]">Status</th>
@@ -513,59 +558,67 @@ export default function LandingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {boardRows.map(row => (
-                      <tr key={row.id} className="hover:bg-slate-50 border-b border-slate-100 last:border-0 text-slate-700">
-                        {/* Task Title */}
-                        <td className="py-3 px-4 font-medium text-slate-800 flex items-center gap-2">
-                          <span className="w-1 h-4 rounded-sm" style={{ backgroundColor: activeBoard.color }} />
-                          {row.name}
-                        </td>
-                        {/* Owner */}
-                        <td className="py-3 px-3">
-                          <div className="flex justify-center">
-                            <div className={cn("h-7 w-7 rounded-full flex items-center justify-center font-bold text-white text-[10px] shadow-sm select-none", row.owner.bg)} title={row.owner.name}>
-                              {row.owner.avatar}
-                            </div>
-                          </div>
-                        </td>
-                        {/* Status badge */}
-                        <td className="py-2 px-3">
-                          <div
-                            onClick={() => cycleStatus(row.id)}
-                            className={cn(
-                              "status-pill py-1.5 px-2 rounded text-center text-white text-[11px] font-bold shadow-sm select-none",
-                              row.status === "Done" && "bg-[#00C875]",
-                              row.status === "Working on it" && "bg-[#FDAB3D]",
-                              row.status === "Stuck" && "bg-[#E2445C]",
-                              row.status === "Not Started" && "bg-[#C4C4C4]"
-                            )}
-                          >
-                            {row.status}
-                          </div>
-                        </td>
-                        {/* Priority badge */}
-                        <td className="py-2 px-3">
-                          <div
-                            onClick={() => cyclePriority(row.id)}
-                            className={cn(
-                              "status-pill py-1.5 px-2 rounded text-center text-white text-[11px] font-bold shadow-sm select-none",
-                              row.priority === "High" && "bg-[#E2445C]",
-                              row.priority === "Medium" && "bg-[#0086F0]",
-                              row.priority === "Low" && "bg-[#55C3FC]"
-                            )}
-                          >
-                            {row.priority}
-                          </div>
-                        </td>
-                        {/* Timeline */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2 justify-center text-[12px] text-slate-500 font-medium select-none bg-slate-100/70 py-1 px-2.5 rounded-full">
-                            <Calendar size={11} className="text-slate-400" />
-                            {row.timeline}
-                          </div>
+                    {filteredRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-[13px] text-slate-400 italic bg-slate-50/20 select-none">
+                          No tasks matching &quot;{searchQuery}&quot;
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      filteredRows.map(row => (
+                        <tr key={row.id} className="hover:bg-slate-50/70 border-b border-slate-100 last:border-0 text-slate-700 transition-all duration-200 hover:scale-[1.005] hover:shadow-[0_4px_12px_rgba(0,0,0,0.02)] group/row">
+                          {/* Task Title */}
+                          <td className="py-3 px-4 font-semibold text-slate-850 flex items-center gap-2">
+                            <span className="w-1 h-4 rounded-sm transition-transform group-hover/row:scale-y-125" style={{ backgroundColor: activeBoard.color }} />
+                            {row.name}
+                          </td>
+                          {/* Owner */}
+                          <td className="py-3 px-3">
+                            <div className="flex justify-center">
+                              <div className={cn("h-7 w-7 rounded-full flex items-center justify-center font-bold text-white text-[10px] shadow-sm select-none ring-2 ring-white/60 hover:scale-115 hover:ring-slate-200 transition-all duration-200 cursor-pointer", row.owner.bg)} title={row.owner.name}>
+                                {row.owner.avatar}
+                              </div>
+                            </div>
+                          </td>
+                          {/* Status badge */}
+                          <td className="py-2 px-3">
+                            <div
+                              onClick={() => cycleStatus(row.id)}
+                              className={cn(
+                                "status-pill py-1.5 px-2 rounded text-center text-white text-[11px] font-bold shadow-sm select-none transition-all duration-150 active:scale-95 cursor-pointer hover:brightness-105",
+                                row.status === "Done" && "bg-gradient-to-r from-[#00C875] to-[#00E085]",
+                                row.status === "Working on it" && "bg-gradient-to-r from-[#FDAB3D] to-[#FFBC65]",
+                                row.status === "Stuck" && "bg-gradient-to-r from-[#E2445C] to-[#F3556D]",
+                                row.status === "Not Started" && "bg-gradient-to-r from-[#C4C4C4] to-[#D4D4D4]"
+                              )}
+                            >
+                              {row.status}
+                            </div>
+                          </td>
+                          {/* Priority badge */}
+                          <td className="py-2 px-3">
+                            <div
+                              onClick={() => cyclePriority(row.id)}
+                              className={cn(
+                                "status-pill py-1.5 px-2 rounded text-center text-white text-[11px] font-bold shadow-sm select-none transition-all duration-150 active:scale-95 cursor-pointer hover:brightness-105",
+                                row.priority === "High" && "bg-gradient-to-r from-[#E2445C] to-[#F3556D]",
+                                row.priority === "Medium" && "bg-gradient-to-r from-[#0086F0] to-[#209BFF]",
+                                row.priority === "Low" && "bg-gradient-to-r from-[#55C3FC] to-[#80D4FF]"
+                              )}
+                            >
+                              {row.priority}
+                            </div>
+                          </td>
+                          {/* Timeline */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2 justify-center text-[11px] text-slate-655 font-semibold select-none bg-slate-100/80 hover:bg-slate-200/50 hover:text-slate-750 transition-all duration-200 py-1 px-2.5 rounded-full border border-slate-200/40">
+                              <Calendar size={11} className="text-slate-400" />
+                              {row.timeline}
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -1112,63 +1165,101 @@ function WordMark({ className }: { className?: string }) {
 
 function HeroMsg({ avatar, name, time, text, bg, accent }: { avatar: string; name: string; time: string; text: string; bg: string; accent?: boolean }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0 select-none shadow-sm", bg)}>
+    <div className={cn(
+      "flex items-start gap-3.5 p-2 rounded-xl transition-all duration-200 hover:bg-white hover:shadow-[0_4px_12px_rgba(0,0,0,0.03)] border border-transparent hover:border-slate-100",
+      accent && "bg-white/40"
+    )}>
+      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center text-[10.5px] font-bold text-white shrink-0 select-none shadow-sm ring-2 ring-white/60", bg)}>
         {avatar}
       </div>
-      <div>
+      <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2 mb-0.5">
-          <span className="text-[12.5px] font-bold text-slate-850">{name}</span>
-          <span className="text-[10px] text-slate-400">{time}</span>
+          <span className="text-[12.5px] font-bold text-slate-800">{name}</span>
+          <span className="text-[9.5px] text-slate-400 font-medium">{time}</span>
         </div>
-        <p className={cn("text-[13px] leading-relaxed", accent ? "text-slate-800 font-medium" : "text-slate-500")}>{text}</p>
+        <p className={cn("text-[13px] leading-relaxed", accent ? "text-slate-900 font-medium" : "text-slate-655")}>{text}</p>
       </div>
     </div>
   );
 }
 
 /* Bento previews in light mode */
+function BentoChatBubble({ name, text, highlight, avatar, bg }: { name: string; text: string; highlight?: boolean; avatar: string; bg: string }) {
+  return (
+    <div className={cn("flex gap-2.5 items-start text-[11px] transition-all", highlight ? "animate-[pulse_4s_infinite]" : "")}>
+      <div className={cn("h-6 w-6 rounded-full flex items-center justify-center font-bold text-white text-[9px] shrink-0 shadow-sm select-none", bg)}>
+        {avatar}
+      </div>
+      <div className="flex-1 space-y-0.5">
+        <div className="flex items-baseline gap-1.5">
+          <span className="font-bold text-slate-700">{name}</span>
+          <span className="text-[9px] text-slate-400 font-medium">11:24 AM</span>
+        </div>
+        <div className={cn("rounded-lg p-2.5 text-slate-655 leading-relaxed shadow-sm border transition-all duration-200", 
+          highlight 
+            ? "border-[#6161FF]/20 bg-[#6161FF]/5 text-slate-900 font-medium" 
+            : "border-slate-100 bg-white hover:border-slate-200"
+        )}>
+          {text}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BentoChat() {
   return (
-    <div className="grid grid-cols-[90px_1fr] sm:grid-cols-[110px_1fr] gap-0 bg-white" style={{ minHeight: 160 }}>
-      <div className="border-r border-slate-100 bg-slate-50/50 p-3 text-[11px] space-y-1">
+    <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[120px_1fr] gap-0 bg-white" style={{ minHeight: 175 }}>
+      <div className="border-r border-slate-100 bg-slate-50/50 p-3 text-[11px] space-y-1.5 select-none">
+        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Channels</div>
         {["# delivery", "# eng", "# design"].map((c, i) => (
-          <div key={c} className={cn("px-2 py-1 rounded font-medium", i === 0 ? "bg-[#6161FF]/10 text-[#6161FF]" : "text-slate-450")}>{c}</div>
+          <div key={c} className={cn("px-2 py-1 rounded-md font-bold transition-all cursor-pointer", i === 0 ? "bg-[#6161FF]/10 text-[#6161FF]" : "text-slate-450 hover:bg-slate-100/70 hover:text-slate-700")}>{c}</div>
         ))}
       </div>
-      <div className="p-4 space-y-2.5">
-        <BentoChatBubble name="Ava" text="Decision: ship by Friday." />
-        <BentoChatBubble name="Noah" text="Task created ✓" highlight />
-        <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00C875] lp-live-dot" />
+      <div className="p-4 space-y-3.5 flex flex-col justify-center">
+        <BentoChatBubble name="Ava" text="Decision: ship by Friday." avatar="AP" bg="bg-[#0086F0]" />
+        <BentoChatBubble name="Noah" text="Task created ✓" highlight avatar="NC" bg="bg-[#7C3AED]" />
+        <div className="text-[11px] text-slate-600 flex items-center gap-1.5 font-semibold px-1 select-none">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00C875] opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#00C875]"></span>
+          </span>
           Decision linked to board
         </div>
       </div>
     </div>
   );
 }
-function BentoChatBubble({ name, text, highlight }: { name: string; text: string; highlight?: boolean }) {
-  return (
-    <div className={cn("rounded-lg p-2.5 text-[11px]", highlight ? "border border-[#6161FF]/20 bg-[#6161FF]/5" : "border border-slate-100 bg-slate-50")}>
-      <span className="font-bold text-slate-700">{name}: </span>
-      <span className="text-slate-500">{text}</span>
-    </div>
-  );
-}
 
 function BentoBoard() {
   return (
-    <div className="grid grid-cols-3 gap-2 p-4 bg-white" style={{ minHeight: 140 }}>
+    <div className="grid grid-cols-3 gap-2.5 p-3.5 bg-[#F8FAFC]" style={{ minHeight: 175 }}>
       {[
-        { col: "To do", tasks: ["API docs", "Dark mode"], color: MONDAY_BLUE },
-        { col: "Doing", tasks: ["Mobile UI"], color: MONDAY_PURPLE },
-        { col: "Done", tasks: ["Auth flow"], color: MONDAY_GREEN },
+        { col: "To Do", count: 2, tasks: [{ name: "API docs", prio: "High" }, { name: "Dark mode", prio: "Med" }], color: MONDAY_BLUE },
+        { col: "Doing", count: 1, tasks: [{ name: "Mobile UI", prio: "High" }], color: MONDAY_PURPLE },
+        { col: "Done", count: 1, tasks: [{ name: "Auth flow", prio: "Low" }], color: MONDAY_GREEN },
       ].map(col => (
-        <div key={col.col} className="rounded-lg border border-slate-150 overflow-hidden shadow-sm">
-          <div className="px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-150" style={{ borderTopColor: col.color, borderTopWidth: 2 }}>{col.col}</div>
-          <div className="p-2 space-y-1.5 bg-slate-50/50">
+        <div key={col.col} className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.03)] flex flex-col select-none">
+          <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-655 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
+            <div className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ backgroundColor: col.color }} />
+              {col.col}
+            </div>
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-slate-200/70 text-slate-655 font-bold">{col.count}</span>
+          </div>
+          <div className="p-2 space-y-2 flex-1 bg-slate-50/20">
             {col.tasks.map(t => (
-              <div key={t} className="rounded bg-white border border-slate-100 px-2 py-1.5 text-[10px] font-medium text-slate-650 shadow-sm">{t}</div>
+              <div key={t.name} className="rounded-lg bg-white border border-slate-150 p-2 text-[10.5px] font-semibold text-slate-800 shadow-[0_1px_3px_rgba(0,0,0,0.01)] hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col gap-1.5">
+                <span>{t.name}</span>
+                <div className="flex items-center justify-between mt-0.5">
+                  <span className={cn("text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase", 
+                    t.prio === "High" && "bg-red-55/70 text-red-550 border border-red-100",
+                    t.prio === "Med" && "bg-amber-55/70 text-amber-550 border border-amber-100",
+                    t.prio === "Low" && "bg-emerald-55/70 text-emerald-550 border border-emerald-100",
+                  )}>{t.prio}</span>
+                  <div className="h-4 w-4 rounded-full bg-slate-200 flex items-center justify-center text-[7px] text-slate-600 font-bold border border-white">AP</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -1179,25 +1270,42 @@ function BentoBoard() {
 
 function BentoMeeting() {
   return (
-    <div className="p-4 bg-white" style={{ minHeight: 140 }}>
+    <div className="p-4 bg-slate-900 text-white rounded-lg flex flex-col justify-between" style={{ minHeight: 175 }}>
       <div className="flex items-center justify-between mb-3 select-none">
-        <div className="text-[12px] font-bold text-slate-600">Sprint review · Live</div>
-        <div className="flex items-center gap-1 text-[10px] font-bold text-[#00C875]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#00C875] lp-live-dot" /> Recording
+        <div className="text-[12px] font-bold text-slate-200">Sprint review · Live</div>
+        <div className="flex items-center gap-1.5 text-[10px] font-bold text-[#00C875]">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#00C875] animate-pulse" /> Recording
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-2 flex-1">
         {[
-          { initials: "AP", bg: "bg-[#0086F0]/20 text-[#0086F0]", border: "border-[#0086F0]/30" },
-          { initials: "NC", bg: "bg-[#7C3AED]/20 text-[#7C3AED]" },
-          { initials: "SL", bg: "bg-[#00C875]/20 text-[#00C875]" },
-          { initials: "ER", bg: "bg-[#E2445C]/20 text-[#E2445C]" }
+          { initials: "AP", bg: "bg-[#0086F0]", name: "Ava (Presenter)", mic: true },
+          { initials: "NC", bg: "bg-[#7C3AED]", name: "Noah", mic: true },
+          { initials: "SL", bg: "bg-[#00C875]", name: "Sam", mic: false },
+          { initials: "ER", bg: "bg-[#E2445C]", name: "Elena", mic: true }
         ].map((i, idx) => (
-          <div key={i.initials} className={cn("aspect-video rounded-lg flex items-center justify-center border",
-            idx === 0 ? "border-[#0086F0]/40 bg-[#0086F0]/5" : "border-slate-100 bg-slate-50")}>
-            <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shadow-inner", i.bg)}>
+          <div key={i.initials} className={cn("aspect-video rounded-lg flex flex-col items-center justify-center border relative overflow-hidden group/feed shadow-sm transition-all duration-300",
+            idx === 0 ? "border-blue-500/80 bg-slate-800" : "border-slate-800 bg-slate-850/80")}>
+            
+            {/* Mini avatar */}
+            <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold shadow-md ring-2 ring-white/10 transition-transform duration-300 group-hover/feed:scale-110", i.bg)}>
               {i.initials}
             </div>
+            
+            {/* Name label & Mic overlay */}
+            <div className="absolute bottom-1 left-1.5 right-1.5 flex items-center justify-between text-[8px] bg-slate-950/65 px-1.5 py-0.5 rounded-md text-slate-200 font-medium">
+              <span className="truncate max-w-[50px]">{i.name}</span>
+              {i.mic ? (
+                <span className="text-emerald-450 font-bold">●</span>
+              ) : (
+                <span className="text-red-400 font-bold">✕</span>
+              )}
+            </div>
+            
+            {/* Active speaker glow */}
+            {idx === 0 && (
+              <div className="absolute inset-0 border border-blue-500/50 rounded-lg pointer-events-none animate-pulse" />
+            )}
           </div>
         ))}
       </div>
@@ -1207,21 +1315,35 @@ function BentoMeeting() {
 
 function BentoAnalytics() {
   return (
-    <div className="p-4 bg-white" style={{ minHeight: 140 }}>
-      <div className="text-[11px] font-bold text-slate-550 mb-3">Velocity · Sprint 14</div>
-      <div className="flex items-end gap-1.5 h-16">
+    <div className="p-4 bg-white rounded-lg flex flex-col justify-between" style={{ minHeight: 175 }}>
+      <div className="text-[11px] font-bold text-slate-550 mb-3 flex justify-between items-center select-none">
+        <span>Velocity · Sprint 14</span>
+        <span className="text-[9px] text-slate-400 font-medium">Goal: 85 pts</span>
+      </div>
+      <div className="flex items-end gap-2.5 h-20 pt-2 border-b border-slate-100 px-1">
         {[45, 62, 55, 70, 80, 72, 90].map((h, i) => (
-          <div key={i} className="flex-1 rounded-t transition-all shadow-sm" style={{ height: `${h}%`, backgroundColor: `${MONDAY_GREEN}dd` }} />
+          <div key={i} className="flex-1 flex flex-col items-center gap-1 group/bar relative cursor-pointer">
+            {/* Tooltip */}
+            <div className="absolute -top-7 bg-slate-900 text-white text-[8px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover/bar:opacity-100 transition-opacity pointer-events-none whitespace-nowrap shadow-md">
+              {h} pts
+            </div>
+            <div className="w-full rounded-t-md transition-all duration-300 group-hover/bar:brightness-95 shadow-sm" 
+              style={{ 
+                height: `${h}%`, 
+                backgroundColor: i === 6 ? MONDAY_BLUE : MONDAY_GREEN,
+                opacity: i === 6 ? 0.95 : 0.8 + (i * 0.02)
+              }} 
+            />
+          </div>
         ))}
       </div>
-      <div className="flex items-center justify-between mt-3 text-[10px] text-slate-400 font-semibold select-none">
-        <span>Week 1</span><span>Week 7</span>
+      <div className="flex items-center justify-between mt-2.5 text-[9px] text-slate-400 font-bold select-none">
+        <span>Week 1</span><span>Week 7 (Current)</span>
       </div>
     </div>
   );
 }
 
-// Sparkles color-coded block
 function BentoAI() {
   const prompts = [
     "Summarize Sprint 14 blockers...",
@@ -1257,7 +1379,7 @@ function BentoAI() {
   }, [currentText, isDeleting, promptIdx]);
 
   return (
-    <div className="p-4 bg-white relative overflow-hidden flex flex-col justify-between" style={{ minHeight: 155 }}>
+    <div className="p-4 bg-white relative overflow-hidden flex flex-col justify-between" style={{ minHeight: 175 }}>
       {/* Glowing Orb in background (Monday Sidekick style) */}
       <div className="absolute -right-2 -bottom-2 w-28 h-28 rounded-full bg-gradient-to-tr from-pink-400 via-purple-400 to-[#6161FF] opacity-25 blur-xl animate-pulse" />
       
@@ -1275,12 +1397,12 @@ function BentoAI() {
       </div>
 
       <div className="space-y-1.5 relative z-10">
-        <div className="text-[11px] text-slate-500 font-medium select-none">
-          Suggested action:
+        <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider select-none">
+          Suggested action
         </div>
-        <div className="flex items-center gap-1.5">
-          <button className="px-3 py-1 rounded bg-[#FF158A]/10 text-[10px] font-bold text-[#FF158A] border border-[#FF158A]/20 transition-all hover:bg-[#FF158A]/20">Assign</button>
-          <button className="px-3 py-1 rounded bg-slate-100 text-[10px] font-bold text-slate-450 border border-slate-200 transition-all hover:bg-slate-200">Dismiss</button>
+        <div className="flex items-center gap-2">
+          <button className="px-3.5 py-1 rounded-md bg-[#FF158A] hover:bg-[#E01077] hover:shadow-[0_4px_12px_rgba(255,21,138,0.25)] text-[10px] font-bold text-white shadow-sm transition-all active:scale-95">Assign</button>
+          <button className="px-3.5 py-1 rounded-md bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-500 border border-slate-200/60 shadow-sm transition-all active:scale-95">Dismiss</button>
         </div>
       </div>
     </div>

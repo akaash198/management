@@ -111,6 +111,12 @@ export function CallComponent({
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(callType === "audio");
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [localStreamState, setLocalStreamState] = useState<MediaStream | null>(null);
+
+  const updateLocalStream = useCallback((stream: MediaStream | null) => {
+    localStreamRef.current = stream;
+    setLocalStreamState(stream);
+  }, []);
 
   // ── Participants (remote users)
   const [participants, setParticipants] = useState<Map<string, Participant>>(new Map());
@@ -321,8 +327,7 @@ export function CallComponent({
         video: video ? { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } } : false,
       });
       cameraStreamRef.current = stream;
-      localStreamRef.current = stream;
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+      updateLocalStream(stream);
       return stream;
     } catch (err) {
       if (err instanceof DOMException && err.name === "NotAllowedError") {
@@ -338,7 +343,7 @@ export function CallComponent({
           });
           toast("Camera unavailable — joining with audio only.", { duration: 4000 });
           cameraStreamRef.current = audioStream;
-          localStreamRef.current = audioStream;
+          updateLocalStream(audioStream);
           return audioStream;
         } catch {
           // ignore
@@ -431,12 +436,16 @@ export function CallComponent({
   const handleCallSignal = useCallback((data: unknown) => {
     const d = data as { from_user_id: string; signal_data: object; target_user_id: string };
     if (d.target_user_id !== user?.id) return;
-    // Use an empty stream if media hasn't been acquired (meeting without permissions).
-    // simple-peer can still exchange signaling and receive remote audio/video.
-    const stream = localStreamRef.current ?? new MediaStream();
+    
+    // If our media is still initializing, queue this signal until media is ready
+    if (!localStreamRef.current) {
+      pendingSignalsRef.current.push({ from_user_id: d.from_user_id, signal_data: d.signal_data });
+      return;
+    }
+    
     let peer = peersRef.current.get(d.from_user_id);
     if (!peer) {
-      peer = createPeer(d.from_user_id, false, stream);
+      peer = createPeer(d.from_user_id, false, localStreamRef.current);
       peersRef.current.set(d.from_user_id, peer);
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -450,11 +459,12 @@ export function CallComponent({
       name: d.user?.full_name ?? d.user_name ?? "Participant",
       avatar: d.user?.avatar ?? d.user_avatar,
     });
-    // Create a peer even if local stream is null (meeting joined without media).
-    // simple-peer handles a null/empty stream gracefully — we just won't send tracks.
-    const stream = localStreamRef.current ?? new MediaStream();
+    
+    // If localStreamRef is not initialized, we will handle peer creation when flushing signals
+    if (!localStreamRef.current) return;
+
     if (!peersRef.current.has(d.user_id)) {
-      const peer = createPeer(d.user_id, true, stream);
+      const peer = createPeer(d.user_id, true, localStreamRef.current);
       peersRef.current.set(d.user_id, peer);
     }
   }, [user?.id, createPeer, upsertParticipant]);
@@ -614,7 +624,7 @@ export function CallComponent({
     peersRef.current.forEach((p) => p.destroy());
     peersRef.current.clear();
     localStreamRef.current?.getTracks().forEach((t) => t.stop());
-    localStreamRef.current = null;
+    updateLocalStream(null);
     cameraStreamRef.current = null;
     screenStreamRef.current?.getTracks().forEach((t) => t.stop());
     screenStreamRef.current = null;
@@ -632,7 +642,7 @@ export function CallComponent({
     setChatOpen(false);
     setNetworkQuality("excellent");
     callStartTimeRef.current = null;
-  }, [stopRinging, stopDurationTimer, stopSpeakerDetection, callType]);
+  }, [stopRinging, stopDurationTimer, stopSpeakerDetection, callType, updateLocalStream]);
 
   useEffect(() => {
     if (!isOpen) { cleanup(); return; }
@@ -640,6 +650,8 @@ export function CallComponent({
     void (async () => {
       setCallStatus("calling");
       const stream = await getUserMedia(callType === "video");
+      const localStream = stream ?? new MediaStream();
+      updateLocalStream(localStream);
 
       if (meetingId) {
         // Meeting room: auto-connect immediately regardless of media result.
@@ -652,23 +664,9 @@ export function CallComponent({
           // Start a new call. The backend will echo back call.started with the call id;
           // we then immediately join so we are registered as a participant.
           sendCallMessage("call.start", { call_type: callType });
-          // call.started handler (below) will call sendCallMessage("call.join", ...) once
-          // the call id is known — see the call.started branch in the event switch.
         } else {
           callIdRef.current = existingCallId;
           sendCallMessage("call.join", { call_id: existingCallId });
-          // Flush any signals that arrived before media was ready
-          const localStream = stream ?? new MediaStream();
-          const pending = pendingSignalsRef.current.splice(0);
-          for (const { from_user_id, signal_data } of pending) {
-            let peer = peersRef.current.get(from_user_id);
-            if (!peer) {
-              peer = createPeer(from_user_id, false, localStream);
-              peersRef.current.set(from_user_id, peer);
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            peer.signal(signal_data as any);
-          }
         }
       } else {
         // DM Call
@@ -682,18 +680,19 @@ export function CallComponent({
           sendCallMessage("call.start", { call_type: callType });
         } else {
           sendCallMessage("call.join", { call_id: existingCallId });
-          // Flush any signals that arrived before media was ready
-          const pending = pendingSignalsRef.current.splice(0);
-          for (const { from_user_id, signal_data } of pending) {
-            let peer = peersRef.current.get(from_user_id);
-            if (!peer) {
-              peer = createPeer(from_user_id, false, stream);
-              peersRef.current.set(from_user_id, peer);
-            }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            peer.signal(signal_data as any);
-          }
         }
+      }
+
+      // Flush any signals that arrived before media was ready
+      const pending = pendingSignalsRef.current.splice(0);
+      for (const { from_user_id, signal_data } of pending) {
+        let peer = peersRef.current.get(from_user_id);
+        if (!peer) {
+          peer = createPeer(from_user_id, false, localStream);
+          peersRef.current.set(from_user_id, peer);
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        peer.signal(signal_data as any);
       }
     })();
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -729,6 +728,7 @@ export function CallComponent({
     if (!localStreamRef.current) return;
     const next = !isMuted;
     localStreamRef.current.getAudioTracks().forEach((t) => { t.enabled = !next; });
+    cameraStreamRef.current?.getAudioTracks().forEach((t) => { t.enabled = !next; });
     setIsMuted(next);
     sendCallMessage("call.mute_state", { call_id: callIdRef.current, muted: next });
   }, [isMuted, sendCallMessage]);
@@ -737,6 +737,7 @@ export function CallComponent({
     if (!localStreamRef.current) return;
     const next = !isVideoOff;
     localStreamRef.current.getVideoTracks().forEach((t) => { t.enabled = !next; });
+    cameraStreamRef.current?.getVideoTracks().forEach((t) => { t.enabled = !next; });
     setIsVideoOff(next);
     sendCallMessage("call.mute_state", { call_id: callIdRef.current, muted: isMuted, video_off: next });
   }, [isVideoOff, isMuted, sendCallMessage]);
@@ -752,8 +753,10 @@ export function CallComponent({
 
       const cam = cameraStreamRef.current ?? await getUserMedia(callType === "video");
       if (cam) {
-        localStreamRef.current = cam;
-        if (localVideoRef.current) localVideoRef.current.srcObject = cam;
+        // Restore track muted/disabled states according to toggled preferences
+        cam.getAudioTracks().forEach((t) => { t.enabled = !isMuted; });
+        cam.getVideoTracks().forEach((t) => { t.enabled = !isVideoOff; });
+        updateLocalStream(cam);
         const newVideo = cam.getVideoTracks()[0];
         if (screenTrack && newVideo) {
           peersRef.current.forEach((peer) => {
@@ -762,6 +765,15 @@ export function CallComponent({
             } catch (err) {
               console.error("Failed to restore camera track:", err);
               toast.error("Stream update failed for some participants");
+            }
+          });
+        } else if (screenTrack) {
+          // Audio-only call fallback: remove screen track since we don't have a camera video track to replace it with
+          peersRef.current.forEach((peer) => {
+            try {
+              peer.removeTrack(screenTrack, cameraStreamRef.current!);
+            } catch (err) {
+              console.error("Failed to remove screen share track from peer:", err);
             }
           });
         }
@@ -773,8 +785,19 @@ export function CallComponent({
         const newVideo = stream.getVideoTracks()[0];
         screenStreamRef.current = stream;
         setIsScreenSharing(true);
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-        localStreamRef.current = stream;
+
+        // Combine screen video track with microphone audio track so audio isn't lost during screen share
+        const combinedTracks: MediaStreamTrack[] = [];
+        if (newVideo) combinedTracks.push(newVideo);
+        const audioTrack = cameraStreamRef.current?.getAudioTracks()[0];
+        if (audioTrack) {
+          // Keep audio track muted/enabled state in sync
+          audioTrack.enabled = !isMuted;
+          combinedTracks.push(audioTrack);
+        }
+        const combinedStream = new MediaStream(combinedTracks);
+        updateLocalStream(combinedStream);
+
         sendCallMessage("call.screen_share", { call_id: callIdRef.current, is_sharing: true });
 
         if (oldVideo && newVideo && cameraStreamRef.current) {
@@ -784,6 +807,15 @@ export function CallComponent({
             } catch (err) {
               console.error("Failed to replace video with screen track:", err);
               toast.error("Stream update failed for some participants");
+            }
+          });
+        } else if (newVideo) {
+          // Audio-only call fallback: since there was no video track, add the screen track to the peers
+          peersRef.current.forEach((peer) => {
+            try {
+              peer.addTrack(newVideo, combinedStream);
+            } catch (err) {
+              console.error("Failed to add screen share track to peer:", err);
             }
           });
         }
@@ -798,7 +830,7 @@ export function CallComponent({
         toast.error("Failed to share screen");
       }
     }
-  }, [isScreenSharing, callType, getUserMedia, sendCallMessage]);
+  }, [isScreenSharing, callType, getUserMedia, sendCallMessage, isMuted, isVideoOff, updateLocalStream]);
 
   const toggleHandRaise = useCallback(() => {
     const next = !handRaised;
@@ -1069,14 +1101,7 @@ export function CallComponent({
                     {/* Local tile */}
                     <ParticipantTile
                       participant={allParticipants[0]}
-                      stream={null}
-                      videoRef={localVideoRef}
-                      onVideoRef={(el) => {
-                        if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
-                          el.srcObject = localStreamRef.current;
-                          void el.play().catch(() => {});
-                        }
-                      }}
+                      stream={localStreamState}
                       isLocal
                       isActive={activeSpeakerId === null || activeSpeakerId === (user?.id ?? "me")}
                       callType={callType}
@@ -1090,18 +1115,6 @@ export function CallComponent({
                           key={userId}
                           participant={p}
                           stream={stream}
-                          videoRef={{ current: remoteVideoRefs.current.get(userId) ?? null }}
-                          onVideoRef={(el) => {
-                            if (el) {
-                              remoteVideoRefs.current.set(userId, el);
-                              if (el.srcObject !== stream) {
-                                el.srcObject = stream;
-                                el.volume = 1.0;
-                                el.muted = false;
-                                void el.play().catch(() => {});
-                              }
-                            }
-                          }}
                           isActive={activeSpeakerId === userId}
                           callType={callType}
                           onClick={() => { setActiveSpeakerId(userId); setLayout("speaker"); }}
@@ -1116,33 +1129,22 @@ export function CallComponent({
                   <div className="flex-1 flex flex-col min-h-0">
                     {/* Main speaker */}
                     <div className="flex-1 relative min-h-0 bg-black/40">
-                      {speakerParticipant.userId === (user?.id ?? "me") ? (
-                        <video
-                          ref={(el) => {
-                            localVideoRef.current = el;
-                            if (el && localStreamRef.current && el.srcObject !== localStreamRef.current) {
-                              el.srcObject = localStreamRef.current;
-                              void el.play().catch(() => {});
-                            }
-                          }}
-                          autoPlay muted playsInline className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <video
-                          ref={(el) => {
-                            if (el && remoteStreams.has(speakerParticipant.userId)) {
-                              const stream = remoteStreams.get(speakerParticipant.userId)!;
-                              if (el.srcObject !== stream) {
-                                el.srcObject = stream;
-                                el.muted = false;
-                                void el.play().catch(() => {});
-                              }
-                            }
-                          }}
-                          autoPlay
-                          playsInline
+                      {((callType === "video" && !speakerParticipant.isVideoOff) || speakerParticipant.isScreenSharing) && (speakerParticipant.userId === (user?.id ?? "me") ? localStreamState : remoteStreams.get(speakerParticipant.userId)) ? (
+                        <VideoPlayer
+                          stream={speakerParticipant.userId === (user?.id ?? "me") ? localStreamState : remoteStreams.get(speakerParticipant.userId)!}
+                          isMuted={speakerParticipant.userId === (user?.id ?? "me")}
                           className="w-full h-full object-contain"
                         />
+                      ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+                          <Avatar className="h-32 w-32 border-4 border-white/20 shadow-2xl">
+                            {speakerParticipant.avatar && <AvatarImage src={speakerParticipant.avatar} />}
+                            <AvatarFallback className="text-4xl font-bold bg-slate-800 text-white">
+                              {initials(speakerParticipant.name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-lg font-semibold text-white/80">{speakerParticipant.name}</span>
+                        </div>
                       )}
                       <div className="absolute bottom-4 left-4 flex items-center gap-2 bg-black/60 backdrop-blur px-3 py-1.5 rounded-full">
                         <span className="text-sm font-semibold">{speakerParticipant.name}</span>
@@ -1156,15 +1158,15 @@ export function CallComponent({
                         .filter((p) => p.userId !== speakerParticipant.userId)
                         .map((p) => {
                           const isLocal = p.userId === (user?.id ?? "me");
-                          const stream = isLocal ? null : remoteStreams.get(p.userId) ?? null;
+                          const stream = isLocal ? localStreamState : remoteStreams.get(p.userId) ?? null;
                           return (
                             <FilmstripTile
                               key={p.userId}
                               participant={p}
                               stream={stream}
                               isLocal={isLocal}
-                              localRef={isLocal ? localVideoRef : undefined}
                               isActive={p.userId === activeSpeakerId}
+                              callType={callType}
                               onClick={() => setActiveSpeakerId(p.userId)}
                             />
                           );
@@ -1462,11 +1464,62 @@ function CallBtn({
   );
 }
 
+interface VideoPlayerProps {
+  stream: MediaStream | null;
+  isMuted?: boolean;
+  className?: string;
+}
+
+function VideoPlayer({ stream, isMuted = false, className }: VideoPlayerProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [trackCount, setTrackCount] = useState(0);
+
+  useEffect(() => {
+    if (!stream) return;
+    const updateTracks = () => {
+      setTrackCount(stream.getTracks().length);
+    };
+    stream.addEventListener("addtrack", updateTracks);
+    stream.addEventListener("removetrack", updateTracks);
+    updateTracks();
+    return () => {
+      stream.removeEventListener("addtrack", updateTracks);
+      stream.removeEventListener("removetrack", updateTracks);
+    };
+  }, [stream]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    el.muted = isMuted;
+    if (isMuted) {
+      el.volume = 0;
+    } else {
+      el.volume = 1.0;
+    }
+    if (stream && stream.getTracks().length > 0) {
+      el.play().catch((err) => {
+        console.warn("Video auto-play interrupted:", err);
+      });
+    }
+  }, [stream, trackCount, isMuted]);
+
+  return (
+    <video
+      ref={videoRef}
+      autoPlay
+      playsInline
+      className={className}
+    />
+  );
+}
+
 interface ParticipantTileProps {
   participant: Participant;
   stream: MediaStream | null;
-  videoRef: React.RefObject<HTMLVideoElement | null>;
-  onVideoRef?: (el: HTMLVideoElement | null) => void;
   isLocal?: boolean;
   isActive: boolean;
   callType: "audio" | "video";
@@ -1474,9 +1527,9 @@ interface ParticipantTileProps {
 }
 
 function ParticipantTile({
-  participant, stream: _stream, videoRef, onVideoRef, isLocal, isActive, callType, onClick,
+  participant, stream, isLocal, isActive, callType, onClick,
 }: ParticipantTileProps) {
-  const showVideo = callType === "video" && !participant.isVideoOff;
+  const showVideo = (callType === "video" && !participant.isVideoOff) || participant.isScreenSharing;
 
   return (
     <div
@@ -1486,18 +1539,8 @@ function ParticipantTile({
         isActive && "ring-2 ring-indigo-400 ring-offset-1 ring-offset-slate-900",
       )}
     >
-      {showVideo ? (
-        isLocal ? (
-          <video
-            ref={(el) => {
-              (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-              onVideoRef?.(el);
-            }}
-            autoPlay muted playsInline className="w-full h-full object-cover"
-          />
-        ) : (
-          <video ref={onVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-        )
+      {showVideo && stream ? (
+        <VideoPlayer stream={stream} isMuted={isLocal} className="w-full h-full object-cover" />
       ) : (
         <div className="flex flex-col items-center gap-2">
           <Avatar className="h-16 w-16 border-2 border-white/20">
@@ -1534,12 +1577,14 @@ interface FilmstripTileProps {
   participant: Participant;
   stream: MediaStream | null;
   isLocal: boolean;
-  localRef?: React.RefObject<HTMLVideoElement | null>;
   isActive: boolean;
+  callType: "audio" | "video";
   onClick: () => void;
 }
 
-function FilmstripTile({ participant, stream, isLocal, localRef, isActive, onClick }: FilmstripTileProps) {
+function FilmstripTile({ participant, stream, isLocal, isActive, callType, onClick }: FilmstripTileProps) {
+  const showVideo = (callType === "video" && !participant.isVideoOff) || participant.isScreenSharing;
+
   return (
     <div
       onClick={onClick}
@@ -1548,24 +1593,8 @@ function FilmstripTile({ participant, stream, isLocal, localRef, isActive, onCli
         isActive && "ring-2 ring-indigo-400"
       )}
     >
-      {isLocal ? (
-        <video
-          ref={(el) => {
-            if (localRef) (localRef as React.MutableRefObject<HTMLVideoElement | null>).current = el;
-          }}
-          autoPlay muted playsInline className="w-full h-full object-cover"
-        />
-      ) : stream ? (
-        <video
-          ref={(el) => {
-            if (el && stream && el.srcObject !== stream) {
-              el.srcObject = stream;
-              el.muted = false;
-              void el.play().catch(() => {});
-            }
-          }}
-          autoPlay playsInline className="w-full h-full object-cover"
-        />
+      {showVideo && stream ? (
+        <VideoPlayer stream={stream} isMuted={isLocal} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
           <Avatar className="h-10 w-10">
