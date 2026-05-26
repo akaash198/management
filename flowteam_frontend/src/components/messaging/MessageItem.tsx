@@ -250,7 +250,7 @@ function AttachmentList({ items }: { items: Attachment[] }) {
         }
         if (ct.startsWith("audio/")) {
           let duration: number | undefined = undefined;
-          const match = a.filename.match(/voice-memo-\d+-(\d+)\.\w+/);
+          const match = a.filename.match(/voice-memo-\d+-(\d+)/);
           if (match) {
             duration = parseInt(match[1], 10);
           }

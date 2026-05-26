@@ -196,13 +196,24 @@ export function VoiceMemoPlayer({ url, duration }: { url: string; duration?: num
     audio.onended = () => { setIsPlaying(false); setProgress(0); setCurrentTime(0); };
 
     const handleLoadedMetadata = () => {
-      if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
+      if (audio.duration === Infinity) {
+        audio.currentTime = 1e9; // Seek to the end
+        const handleTimeUpdate = () => {
+          if (audio.duration && audio.duration !== Infinity && !isNaN(audio.duration)) {
+            setLocalDuration(audio.duration);
+          }
+          audio.currentTime = 0;
+          audio.removeEventListener("timeupdate", handleTimeUpdate);
+        };
+        audio.addEventListener("timeupdate", handleTimeUpdate);
+      } else if (audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
         setLocalDuration(audio.duration);
       }
     };
+
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
-    if (audio.readyState >= 1 && audio.duration && !isNaN(audio.duration) && isFinite(audio.duration)) {
-      setLocalDuration(audio.duration);
+    if (audio.readyState >= 1) {
+      handleLoadedMetadata();
     }
 
     return () => {
