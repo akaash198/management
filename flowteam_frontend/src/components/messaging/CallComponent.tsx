@@ -1040,6 +1040,10 @@ export function CallComponent({
         </VisuallyHidden>
 
         <div className="relative flex h-full bg-[#1a1a2e] text-white overflow-hidden">
+          {/* Remote audio players to ensure we always hear other participants */}
+          {remoteEntries.map(([userId, stream]) => (
+            <AudioPlayer key={userId} stream={stream} />
+          ))}
 
           {/* ── CALLING SCREEN ─────────────────────────────────────────── */}
           {callStatus === "calling" && (
@@ -1132,7 +1136,7 @@ export function CallComponent({
                       {((callType === "video" && !speakerParticipant.isVideoOff) || speakerParticipant.isScreenSharing) && (speakerParticipant.userId === (user?.id ?? "me") ? localStreamState : remoteStreams.get(speakerParticipant.userId)) ? (
                         <VideoPlayer
                           stream={speakerParticipant.userId === (user?.id ?? "me") ? localStreamState : remoteStreams.get(speakerParticipant.userId)!}
-                          isMuted={speakerParticipant.userId === (user?.id ?? "me")}
+                          isMuted={true}
                           className="w-full h-full object-contain"
                         />
                       ) : (
@@ -1517,6 +1521,45 @@ function VideoPlayer({ stream, isMuted = false, className }: VideoPlayerProps) {
   );
 }
 
+interface AudioPlayerProps {
+  stream: MediaStream;
+}
+
+function AudioPlayer({ stream }: AudioPlayerProps) {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [trackCount, setTrackCount] = useState(0);
+
+  useEffect(() => {
+    const updateTracks = () => {
+      setTrackCount(stream.getTracks().length);
+    };
+    stream.addEventListener("addtrack", updateTracks);
+    stream.addEventListener("removetrack", updateTracks);
+    updateTracks();
+    return () => {
+      stream.removeEventListener("addtrack", updateTracks);
+      stream.removeEventListener("removetrack", updateTracks);
+    };
+  }, [stream]);
+
+  useEffect(() => {
+    const el = audioRef.current;
+    if (!el) return;
+    if (el.srcObject !== stream) {
+      el.srcObject = stream;
+    }
+    el.muted = false;
+    el.volume = 1.0;
+    if (stream && stream.getAudioTracks().length > 0) {
+      el.play().catch((err) => {
+        console.warn("Audio auto-play failed/interrupted:", err);
+      });
+    }
+  }, [stream, trackCount]);
+
+  return <audio ref={audioRef} autoPlay className="hidden" />;
+}
+
 interface ParticipantTileProps {
   participant: Participant;
   stream: MediaStream | null;
@@ -1540,7 +1583,7 @@ function ParticipantTile({
       )}
     >
       {showVideo && stream ? (
-        <VideoPlayer stream={stream} isMuted={isLocal} className="w-full h-full object-cover" />
+        <VideoPlayer stream={stream} isMuted={true} className="w-full h-full object-cover" />
       ) : (
         <div className="flex flex-col items-center gap-2">
           <Avatar className="h-16 w-16 border-2 border-white/20">
@@ -1594,7 +1637,7 @@ function FilmstripTile({ participant, stream, isLocal, isActive, callType, onCli
       )}
     >
       {showVideo && stream ? (
-        <VideoPlayer stream={stream} isMuted={isLocal} className="w-full h-full object-cover" />
+        <VideoPlayer stream={stream} isMuted={true} className="w-full h-full object-cover" />
       ) : (
         <div className="w-full h-full flex items-center justify-center">
           <Avatar className="h-10 w-10">
