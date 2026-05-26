@@ -198,6 +198,16 @@ class TeamMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
                     status=status.HTTP_403_FORBIDDEN if reason not in ("invalid_role",) else status.HTTP_400_BAD_REQUEST,
                 )
 
+        # Only CEO/Admin can set granular permission overrides.
+        if "permissions_json" in request.data:
+            is_admin_or_above = actor_role in (TeamMember.CEO, TeamMember.ADMIN) or request.user.is_superuser
+            if not is_admin_or_above:
+                return standardize_response(
+                    success=False,
+                    error={"code": "forbidden", "message": "Only admins can set permission overrides."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = self.get_serializer(instance, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

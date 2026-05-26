@@ -27,6 +27,7 @@ export interface TeamMember {
   id: string;
   user: User;
   role: "ceo" | "admin" | "manager" | "member" | "viewer";
+  permissions_json: Record<string, { can_view: boolean; can_edit: boolean; can_manage: boolean }> | null;
   joined_at: string;
 }
 

@@ -29,19 +29,21 @@ import { Label } from "@/components/ui/label";
 import {
   MoreHorizontal,
   Save,
+  SlidersHorizontal,
   Trash2,
   UserPlus,
   Users as UsersIcon,
-  Shield,
   ArrowLeft,
 } from "lucide-react";
+
+import { MemberPermissionsSheet } from "@/components/settings/MemberPermissionsSheet";
+import type { PermissionsJson } from "@/components/settings/MemberPermissionsSheet";
 import api from "@/lib/api";
 import type { ApiResponse, Team, TeamCapabilities, TeamMember } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { useTeamPermissions } from "@/hooks/usePermissions";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type Role = "ceo" | "admin" | "manager" | "member" | "viewer";
@@ -57,7 +59,6 @@ const ROLE_LABELS: Record<string, string> = {
 export default function SettingsMembersPage() {
   const { user } = useAuthStore();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { fetchTeams } = useTeamStore();
   const [activeTeam, setActiveTeam] = useState<Team | null>(null);
   const [members, setMembers] = useState<TeamMember[]>([]);
@@ -75,6 +76,8 @@ export default function SettingsMembersPage() {
 
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
   const [removing, setRemoving] = useState(false);
+
+  const [permTarget, setPermTarget] = useState<TeamMember | null>(null);
 
   useEffect(() => {
     void fetchTeams();
@@ -182,6 +185,15 @@ export default function SettingsMembersPage() {
     }
   };
 
+  const handleSavePermissions = async (userId: string, permissions: PermissionsJson) => {
+    if (!activeTeam) return;
+    await api.patch(`/teams/${activeTeam.id}/members/${userId}/`, { permissions_json: permissions });
+    setMembers((prev) =>
+      prev.map((m) => (m.user.id === userId ? { ...m, permissions_json: permissions } : m))
+    );
+    toast.success("Permissions saved");
+  };
+
   return (
     <div className="space-y-6 p-6 min-h-screen bg-background">
       <div className="flex items-start justify-between gap-6">
@@ -251,12 +263,21 @@ export default function SettingsMembersPage() {
                           <AvatarFallback>{(member.user.full_name?.[0] ?? "?").toUpperCase()}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
-                          <span className="font-medium">
+                          <button
+                            type="button"
+                            onClick={() => setPermTarget(member)}
+                            className="font-medium text-left hover:underline underline-offset-2 w-fit"
+                          >
                             {member.user.full_name}
                             {isCurrentUser && (
-                              <span className="ml-1.5 text-xs text-muted-foreground">(you)</span>
+                              <span className="ml-1.5 text-xs text-muted-foreground font-normal">(you)</span>
                             )}
-                          </span>
+                            {member.permissions_json && (
+                              <span className="ml-1.5 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                                custom
+                              </span>
+                            )}
+                          </button>
                           <span className="text-xs text-muted-foreground">{member.user.email}</span>
                         </div>
                       </div>
@@ -288,6 +309,10 @@ export default function SettingsMembersPage() {
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setPermTarget(member)}>
+                            <SlidersHorizontal className="mr-2 h-4 w-4" />
+                            Manage Permissions
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => {
                               setChangeRoleTarget(member);
@@ -422,6 +447,15 @@ export default function SettingsMembersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ── Member Permissions Sheet ── */}
+      <MemberPermissionsSheet
+        member={permTarget}
+        open={!!permTarget}
+        onOpenChange={(open) => !open && setPermTarget(null)}
+        canEdit={canManageTeamSettings}
+        onSave={handleSavePermissions}
+      />
     </div>
   );
 }

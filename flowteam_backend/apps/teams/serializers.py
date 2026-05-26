@@ -39,7 +39,8 @@ class TeamMemberSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TeamMember
-        fields = ("id", "user", "role", "joined_at")
+        fields = ("id", "user", "role", "permissions_json", "joined_at")
+        read_only_fields = ("id", "user", "joined_at")
 
 class TeamInviteSerializer(serializers.ModelSerializer):
     invite_link = serializers.SerializerMethodField()

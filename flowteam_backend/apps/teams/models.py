@@ -59,11 +59,15 @@ class TeamMember(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="team_memberships"
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=MEMBER)
+    # Granular per-member permission overrides on top of the role baseline.
+    # Schema: { "feature": { "can_view": bool, "can_edit": bool, "can_manage": bool } }
+    # Null means "use role defaults". Stored as JSON for forward-compatibility.
+    permissions_json = models.JSONField(null=True, blank=True, default=None)
     joined_at = models.DateTimeField(auto_now_add=True)
     invited_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
         related_name="sent_invites_member"
     )
 
