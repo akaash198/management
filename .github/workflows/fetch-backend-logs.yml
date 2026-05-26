@@ -1,0 +1,50 @@
+name: Fetch Backend Logs
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install paramiko pynacl
+
+      - name: Get Django logs
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          python - <<'PY'
+          import os, base64, paramiko
+
+          key_raw = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if "BEGIN" in key_raw:
+              key_raw = key_raw.replace("\\r", "\r").replace("\\n", "\n")
+              if not key_raw.endswith("\n"):
+                  key_raw += "\n"
+              with open("hetzner_key", "w") as f:
+                  f.write(key_raw)
+          else:
+              with open("hetzner_key", "wb") as f:
+                  f.write(base64.b64decode(key_raw.replace("\\n","").replace(" ","")))
+          os.chmod("hetzner_key", 0o600)
+
+          client = paramiko.SSHClient()
+          client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          client.connect(os.environ["HETZNER_HOST"], username=os.environ["HETZNER_USER"], key_filename="hetzner_key")
+
+          cmds = [
+              # Full last 500 lines — need the Traceback
+              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); echo \"=== Container: $CONTAINER ===\"; docker logs --tail 500 $CONTAINER 2>&1",
+          ]
+          for cmd in cmds:
+              _, stdout, stderr = client.exec_command(cmd)
+              print(stdout.read().decode())
+              print(stderr.read().decode())
+
+          client.close()
+          PY
