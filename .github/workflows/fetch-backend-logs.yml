@@ -38,10 +38,12 @@ jobs:
           client.connect(os.environ["HETZNER_HOST"], username=os.environ["HETZNER_USER"], key_filename="hetzner_key")
 
           cmds = [
-              # Force a traceback by hitting the endpoint inside the container with DEBUG detail
-              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c \"\nimport os, traceback\nos.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'\nimport django; django.setup()\nfrom django.test import RequestFactory\nfrom django.contrib.auth import get_user_model\nUser = get_user_model()\nu = User.objects.filter(is_active=True).first()\nprint('User:', u)\nfrom apps.users.views import UserMeView\nfrom rest_framework.test import APIRequestFactory\nfrom rest_framework.request import Request\nfrom rest_framework.parsers import JSONParser\nfactory = APIRequestFactory()\nreq = factory.get('/api/auth/me/', HTTP_AUTHORIZATION='Bearer test')\ntry:\n    resp = UserMeView.as_view()(req)\n    print('Status:', resp.status_code)\nexcept Exception as e:\n    traceback.print_exc()\n\" 2>&1",
-              # Also check for migration issues
-              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python manage.py showmigrations --list 2>&1 | tail -30",
+              # Print the backend container logs
+              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker logs $CONTAINER --tail 150 2>&1",
+              # Force a traceback using force_authenticate on /api/auth/me/
+              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c \"\nimport os, traceback\nos.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'\nimport django; django.setup()\nfrom django.contrib.auth import get_user_model\nUser = get_user_model()\nu = User.objects.filter(is_active=True).first()\nprint('User:', u)\nfrom apps.users.views import UserMeView\nfrom rest_framework.test import APIRequestFactory, force_authenticate\nfactory = APIRequestFactory()\nreq = factory.get('/api/auth/me/')\nforce_authenticate(req, user=u)\ntry:\n    resp = UserMeView.as_view()(req)\n    print('Status:', resp.status_code)\nexcept Exception as e:\n    traceback.print_exc()\n\" 2>&1",
+              # Force a traceback on /api/companies/
+              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c \"\nimport os, traceback\nos.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'\nimport django; django.setup()\nfrom django.contrib.auth import get_user_model\nUser = get_user_model()\nu = User.objects.filter(is_active=True).first()\nfrom apps.companies.views import CompanyViewSet\nfrom rest_framework.test import APIRequestFactory, force_authenticate\nfactory = APIRequestFactory()\nreq = factory.get('/api/companies/')\nforce_authenticate(req, user=u)\ntry:\n    resp = CompanyViewSet.as_view({'get': 'list'})(req)\n    print('Status:', resp.status_code)\nexcept Exception as e:\n    traceback.print_exc()\n\" 2>&1",
           ]
           for cmd in cmds:
               _, stdout, stderr = client.exec_command(cmd)
