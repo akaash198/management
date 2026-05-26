@@ -153,6 +153,7 @@ export interface TaskMutationInput {
   start_date?: string | null;
   due_date?: string | null;
   estimated_hours?: number | null;
+  label_ids?: string[];
   order?: number;
 }
 

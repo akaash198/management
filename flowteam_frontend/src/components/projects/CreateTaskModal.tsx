@@ -110,9 +110,10 @@ export function CreateTaskModal({
       project: projectId,
       priority,
       issue_type: issueType as any,
-      assignee: assigneeId || null,
+      assignee: (assigneeId && assigneeId !== "unassigned") ? assigneeId : null,
       due_date: dueDate || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+      label_ids: Array.from(selectedLabelIds),
     }, {
       onSuccess: () => {
         resetForm();
@@ -265,7 +266,7 @@ export function CreateTaskModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent 
-        className="sm:max-w-[700px] p-0 overflow-hidden glass-panel border-none page-enter shadow-2xl"
+        className="sm:max-w-[700px] max-h-[90vh] flex flex-col gap-0 p-0 overflow-hidden glass-panel border-none page-enter shadow-2xl"
         onKeyDown={handleKeyDown}
       >
         <DialogHeader className="px-8 pt-8 pb-6 bg-muted/20 border-b border-border/50">
@@ -292,7 +293,7 @@ export function CreateTaskModal({
           </div>
         </DialogHeader>
 
-        <div className="p-8 space-y-8 max-h-[75vh] overflow-y-auto custom-scrollbar bg-background/30 backdrop-blur-sm">
+        <div className="p-8 space-y-8 flex-1 min-h-0 overflow-y-auto custom-scrollbar bg-background/30 backdrop-blur-sm">
           {/* Main Content Area */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="md:col-span-2 space-y-6">
