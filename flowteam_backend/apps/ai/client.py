@@ -5,6 +5,10 @@ import requests
 
 
 def call_claude(system: str, user: str, max_tokens: int = 1024) -> str:
+    from .utils import scrub_sensitive_data
+    system = scrub_sensitive_data(system)
+    user = scrub_sensitive_data(user)
+
     api_key = (getattr(settings, "ANTHROPIC_API_KEY", "") or "").strip()
     if not api_key:
         return ""

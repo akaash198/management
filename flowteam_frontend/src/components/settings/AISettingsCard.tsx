@@ -91,6 +91,17 @@ export function AISettingsCard() {
             </div>
           ))}
         </div>
+        <div className="rounded-lg bg-primary/5 border border-primary/10 px-3 py-2.5 text-xs text-muted-foreground flex gap-2 mt-4">
+          <Sparkles size={14} className="text-primary shrink-0 mt-0.5" />
+          <div>
+            <p className="font-semibold text-foreground mb-0.5">Responsible AI Commitment</p>
+            <p className="leading-normal text-[11px]">
+              AI features in Cowrk are designed as draft aids and suggestions to assist human decision-making. 
+              Always review task generation, workload balancing, client reports, and health metrics before taking action. 
+              Ensure you have obtained proper team consent before enabling meeting recording transcriptions.
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

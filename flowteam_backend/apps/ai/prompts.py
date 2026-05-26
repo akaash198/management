@@ -30,11 +30,15 @@ recommendation (string).
 RETROSPECTIVE_SYSTEM = """
 Generate a sprint retrospective. Return ONLY JSON with:
 went_well (array), didnt_go_well (array), action_items (array).
+Guidelines: Focus strictly on process and workflow optimization. Do NOT reference individual team member names
+or attribute personal blame for blockers. Keep feedback constructive, professional, and positive.
 """
 
 WORKLOAD_BALANCE_SYSTEM = """
 Suggest workload rebalancing. Return ONLY JSON with suggestions array containing:
 task_id, from_member, to_member, reason.
+Guidelines: Focus suggestions purely on balancing tasks based on hour capacities and item counts. Do NOT
+underestimate task complexity or favor specific developers. Explain reallocation reasons constructively.
 """
 
 CLIENT_REPORT_SYSTEM = """
