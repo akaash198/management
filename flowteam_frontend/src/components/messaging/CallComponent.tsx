@@ -253,15 +253,32 @@ export function CallComponent({
 
   // ─── Active speaker detection ─────────────────────────────────────────────
 
+  // One shared AudioContext for all speaker detection — avoids per-participant
+  // context leaks and prevents accidental audio output through the speaker.
+  const speakerAudioCtxRef = useRef<AudioContext | null>(null);
+  // Track the MediaStreamSource nodes so we can disconnect them when a participant leaves
+  const speakerSourcesRef = useRef<Map<string, AudioNode>>(new Map());
+
   const startSpeakerDetection = useCallback((stream: MediaStream, userId: string) => {
     try {
       const AudioCtx = window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      if (!speakerAudioCtxRef.current || speakerAudioCtxRef.current.state === "closed") {
+        speakerAudioCtxRef.current = new AudioCtx();
+      }
+      const ctx = speakerAudioCtxRef.current;
+
+      // Disconnect any previous nodes for this user (e.g. on renegotiation)
+      speakerSourcesRef.current.get(userId)?.disconnect();
+      speakerSourcesRef.current.delete(userId);
+      audioAnalysersRef.current.delete(userId);
+
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
+      // Analysis only — NOT connected to ctx.destination (no echo)
       const src = ctx.createMediaStreamSource(stream);
       src.connect(analyser);
+      speakerSourcesRef.current.set(userId, src);
       audioAnalysersRef.current.set(userId, analyser);
     } catch { /* ignore */ }
   }, []);
@@ -271,7 +288,13 @@ export function CallComponent({
       clearInterval(speakerTimerRef.current);
       speakerTimerRef.current = null;
     }
+    speakerSourcesRef.current.forEach((src) => { try { src.disconnect(); } catch { /* ignore */ } });
+    speakerSourcesRef.current.clear();
     audioAnalysersRef.current.clear();
+    if (speakerAudioCtxRef.current) {
+      try { speakerAudioCtxRef.current.close(); } catch { /* ignore */ }
+      speakerAudioCtxRef.current = null;
+    }
   }, []);
 
   // ─── Network quality monitoring ───────────────────────────────────────────
@@ -486,6 +509,9 @@ export function CallComponent({
       next.delete(d.user_id);
       return next;
     });
+    // Clean up speaker detection nodes for this participant
+    speakerSourcesRef.current.get(d.user_id)?.disconnect();
+    speakerSourcesRef.current.delete(d.user_id);
     audioAnalysersRef.current.delete(d.user_id);
   }, []);
 
@@ -746,7 +772,6 @@ export function CallComponent({
 
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
-      // Capture the screen track BEFORE nulling the ref so replaceTrack has the right old track
       const screenTrack = screenStreamRef.current?.getVideoTracks()[0] ?? null;
       screenStreamRef.current?.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
@@ -755,79 +780,88 @@ export function CallComponent({
 
       const cam = cameraStreamRef.current ?? await getUserMedia(callType === "video");
       if (cam) {
-        // Restore track muted/disabled states according to toggled preferences
         cam.getAudioTracks().forEach((t) => { t.enabled = !isMuted; });
         cam.getVideoTracks().forEach((t) => { t.enabled = !isVideoOff; });
         updateLocalStream(cam);
         const newVideo = cam.getVideoTracks()[0];
-        if (screenTrack && newVideo) {
-          peersRef.current.forEach((peer) => {
-            try {
+
+        peersRef.current.forEach((peer) => {
+          try {
+            if (screenTrack && newVideo) {
+              // Replace screen video with camera video
               peer.replaceTrack(screenTrack, newVideo, cam);
-            } catch (err) {
-              console.error("Failed to restore camera track:", err);
-              toast.error("Stream update failed for some participants");
+            } else if (screenTrack) {
+              // Audio-only: just remove the screen track
+              peer.removeTrack(screenTrack, cam);
             }
-          });
-        } else if (screenTrack) {
-          // Audio-only call fallback: remove screen track since we don't have a camera video track to replace it with
-          peersRef.current.forEach((peer) => {
-            try {
-              peer.removeTrack(screenTrack, cameraStreamRef.current!);
-            } catch (err) {
-              console.error("Failed to remove screen share track from peer:", err);
+            // Ensure audio track is still live in the peer — re-add if it somehow dropped
+            const audioTrack = cam.getAudioTracks()[0];
+            if (audioTrack) {
+              // @ts-expect-error — _pc is simple-peer's internal RTCPeerConnection
+              const pc = peer._pc as RTCPeerConnection | undefined;
+              if (pc) {
+                const senders = pc.getSenders();
+                const hasAudio = senders.some((s) => s.track?.kind === "audio" && s.track.readyState === "live");
+                if (!hasAudio) {
+                  peer.addTrack(audioTrack, cam);
+                }
+              }
             }
-          });
-        }
+          } catch (err) {
+            console.error("Failed to restore camera track:", err);
+          }
+        });
       }
     } else {
       try {
         const stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+        const screenTrack = stream.getVideoTracks()[0];
         const oldVideo = cameraStreamRef.current?.getVideoTracks()[0] ?? null;
-        const newVideo = stream.getVideoTracks()[0];
         screenStreamRef.current = stream;
         setIsScreenSharing(true);
 
-        // Combine screen video track with microphone audio track so audio isn't lost during screen share
+        // Build combined stream for local preview: screen video + mic audio
         const combinedTracks: MediaStreamTrack[] = [];
-        if (newVideo) combinedTracks.push(newVideo);
+        if (screenTrack) combinedTracks.push(screenTrack);
         const audioTrack = cameraStreamRef.current?.getAudioTracks()[0];
         if (audioTrack) {
-          // Keep audio track muted/enabled state in sync
           audioTrack.enabled = !isMuted;
           combinedTracks.push(audioTrack);
         }
-        const combinedStream = new MediaStream(combinedTracks);
-        updateLocalStream(combinedStream);
-
+        updateLocalStream(new MediaStream(combinedTracks));
         sendCallMessage("call.screen_share", { call_id: callIdRef.current, is_sharing: true });
 
-        if (oldVideo && newVideo && cameraStreamRef.current) {
-          peersRef.current.forEach((peer) => {
-            try {
-              peer.replaceTrack(oldVideo, newVideo, cameraStreamRef.current!);
-            } catch (err) {
-              console.error("Failed to replace video with screen track:", err);
-              toast.error("Stream update failed for some participants");
+        peersRef.current.forEach((peer) => {
+          try {
+            if (oldVideo && screenTrack && cameraStreamRef.current) {
+              // Replace camera video with screen video in the peer
+              peer.replaceTrack(oldVideo, screenTrack, cameraStreamRef.current);
+            } else if (screenTrack && cameraStreamRef.current) {
+              // Audio-only call: add screen track
+              peer.addTrack(screenTrack, cameraStreamRef.current);
             }
-          });
-        } else if (newVideo) {
-          // Audio-only call fallback: since there was no video track, add the screen track to the peers
-          peersRef.current.forEach((peer) => {
-            try {
-              peer.addTrack(newVideo, combinedStream);
-            } catch (err) {
-              console.error("Failed to add screen share track to peer:", err);
+            // Verify audio sender is still live; restore if needed
+            if (audioTrack && cameraStreamRef.current) {
+              // @ts-expect-error — _pc is simple-peer's internal RTCPeerConnection
+              const pc = peer._pc as RTCPeerConnection | undefined;
+              if (pc) {
+                const senders = pc.getSenders();
+                const audioSender = senders.find((s) => s.track?.kind === "audio");
+                if (!audioSender || audioSender.track?.readyState !== "live") {
+                  peer.addTrack(audioTrack, cameraStreamRef.current);
+                }
+              }
             }
-          });
-        }
+          } catch (err) {
+            console.error("Failed to switch to screen share track:", err);
+          }
+        });
 
-        // Auto-stop when user ends share via browser UI
-        newVideo?.addEventListener("ended", () => {
+        // Auto-stop when user ends share via browser's native UI
+        screenTrack?.addEventListener("ended", () => {
           void toggleScreenShare();
         }, { once: true });
       } catch (err: unknown) {
-        // DOMException name === "NotAllowedError" means user cancelled — don't toast
         if (err instanceof DOMException && err.name === "NotAllowedError") return;
         toast.error("Failed to share screen");
       }
@@ -1478,40 +1512,31 @@ interface VideoPlayerProps {
 
 function VideoPlayer({ stream, isMuted = false, className }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [trackCount, setTrackCount] = useState(0);
-
-  useEffect(() => {
-    if (!stream) return;
-    const updateTracks = () => {
-      setTrackCount(stream.getTracks().length);
-    };
-    stream.addEventListener("addtrack", updateTracks);
-    stream.addEventListener("removetrack", updateTracks);
-    updateTracks();
-    return () => {
-      stream.removeEventListener("addtrack", updateTracks);
-      stream.removeEventListener("removetrack", updateTracks);
-    };
-  }, [stream]);
 
   useEffect(() => {
     const el = videoRef.current;
-    if (!el) return;
+    if (!el || !stream) return;
+
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
     el.muted = isMuted;
-    if (isMuted) {
-      el.volume = 0;
-    } else {
-      el.volume = 1.0;
-    }
-    if (stream && stream.getTracks().length > 0) {
+    el.volume = isMuted ? 0 : 1.0;
+
+    const tryPlay = () => {
       el.play().catch((err) => {
-        console.warn("Video auto-play interrupted:", err);
+        if ((err as DOMException).name !== "NotAllowedError") {
+          console.warn("Video auto-play interrupted:", err);
+        }
       });
-    }
-  }, [stream, trackCount, isMuted]);
+    };
+
+    tryPlay();
+    stream.addEventListener("addtrack", tryPlay);
+    return () => {
+      stream.removeEventListener("addtrack", tryPlay);
+    };
+  }, [stream, isMuted]);
 
   return (
     <video
@@ -1529,37 +1554,41 @@ interface AudioPlayerProps {
 
 function AudioPlayer({ stream }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const [trackCount, setTrackCount] = useState(0);
-
-  useEffect(() => {
-    const updateTracks = () => {
-      setTrackCount(stream.getTracks().length);
-    };
-    stream.addEventListener("addtrack", updateTracks);
-    stream.addEventListener("removetrack", updateTracks);
-    updateTracks();
-    return () => {
-      stream.removeEventListener("addtrack", updateTracks);
-      stream.removeEventListener("removetrack", updateTracks);
-    };
-  }, [stream]);
 
   useEffect(() => {
     const el = audioRef.current;
     if (!el) return;
+
+    // Attach stream once; don't reset srcObject if it's already the same stream
+    // (resetting causes the element to reload and interrupts ongoing playback).
     if (el.srcObject !== stream) {
       el.srcObject = stream;
     }
     el.muted = false;
     el.volume = 1.0;
-    if (stream && stream.getAudioTracks().length > 0) {
-      el.play().catch((err) => {
-        console.warn("Audio auto-play failed/interrupted:", err);
-      });
-    }
-  }, [stream, trackCount]);
 
-  return <audio ref={audioRef} autoPlay className="hidden" />;
+    const tryPlay = () => {
+      if (stream.getAudioTracks().some((t) => t.readyState === "live")) {
+        el.play().catch((err) => {
+          // NotAllowedError means the browser blocked autoplay — nothing we can do without a user gesture
+          if ((err as DOMException).name !== "NotAllowedError") {
+            console.warn("Audio auto-play failed:", err);
+          }
+        });
+      }
+    };
+
+    // Play immediately if tracks are already live
+    tryPlay();
+
+    // Also retry when new tracks are added (WebRTC often fires addtrack after the stream event)
+    stream.addEventListener("addtrack", tryPlay);
+    return () => {
+      stream.removeEventListener("addtrack", tryPlay);
+    };
+  }, [stream]);
+
+  return <audio ref={audioRef} autoPlay playsInline className="hidden" />;
 }
 
 interface ParticipantTileProps {
