@@ -412,7 +412,12 @@ class ChannelViewSet(viewsets.ModelViewSet):
                 )
 
             content_type = getattr(f, "content_type", "") or ""
-            allowed = content_type.startswith("image/") or content_type in ALLOWED_ATTACHMENT_TYPES
+            allowed = (
+                content_type.startswith("image/")
+                or content_type.startswith("audio/")
+                or content_type.startswith("video/")
+                or content_type in ALLOWED_ATTACHMENT_TYPES
+            )
             if not allowed:
                 return standardize_response(
                     success=False,

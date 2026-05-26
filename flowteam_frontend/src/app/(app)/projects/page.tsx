@@ -51,7 +51,7 @@ export default function ProjectsPage() {
   const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("active");
   const [sortBy, setSortBy] = useState<"updated" | "name" | "tasks" | "completion" | "overdue">(
     searchParams.get("filter") === "overdue" ? "overdue" : "updated"
   );
