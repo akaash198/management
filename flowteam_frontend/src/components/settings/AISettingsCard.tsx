@@ -58,6 +58,7 @@ export function AISettingsCard() {
   const [apiKey, setApiKey] = useState<string>("");
   const [modelOverride, setModelOverride] = useState<string>("");
   const [alertThreshold, setAlertThreshold] = useState<number>(80);
+  const [budgetUSD, setBudgetUSD] = useState<number>(50);
   const [hasApiKeyOnServer, setHasApiKeyOnServer] = useState(false);
 
   // Load configuration
@@ -73,6 +74,7 @@ export function AISettingsCard() {
           setProvider(data.byok_provider || "openai");
           setModelOverride(data.byok_model_override || "");
           setAlertThreshold(data.alert_threshold_percentage || 80);
+          setBudgetUSD((data.total_allocated || 5000) / 100);
           setHasApiKeyOnServer(data.has_api_key);
         }
       } catch (err) {
@@ -111,6 +113,7 @@ export function AISettingsCard() {
       if (mode === "byok") {
         payload.byok_provider = provider;
         payload.byok_model_override = modelOverride || null;
+        payload.total_allocated = budgetUSD * 100;
         if (apiKey) {
           payload.byok_api_key = apiKey;
         }
@@ -301,6 +304,34 @@ export function AISettingsCard() {
                         onChange={(e) => setApiKey(e.target.value)}
                         placeholder={hasApiKeyOnServer ? "••••••••••••••••••••••••" : "Enter raw API key"}
                       />
+                    </div>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="grid gap-2">
+                        <Label className="text-xs font-semibold">AI Budget / Limit (USD)</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          value={budgetUSD}
+                          onChange={(e) => setBudgetUSD(parseFloat(e.target.value) || 0)}
+                          placeholder="50.00"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Maximum cost cap for your workspace. 1 credit = $0.01 USD.</p>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label className="text-xs font-semibold">Alert Threshold Percentage</Label>
+                        <Input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={alertThreshold}
+                          onChange={(e) => setAlertThreshold(parseInt(e.target.value) || 80)}
+                          placeholder="80"
+                        />
+                        <p className="text-[10px] text-muted-foreground">Receive notifications when budget spent crosses this threshold.</p>
+                      </div>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-2">

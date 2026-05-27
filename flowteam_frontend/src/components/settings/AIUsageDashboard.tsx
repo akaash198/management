@@ -125,35 +125,27 @@ export function AIUsageDashboard() {
         {/* Allocation status */}
         <Card className="overflow-hidden border-border bg-card relative">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs font-medium uppercase tracking-wider">AI Budget / Credits</CardDescription>
+            <CardDescription className="text-xs font-medium uppercase tracking-wider">
+              {data.integration_mode === "byok" ? `AI Budget (BYOK: ${data.byok_provider || 'custom'})` : "AI Budget / Credits"}
+            </CardDescription>
             <CardTitle className="text-2xl font-bold flex items-baseline gap-1 mt-1">
-              {data.integration_mode === "byok" ? (
-                <span className="text-lg">Bring Your Own Key</span>
-              ) : (
-                <>
-                  ${(data.remaining_credits / 100).toFixed(2)}
-                  <span className="text-xs text-muted-foreground font-normal">/ ${(data.total_allocated / 100).toFixed(2)} allocated</span>
-                </>
-              )}
+              ${(data.remaining_credits / 100).toFixed(2)}
+              <span className="text-xs text-muted-foreground font-normal">/ ${(data.total_allocated / 100).toFixed(2)} allocated</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {data.integration_mode === "byok" ? (
-              <p className="text-[11px] text-muted-foreground leading-normal">Billing processed directly by your provider ({data.byok_provider}).</p>
-            ) : (
-              <div className="space-y-2">
-                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-primary rounded-full transition-all duration-500" 
-                    style={{ width: `${Math.min((data.credits_used / data.total_allocated) * 100, 100)}%` }}
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
-                  <span>{(data.credits_used).toFixed(0)} Credits Burned</span>
-                  <span>{((data.credits_used / data.total_allocated) * 100).toFixed(0)}% Used</span>
-                </div>
+            <div className="space-y-2">
+              <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary rounded-full transition-all duration-500" 
+                  style={{ width: `${Math.min((data.credits_used / (data.total_allocated || 1)) * 100, 100)}%` }}
+                />
               </div>
-            )}
+              <div className="flex justify-between text-[10px] text-muted-foreground font-semibold">
+                <span>{(data.credits_used).toFixed(0)} Credits Burned</span>
+                <span>{((data.credits_used / (data.total_allocated || 1)) * 100).toFixed(0)}% Used</span>
+              </div>
+            </div>
             <Coins className="absolute right-4 top-4 h-4 w-4 text-muted-foreground/30" />
           </CardContent>
         </Card>

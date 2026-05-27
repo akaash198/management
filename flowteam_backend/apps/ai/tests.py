@@ -5,8 +5,9 @@ from unittest.mock import MagicMock, patch
 from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from rest_framework.test import APIClient
 
-from apps.companies.models import Company
+from apps.companies.models import Company, CompanyMember
 from apps.ai.models import CompanyAIAccess, CompanyAICredits, AILog
 from apps.ai.client import call_llm_engine, LLMAdapterFactory, OpenAIAdapter, AnthropicAdapter, GeminiAdapter
 
@@ -121,8 +122,8 @@ class AIEngineAndBillingTests(TestCase):
         self.assertEqual(AILog.objects.filter(company=self.company).count(), 0)
 
     @patch("apps.ai.client.AnthropicAdapter.generate_text")
-    def test_call_llm_engine_byok_no_deduction(self, mock_generate_text):
-        """Test call_llm_engine in BYOK mode generates logs but does not deduct credits."""
+    def test_call_llm_engine_byok_deducts_credits(self, mock_generate_text):
+        """Test call_llm_engine in BYOK mode generates logs and deducts credits."""
         self.ai_access.integration_mode = CompanyAIAccess.MODE_BYOK
         self.ai_access.byok_provider = CompanyAIAccess.PROVIDER_ANTHROPIC
         self.ai_access.set_api_key("byok-key")
@@ -144,13 +145,13 @@ class AIEngineAndBillingTests(TestCase):
         )
 
         self.ai_credits.refresh_from_db()
-        self.assertEqual(self.ai_credits.credits_used, Decimal("0.00")) # unchanged
+        self.assertEqual(self.ai_credits.credits_used, Decimal("0.30"))
 
         # Check logs
         log = AILog.objects.filter(company=self.company).first()
         self.assertIsNotNone(log)
         self.assertEqual(log.integration_mode, CompanyAIAccess.MODE_BYOK)
-        self.assertEqual(log.credits_deducted, Decimal("0.00"))
+        self.assertEqual(log.credits_deducted, Decimal("0.30"))
 
     @patch("apps.ai.client.AnthropicAdapter.generate_text")
     def test_call_llm_engine_alert_triggered(self, mock_generate_text):
@@ -181,3 +182,51 @@ class AIEngineAndBillingTests(TestCase):
             # Used increases by 0.60 -> 80.10, crossing 80.00 (80%)
             self.assertEqual(self.ai_credits.credits_used, Decimal("80.10"))
             self.assertTrue(self.ai_credits.alert_triggered)
+
+    def test_company_admin_can_update_budget_in_byok(self):
+        """Test that a company CEO/Admin can set total_allocated when using BYOK mode."""
+        self.ai_access.integration_mode = CompanyAIAccess.MODE_BYOK
+        self.ai_access.save()
+
+        # Create CEO membership
+        CompanyMember.objects.create(
+            company=self.company,
+            user=self.user,
+            role=CompanyMember.CEO
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        # CEO tries to patch the budget (total_allocated) to 8000.00
+        url = f"/api/companies/{self.company.id}/ai-settings/"
+        response = client.patch(url, {"total_allocated": 8000.00}, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        self.ai_credits.refresh_from_db()
+        self.assertEqual(self.ai_credits.total_allocated, Decimal("8000.00"))
+
+    def test_company_admin_cannot_update_budget_in_platform_mode(self):
+        """Test that a company CEO/Admin cannot set total_allocated when in Platform mode."""
+        # integration_mode is platform_managed
+        self.ai_access.integration_mode = CompanyAIAccess.MODE_PLATFORM
+        self.ai_access.save()
+
+        # Create CEO membership
+        CompanyMember.objects.create(
+            company=self.company,
+            user=self.user,
+            role=CompanyMember.CEO
+        )
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        # CEO tries to patch budget to 8000.00
+        url = f"/api/companies/{self.company.id}/ai-settings/"
+        response = client.patch(url, {"total_allocated": 8000.00}, format="json")
+        self.assertEqual(response.status_code, 200)
+
+        # Budget should remain unchanged because they are not superusers and it's Platform mode
+        self.ai_credits.refresh_from_db()
+        self.assertEqual(self.ai_credits.total_allocated, Decimal("50.00")) # unchanged

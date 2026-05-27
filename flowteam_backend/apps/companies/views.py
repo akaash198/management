@@ -794,7 +794,8 @@ class CompanyAISettingsView(generics.GenericAPIView):
             except ValueError:
                 pass
 
-        if request.user.is_superuser and "total_allocated" in request.data:
+        # Allow budget settings updates by superuser or by company admin/CEO when in BYOK mode
+        if (request.user.is_superuser or access.integration_mode == CompanyAIAccess.MODE_BYOK) and "total_allocated" in request.data:
             try:
                 credits_status.total_allocated = Decimal(str(request.data["total_allocated"]))
             except Exception:

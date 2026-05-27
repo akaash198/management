@@ -182,12 +182,14 @@ def call_llm_engine(company: Company, user: Any, feature_name: str, system: str,
 
     is_byok = ai_access.integration_mode == CompanyAIAccess.MODE_BYOK
     
-    if not is_byok:
-        credits_status, _ = CompanyAICredits.objects.get_or_create(
-            company=company,
-            defaults={"total_allocated": Decimal("5000.00"), "credits_used": Decimal("0.00")}
-        )
-        if credits_status.remaining_credits <= Decimal("0.00"):
+    credits_status, _ = CompanyAICredits.objects.get_or_create(
+        company=company,
+        defaults={"total_allocated": Decimal("5000.00"), "credits_used": Decimal("0.00")}
+    )
+    if credits_status.remaining_credits <= Decimal("0.00"):
+        if is_byok:
+            raise ValueError("Insufficient AI budget. Please increase your budget in settings.")
+        else:
             raise ValueError("Insufficient credit balance. Please contact your administrator to purchase credits.")
 
     adapter = LLMAdapterFactory.get_adapter(ai_access, feature_name)
@@ -220,17 +222,16 @@ def call_llm_engine(company: Company, user: Any, feature_name: str, system: str,
             cost_in = (Decimal(prompt_tokens) / Decimal("1000000")) * pricing["input"]
             cost_out = (Decimal(completion_tokens) / Decimal("1000000")) * pricing["output"]
             cost_usd = cost_in + cost_out
-            if not is_byok:
-                credits_deducted = cost_usd * CREDITS_PER_USD
-                with transaction.atomic():
-                    credits_status = CompanyAICredits.objects.select_for_update().get(company=company)
-                    credits_status.credits_used += credits_deducted
-                    credits_status.save()
+            credits_deducted = cost_usd * CREDITS_PER_USD
+            with transaction.atomic():
+                credits_status = CompanyAICredits.objects.select_for_update().get(company=company)
+                credits_status.credits_used += credits_deducted
+                credits_status.save()
 
-                    percentage_used = (credits_status.credits_used / credits_status.total_allocated) * 100
-                    if percentage_used >= credits_status.alert_threshold_percentage and not credits_status.alert_triggered:
-                        credits_status.alert_triggered = True
-                        credits_status.save()
+                percentage_used = (credits_status.credits_used / credits_status.total_allocated) * 100
+                if percentage_used >= credits_status.alert_threshold_percentage and not credits_status.alert_triggered:
+                    credits_status.alert_triggered = True
+                    credits_status.save()
         
         try:
             AILog.objects.create(
