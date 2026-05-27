@@ -150,6 +150,15 @@ export default function MeetingsPage() {
     }
   }, [selectedDay]);
 
+  // Synchronize status filter with selected day
+  useEffect(() => {
+    if (selectedDay) {
+      setStatusFilter("all");
+    } else {
+      setStatusFilter("upcoming");
+    }
+  }, [selectedDay]);
+
   // Filtered + grouped meetings
   const filtered = useMemo(() => {
     const now = Date.now();
