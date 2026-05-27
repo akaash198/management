@@ -602,7 +602,7 @@ function CompanyDetailView({
               <DetailRow label="Website">
                 {company.website === "[RESTRICTED]" ? (
                   <span className="text-xs text-muted-foreground italic flex items-center gap-1">
-                    <Shield size={11} className="text-violet-500" /> Restricted to Super Admin
+                    <Shield size={11} className="text-violet-500" /> Restricted (Tenant Only)
                   </span>
                 ) : (
                   <a href={company.website} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
