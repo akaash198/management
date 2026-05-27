@@ -60,6 +60,7 @@ export function AISettingsCard() {
   const [alertThreshold, setAlertThreshold] = useState<number>(80);
   const [budgetUSD, setBudgetUSD] = useState<number>(50);
   const [hasApiKeyOnServer, setHasApiKeyOnServer] = useState(false);
+  const [loadedProvider, setLoadedProvider] = useState<string>("");
 
   // Load configuration
   useEffect(() => {
@@ -72,6 +73,7 @@ export function AISettingsCard() {
         if (data) {
           setMode(data.integration_mode);
           setProvider(data.byok_provider || "openai");
+          setLoadedProvider(data.byok_provider || "openai");
           setModelOverride(data.byok_model_override || "");
           setAlertThreshold(data.alert_threshold_percentage || 80);
           setBudgetUSD((data.total_allocated || 5000) / 100);
@@ -103,6 +105,30 @@ export function AISettingsCard() {
 
   const handleSaveConfig = async () => {
     if (!companyId || !isCEOorAdmin) return;
+
+    // Field Validations
+    if (mode === "byok") {
+      if (!provider) {
+        toast.error("Please select an AI Provider");
+        return;
+      }
+      const hasSavedKeyForCurrentProvider = hasApiKeyOnServer && provider === loadedProvider;
+      if (!apiKey && !hasSavedKeyForCurrentProvider) {
+        const providerName = provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : 'Google Gemini';
+        toast.error(`Please enter an API Key for ${providerName}`);
+        return;
+      }
+      if (budgetUSD <= 0) {
+        toast.error("Please enter a valid AI Budget (greater than 0)");
+        return;
+      }
+    }
+
+    if (alertThreshold < 1 || alertThreshold > 100) {
+      toast.error("Alert Threshold Percentage must be between 1 and 100");
+      return;
+    }
+
     setSaving(true);
     try {
       const payload: Record<string, any> = {
@@ -123,6 +149,7 @@ export function AISettingsCard() {
       toast.success("AI configuration saved successfully");
       if (res.data.data) {
         setHasApiKeyOnServer(res.data.data.has_api_key);
+        setLoadedProvider(res.data.data.byok_provider || "openai");
         setApiKey(""); // Clear local key input after save
       }
     } catch (err) {
@@ -133,8 +160,14 @@ export function AISettingsCard() {
   };
 
   const handleTestConnection = async () => {
-    if (!apiKey && !hasApiKeyOnServer) {
-      toast.error("Please enter an API Key to test connection");
+    if (!provider) {
+      toast.error("Please select an AI Provider to test connection");
+      return;
+    }
+    const hasSavedKeyForCurrentProvider = hasApiKeyOnServer && provider === loadedProvider;
+    if (!apiKey && !hasSavedKeyForCurrentProvider) {
+      const providerName = provider === 'openai' ? 'OpenAI' : provider === 'anthropic' ? 'Anthropic' : 'Google Gemini';
+      toast.error(`Please enter an API Key for ${providerName} to test connection`);
       return;
     }
     setTestingConnection(true);
