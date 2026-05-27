@@ -1540,10 +1540,25 @@ def calendar_export(request):
     team_id = request.query_params.get("team_id")
     project_id = request.query_params.get("project_id")
     tasks = Task.objects.filter(is_archived=False, due_date__isnull=False)
+    
+    if not request.user.is_superuser:
+        visible_projects = Project.objects.filter(
+            Q(team__members__user=request.user)
+            | Q(roles__user=request.user)
+            | Q(created_by=request.user)
+        ).values_list("id", flat=True)
+        tasks = tasks.filter(project_id__in=visible_projects)
+
     if team_id:
         tasks = tasks.filter(project__team_id=team_id)
     if project_id:
         tasks = tasks.filter(project_id=project_id)
+
+    def escape_ical_text(text: str) -> str:
+        if not text:
+            return ""
+        return text.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\r\n", "\\n").replace("\n", "\\n").replace("\r", "\\n")
+
     lines = [
         "BEGIN:VCALENDAR",
         "VERSION:2.0",
@@ -1555,8 +1570,8 @@ def calendar_export(request):
             f"UID:{task.id}@flowteam",
             f"DTSTAMP:{timezone.now().strftime('%Y%m%dT%H%M%SZ')}",
             f"DTSTART;VALUE=DATE:{task.due_date.strftime('%Y%m%d')}",
-            f"SUMMARY:{task.title}",
-            f"DESCRIPTION:{(task.description or '').replace(chr(10), ' ')}",
+            f"SUMMARY:{escape_ical_text(task.title)}",
+            f"DESCRIPTION:{escape_ical_text(task.description or '')}",
             "END:VEVENT",
         ])
     lines.append("END:VCALENDAR")

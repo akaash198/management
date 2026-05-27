@@ -742,3 +742,73 @@ class CompanyDomainVerifyView(generics.GenericAPIView):
                 f"flowteam-verification={token}"
             ),
         })
+
+
+class CompanyAISettingsView(generics.GenericAPIView):
+    permission_classes = [permissions.IsAuthenticated, IsCompanyAdminPermission]
+
+    def get(self, request, id):
+        company = get_object_or_404(Company, id=id)
+        from apps.ai.models import CompanyAIAccess, CompanyAICredits
+        access, _ = CompanyAIAccess.objects.get_or_create(company=company)
+        credits_status, _ = CompanyAICredits.objects.get_or_create(company=company)
+
+        return standardize_response(data={
+            "integration_mode": access.integration_mode,
+            "byok_provider": access.byok_provider or "",
+            "byok_model_override": access.byok_model_override or "",
+            "has_api_key": bool(access.byok_api_key_encrypted),
+            "total_allocated": float(credits_status.total_allocated),
+            "credits_used": float(credits_status.credits_used),
+            "remaining_credits": float(credits_status.remaining_credits),
+            "alert_threshold_percentage": credits_status.alert_threshold_percentage
+        })
+
+    def patch(self, request, id):
+        from decimal import Decimal
+        company = get_object_or_404(Company, id=id)
+        from apps.ai.models import CompanyAIAccess, CompanyAICredits
+        access, _ = CompanyAIAccess.objects.get_or_create(company=company)
+        credits_status, _ = CompanyAICredits.objects.get_or_create(company=company)
+
+        integration_mode = request.data.get("integration_mode")
+        if integration_mode in [CompanyAIAccess.MODE_PLATFORM, CompanyAIAccess.MODE_BYOK]:
+            access.integration_mode = integration_mode
+
+        if "byok_provider" in request.data:
+            access.byok_provider = request.data["byok_provider"] or None
+
+        if "byok_model_override" in request.data:
+            access.byok_model_override = request.data["byok_model_override"] or None
+
+        if "byok_api_key" in request.data:
+            key = request.data["byok_api_key"]
+            if key:
+                access.set_api_key(key)
+
+        access.save()
+
+        if "alert_threshold_percentage" in request.data:
+            try:
+                credits_status.alert_threshold_percentage = int(request.data["alert_threshold_percentage"])
+            except ValueError:
+                pass
+
+        if request.user.is_superuser and "total_allocated" in request.data:
+            try:
+                credits_status.total_allocated = Decimal(str(request.data["total_allocated"]))
+            except Exception:
+                pass
+
+        credits_status.save()
+
+        return standardize_response(data={
+            "integration_mode": access.integration_mode,
+            "byok_provider": access.byok_provider or "",
+            "byok_model_override": access.byok_model_override or "",
+            "has_api_key": bool(access.byok_api_key_encrypted),
+            "total_allocated": float(credits_status.total_allocated),
+            "credits_used": float(credits_status.credits_used),
+            "remaining_credits": float(credits_status.remaining_credits),
+            "alert_threshold_percentage": credits_status.alert_threshold_percentage
+        })

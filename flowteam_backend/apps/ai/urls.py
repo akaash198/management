@@ -18,4 +18,6 @@ urlpatterns = [
     path("focus-recommend/", views.FocusRecommendView.as_view(), name="ai-focus-recommend"),
     path("weekly-report/", views.WeeklyReportView.as_view(), name="ai-weekly-report"),
     path("auto-label/", views.AutoLabelView.as_view(), name="ai-auto-label"),
+    path("dashboard/", views.AIUsageDashboardView.as_view(), name="ai-dashboard"),
+    path("test-connection/", views.AITestConnectionView.as_view(), name="ai-test-connection"),
 ]

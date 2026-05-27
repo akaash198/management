@@ -40,6 +40,7 @@ import { CalendarIntegrationsCard } from "@/components/settings/CalendarIntegrat
 import { disablePushNotifications, enablePushNotifications } from "@/hooks/usePushNotifications";
 import { useTeamStore } from "@/store/team";
 import { AISettingsCard } from "@/components/settings/AISettingsCard";
+import { AIUsageDashboard } from "@/components/settings/AIUsageDashboard";
 import {
   ALL_CAPABILITIES, CAPABILITY_LABELS, PROJECT_ROLE_LABELS, TEAM_ROLE_LABELS,
   useTeamPermissions, type Capability, type ProjectRole as ProjectRoleType, type TeamRole,
@@ -692,7 +693,12 @@ export default function SettingsPage() {
             )}
 
             {/* ── AI ── */}
-            {activeTab === "ai" && <AISettingsCard />}
+            {activeTab === "ai" && (
+              <div className="space-y-6">
+                <AISettingsCard />
+                <AIUsageDashboard />
+              </div>
+            )}
 
             {/* ── Plan ── */}
             {activeTab === "plan" && (

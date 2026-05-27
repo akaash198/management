@@ -40,11 +40,13 @@ import {
   Filter,
   ListChecks,
   RotateCcw,
+  Download,
   Search,
   Video,
   X,
   Zap,
 } from "lucide-react";
+import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
 import { CreateMeetingDialog } from "@/components/meetings/CreateMeetingDialog";
@@ -144,6 +146,31 @@ export default function CalendarPage() {
 
   const [selectedDate, setSelectedDate] = useState<string>(() => dateOnly(new Date()));
   const [eventDetail, setEventDetail] = useState<EventDetailType | null>(null);
+
+  const [isExportingCalendar, setIsExportingCalendar] = useState(false);
+
+  const handleExportCalendar = async () => {
+    if (!activeTeamId) return;
+    setIsExportingCalendar(true);
+    try {
+      const params = new URLSearchParams({
+        team_id: activeTeamId,
+      });
+      if (projectId && projectId !== "all") {
+        params.append("project_id", projectId);
+      }
+      const res = await api.get(`/projects/calendar/export/?${params.toString()}`, {
+        responseType: "blob",
+      });
+      saveAs(res.data, "calendar_tasks.ics");
+      toast.success("Calendar exported successfully");
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to export calendar");
+    } finally {
+      setIsExportingCalendar(false);
+    }
+  };
 
   useEffect(() => {
     fetchTeams();
@@ -460,6 +487,16 @@ export default function CalendarPage() {
                   {activeFilterCount}
                 </span>
               )}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-[12px]"
+              onClick={handleExportCalendar}
+              disabled={!activeTeamId || isExportingCalendar}
+            >
+              <Download size={13} />
+              {isExportingCalendar ? "Exporting..." : "Export Calendar"}
             </Button>
             <Button size="sm" className="h-8 gap-1.5 text-[12px]" onClick={() => setCreateMeetingOpen(true)} disabled={!activeTeamId}>
               <Video size={13} />

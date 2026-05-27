@@ -21,7 +21,22 @@ from apps.teams.models import Team, TeamMember
 from apps.teams.permissions import IsAIEnabled
 from config.utils import standardize_response
 
-from .client import call_claude
+from apps.companies.models import CompanyMember, Company
+from .client import call_llm_engine, OpenAIAdapter, AnthropicAdapter, GeminiAdapter, LLMAdapterFactory
+
+def _resolve_company(request, project=None, team=None) -> Company:
+    if project and project.team and project.team.company:
+        return project.team.company
+    if team and team.company:
+        return team.company
+    membership = CompanyMember.objects.filter(user=request.user).first()
+    if membership:
+        return membership.company
+    return Company.objects.first()
+
+def _call_ai(request, feature_name: str, system: str, user_prompt: str, project=None, team=None, max_tokens: int = 1024) -> str:
+    company = _resolve_company(request, project=project, team=team)
+    return call_llm_engine(company, request.user, feature_name, system, user_prompt, max_tokens)
 from . import prompts
 from .serializers import (
     AutomationBuilderSerializer,
@@ -121,7 +136,7 @@ class GenerateTasksView(APIView):
         description = data.get("description") or (project.description if project else "")
         goal = data.get("goal") or ""
         user_prompt = f"Project name: {project_name}\nDescription: {description}\nGoal: {goal}"
-        generated = call_claude(prompts.TASK_GENERATION_SYSTEM, user_prompt, max_tokens=1400)
+        generated = _call_ai(request, "generate_tasks", prompts.TASK_GENERATION_SYSTEM, user_prompt, project=project, max_tokens=1400)
         tasks = _json_from_text(generated, _fallback_tasks(project_name, description or "", goal))
         if isinstance(tasks, dict):
             tasks = tasks.get("tasks", [])
@@ -137,7 +152,7 @@ class TaskSummarizeView(APIView):
         task = get_object_or_404(Task.objects.select_related("project__team", "column", "assignee"), id=serializer.validated_data["task_id"])
         _ensure_project_access(request.user, task.project)
         context = _task_context(task)
-        summary = call_claude(prompts.TASK_SUMMARY_SYSTEM, context, max_tokens=700)
+        summary = _call_ai(request, "task_summarize", prompts.TASK_SUMMARY_SYSTEM, context, project=task.project, max_tokens=700)
         if not summary:
             summary = f"{task.title} is currently in {task.column.name}. Priority is {task.priority}. Assignee: {task.assignee.full_name if task.assignee else 'Unassigned'}. Next step: review the latest comments and move the task forward."
         return standardize_response(data={"summary": summary})
@@ -166,7 +181,7 @@ class SprintPlanView(APIView):
             used += estimate
             fallback_ids.append(str(task.id))
         fallback = {"suggested_tasks": fallback_ids, "reasoning": f"Selected {len(fallback_ids)} tasks totalling about {float(used)}h within {float(capacity)}h capacity."}
-        text = call_claude(prompts.SPRINT_PLANNER_SYSTEM, json.dumps({"capacity_hours": float(capacity), "tasks": payload}), max_tokens=1200)
+        text = _call_ai(request, "sprint_plan", prompts.SPRINT_PLANNER_SYSTEM, json.dumps({"capacity_hours": float(capacity), "tasks": payload}), project=sprint.project, max_tokens=1200)
         return standardize_response(data=_json_from_text(text, fallback))
 
 
@@ -182,7 +197,7 @@ class ChannelSummaryView(APIView):
         messages = list(Message.objects.filter(channel=channel, created_at__gte=since, is_deleted=False).select_related("sender").order_by("-created_at")[:120])
         messages.reverse()
         context = "\n".join([f"{m.sender.full_name}: {m.text}" for m in messages])
-        summary = call_claude(prompts.CHANNEL_SUMMARY_SYSTEM, context, max_tokens=800)
+        summary = _call_ai(request, "channel_summary", prompts.CHANNEL_SUMMARY_SYSTEM, context, team=channel.team, max_tokens=800)
         if not summary:
             senders = {m.sender_id for m in messages}
             summary = f"{len(messages)} messages from {len(senders)} people. Recent focus: {messages[-1].text[:180] if messages else 'No recent messages.'}"
@@ -219,7 +234,7 @@ class ProjectHealthScoreView(APIView):
             "recommendation": "Focus overdue tasks first, then rebalance unassigned high-priority work.",
         }
         context = json.dumps({"project": project.name, "total": total, "done": done, "overdue": overdue})
-        text = call_claude(prompts.PROJECT_HEALTH_SYSTEM, context, max_tokens=900)
+        text = _call_ai(request, "project_health_score", prompts.PROJECT_HEALTH_SYSTEM, context, project=project, max_tokens=900)
         data = _json_from_text(text, fallback)
         cache.set(_health_cache_key(str(project.id)), data, timeout=3600 * 24)
         return standardize_response(data=data)
@@ -242,7 +257,7 @@ class RetrospectiveView(APIView):
             "action_items": ["Confirm capacity before committing the next sprint scope."],
         }
         context = json.dumps({"sprint": sprint.name, "goal": sprint.goal, "total": total, "completed": completed})
-        text = call_claude(prompts.RETROSPECTIVE_SYSTEM, context, max_tokens=900)
+        text = _call_ai(request, "retrospective", prompts.RETROSPECTIVE_SYSTEM, context, project=sprint.project, max_tokens=900)
         return standardize_response(data=_json_from_text(text, fallback))
 
 
@@ -268,7 +283,7 @@ class WorkloadBalanceView(APIView):
                 "to_member": loads[-1]["assignee__full_name"],
                 "reason": "Move a lower-risk task from the highest-loaded member to the lowest-loaded member.",
             })
-        text = call_claude(prompts.WORKLOAD_BALANCE_SYSTEM, json.dumps({"loads": loads}, default=str), max_tokens=900)
+        text = _call_ai(request, "workload_balance", prompts.WORKLOAD_BALANCE_SYSTEM, json.dumps({"loads": loads}, default=str), project=sprint.project, max_tokens=900)
         return standardize_response(data=_json_from_text(text, fallback))
 
 
@@ -285,7 +300,7 @@ class ClientReportView(APIView):
         completed = tasks.filter(column__is_done_column=True).count()
         overdue = tasks.filter(column__is_done_column=False, due_date__lt=timezone.now().date()).count()
         context = json.dumps({"project": project.name, "period_days": serializer.validated_data["period_days"], "updated": tasks.count(), "completed": completed, "overdue": overdue})
-        report = call_claude(prompts.CLIENT_REPORT_SYSTEM, context, max_tokens=1000)
+        report = _call_ai(request, "client_report", prompts.CLIENT_REPORT_SYSTEM, context, project=project, max_tokens=1000)
         if not report:
             report = f"This period, {project.name} had {tasks.count()} updated tasks and {completed} completed items. {overdue} items need attention. The team should focus on clearing at-risk work before the next milestone."
         return standardize_response(data={"report": report})
@@ -307,7 +322,7 @@ class MeetingActionItemsView(APIView):
             "action_items": [],
             "open_questions": [],
         }
-        text = call_claude(prompts.MEETING_ACTION_ITEMS_SYSTEM, transcript, max_tokens=1200)
+        text = _call_ai(request, "meeting_action_items", prompts.MEETING_ACTION_ITEMS_SYSTEM, transcript, team=meeting.team, max_tokens=1200)
         return standardize_response(data=_json_from_text(text, fallback))
 
 
@@ -328,7 +343,7 @@ class AutomationBuilderView(APIView):
             "conditions": [{"field": "priority", "op": "eq", "value": "urgent"}] if "urgent" in instruction.lower() else [],
             "actions": [{"type": "notify_reporter"}],
         }
-        text = call_claude(prompts.AUTOMATION_BUILDER_SYSTEM, instruction, max_tokens=900)
+        text = _call_ai(request, "build_automation", prompts.AUTOMATION_BUILDER_SYSTEM, instruction, project=project, max_tokens=900)
         return standardize_response(data=_json_from_text(text, fallback))
 
 
@@ -394,7 +409,7 @@ class DailyBriefingView(APIView):
             ]
         )
 
-        briefing = call_claude(prompts.DAILY_BRIEFING_SYSTEM, user_prompt, max_tokens=500)
+        briefing = _call_ai(request, "daily_briefing", prompts.DAILY_BRIEFING_SYSTEM, user_prompt, team=get_object_or_404(Team, id=team_id), max_tokens=500)
         if not briefing:
             briefing = "No briefing available right now. Check your overdue items and today's meetings."
 
@@ -418,7 +433,7 @@ class TaskDescriptionView(APIView):
         project_context = serializer.validated_data.get("project_context", "")
 
         user_prompt = f"Project context: {project_context}\nTask title: {title}"
-        raw = call_claude(prompts.TASK_DESCRIPTION_SYSTEM, user_prompt, max_tokens=900)
+        raw = _call_ai(request, "task_description", prompts.TASK_DESCRIPTION_SYSTEM, user_prompt, max_tokens=900)
         fallback = {
             "description": f"{title} — define the work and deliverables clearly and concisely.",
             "acceptance_criteria": ["Work is implemented", "QA passes", "Stakeholders confirm requirements are met"],
@@ -468,7 +483,7 @@ class FocusRecommendView(APIView):
             ]
         }
 
-        raw = call_claude(prompts.FOCUS_RECOMMEND_SYSTEM, user_prompt, max_tokens=700)
+        raw = _call_ai(request, "focus_recommend", prompts.FOCUS_RECOMMEND_SYSTEM, user_prompt, team=get_object_or_404(Team, id=team_id), max_tokens=700)
         return standardize_response(data=_json_from_text(raw, fallback))
 
 
@@ -507,7 +522,7 @@ class WeeklyReportView(APIView):
             ]
         )
 
-        report = call_claude(prompts.WEEKLY_REPORT_SYSTEM, user_prompt, max_tokens=900)
+        report = _call_ai(request, "weekly_report", prompts.WEEKLY_REPORT_SYSTEM, user_prompt, project=project, max_tokens=900)
         if not report:
             report = (
                 f"Completed This Week:\n{completed_text or '- none'}\n\n"
@@ -550,5 +565,139 @@ class AutoLabelView(APIView):
             "suggested_priority": "normal",
             "confidence": "low",
         }
-        raw = call_claude(prompts.AUTO_LABEL_SYSTEM, user_prompt, max_tokens=500)
+        raw = _call_ai(request, "auto_label", prompts.AUTO_LABEL_SYSTEM, user_prompt, team=get_object_or_404(Team, id=team_id), max_tokens=500)
         return standardize_response(data=_json_from_text(raw, fallback))
+
+
+class AIUsageDashboardView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        company = _resolve_company(request)
+        if not company:
+            return standardize_response(data={"message": "No company found"}, status=status.HTTP_404_NOT_FOUND)
+
+        from apps.ai.models import CompanyAICredits, CompanyAIAccess, AILog
+        credits_status, _ = CompanyAICredits.objects.get_or_create(
+            company=company,
+            defaults={"total_allocated": Decimal("5000.00"), "credits_used": Decimal("0.00")}
+        )
+        ai_access, _ = CompanyAIAccess.objects.get_or_create(
+            company=company,
+            defaults={"integration_mode": CompanyAIAccess.MODE_PLATFORM}
+        )
+
+        logs = AILog.objects.filter(company=company).order_by("-created_at")[:100]
+
+        total_requests = AILog.objects.filter(company=company).count()
+        success_requests = AILog.objects.filter(company=company, status="success").count()
+        failed_requests = AILog.objects.filter(company=company, status="failed").count()
+
+        token_sum = AILog.objects.filter(company=company, status="success").aggregate(
+            prompt=Sum("prompt_tokens"),
+            completion=Sum("completion_tokens"),
+            cost=Sum("cost_usd"),
+            credits=Sum("credits_deducted")
+        )
+        
+        # Calculate real average
+        avg_latency = 0
+        if total_requests > 0:
+            avg_latency = int(AILog.objects.filter(company=company).aggregate(avg=Sum("latency_ms"))["avg"] / total_requests)
+
+        feature_usage = list(
+            AILog.objects.filter(company=company)
+            .values("feature_name")
+            .annotate(count=Count("id"), cost=Sum("cost_usd"))
+            .order_by("-count")
+        )
+
+        from datetime import datetime, timedelta
+        chart_data = []
+        for i in range(14, -1, -1):
+            day = (timezone.now() - timedelta(days=i)).date()
+            day_logs = AILog.objects.filter(company=company, created_at__date=day)
+            day_cost = day_logs.aggregate(cost=Sum("cost_usd"))["cost"] or Decimal("0.00")
+            day_tokens = day_logs.aggregate(prompt=Sum("prompt_tokens"), comp=Sum("completion_tokens"))
+            tokens = (day_tokens["prompt"] or 0) + (day_tokens["comp"] or 0)
+            chart_data.append({
+                "date": day.strftime("%Y-%m-%d"),
+                "cost": float(day_cost),
+                "tokens": tokens,
+                "count": day_logs.count()
+            })
+
+        log_data = []
+        for log in logs:
+            log_data.append({
+                "id": str(log.id),
+                "feature_name": log.feature_name,
+                "integration_mode": log.integration_mode,
+                "provider": log.provider,
+                "model_name": log.model_name,
+                "prompt_tokens": log.prompt_tokens,
+                "completion_tokens": log.completion_tokens,
+                "cost_usd": float(log.cost_usd),
+                "credits_deducted": float(log.credits_deducted),
+                "latency_ms": log.latency_ms,
+                "status": log.status,
+                "error_message": log.error_message,
+                "request_summary": log.request_summary,
+                "response_preview": log.response_preview,
+                "created_at": log.created_at.isoformat()
+            })
+
+        return standardize_response(data={
+            "company_name": company.name,
+            "integration_mode": ai_access.integration_mode,
+            "byok_provider": ai_access.byok_provider,
+            "byok_model_override": ai_access.byok_model_override,
+            "total_allocated": float(credits_status.total_allocated),
+            "credits_used": float(credits_status.credits_used),
+            "remaining_credits": float(credits_status.remaining_credits),
+            "alert_threshold": credits_status.alert_threshold_percentage,
+            "total_requests": total_requests,
+            "success_requests": success_requests,
+            "failed_requests": failed_requests,
+            "avg_latency": avg_latency,
+            "total_cost_usd": float(token_sum["cost"] or 0),
+            "total_tokens": (token_sum["prompt"] or 0) + (token_sum["completion"] or 0),
+            "feature_usage": feature_usage,
+            "chart_data": chart_data,
+            "logs": log_data
+        })
+
+
+class AITestConnectionView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        provider = request.data.get("provider")
+        api_key = request.data.get("api_key")
+        model = request.data.get("model") or LLMAdapterFactory.get_default_model(provider)
+
+        if not provider or not api_key:
+            return standardize_response(success=False, error="Provider and API Key are required", status=status.HTTP_400_BAD_REQUEST)
+
+        company = _resolve_company(request)
+        if not company:
+            return standardize_response(success=False, error="Company not found", status=status.HTTP_404_NOT_FOUND)
+
+        if provider == "openai":
+            adapter = OpenAIAdapter(api_key=api_key, default_model=model)
+        elif provider == "anthropic":
+            adapter = AnthropicAdapter(api_key=api_key, default_model=model)
+        elif provider == "gemini":
+            adapter = GeminiAdapter(api_key=api_key, default_model=model)
+        else:
+            return standardize_response(success=False, error="Unsupported provider", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            res = adapter.generate_text(
+                prompt="Respond with OK",
+                system_instruction="You are a connection tester.",
+                max_tokens=10
+            )
+            return standardize_response(data={"message": "Connection test successful", "result": res["content"]})
+        except Exception as e:
+            return standardize_response(success=False, error=f"Connection test failed: {str(e)}", status=status.HTTP_400_BAD_REQUEST)

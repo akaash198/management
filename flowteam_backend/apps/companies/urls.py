@@ -14,6 +14,7 @@ from .views import (
     CompanyOnboardingInvitesView,
     CompanySettingsView,
     CompanyDomainVerifyView,
+    CompanyAISettingsView,
 )
 
 urlpatterns = [
@@ -44,4 +45,5 @@ urlpatterns = [
     # Settings & domain
     path("<uuid:id>/settings/", CompanySettingsView.as_view(), name="company_settings"),
     path("<uuid:id>/verify-domain/", CompanyDomainVerifyView.as_view(), name="company_verify_domain"),
+    path("<uuid:id>/ai-settings/", CompanyAISettingsView.as_view(), name="company_ai_settings"),
 ]
