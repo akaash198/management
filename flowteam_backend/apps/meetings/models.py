@@ -114,6 +114,4 @@ def ensure_channel_membership(*, channel: Channel, user_ids: list[str]):
 
 
 def ensure_team_membership(*, team: Team, user: User) -> bool:
-    if getattr(user, "is_superuser", False):
-        return True
     return TeamMember.objects.filter(team=team, user=user).exists()

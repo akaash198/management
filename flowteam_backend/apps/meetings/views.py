@@ -37,8 +37,6 @@ def _valid_attendees(team: Team, attendee_ids: list[str]) -> list[str]:
 
 
 def _can_manage_meeting(*, meeting: Meeting, user) -> bool:
-    if getattr(user, "is_superuser", False):
-        return True
     if str(meeting.created_by_id) == str(user.id):
         return True
     return TeamMember.objects.filter(
