@@ -27,6 +27,8 @@ import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { InviteMemberModal } from "./InviteMemberModal";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { AIGate } from "@/components/ai/AIGate";
+import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 
 const PRIORITY_ORDER = ["urgent","high","normal","low"] as PriorityKey[];
 
@@ -145,6 +147,9 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
       {/* ── Main grid ── */}
       <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-5">
+          <AIGate featureName="Daily briefing">
+            <DailyBriefingCard teamId={activeTeamId} />
+          </AIGate>
 
           {/* My priority tasks */}
           <Section

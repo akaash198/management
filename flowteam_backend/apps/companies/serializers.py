@@ -5,10 +5,46 @@ from .models import Company, CompanyMember, CompanyInvite, CompanyOnboardingInvi
 User = get_user_model()
 
 
+def mask_email(email):
+    if not email:
+        return ""
+    if "@" not in email:
+        return "***"
+    parts = email.split("@")
+    username = parts[0]
+    domain = parts[1]
+    if len(username) <= 2:
+        masked_username = username[0] + "*" * (len(username) - 1)
+    else:
+        masked_username = username[0] + "*" * (len(username) - 2) + username[-1]
+    return f"{masked_username}@{domain}"
+
+def mask_name(name):
+    if not name:
+        return "User"
+    parts = name.split(" ")
+    masked_parts = []
+    for part in parts:
+        if not part:
+            continue
+        if len(part) <= 2:
+            masked_parts.append(part[0] + "*")
+        else:
+            masked_parts.append(part[0] + "*" * (len(part) - 2) + part[-1])
+    return " ".join(masked_parts)
+
 class CompanyCEOSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ("id", "email", "full_name")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.user.is_superuser:
+            data["email"] = mask_email(data.get("email", ""))
+            data["full_name"] = mask_name(data.get("full_name", ""))
+        return data
 
 
 class CompanySerializer(serializers.ModelSerializer):
@@ -70,6 +106,19 @@ class CompanyDetailSerializer(CompanySerializer):
             return "superuser"
         from .rbac import get_user_company_role
         return get_user_company_role(company_id=str(obj.id), user=request.user)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request and request.user.is_superuser:
+            # Only allow public metadata settings
+            allowed_settings_keys = {"ai_enabled", "notifications_enabled", "audit_retention_days", "max_members"}
+            original_settings = data.get("settings_json") or {}
+            data["settings_json"] = {
+                k: v for k, v in original_settings.items() if k in allowed_settings_keys
+            }
+            data["website"] = "[RESTRICTED]"
+        return data
 
 
 class CompanyMemberSerializer(serializers.ModelSerializer):

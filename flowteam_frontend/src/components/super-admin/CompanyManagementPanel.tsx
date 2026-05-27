@@ -600,9 +600,15 @@ function CompanyDetailView({
           <div className="space-y-2">
             {company.website && (
               <DetailRow label="Website">
-                <a href={company.website} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
-                  {company.website} <ExternalLink size={10} />
-                </a>
+                {company.website === "[RESTRICTED]" ? (
+                  <span className="text-xs text-muted-foreground italic flex items-center gap-1">
+                    <Shield size={11} className="text-violet-500" /> Restricted to Super Admin
+                  </span>
+                ) : (
+                  <a href={company.website} target="_blank" rel="noreferrer" className="text-xs text-primary flex items-center gap-1 hover:underline">
+                    {company.website} <ExternalLink size={10} />
+                  </a>
+                )}
               </DetailRow>
             )}
             {company.industry && <DetailRow label="Industry"><span className="text-xs capitalize">{company.industry.replace("_", " ")}</span></DetailRow>}

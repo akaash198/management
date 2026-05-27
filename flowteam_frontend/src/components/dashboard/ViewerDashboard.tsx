@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Eye, Activity, Briefcase, Users, TrendingUp, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { AIGate } from "@/components/ai/AIGate";
+import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 
 interface Props {
   data: DashboardData;
@@ -85,6 +87,9 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
       {/* ── Main grid ── */}
       <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-5">
+          <AIGate featureName="Daily briefing">
+            <DailyBriefingCard teamId={activeTeamId} />
+          </AIGate>
 
           {/* Tabs: Projects | Members */}
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

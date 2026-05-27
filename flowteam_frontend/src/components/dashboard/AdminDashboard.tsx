@@ -33,6 +33,8 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
+import { AIGate } from "@/components/ai/AIGate";
+import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 
 type Role = "manager" | "member" | "viewer";
 const ROLE_LABELS: Record<string, string> = { ceo: "CEO", admin: "Admin", manager: "Manager", member: "Employee", viewer: "Viewer" };
@@ -223,6 +225,9 @@ export function AdminDashboard({ data, members, activeTeamId, onRefresh, isFetch
       {/* ── Main grid ── */}
       <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-5">
+          <AIGate featureName="Daily briefing">
+            <DailyBriefingCard teamId={activeTeamId} />
+          </AIGate>
 
           {/* Member roster with inline actions */}
           <Section

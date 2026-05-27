@@ -27,6 +27,8 @@ import Link from "next/link";
 import { format } from "date-fns";
 import api from "@/lib/api";
 import { toast } from "sonner";
+import { AIGate } from "@/components/ai/AIGate";
+import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 
 interface Props {
   data: DashboardData;
@@ -155,6 +157,9 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
       {/* ── Main grid ── */}
       <div className="grid gap-5 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-5">
+          <AIGate featureName="Daily briefing">
+            <DailyBriefingCard teamId={activeTeamId} />
+          </AIGate>
 
           {/* Smart focus */}
           <Section

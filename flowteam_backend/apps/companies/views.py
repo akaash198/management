@@ -6,6 +6,7 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import generics, status, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
 from config.utils import standardize_response
@@ -151,7 +152,7 @@ class CompanyMembersView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         qs = self.get_queryset()
-        data = CompanyMemberSerializer(qs, many=True).data
+        data = self.get_serializer(qs, many=True).data
         return standardize_response(data=data)
 
     def post(self, request, id):
@@ -748,6 +749,8 @@ class CompanyAISettingsView(generics.GenericAPIView):
     permission_classes = [permissions.IsAuthenticated, IsCompanyAdminPermission]
 
     def get(self, request, id):
+        if request.user.is_superuser:
+            raise PermissionDenied("Super admins cannot view company API details.")
         company = get_object_or_404(Company, id=id)
         from apps.ai.models import CompanyAIAccess, CompanyAICredits
         access, _ = CompanyAIAccess.objects.get_or_create(company=company)
@@ -765,6 +768,8 @@ class CompanyAISettingsView(generics.GenericAPIView):
         })
 
     def patch(self, request, id):
+        if request.user.is_superuser:
+            raise PermissionDenied("Super admins cannot modify company API details.")
         from decimal import Decimal
         company = get_object_or_404(Company, id=id)
         from apps.ai.models import CompanyAIAccess, CompanyAICredits

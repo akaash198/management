@@ -46,6 +46,40 @@ class SuperAdminDashboardView(views.APIView):
         if team_id:
             counts_query = Q(team_id=team_id)
 
+        recent_users_list = []
+        for u in User.objects.order_by("-date_joined")[:8]:
+            email = u.email or ""
+            name = u.full_name or ""
+            if "@" in email:
+                parts = email.split("@")
+                username = parts[0]
+                domain = parts[1]
+                if len(username) <= 2:
+                    masked_username = username[0] + "*" * (len(username) - 1)
+                else:
+                    masked_username = username[0] + "*" * (len(username) - 2) + username[-1]
+                masked_email = f"{masked_username}@{domain}"
+            else:
+                masked_email = "***"
+            parts = name.split(" ")
+            masked_parts = []
+            for part in parts:
+                if not part:
+                    continue
+                if len(part) <= 2:
+                    masked_parts.append(part[0] + "*")
+                else:
+                    masked_parts.append(part[0] + "*" * (len(part) - 2) + part[-1])
+            masked_name = " ".join(masked_parts) if masked_parts else "User"
+            recent_users_list.append({
+                "id": str(u.id),
+                "email": masked_email,
+                "full_name": masked_name,
+                "date_joined": u.date_joined,
+                "is_staff": u.is_staff,
+                "is_superuser": u.is_superuser,
+            })
+
         data = {
             "counts": {
                 "users": User.objects.count() if not team_id else TeamMember.objects.filter(team_id=team_id).count(),
@@ -60,10 +94,7 @@ class SuperAdminDashboardView(views.APIView):
                 "task_activity_7d": TaskActivity.objects.filter(created_at__gte=last_7d).count(),
                 "messages_7d": Message.objects.filter(created_at__gte=last_7d).count(),
             },
-            "recent_users": list(
-                User.objects.order_by("-date_joined")
-                .values("id", "email", "full_name", "date_joined", "is_staff", "is_superuser")[:8]
-            ),
+            "recent_users": recent_users_list,
             "recent_teams": list(
                 (
                     Team.objects.filter(id=team_id) if team_id else Team.objects.all()

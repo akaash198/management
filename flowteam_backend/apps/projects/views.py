@@ -1187,6 +1187,8 @@ class ProjectDocumentViewSet(AuditedModelMixin, StandardizedModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return ProjectDocument.objects.none()
         queryset = ProjectDocument.objects.select_related("project", "task", "created_by", "parent_document")
         team_id = self.request.query_params.get("team_id")
         project_id = self.request.query_params.get("project_id")

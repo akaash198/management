@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
-import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2 } from "lucide-react";
+import { Users, Layers, Briefcase, CheckSquare, MessageSquare, Activity, MoreHorizontal, Plus, Save, Trash2, ShieldCheck } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import dynamic from "next/dynamic";
 
@@ -339,6 +339,69 @@ export default function SuperAdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* ── Zero-Knowledge Tenant Isolation Plan ── */}
+      <Card className="border border-violet-500/20 bg-gradient-to-r from-violet-500/5 via-primary/5 to-background shadow-sm">
+        <CardHeader className="pb-3">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg border border-violet-500/30 bg-violet-500/10 text-violet-500 dark:text-violet-400">
+                <ShieldCheck size={20} />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-base font-semibold">Zero-Knowledge Tenant Isolation Plan</CardTitle>
+                  <Badge className="bg-violet-500/10 text-violet-500 border border-violet-500/20 text-[10px] font-bold">Active Protocol</Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">Platform operators and Super Admins are restricted from viewing company-private details.</p>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/15 text-[10px] text-violet-500 font-mono">1</span>
+                PII Data Masking
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Employee names, email addresses, and profiles are masked at the API serialization boundary to prevent operator access to user identities.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/15 text-[10px] text-violet-500 font-mono">2</span>
+                Integrations Isolation
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Slack webhook URLs, calendar API tokens, and custom database settings are scrubbed entirely and restricted from the admin view.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/15 text-[10px] text-violet-500 font-mono">3</span>
+                Zero-Knowledge BYOK
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Decryption keys for custom LLM endpoints (OpenAI, Anthropic) are held client-side in active tenant sessions and are inaccessible to server operators.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-card/50 p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-foreground">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-500/15 text-[10px] text-violet-500 font-mono">4</span>
+                Privacy & Project Docs
+              </div>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                Project documents, specs, SOPs, and attachments are strictly isolated. Direct administrative access is blocked, preventing operator document queries.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* ── Companies ── */}
       <CompanyManagementPanel isSuperuser={isSuperuser} />

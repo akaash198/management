@@ -38,6 +38,34 @@ class UserSerializer(serializers.ModelSerializer):
         return bool(getattr(obj, "email_verified_at", None))
 
 
+def mask_email(email):
+    if not email:
+        return ""
+    if "@" not in email:
+        return "***"
+    parts = email.split("@")
+    username = parts[0]
+    domain = parts[1]
+    if len(username) <= 2:
+        masked_username = username[0] + "*" * (len(username) - 1)
+    else:
+        masked_username = username[0] + "*" * (len(username) - 2) + username[-1]
+    return f"{masked_username}@{domain}"
+
+def mask_name(name):
+    if not name:
+        return "User"
+    parts = name.split(" ")
+    masked_parts = []
+    for part in parts:
+        if not part:
+            continue
+        if len(part) <= 2:
+            masked_parts.append(part[0] + "*")
+        else:
+            masked_parts.append(part[0] + "*" * (len(part) - 2) + part[-1])
+    return " ".join(masked_parts)
+
 class AdminUserSerializer(serializers.ModelSerializer):
     timezone = serializers.CharField(source="timezone_pref", required=False)
 
@@ -54,6 +82,13 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "date_joined",
         )
         read_only_fields = ("id", "date_joined")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not instance.is_superuser and not instance.is_staff:
+            data["email"] = mask_email(data.get("email", ""))
+            data["full_name"] = mask_name(data.get("full_name", ""))
+        return data
 
 
 class AdminUserCreateSerializer(serializers.ModelSerializer):
