@@ -230,3 +230,40 @@ class AIEngineAndBillingTests(TestCase):
         # Budget should remain unchanged because they are not superusers and it's Platform mode
         self.ai_credits.refresh_from_db()
         self.assertEqual(self.ai_credits.total_allocated, Decimal("50.00")) # unchanged
+
+    @patch("apps.ai.client.GeminiAdapter.generate_text")
+    def test_test_connection_using_saved_key(self, mock_generate_text):
+        """Test that AITestConnectionView decrypts the saved key and calls adapter."""
+        self.ai_access.integration_mode = CompanyAIAccess.MODE_BYOK
+        self.ai_access.byok_provider = CompanyAIAccess.PROVIDER_GEMINI
+        self.ai_access.set_api_key("gemini-secret-key-12345")
+        self.ai_access.save()
+
+        # Create CEO membership
+        CompanyMember.objects.create(
+            company=self.company,
+            user=self.user,
+            role=CompanyMember.CEO
+        )
+
+        mock_generate_text.return_value = {
+            "content": "OK",
+            "prompt_tokens": 1,
+            "completion_tokens": 1,
+            "model_used": "gemini-1.5-pro"
+        }
+
+        client = APIClient()
+        client.force_authenticate(user=self.user)
+
+        url = "/api/ai/test-connection/"
+        response = client.post(url, {
+            "provider": "gemini",
+            "api_key": "use_saved_key"
+        }, format="json")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["data"]["message"], "Connection test successful")
+        self.assertEqual(response.data["data"]["result"], "OK")
+
+        mock_generate_text.assert_called_once()

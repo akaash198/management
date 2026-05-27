@@ -683,6 +683,15 @@ class AITestConnectionView(APIView):
         if not company:
             return standardize_response(success=False, error="Company not found", status=status.HTTP_404_NOT_FOUND)
 
+        if api_key == "use_saved_key":
+            from apps.ai.models import CompanyAIAccess
+            access = CompanyAIAccess.objects.filter(company=company).first()
+            if not access or not access.byok_api_key_encrypted:
+                return standardize_response(success=False, error="No saved API key found", status=status.HTTP_400_BAD_REQUEST)
+            api_key = access.get_api_key()
+            if not api_key:
+                return standardize_response(success=False, error="Unable to decrypt API key", status=status.HTTP_400_BAD_REQUEST)
+
         if provider == "openai":
             adapter = OpenAIAdapter(api_key=api_key, default_model=model)
         elif provider == "anthropic":
