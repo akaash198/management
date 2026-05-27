@@ -235,13 +235,12 @@ export default function ProjectBoardPage() {
               variant="ghost"
               size="icon"
               className="h-8 w-8 shrink-0 text-muted-foreground hover:bg-muted"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.history.length > 1) router.back();
-                else router.push("/projects");
-              }}
-              title="Back"
+              asChild
+              title="Back to projects"
             >
-              <ArrowLeft size={16} />
+              <Link href="/projects">
+                <ArrowLeft size={16} />
+              </Link>
             </Button>
 
             {/* Color dot */}
