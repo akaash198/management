@@ -117,8 +117,7 @@ class DashboardView(views.APIView):
         if not team_id:
             return standardize_response(success=False, error="team_id is required", status=status.HTTP_400_BAD_REQUEST)
 
-        is_superuser = getattr(request.user, "is_superuser", False)
-        if not is_superuser and not _ensure_team_member(request, team_id):
+        if not _ensure_team_member(request, team_id):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
         scope = (request.query_params.get("scope") or "team").strip().lower()
@@ -233,8 +232,7 @@ class WorkloadView(views.APIView):
         if not team_id:
             return standardize_response(success=False, error="team_id is required", status=status.HTTP_400_BAD_REQUEST)
 
-        is_superuser = getattr(request.user, "is_superuser", False)
-        if not is_superuser and not _ensure_team_member(request, team_id):
+        if not _ensure_team_member(request, team_id):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
         
         cache_key = f"workload_{team_id}_{project_id or 'all'}"
@@ -296,8 +294,7 @@ class CalendarView(views.APIView):
         if not team_id:
             return standardize_response(success=False, error="team_id is required", status=status.HTTP_400_BAD_REQUEST)
 
-        is_superuser = getattr(request.user, "is_superuser", False)
-        if not is_superuser and not _ensure_team_member(request, team_id):
+        if not _ensure_team_member(request, team_id):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
         tasks = Task.objects.filter(project__team_id=team_id, due_date__isnull=False)
@@ -366,8 +363,7 @@ class GlobalSearchView(views.APIView):
         if not team_id:
             return standardize_response(success=False, error="team_id is required", status=status.HTTP_400_BAD_REQUEST)
 
-        is_superuser = getattr(request.user, "is_superuser", False)
-        if not is_superuser and not _ensure_team_member(request, team_id):
+        if not _ensure_team_member(request, team_id):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
         start_time = time.time()

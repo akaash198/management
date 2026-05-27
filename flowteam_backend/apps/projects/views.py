@@ -238,7 +238,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             queryset = queryset.filter(team_id=team_id)
 
         if self.request.user.is_superuser:
-            return queryset
+            return Project.objects.none()
 
         filtered_queryset = queryset.filter(
             Q(team__members__user=self.request.user)
@@ -460,14 +460,16 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             "assignee", "reporter", "column", "project"
         ).prefetch_related("labels", "subtasks", "timelogs", "assignees")
         
-        if not self.request.user.is_superuser:
-            visible_projects = Project.objects.filter(
-                Q(team__members__user=self.request.user)
-                | Q(roles__user=self.request.user)
-                | Q(created_by=self.request.user)
-            ).values_list("id", flat=True)
+        if self.request.user.is_superuser:
+            return Task.objects.none()
 
-            queryset = queryset.filter(project_id__in=visible_projects)
+        visible_projects = Project.objects.filter(
+            Q(team__members__user=self.request.user)
+            | Q(roles__user=self.request.user)
+            | Q(created_by=self.request.user)
+        ).values_list("id", flat=True)
+
+        queryset = queryset.filter(project_id__in=visible_projects)
 
         project_id = self.request.query_params.get("project_id")
         if project_id:
@@ -947,12 +949,13 @@ class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
             queryset = queryset.filter(project_id=project_id)
         if team_id:
             queryset = queryset.filter(project__team_id=team_id)
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(
-                Q(project__roles__user=self.request.user) |
-                Q(project__team__members__user=self.request.user) |
-                Q(project__created_by=self.request.user)
-            ).distinct()
+        if self.request.user.is_superuser:
+            return Sprint.objects.none()
+        queryset = queryset.filter(
+            Q(project__roles__user=self.request.user) |
+            Q(project__team__members__user=self.request.user) |
+            Q(project__created_by=self.request.user)
+        ).distinct()
         return queryset
 
     def get_serializer_class(self):
@@ -1004,12 +1007,13 @@ class MilestoneViewSet(AuditedModelMixin, StandardizedModelViewSet):
             queryset = queryset.filter(project_id=project_id)
         if team_id:
             queryset = queryset.filter(project__team_id=team_id)
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(
-                Q(project__roles__user=self.request.user) |
-                Q(project__team__members__user=self.request.user) |
-                Q(project__created_by=self.request.user)
-            ).distinct()
+        if self.request.user.is_superuser:
+            return Milestone.objects.none()
+        queryset = queryset.filter(
+            Q(project__roles__user=self.request.user) |
+            Q(project__team__members__user=self.request.user) |
+            Q(project__created_by=self.request.user)
+        ).distinct()
         return queryset
 
     def perform_create(self, serializer):
@@ -1030,12 +1034,13 @@ class TaskLinkViewSet(AuditedModelMixin, StandardizedModelViewSet):
             queryset = queryset.filter(Q(source_task_id=task_id) | Q(target_task_id=task_id))
         if team_id:
             queryset = queryset.filter(source_task__project__team_id=team_id)
-        if not self.request.user.is_superuser:
-            queryset = queryset.filter(
-                Q(source_task__project__roles__user=self.request.user) |
-                Q(source_task__project__team__members__user=self.request.user) |
-                Q(source_task__project__created_by=self.request.user)
-            ).distinct()
+        if self.request.user.is_superuser:
+            return TaskLink.objects.none()
+        queryset = queryset.filter(
+            Q(source_task__project__roles__user=self.request.user) |
+            Q(source_task__project__team__members__user=self.request.user) |
+            Q(source_task__project__created_by=self.request.user)
+        ).distinct()
         return queryset
 
     def perform_create(self, serializer):
@@ -1054,7 +1059,7 @@ class SavedIssueViewViewSet(AuditedModelMixin, StandardizedModelViewSet):
         if team_id:
             queryset = queryset.filter(team_id=team_id)
         if self.request.user.is_superuser:
-            return queryset
+            return SavedIssueView.objects.none()
         return queryset.filter(Q(user=self.request.user) | Q(is_shared=True))
 
     def perform_create(self, serializer):
@@ -1073,7 +1078,7 @@ class ProjectTemplateViewSet(AuditedModelMixin, StandardizedModelViewSet):
         if team_id:
             queryset = queryset.filter(team_id=team_id)
         if self.request.user.is_superuser:
-            return queryset
+            return ProjectTemplate.objects.none()
         return queryset.filter(team__members__user=self.request.user).distinct()
 
     def perform_create(self, serializer):
@@ -1097,7 +1102,7 @@ class RecurringTaskRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
         if team_id:
             queryset = queryset.filter(project__team_id=team_id)
         if self.request.user.is_superuser:
-            return queryset
+            return RecurringTaskRule.objects.none()
         return queryset.filter(
             Q(project__roles__user=self.request.user) |
             Q(project__team__members__user=self.request.user) |
@@ -1379,7 +1384,7 @@ def roadmap_overview(request):
     if not team_id:
         return standardize_response(success=False, error="team_id is required", status=400)
 
-    if not request.user.is_superuser and not TeamMember.objects.filter(team_id=team_id, user=request.user).exists():
+    if not TeamMember.objects.filter(team_id=team_id, user=request.user).exists():
         return standardize_response(success=False, error="Forbidden", status=403)
 
     projects = Project.objects.filter(team_id=team_id, status="active").annotate(
@@ -1543,7 +1548,9 @@ def calendar_export(request):
     project_id = request.query_params.get("project_id")
     tasks = Task.objects.filter(is_archived=False, due_date__isnull=False)
     
-    if not request.user.is_superuser:
+    if request.user.is_superuser:
+        tasks = Task.objects.none()
+    else:
         visible_projects = Project.objects.filter(
             Q(team__members__user=request.user)
             | Q(roles__user=request.user)
@@ -1603,6 +1610,8 @@ class EpicViewSet(AuditedModelMixin, StandardizedModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Epic.objects.none()
         project_id = self.request.query_params.get("project_id")
         team_id = self.request.query_params.get("team_id")
         qs = Epic.objects.all().select_related("project", "owner")
@@ -1646,6 +1655,8 @@ class RetrospectiveViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return Retrospective.objects.none()
         team_id = self.request.query_params.get("team_id")
         qs = Retrospective.objects.all().select_related("team", "sprint").prefetch_related("items", "items__submitter", "items__votes")
         if team_id:
@@ -1679,6 +1690,8 @@ class RetroItemViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return RetroItem.objects.none()
         retro_id = self.request.query_params.get("retrospective_id")
         qs = RetroItem.objects.all().select_related("submitter").prefetch_related("votes")
         if retro_id:

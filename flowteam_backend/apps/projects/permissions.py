@@ -61,9 +61,6 @@ def check_project_permission(user, project, permission: str) -> bool:
       4. Team Manager/Member default editor capabilities
       5. Guardian object permission fallback
     """
-    if user.is_superuser:
-        return True
-
     # Fast path for team admins
     if TeamMember.objects.filter(
         team=project.team, user=user, role__in=list(_TEAM_ADMIN_ROLES)

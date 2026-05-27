@@ -89,7 +89,6 @@ class IsTeamCEO(permissions.BasePermission):
     """CEO (Owner) only."""
     def has_permission(self, request, view):
         if not request.user.is_authenticated: return False
-        if request.user.is_superuser: return True
         team_id = _get_team_id(request, view)
         if not team_id: return False
         return TeamMember.objects.filter(team_id=team_id, user=request.user, role=TeamMember.CEO).exists()
@@ -98,7 +97,6 @@ class IsTeamAdmin(permissions.BasePermission):
     """CEO or Admin."""
     def has_permission(self, request, view):
         if not request.user.is_authenticated: return False
-        if request.user.is_superuser: return True
         team_id = _get_team_id(request, view)
         if not team_id: return False
         return TeamMember.objects.filter(
@@ -111,7 +109,6 @@ class IsTeamManager(permissions.BasePermission):
     """CEO, Admin, or Manager."""
     def has_permission(self, request, view):
         if not request.user.is_authenticated: return False
-        if request.user.is_superuser: return True
         team_id = _get_team_id(request, view)
         if not team_id: return False
         return TeamMember.objects.filter(
@@ -124,7 +121,6 @@ class IsTeamMember(permissions.BasePermission):
     """Any member of the team (including Viewers)."""
     def has_permission(self, request, view):
         if not request.user.is_authenticated: return False
-        if request.user.is_superuser: return True
         team_id = _get_team_id(request, view)
         if not team_id: return False
         return TeamMember.objects.filter(team_id=team_id, user=request.user).exists()
@@ -138,8 +134,6 @@ class IsAIEnabled(permissions.BasePermission):
         team = get_team_from_request(request, view)
         if not team:
             raise PermissionDenied("Team context is required for AI features.")
-        if request.user.is_superuser:
-            return True
         if not TeamMember.objects.filter(team=team, user=request.user).exists():
             raise PermissionDenied("You are not a member of this team.")
         if not bool(getattr(team, "ai_enabled", False)):
