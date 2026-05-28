@@ -127,6 +127,19 @@ jobs:
           ).format(container=container)
           run(client, verify_cmd, timeout=120)
 
+          print(\"\\nVerifying admin/superadmin flags...\")
+          verify_users_cmd = (
+              \"docker exec {container} python manage.py shell -c \"
+              \"\\\"from django.contrib.auth import get_user_model; U=get_user_model(); \"
+              \"emails=['akaash.chellapandiyan@gmail.com','akaash19820@gmail.com']; \"
+              \"out=[]; \"
+              \"for e in emails: \"
+              \" u=U.objects.filter(email=e).first(); \"
+              \" out.append((e, bool(u and u.is_staff), bool(u and u.is_superuser))); \"
+              \"print('user_flags', out)\\\"\"\n"
+          ).format(container=container)
+          run(client, verify_users_cmd, timeout=120)
+
           client.close()
           print("\nSeed complete.")
           PY
