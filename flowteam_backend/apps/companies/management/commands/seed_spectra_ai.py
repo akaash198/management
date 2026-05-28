@@ -120,20 +120,37 @@ class Command(BaseCommand):
 
     def _create_users(self, password: str) -> dict[str, User]:
         users = {}
+        now = timezone.now()
         for full_name, email, _co_role, _team_role in USERS:
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={"full_name": full_name, "is_active": True},
-            )
-            # Always force-apply the fixed password and mark email as verified
-            # so credentials work immediately without any additional steps.
-            user.set_password(password)
-            user.is_active = True
-            user.email_verified_at = timezone.now()
-            user.save(update_fields=["password", "is_active", "email_verified_at"])
-            verb = "Created" if created else "Updated"
-            self.stdout.write(f"  {verb} user: {email}")
+            user = User.objects.filter(email=email).first()
+            if user:
+                # Existing user — force-reset password and ensure account is active.
+                user.full_name = full_name
+                user.is_active = True
+                user.email_verified_at = now
+                user.set_password(password)
+                user.save(update_fields=["full_name", "password", "is_active", "email_verified_at"])
+                self.stdout.write(f"  Updated user: {email}")
+            else:
+                # New user — use create_user so the password is hashed correctly on insert.
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    full_name=full_name,
+                    is_active=True,
+                    email_verified_at=now,
+                )
+                self.stdout.write(f"  Created user: {email}")
             users[email] = user
+
+        # Clear any axes lockouts so previous failed attempts don't block login.
+        try:
+            from axes.models import AccessAttempt
+            AccessAttempt.objects.filter(username__in=[u[1] for u in USERS]).delete()
+            self.stdout.write("  Cleared axes lockouts for seed accounts.")
+        except Exception:
+            pass
+
         return users
 
     # ── Company ────────────────────────────────────────────────────────────────
