@@ -189,7 +189,11 @@ export default function SettingsMembersPage() {
     if (!activeTeam) return;
     await api.patch(`/teams/${activeTeam.id}/members/${userId}/`, { permissions_json: permissions });
     setMembers((prev) =>
-      prev.map((m) => (m.user.id === userId ? { ...m, permissions_json: permissions } : m))
+      prev.map((m) =>
+        m.user.id === userId
+          ? { ...m, permissions_json: permissions as unknown as TeamMember["permissions_json"] }
+          : m
+      )
     );
     toast.success("Permissions saved");
   };

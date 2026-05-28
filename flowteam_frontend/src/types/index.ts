@@ -10,6 +10,20 @@ export interface User {
   is_superuser?: boolean;
 }
 
+export type TeamRoleSlug = "ceo" | "admin" | "manager" | "member" | "viewer";
+
+export interface CustomRole {
+  id: string;
+  name: string;
+  slug: string;
+  level: number;
+  is_owner_role: boolean;
+  is_system: boolean;
+  capabilities: Record<string, boolean>;
+  member_count: number;
+  created_at: string;
+}
+
 export interface Team {
   id: string;
   name: string;
@@ -20,14 +34,16 @@ export interface Team {
   company_id: string | null;
   company_name: string | null;
   member_count: number;
-  your_role: "ceo" | "admin" | "manager" | "member" | "viewer";
+  your_role: TeamRoleSlug;
+  your_custom_role: CustomRole | null;
 }
 
 export interface TeamMember {
   id: string;
   user: User;
-  role: "ceo" | "admin" | "manager" | "member" | "viewer";
-  permissions_json: Record<string, { can_view: boolean; can_edit: boolean; can_manage: boolean }> | null;
+  role: TeamRoleSlug;
+  custom_role: CustomRole | null;
+  permissions_json: Record<string, boolean> | null;
   joined_at: string;
 }
 
@@ -35,12 +51,16 @@ export interface TeamInvite {
   id: string;
   email: string;
   role: string;
+  custom_role: CustomRole | null;
   created_at: string;
   is_accepted: boolean;
 }
 
 export interface TeamCapabilities {
-  role: "ceo" | "admin" | "manager" | "member" | "viewer" | null;
+  role: TeamRoleSlug | null;
+  custom_role_id: string | null;
+  custom_role_name: string | null;
+  is_owner_role: boolean;
   can_manage_team: boolean;
   can_invite_members: boolean;
   can_change_roles: boolean;
@@ -48,7 +68,18 @@ export interface TeamCapabilities {
   can_delete_team: boolean;
   can_view_audit_log: boolean;
   can_create_project: boolean;
-  assignable_invite_roles: Array<"ceo" | "admin" | "manager" | "member" | "viewer">;
+  can_manage_billing: boolean;
+  can_access_reports: boolean;
+  can_manage_integrations: boolean;
+  assignable_invite_roles: TeamRoleSlug[];
+  assignable_custom_role_ids: string[];
+}
+
+export interface MemberPermissions {
+  role_name: string;
+  role_capabilities: Record<string, boolean>;
+  overrides: Record<string, boolean>;
+  resolved: Record<string, boolean>;
 }
 
 export type CompanyRole = "ceo" | "admin" | "manager" | "member" | "viewer";

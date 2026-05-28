@@ -189,7 +189,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 function buildInitialPerms(member: TeamMember): PermissionsJson {
   if (member.permissions_json && Object.keys(member.permissions_json).length > 0) {
-    return member.permissions_json as PermissionsJson;
+    return member.permissions_json as unknown as PermissionsJson;
   }
   return ROLE_DEFAULTS[member.role] ?? ROLE_DEFAULTS.member;
 }

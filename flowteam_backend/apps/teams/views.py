@@ -20,6 +20,10 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+# TeamCapabilitiesView is now in role_views.py — kept here as a passthrough alias
+# to avoid breaking any direct imports elsewhere.
+from .role_views import TeamCapabilitiesView  # noqa: F401, E402
+
 class TeamListCreateView(generics.ListCreateAPIView):
     serializer_class = TeamSerializer
 
@@ -34,12 +38,36 @@ class TeamListCreateView(generics.ListCreateAPIView):
         return standardize_response(data=serializer.data)
 
     def perform_create(self, serializer):
+        from .models import CustomRole, DEFAULT_ROLE_CAPABILITIES, ALL_TEAM_CAPABILITIES
+        SYSTEM_ROLES = [
+            {"slug": "ceo",     "name": "CEO",      "level": 0,  "is_owner_role": True},
+            {"slug": "admin",   "name": "Admin",    "level": 10, "is_owner_role": False},
+            {"slug": "manager", "name": "Manager",  "level": 30, "is_owner_role": False},
+            {"slug": "member",  "name": "Employee", "level": 50, "is_owner_role": False},
+            {"slug": "viewer",  "name": "Viewer",   "level": 80, "is_owner_role": False},
+        ]
         with transaction.atomic():
             team = serializer.save(created_by=self.request.user)
+            ceo_custom_role = None
+            for role_def in SYSTEM_ROLES:
+                caps = DEFAULT_ROLE_CAPABILITIES.get(role_def["slug"], {})
+                full_caps = {c: bool(caps.get(c, False)) for c in ALL_TEAM_CAPABILITIES}
+                cr = CustomRole.objects.create(
+                    team=team,
+                    name=role_def["name"],
+                    slug=role_def["slug"],
+                    level=role_def["level"],
+                    is_owner_role=role_def["is_owner_role"],
+                    is_system=True,
+                    capabilities=full_caps,
+                )
+                if role_def["slug"] == TeamMember.CEO:
+                    ceo_custom_role = cr
             TeamMember.objects.create(
-                team=team, 
-                user=self.request.user, 
-                role=TeamMember.CEO
+                team=team,
+                user=self.request.user,
+                role=TeamMember.CEO,
+                custom_role=ceo_custom_role,
             )
 
     def create(self, request, *args, **kwargs):
@@ -310,7 +338,8 @@ class AcceptInviteView(generics.GenericAPIView):
                 team=invite.team,
                 user=user,
                 role=invite.role,
-                invited_by=invite.invited_by
+                custom_role=invite.custom_role,
+                invited_by=invite.invited_by,
             )
             invite.is_accepted = True
             invite.save()
@@ -318,24 +347,3 @@ class AcceptInviteView(generics.GenericAPIView):
         return standardize_response(data={"message": "Invite accepted successfully"})
 
 
-class TeamCapabilitiesView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated, IsTeamMember]
-    lookup_field = "id"
-    queryset = Team.objects.all()
-
-    def retrieve(self, request, *args, **kwargs):
-        team = self.get_object()
-        caps = compute_team_capabilities(team=team, user=request.user)
-        return standardize_response(
-            data={
-                "role": caps.role,
-                "can_manage_team": caps.can_manage_team,
-                "can_invite_members": caps.can_invite_members,
-                "can_change_roles": caps.can_change_roles,
-                "can_remove_members": caps.can_remove_members,
-                "can_delete_team": caps.can_delete_team,
-                "can_view_audit_log": caps.can_view_audit_log,
-                "can_create_project": caps.can_create_project,
-                "assignable_invite_roles": caps.assignable_invite_roles,
-            }
-        )

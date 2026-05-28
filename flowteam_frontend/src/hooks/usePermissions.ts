@@ -81,20 +81,17 @@ export interface TeamPermissions {
   isManager: boolean;
   isMember: boolean;
   isViewer: boolean;
-  /** Can update team settings (name, etc.) */
+  isOwnerRole: boolean;
   canManageTeam: boolean;
-  /** Can invite new members */
   canInviteMembers: boolean;
-  /** Can change another member's role */
   canChangeRoles: boolean;
-  /** Can remove members */
   canRemoveMembers: boolean;
-  /** Can delete the team entirely */
   canDeleteTeam: boolean;
-  /** Can view audit logs */
   canViewAuditLog: boolean;
-  /** Can create projects */
   canCreateProject: boolean;
+  canManageBilling: boolean;
+  canAccessReports: boolean;
+  canManageIntegrations: boolean;
 }
 
 export interface ProjectPermissions {
@@ -131,6 +128,7 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
       isManager,
       isMember,
       isViewer,
+      isOwnerRole: isCEO,
       canManageTeam: isAdmin,
       canInviteMembers: isManager,
       canChangeRoles: isAdmin,
@@ -138,6 +136,9 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
       canDeleteTeam: isCEO,
       canViewAuditLog: isAdmin,
       canCreateProject: isManager,
+      canManageBilling: isAdmin,
+      canAccessReports: isManager,
+      canManageIntegrations: isAdmin,
     };
   }, [user, team, teams, activeTeamId]);
 }

@@ -30,13 +30,15 @@ import {
   X, GitBranch, ChevronRight, Building2, Search,
 } from "lucide-react";
 import api from "@/lib/api";
-import type { ApiResponse, Team, TeamCapabilities, TeamMember } from "@/types";
+import type { ApiResponse, CustomRole, Team, TeamCapabilities, TeamMember } from "@/types";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { TwoFactorCard } from "@/components/settings/TwoFactorCard";
 import { SlackWebhooksCard } from "@/components/settings/SlackWebhooksCard";
 import { CalendarIntegrationsCard } from "@/components/settings/CalendarIntegrationsCard";
+import { RolesTab } from "@/components/settings/RolesTab";
+import { MemberPermissionsDrawer } from "@/components/settings/MemberPermissionsDrawer";
 import { disablePushNotifications, enablePushNotifications } from "@/hooks/usePushNotifications";
 import { useTeamStore } from "@/store/team";
 import { AISettingsCard } from "@/components/settings/AISettingsCard";
@@ -136,6 +138,8 @@ export default function SettingsPage() {
   const [removeTarget, setRemoveTarget] = useState<TeamMember | null>(null);
   const [removing, setRemoving] = useState(false);
   const [memberSearch, setMemberSearch] = useState("");
+  const [allRoles, setAllRoles] = useState<CustomRole[]>([]);
+  const [permissionsTarget, setPermissionsTarget] = useState<TeamMember | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -149,6 +153,8 @@ export default function SettingsPage() {
         setTeamName(team.name);
         const membersRes = await api.get<ApiResponse<TeamMember[]>>(`/teams/${team.id}/members/`);
         if (membersRes.data.success) setMembers(membersRes.data.data ?? []);
+        const rolesRes = await api.get<ApiResponse<CustomRole[]>>(`/teams/${team.id}/roles/`);
+        if (rolesRes.data.success) setAllRoles(rolesRes.data.data ?? []);
       } catch (err) { toast.error(toErrorMessage(err, "Failed to load team data")); }
     };
     void load();
@@ -649,8 +655,8 @@ export default function SettingsPage() {
                             </div>
                             <p className="text-[11.5px] text-muted-foreground/60 truncate">{member.user.email}</p>
                           </div>
-                          <span className={cn("shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border", ROLE_COLOR[member.role])}>
-                            {ROLE_LABELS[member.role] ?? member.role}
+                          <span className={cn("shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border", ROLE_COLOR[member.role] ?? ROLE_COLOR.member)}>
+                            {member.custom_role?.name ?? ROLE_LABELS[member.role] ?? member.role}
                           </span>
                           <span className="text-[11px] text-muted-foreground/50 shrink-0 hidden sm:block">
                             {format(new Date(member.joined_at), "MMM d, yyyy")}
@@ -661,10 +667,15 @@ export default function SettingsPage() {
                                 <MoreHorizontal className="h-3.5 w-3.5" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuContent align="end" className="w-44">
                               <DropdownMenuItem onClick={() => { setChangeRoleTarget(member); setChangeRoleValue(member.role as Role); }}>
                                 Change role
                               </DropdownMenuItem>
+                              {(isCEO || isAdmin) && (
+                                <DropdownMenuItem onClick={() => setPermissionsTarget(member)}>
+                                  Edit permissions
+                                </DropdownMenuItem>
+                              )}
                               <DropdownMenuSeparator />
                               <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setRemoveTarget(member)}>
                                 <Trash2 className="mr-2 h-3.5 w-3.5" />Remove
@@ -728,25 +739,35 @@ export default function SettingsPage() {
             {/* ── Roles & Access ── */}
             {activeTab === "rbac" && (
               <>
+                {/* Your resolved permissions */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[15px] flex items-center gap-2">
                       <Shield className="h-4 w-4 text-primary" />Your Permissions
                     </CardTitle>
                     <CardDescription>
-                      What you can do in <strong>{activeTeam?.name}</strong> as <strong>{yourRole ? ROLE_LABELS[yourRole] : "—"}</strong>.
+                      What you can do in <strong>{activeTeam?.name}</strong> as{" "}
+                      <strong>{teamCaps?.custom_role_name ?? (yourRole ? ROLE_LABELS[yourRole] : "—")}</strong>.
+                      {teamCaps?.is_owner_role && (
+                        <span className="ml-2 inline-flex items-center gap-1 text-violet-600 dark:text-violet-400 font-medium">
+                          <span className="h-1.5 w-1.5 rounded-full bg-violet-500" />Owner role
+                        </span>
+                      )}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid sm:grid-cols-2 gap-2">
                       {([
-                        { label: "Manage team settings", allowed: teamPerms.canManageTeam },
-                        { label: "Invite members",        allowed: teamPerms.canInviteMembers },
-                        { label: "Change member roles",   allowed: teamPerms.canChangeRoles },
-                        { label: "Remove members",        allowed: teamPerms.canRemoveMembers },
-                        { label: "Delete team",           allowed: teamPerms.canDeleteTeam },
-                        { label: "View audit log",        allowed: teamPerms.canViewAuditLog },
-                        { label: "Create projects",       allowed: teamPerms.canCreateProject },
+                        { label: "Manage team settings",  allowed: teamCaps?.can_manage_team        ?? teamPerms.canManageTeam },
+                        { label: "Invite members",         allowed: teamCaps?.can_invite_members     ?? teamPerms.canInviteMembers },
+                        { label: "Change member roles",    allowed: teamCaps?.can_change_roles       ?? teamPerms.canChangeRoles },
+                        { label: "Remove members",         allowed: teamCaps?.can_remove_members     ?? teamPerms.canRemoveMembers },
+                        { label: "Delete team",            allowed: teamCaps?.can_delete_team        ?? teamPerms.canDeleteTeam },
+                        { label: "View audit log",         allowed: teamCaps?.can_view_audit_log     ?? teamPerms.canViewAuditLog },
+                        { label: "Create projects",        allowed: teamCaps?.can_create_project     ?? teamPerms.canCreateProject },
+                        { label: "Manage billing",         allowed: teamCaps?.can_manage_billing     ?? teamPerms.canManageBilling },
+                        { label: "Access reports",         allowed: teamCaps?.can_access_reports     ?? teamPerms.canAccessReports },
+                        { label: "Manage integrations",    allowed: teamCaps?.can_manage_integrations ?? teamPerms.canManageIntegrations },
                       ] as { label: string; allowed: boolean }[]).map(({ label, allowed }) => (
                         <div key={label} className={cn(
                           "flex items-center gap-2.5 rounded-lg px-3 py-2 border text-[12.5px]",
@@ -764,28 +785,28 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-[14px]">Team Role Capability Matrix</CardTitle>
-                    <CardDescription className="text-[12px]">Default capabilities per team role.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="overflow-x-auto">
-                    <RoleMatrix
-                      roles={["ceo", "admin", "manager", "member", "viewer"] as TeamRole[]}
-                      roleLabels={TEAM_ROLE_LABELS}
-                      rows={[
-                        { label: "Manage team",    ceo: true,  admin: true,  manager: false, member: false, viewer: false },
-                        { label: "Invite members", ceo: true,  admin: true,  manager: true,  member: false, viewer: false },
-                        { label: "Change roles",   ceo: true,  admin: true,  manager: false, member: false, viewer: false },
-                        { label: "Remove members", ceo: true,  admin: true,  manager: false, member: false, viewer: false },
-                        { label: "Delete team",    ceo: true,  admin: false, manager: false, member: false, viewer: false },
-                        { label: "View audit log", ceo: true,  admin: true,  manager: false, member: false, viewer: false },
-                        { label: "Create projects",ceo: true,  admin: true,  manager: true,  member: false, viewer: false },
-                      ]}
-                    />
-                  </CardContent>
-                </Card>
+                {/* Live role management */}
+                {activeTeam && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-[15px]">Team Roles</CardTitle>
+                      <CardDescription>
+                        {isAdmin
+                          ? "Create and edit roles with custom capability sets."
+                          : "Roles defined for this team."}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RolesTab
+                        teamId={activeTeam.id}
+                        isOwnerActor={isCEO}
+                        isAdminActor={isAdmin}
+                      />
+                    </CardContent>
+                  </Card>
+                )}
 
+                {/* Project role matrix */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-[14px]">Project Role Capability Matrix</CardTitle>
@@ -924,6 +945,22 @@ export default function SettingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {activeTeam && (
+        <MemberPermissionsDrawer
+          open={!!permissionsTarget}
+          onOpenChange={(open) => !open && setPermissionsTarget(null)}
+          member={permissionsTarget}
+          teamId={activeTeam.id}
+          allRoles={allRoles}
+          assignableCustomRoleIds={teamCaps?.assignable_custom_role_ids ?? []}
+          isOwnerActor={isCEO}
+          onMemberUpdated={(updated) => {
+            setMembers((prev) => prev.map((m) => m.id === updated.id ? updated : m));
+            setPermissionsTarget(updated);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -995,7 +1032,6 @@ function RoleMatrix<R extends string>({
 
 /* ── Team Hierarchy Tab ─────────────────────────────────────── */
 const ROLE_ORDER: Role[] = ["ceo", "admin", "manager", "member", "viewer"];
-const ROLE_LEVEL: Record<Role, number> = { ceo: 0, admin: 1, manager: 2, member: 3, viewer: 3 };
 
 function HierarchyTab({ members, currentUserId, teamName }: {
   members: TeamMember[];
@@ -1089,7 +1125,9 @@ function HierarchyTab({ members, currentUserId, teamName }: {
                               {m.user.full_name}
                               {isSelf && <span className="ml-1 text-[10px] text-primary font-bold">You</span>}
                             </p>
-                            <p className="text-[11px] text-muted-foreground/60 truncate">{m.user.email}</p>
+                            <p className="text-[11px] text-muted-foreground/60 truncate">
+                              {m.custom_role?.name ?? m.user.email}
+                            </p>
                           </div>
                         </div>
                       );
