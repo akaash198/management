@@ -147,7 +147,7 @@ class Command(BaseCommand):
                 user.email_verified_at = now
                 if email == ADMIN_EMAIL:
                     user.is_staff = True
-                    user.is_superuser = True
+                    user.is_superuser = False
                 user.set_password(password)
                 update_fields = ["full_name", "password", "is_active", "email_verified_at"]
                 if email == ADMIN_EMAIL:
@@ -156,8 +156,15 @@ class Command(BaseCommand):
                 self.stdout.write(f"  Updated user: {email}")
             else:
                 # New user — use create_user so the password is hashed correctly on insert.
-                create_fn = User.objects.create_superuser if email == ADMIN_EMAIL else User.objects.create_user
-                user = create_fn(email=email, password=password, full_name=full_name, is_active=True, email_verified_at=now)
+                user = User.objects.create_user(
+                    email=email,
+                    password=password,
+                    full_name=full_name,
+                    is_active=True,
+                    email_verified_at=now,
+                    is_staff=(email == ADMIN_EMAIL),
+                    is_superuser=False,
+                )
                 self.stdout.write(f"  Created user: {email}")
             users[email] = user
 
