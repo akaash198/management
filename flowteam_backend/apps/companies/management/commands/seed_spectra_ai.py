@@ -3,7 +3,7 @@ seed_spectra_ai — Onboards Spectra AI as a fully configured company inside
 the communication platform, based on spectra_ai_onboarding.md.
 
 Creates:
-  - 6 users (CEO, Team Lead, Engineering Manager, 2 Engineers, 1 Intern)
+  - 7 users (CEO, Admin, Team Lead, Engineering Manager, 2 Engineers, 1 Intern)
   - Company record (Spectra AI, technology industry, AI plan)
   - Company-level roles and memberships
   - 1 Engineering team with RBAC custom roles seeded
@@ -39,11 +39,13 @@ DEMO_MARKER      = "[spectra-ai-seed]"
 COMPANY_NAME     = "Spectra AI"
 COMPANY_SLUG     = "spectra-ai"
 FIXED_PASSWORD   = "Demo@123"
+ADMIN_EMAIL      = "akaash.chellapandiyan@gmail.com"
 
 # ── Seed roster ────────────────────────────────────────────────────────────────
 # (full_name, email, company_role, team_role)
 USERS = [
     ("Nirupam SD",      "nirupamsd@spectrai.sg",        "ceo",     "ceo"),
+    ("Akaash (Admin)",  ADMIN_EMAIL,                    "admin",   "admin"),
     ("Akaash",          "akaash@spectrai.sg",            "manager", "manager"),
     ("Uday Tashildar",  "uday.tashildar@gmail.com",      "manager", "manager"),
     ("Karan Muthanna",  "karanmuthanna24@gmail.com",     "member",  "member"),
@@ -53,7 +55,7 @@ USERS = [
 
 
 class Command(BaseCommand):
-    help = "Onboard Spectra AI — creates company, team, channels, projects, and seed data."
+    help = "Onboard Spectra AI — creates company, employees, teams, and channels (no projects/tasks/messages)."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -129,18 +131,19 @@ class Command(BaseCommand):
                 user.full_name = full_name
                 user.is_active = True
                 user.email_verified_at = now
+                if email == ADMIN_EMAIL:
+                    user.is_staff = True
+                    user.is_superuser = True
                 user.set_password(password)
-                user.save(update_fields=["full_name", "password", "is_active", "email_verified_at"])
+                update_fields = ["full_name", "password", "is_active", "email_verified_at"]
+                if email == ADMIN_EMAIL:
+                    update_fields += ["is_staff", "is_superuser"]
+                user.save(update_fields=update_fields)
                 self.stdout.write(f"  Updated user: {email}")
             else:
                 # New user — use create_user so the password is hashed correctly on insert.
-                user = User.objects.create_user(
-                    email=email,
-                    password=password,
-                    full_name=full_name,
-                    is_active=True,
-                    email_verified_at=now,
-                )
+                create_fn = User.objects.create_superuser if email == ADMIN_EMAIL else User.objects.create_user
+                user = create_fn(email=email, password=password, full_name=full_name, is_active=True, email_verified_at=now)
                 self.stdout.write(f"  Created user: {email}")
             users[email] = user
 
@@ -231,6 +234,7 @@ class Command(BaseCommand):
         from apps.teams.models import Team, TeamMember, CustomRole, DEFAULT_ROLE_CAPABILITIES, ALL_TEAM_CAPABILITIES
 
         nirupam = users["nirupamsd@spectrai.sg"]
+        admin   = users[ADMIN_EMAIL]
         akaash  = users["akaash@spectrai.sg"]
         uday    = users["uday.tashildar@gmail.com"]
         karan   = users["karanmuthanna24@gmail.com"]
@@ -252,6 +256,7 @@ class Command(BaseCommand):
                 "ai_enabled": True,
                 "members": [
                     (nirupam, "ceo"),
+                    (admin,   "admin"),
                     (akaash,  "manager"),
                     (uday,    "manager"),
                     (karan,   "member"),
@@ -418,6 +423,7 @@ class Command(BaseCommand):
         from apps.messaging.models import Channel, ChannelMember
 
         nirupam = users["nirupamsd@spectrai.sg"]
+        admin   = users[ADMIN_EMAIL]
         akaash  = users["akaash@spectrai.sg"]
         uday    = users["uday.tashildar@gmail.com"]
         karan   = users["karanmuthanna24@gmail.com"]
@@ -425,8 +431,8 @@ class Command(BaseCommand):
         sheerin = users["sheerinrizwana.y@gmail.com"]
 
         eng         = teams["Engineering"]
-        all_members = [nirupam, akaash, uday, karan, david, sheerin]
-        eng_members = [nirupam, akaash, uday, karan, david, sheerin]
+        all_members = [nirupam, admin, akaash, uday, karan, david, sheerin]
+        eng_members = [nirupam, admin, akaash, uday, karan, david, sheerin]
 
         # Channels start empty — the real team will fill them in.
         channel_specs = [
@@ -438,7 +444,7 @@ class Command(BaseCommand):
             ("kudos",            "Kudos",           "Recognition, shout-outs, and wins.",                               False, all_members),
             # ── Engineering ──────────────────────────────────────────────────
             ("eng-general",      "Engineering",     "General engineering discussion and cross-team coordination.",      False, eng_members),
-            ("eng-backend",      "Backend",         "Backend development — APIs, databases, services.",                 False, [nirupam, akaash, uday, karan, david]),
+            ("eng-backend",      "Backend",         "Backend development — APIs, databases, services.",                 False, [nirupam, admin, akaash, uday, karan, david]),
             ("dev-prs",          "Pull Requests",   "Automated GitHub PR notifications and review requests.",           False, eng_members),
             ("dev-deployments",  "Deployments",     "Deployment logs, release tracking, and rollback alerts.",          False, eng_members),
             ("dev-cicd",         "CI / CD",         "Build and pipeline status.",                                       False, eng_members),
@@ -446,9 +452,9 @@ class Command(BaseCommand):
             ("ai-general",       "AI / ML",         "AI strategy, model updates, research alignment.",                  False, eng_members),
             # ── Ops ──────────────────────────────────────────────────────────
             ("incidents",        "Incidents",       "Active incident tracking — P0/P1/P2 alerts and resolution.",       False, eng_members),
-            ("intern-hub",       "Intern Hub",      "Intern updates, mentoring, and project work.",                     False, [nirupam, akaash, uday, sheerin]),
+            ("intern-hub",       "Intern Hub",      "Intern updates, mentoring, and project work.",                     False, [nirupam, admin, akaash, uday, sheerin]),
             # ── Private ──────────────────────────────────────────────────────
-            ("leadership-private","Leadership",     "CEO-level strategy, headcount planning, and confidential.",        True,  [nirupam, akaash, uday]),
+            ("leadership-private","Leadership",     "CEO-level strategy, headcount planning, and confidential.",        True,  [nirupam, admin, akaash, uday]),
         ]
 
         for name, display_name, description, is_private, members in channel_specs:
@@ -490,7 +496,7 @@ class Command(BaseCommand):
         self.stdout.write("  WHAT'S BEEN CREATED")
         self.stdout.write("  " + "-" * 64)
         self.stdout.write("  Company     : Spectra AI (active, AI plan, Singapore)")
-        self.stdout.write("  Members     : 6 (CEO, Team Lead, Eng Manager, 2 Engineers, 1 Intern)")
+        self.stdout.write("  Members     : 7 (CEO, Admin, Team Lead, Eng Manager, 2 Engineers, 1 Intern)")
         self.stdout.write("  Team        : Engineering (AI plan, custom RBAC roles seeded)")
         self.stdout.write("  Projects    : 0 (intentionally empty)")
         self.stdout.write("  Tasks       : 0 (intentionally empty)")

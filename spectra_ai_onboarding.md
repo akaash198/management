@@ -65,6 +65,7 @@
 | Name | Email | Role | Department | Access Level |
 |---|---|---|---|---|
 | Nirupam SD | nirupamsd@spectrai.sg | CEO & Owner | Leadership | Owner |
+| Akaash Chellapandiyan | akaash.chellapandiyan@gmail.com | Workspace Admin | Leadership | Admin |
 | Akaash | akaash@spectrai.sg | Team Lead | Engineering | Team Lead |
 | Uday Tashildar | uday.tashildar@gmail.com | Engineering Manager | Engineering | Engineering Manager |
 | Karan Muthanna | karanmuthanna24@gmail.com | Employee (Engineer) | Engineering | Engineer |

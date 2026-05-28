@@ -92,6 +92,9 @@ jobs:
           run(client, f"docker cp /tmp/seed_spectra_ai.py {container}:/app/apps/companies/management/commands/seed_spectra_ai.py")
           print("Seed file copied into container.")
 
+          print("\nRunning migrations...")
+          run(client, f"docker exec {container} python manage.py migrate --noinput", timeout=300)
+
           if reset:
               print("\nResetting existing Spectra AI data...")
               run(client,
