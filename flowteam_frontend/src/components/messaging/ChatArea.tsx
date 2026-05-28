@@ -8,7 +8,7 @@ import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
 import { MessageItem } from "./MessageItem";
 import { Button } from "@/components/ui/button";
-import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon, Check } from "lucide-react";
+import { Hash, Lock, Users, Search, Info, Send, Paperclip, X, MessageSquare, Smile, Bell, BellOff, SlidersHorizontal, Clock3, Mail, MoreHorizontal, Phone, Video, ChevronDown, Bold, Italic, Star, Plus, Link, ArrowDown, Moon, Check, Pin } from "lucide-react";
 import { FormatToolbar } from "./FormatToolbar";
 import dynamic from "next/dynamic";
 
@@ -610,6 +610,17 @@ export function ChatArea({
       toast.error(toErrorMessage(err, "Failed to unmute channel"));
     }
   }, [channel.id, onRefreshChannels]);
+
+  const toggleChannelPinned = useCallback(async () => {
+    try {
+      const next = !channel.is_pinned;
+      await api.post(`/messaging/channels/${channel.id}/pin/`, { pinned: next });
+      onRefreshChannels?.();
+      toast.success(next ? "Channel pinned" : "Channel unpinned");
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to pin channel"));
+    }
+  }, [channel.id, channel.is_pinned, onRefreshChannels]);
 
   const saveNotificationPreferences = useCallback(async () => {
     try {
@@ -1567,7 +1578,7 @@ export function ChatArea({
             </Button>
           )}
 
-          {/* Saved messages */}
+        {/* Saved messages */}
           {!searchOpen && (
             <Button
               variant="ghost"
@@ -1577,6 +1588,19 @@ export function ChatArea({
               title="Saved messages"
             >
               <Star size={14} className={cn(isStarred && "fill-amber-400 text-amber-400")} />
+            </Button>
+          )}
+
+          {/* Pin channel (sidebar) */}
+          {!searchOpen && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => void toggleChannelPinned()}
+              className="hidden sm:flex h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+              title={channel.is_pinned ? "Unpin channel from sidebar" : "Pin channel to sidebar"}
+            >
+              <Pin size={14} className={cn(channel.is_pinned && "text-sky-400")} />
             </Button>
           )}
 
