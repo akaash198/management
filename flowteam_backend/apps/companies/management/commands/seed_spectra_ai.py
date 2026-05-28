@@ -125,8 +125,12 @@ class Command(BaseCommand):
                 email=email,
                 defaults={"full_name": full_name, "is_active": True},
             )
+            # Always force-apply the fixed password and mark email as verified
+            # so credentials work immediately without any additional steps.
             user.set_password(password)
-            user.save(update_fields=["password"])
+            user.is_active = True
+            user.email_verified_at = timezone.now()
+            user.save(update_fields=["password", "is_active", "email_verified_at"])
             verb = "Created" if created else "Updated"
             self.stdout.write(f"  {verb} user: {email}")
             users[email] = user
