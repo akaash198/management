@@ -206,6 +206,8 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def get_serializer_class(self):
+        if self.action == "list":
+            return ProjectListSerializer
         if self.action in ("create", "update", "partial_update"):
             return ProjectCreateUpdateSerializer
         return ProjectDetailSerializer
