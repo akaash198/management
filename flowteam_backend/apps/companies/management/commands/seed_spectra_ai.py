@@ -25,6 +25,7 @@ Usage:
 from __future__ import annotations
 
 import datetime
+import os
 import random
 import secrets
 
@@ -40,6 +41,8 @@ COMPANY_NAME     = "Spectra AI"
 COMPANY_SLUG     = "spectra-ai"
 FIXED_PASSWORD   = "Demo@123"
 ADMIN_EMAIL      = "akaash.chellapandiyan@gmail.com"
+SUPERADMIN_EMAIL = "akaash19820@gmail.com"
+SUPERADMIN_PASSWORD_ENV = "COWRK_SUPERADMIN_PASSWORD"
 
 # ── Seed roster ────────────────────────────────────────────────────────────────
 # (full_name, email, company_role, team_role)
@@ -89,6 +92,7 @@ class Command(BaseCommand):
         password = FIXED_PASSWORD
 
         with transaction.atomic():
+            self._ensure_superadmin()
             users   = self._create_users(password)
             company = self._create_company(users)
             teams   = self._create_teams(company, users)
@@ -134,6 +138,57 @@ class Command(BaseCommand):
         )
 
     # ── Users ──────────────────────────────────────────────────────────────────
+
+    def _ensure_superadmin(self) -> None:
+        """
+        Ensure a global superadmin exists for the whole platform.
+
+        Password handling:
+        - If the user already exists, we do NOT reset their password.
+        - If creating a new user, we use `COWRK_SUPERADMIN_PASSWORD` if set,
+          otherwise we fall back to `FIXED_PASSWORD` (not recommended for prod).
+        """
+
+        now = timezone.now()
+        user = User.objects.filter(email=SUPERADMIN_EMAIL).first()
+        password = (os.environ.get(SUPERADMIN_PASSWORD_ENV) or "").strip()
+
+        if user:
+            changed = False
+            if not user.is_active:
+                user.is_active = True
+                changed = True
+            if not user.is_staff:
+                user.is_staff = True
+                changed = True
+            if not user.is_superuser:
+                user.is_superuser = True
+                changed = True
+            if getattr(user, "email_verified_at", None) is None:
+                user.email_verified_at = now
+                changed = True
+            if changed:
+                user.save(update_fields=["is_active", "is_staff", "is_superuser", "email_verified_at"])
+            self.stdout.write(f"  Superadmin ensured: {SUPERADMIN_EMAIL} (password unchanged)")
+            return
+
+        if not password:
+            password = FIXED_PASSWORD
+            self.stdout.write(
+                self.style.WARNING(
+                    f"  Creating superadmin {SUPERADMIN_EMAIL} with default password; "
+                    f"set {SUPERADMIN_PASSWORD_ENV} in env to override."
+                )
+            )
+
+        User.objects.create_superuser(
+            email=SUPERADMIN_EMAIL,
+            password=password,
+            full_name="Akaash (Super Admin)",
+            is_active=True,
+            email_verified_at=now,
+        )
+        self.stdout.write(f"  Created superadmin: {SUPERADMIN_EMAIL}")
 
     def _create_users(self, password: str) -> dict[str, User]:
         users = {}
