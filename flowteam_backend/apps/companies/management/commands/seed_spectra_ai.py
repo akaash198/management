@@ -68,6 +68,14 @@ class Command(BaseCommand):
             action="store_true",
             help="Required with --reset to prevent accidental deletion.",
         )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            help=(
+                "Allow reset even if the company notes are missing the demo marker. "
+                "Use with extreme caution."
+            ),
+        )
 
     def handle(self, *args, **options):
         if options["reset"]:
@@ -76,7 +84,7 @@ class Command(BaseCommand):
                     "Pass --confirm together with --reset to delete existing Spectra AI data.\n"
                     "Example: python manage.py seed_spectra_ai --reset --confirm"
                 )
-            self._reset()
+            self._reset(force=options["force"])
 
         password = FIXED_PASSWORD
 
@@ -90,23 +98,29 @@ class Command(BaseCommand):
 
     # ── Reset ──────────────────────────────────────────────────────────────────
 
-    def _reset(self):
+    def _reset(self, *, force: bool = False) -> None:
         from apps.companies.models import Company
         from apps.projects.models import Project
         from apps.teams.models import Team
 
         self.stdout.write(self.style.WARNING("Resetting Spectra AI seed data..."))
 
-        companies_qs = Company.objects.filter(
-            slug=COMPANY_SLUG, notes__startswith=DEMO_MARKER
-        )
+        companies_qs = Company.objects.filter(slug=COMPANY_SLUG)
+        if not companies_qs.exists():
+            self.stdout.write(self.style.WARNING("No Spectra AI company found to reset."))
+            return
+
+        unsafe_companies = companies_qs.exclude(notes__startswith=DEMO_MARKER)
+        if unsafe_companies.exists() and not force:
+            raise CommandError(
+                "Refusing to reset because the Spectra AI company is missing the demo marker in notes.\n"
+                "If you are sure, re-run with: --reset --confirm --force"
+            )
 
         deleted_projects, _ = Project.objects.filter(team__company__in=companies_qs).delete()
         deleted_teams, _ = Team.objects.filter(company__in=companies_qs).delete()
 
-        deleted_co, _ = Company.objects.filter(
-            slug=COMPANY_SLUG, notes__startswith=DEMO_MARKER
-        ).delete()
+        deleted_co, _ = companies_qs.delete()
 
         deleted_users, _ = User.objects.filter(
             email__in=[u[1] for u in USERS]

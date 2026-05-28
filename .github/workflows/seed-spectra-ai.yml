@@ -11,6 +11,14 @@ on:
         options:
           - "false"
           - "true"
+      force_reset:
+        description: "Force reset even if demo marker is missing?"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
 
 permissions:
   contents: read
@@ -53,6 +61,7 @@ jobs:
           HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           RESET: ${{ github.event.inputs.reset }}
+          FORCE_RESET: ${{ github.event.inputs.force_reset }}
         run: |
           python - <<'PY'
           import os, paramiko
@@ -60,6 +69,7 @@ jobs:
           host  = os.environ["HETZNER_HOST"]
           user  = os.environ.get("HETZNER_USER", "deploy")
           reset = os.environ.get("RESET", "false") == "true"
+          force_reset = os.environ.get("FORCE_RESET", "false") == "true"
 
           def run(client, cmd, timeout=240):
               print(f"\n$ {cmd}")
@@ -98,7 +108,8 @@ jobs:
           if reset:
               print("\nResetting existing Spectra AI data...")
               run(client,
-                  f"docker exec {container} python manage.py seed_spectra_ai --reset --confirm",
+                  f"docker exec {container} python manage.py seed_spectra_ai --reset --confirm"
+                  + (" --force" if force_reset else ""),
                   timeout=120)
 
           print("\nRunning seed...")
