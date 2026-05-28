@@ -51,9 +51,9 @@ function EmbedCard({ item }: { item: EmbedItem }) {
     );
   }
 
-  if (item.type === "figma" || item.type === "miro" || item.type === "gdrive") {
-    const iconColor = item.type === "figma" ? "text-purple-500 bg-purple-500/10" : item.type === "gdrive" ? "text-blue-500 bg-blue-500/10" : "text-yellow-500 bg-yellow-500/10";
-    const Icon = item.type === "gdrive" ? FileText : Globe;
+  if (item.type === "figma" || item.type === "miro") {
+    const iconColor = item.type === "figma" ? "text-purple-500 bg-purple-500/10" : "text-yellow-500 bg-yellow-500/10";
+    const Icon = Globe;
     return (
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border/60 px-3 py-2">
@@ -80,6 +80,33 @@ function EmbedCard({ item }: { item: EmbedItem }) {
           allow="fullscreen; clipboard-read; clipboard-write"
         />
       </div>
+    );
+  }
+
+  // Google Docs/Drive previews are frequently blocked from iframes (X-Frame-Options),
+  // so render a stable "open" card instead of a broken embed.
+  if (item.type === "gdrive") {
+    return (
+      <a
+        href={item.url}
+        target="_blank"
+        rel="noreferrer"
+        className="group flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-all hover:border-primary/30 hover:bg-muted/30 shadow-sm"
+      >
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 mt-0.5">
+          <FileText size={16} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] font-semibold text-foreground group-hover:text-primary transition-colors truncate">
+            {item.title}
+          </p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground truncate">
+            Preview blocked by Google — click Open
+          </p>
+          <p className="mt-1 text-[10px] text-muted-foreground/60 truncate">{item.url}</p>
+        </div>
+        <ExternalLink size={12} className="mt-1 shrink-0 text-muted-foreground/40 group-hover:text-primary transition-colors" />
+      </a>
     );
   }
 
