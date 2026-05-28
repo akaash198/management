@@ -8,7 +8,7 @@ Creates:
   - Company-level roles and memberships
   - 1 Engineering team with RBAC custom roles seeded
   - 13 department-scoped channels (public + private)
-  - 2 Engineering projects with empty boards (no tasks/sprints)
+  - No projects (intentionally empty)
   - 1 pending company invite (placeholder for future hire)
 
 Production-safe:
@@ -82,7 +82,6 @@ class Command(BaseCommand):
             users   = self._create_users(password)
             company = self._create_company(users)
             teams   = self._create_teams(company, users)
-            projects = self._create_projects(teams, users)
             self._create_channels(teams, users)
 
         self._print_summary(password)
@@ -91,16 +90,20 @@ class Command(BaseCommand):
 
     def _reset(self):
         from apps.companies.models import Company
+        from apps.projects.models import Project
         from apps.teams.models import Team
 
         self.stdout.write(self.style.WARNING("Resetting Spectra AI seed data..."))
 
+        companies_qs = Company.objects.filter(
+            slug=COMPANY_SLUG, notes__startswith=DEMO_MARKER
+        )
+
+        deleted_projects, _ = Project.objects.filter(team__company__in=companies_qs).delete()
+        deleted_teams, _ = Team.objects.filter(company__in=companies_qs).delete()
+
         deleted_co, _ = Company.objects.filter(
             slug=COMPANY_SLUG, notes__startswith=DEMO_MARKER
-        ).delete()
-
-        deleted_teams, _ = Team.objects.filter(
-            created_by__email="nirupamsd@spectrai.sg",
         ).delete()
 
         deleted_users, _ = User.objects.filter(
@@ -109,7 +112,7 @@ class Command(BaseCommand):
 
         self.stdout.write(
             self.style.SUCCESS(
-                f"Reset complete: {deleted_co} companies, "
+                f"Reset complete: {deleted_projects} projects, {deleted_co} companies, "
                 f"{deleted_teams} teams, {deleted_users} users removed."
             )
         )
@@ -309,6 +312,9 @@ class Command(BaseCommand):
         return teams
 
     # ── Projects ───────────────────────────────────────────────────────────────
+    #
+    # Intentionally omitted — Spectra AI is a real company onboarding, not a demo.
+    # Projects start empty so the team can create the right structure.
 
     def _create_projects(self, teams: dict, users: dict) -> dict:
         from apps.projects.models import Project, Column, Label
@@ -486,7 +492,7 @@ class Command(BaseCommand):
         self.stdout.write("  Company     : Spectra AI (active, AI plan, Singapore)")
         self.stdout.write("  Members     : 6 (CEO, Team Lead, Eng Manager, 2 Engineers, 1 Intern)")
         self.stdout.write("  Team        : Engineering (AI plan, custom RBAC roles seeded)")
-        self.stdout.write("  Projects    : Spectra Core Platform / Developer SDK")
+        self.stdout.write("  Projects    : 0 (intentionally empty)")
         self.stdout.write("  Tasks       : 0 (intentionally empty)")
         self.stdout.write("  Channels    : 13 channels (11 public, 2 private)")
         self.stdout.write("  Messages    : 0 (intentionally empty)")
