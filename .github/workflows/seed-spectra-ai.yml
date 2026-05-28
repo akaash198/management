@@ -133,10 +133,8 @@ jobs:
               "from django.contrib.auth import get_user_model; "
               "U=get_user_model(); "
               "emails=['akaash.chellapandiyan@gmail.com','akaash19820@gmail.com']; "
-              "out=[]; "
-              "for e in emails: "
-              " u=U.objects.filter(email=e).first(); "
-              " out.append((e, bool(u and u.is_staff), bool(u and u.is_superuser))); "
+              "out=[(e, bool(u and u.is_staff), bool(u and u.is_superuser)) "
+              "for e in emails for u in [U.objects.filter(email=e).first()]]; "
               "print('user_flags', out)"
               '"'
           )
