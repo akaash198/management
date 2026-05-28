@@ -117,6 +117,13 @@ jobs:
               f"docker exec {container} python manage.py seed_spectra_ai",
               timeout=300)
 
+          print("\nVerifying remaining Spectra projects...")
+          run(client, f"""docker exec {container} python manage.py shell -c "
+from apps.projects.models import Project
+qs = Project.objects.filter(name__in=['Spectra Core Platform','Developer SDK']).values_list('id','name','team__name','team__company__slug')
+print('Spectra-named projects:', list(qs))
+" """, timeout=120)
+
           client.close()
           print("\nSeed complete.")
           PY
