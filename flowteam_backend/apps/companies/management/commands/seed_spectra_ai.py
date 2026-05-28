@@ -201,7 +201,8 @@ class Command(BaseCommand):
                 user.is_active = True
                 user.email_verified_at = now
                 if email == ADMIN_EMAIL:
-                    user.is_staff = True
+                    # Company admin (Spectra AI) should NOT be a platform super-admin/staff user.
+                    user.is_staff = False
                     user.is_superuser = False
                 user.set_password(password)
                 update_fields = ["full_name", "password", "is_active", "email_verified_at"]
@@ -217,7 +218,7 @@ class Command(BaseCommand):
                     full_name=full_name,
                     is_active=True,
                     email_verified_at=now,
-                    is_staff=(email == ADMIN_EMAIL),
+                    is_staff=False,
                     is_superuser=False,
                 )
                 self.stdout.write(f"  Created user: {email}")
