@@ -22,15 +22,17 @@ import { cn } from "@/lib/utils";
 import { useCreateTask } from "@/hooks/useTasks";
 import { useDeleteColumn } from "@/hooks/useColumns";
 import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface ColumnProps {
   column: ColumnType;
   projectId: string;
   tasks: Task[];
   allColumns?: ColumnType[];
+  readOnly?: boolean;
 }
 
-export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
+export function Column({ column, projectId, tasks, allColumns, readOnly = false }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const createTask = useCreateTask();
@@ -41,6 +43,11 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
   });
 
   const handleAddTask = () => {
+    if (readOnly) {
+      toast.error("You have viewer access and cannot create tasks.");
+      setIsAdding(false);
+      return;
+    }
     if (!newTaskTitle.trim()) return;
     
     createTask.mutate({
@@ -123,7 +130,7 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
               <Button 
                 size="sm" 
                 onClick={handleAddTask} 
-                disabled={!newTaskTitle.trim() || createTask.isPending} 
+                disabled={readOnly || !newTaskTitle.trim() || createTask.isPending} 
                 className="h-8 px-4 text-[12px] bg-primary text-primary-foreground font-medium shadow-glow"
               >
                 {createTask.isPending ? "Adding..." : "Add task"}
@@ -138,7 +145,7 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
               </Button>
             </div>
           </div>
-        ) : (
+        ) : !readOnly ? (
           <Button 
             variant="ghost" 
             onClick={() => setIsAdding(true)}
@@ -147,7 +154,7 @@ export function Column({ column, projectId, tasks, allColumns }: ColumnProps) {
             <Plus className="h-4 w-4 mr-2 group-hover:scale-110 transition-transform" />
             Add task
           </Button>
-        )}
+        ) : null}
       </div>
     </div>
   );

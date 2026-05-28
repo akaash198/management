@@ -28,7 +28,15 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 
-export function KanbanBoard({ projectId, searchTerm }: { projectId: string; searchTerm: string }) {
+export function KanbanBoard({
+  projectId,
+  searchTerm,
+  readOnly = false,
+}: {
+  projectId: string;
+  searchTerm: string;
+  readOnly?: boolean;
+}) {
   const { columns, tasksByColumn, optimisticMoveTask } = useBoardStore();
   const moveTaskMutation = useMoveTask();
   const createColumn = useCreateColumn();
@@ -42,12 +50,17 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (readOnly) return;
     const { active } = event;
     const task = Object.values(tasksByColumn).flat().find(t => t.id === active.id);
     if (task) setActiveTask(task);
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
+    if (readOnly) {
+      setActiveTask(null);
+      return;
+    }
     const { active, over } = event;
     if (!over) {
       setActiveTask(null);
@@ -83,6 +96,7 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
   };
 
   const handleAddColumn = () => {
+    if (readOnly) return;
     if (!newColumnName.trim()) return;
     createColumn.mutate({
       projectId,
@@ -105,6 +119,7 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
             size="sm" 
             variant="outline"
             onClick={() => setIsAddingColumn(true)}
+            disabled={readOnly}
             className="text-[13px]"
           >
             <Plus size={14} className="mr-1.5" />
@@ -136,9 +151,11 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
     );
   }
 
+  const activeSensors = readOnly ? [] : sensors;
+
   return (
     <DndContext 
-      sensors={sensors}
+      sensors={activeSensors}
       collisionDetection={closestCorners}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
@@ -153,11 +170,12 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
               t.title.toLowerCase().includes(searchTerm.toLowerCase())
             ) || []}
             allColumns={columns}
+            readOnly={readOnly}
           />
         ))}
         
         {/* Add Column button */}
-        {isAddingColumn ? (
+        {!readOnly && isAddingColumn ? (
           <div className="w-[280px] shrink-0 bg-muted/40 p-3 rounded-lg border-[0.5px] border-primary/30 space-y-2">
             <Input 
               autoFocus
@@ -179,7 +197,7 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
               </Button>
             </div>
           </div>
-        ) : (
+        ) : !readOnly ? (
           <div 
             onClick={() => setIsAddingColumn(true)}
             className="w-[280px] shrink-0 h-10 flex items-center justify-center border-[0.5px] border-dashed border-border/60 rounded-lg text-muted-foreground/40 hover:text-primary hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-all group text-[12px] font-medium"
@@ -187,7 +205,7 @@ export function KanbanBoard({ projectId, searchTerm }: { projectId: string; sear
             <Plus className="h-3.5 w-3.5 mr-1.5" />
             Add column
           </div>
-        )}
+        ) : null}
       </div>
 
       <DragOverlay>

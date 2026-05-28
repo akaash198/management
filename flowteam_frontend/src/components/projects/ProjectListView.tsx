@@ -40,9 +40,10 @@ interface ProjectListViewProps {
   groupBy: "epic" | "sprint" | "column";
   onTaskClick: (taskId: string) => void;
   onAddTask: (groupId?: string) => void;
+  readOnly?: boolean;
 }
 
-export function ProjectListView({ tasks, groupBy, onTaskClick, onAddTask }: ProjectListViewProps) {
+export function ProjectListView({ tasks, groupBy, onTaskClick, onAddTask, readOnly = false }: ProjectListViewProps) {
   const groups = useMemo(() => {
     const map = new Map<string, { id: string; name: string; color?: string; tasks: Task[] }>();
     
@@ -109,15 +110,17 @@ export function ProjectListView({ tasks, groupBy, onTaskClick, onAddTask }: Proj
             </div>
             
             <div className="flex items-center gap-1">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 px-2 text-[12px] gap-1.5"
-                onClick={() => onAddTask(group.id === "no-epic" || group.id === "no-sprint" ? undefined : group.id)}
-              >
-                <Plus size={14} />
-                Add Task
-              </Button>
+              {!readOnly && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 px-2 text-[12px] gap-1.5"
+                  onClick={() => onAddTask(group.id === "no-epic" || group.id === "no-sprint" ? undefined : group.id)}
+                >
+                  <Plus size={14} />
+                  Add Task
+                </Button>
+              )}
               <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
                 <MoreHorizontal size={14} />
               </Button>
@@ -200,16 +203,18 @@ export function ProjectListView({ tasks, groupBy, onTaskClick, onAddTask }: Proj
                   </tr>
                 ))}
                 
-                <tr className="hover:bg-muted/10 transition-colors cursor-pointer group/add" onClick={() => onAddTask(group.id)}>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center justify-center">
-                      <Plus size={16} className="text-muted-foreground/30 group-hover/add:text-primary transition-colors" />
-                    </div>
-                  </td>
-                  <td colSpan={6} className="px-4 py-2.5 text-[12px] text-muted-foreground italic group-hover/add:text-primary transition-colors">
-                    Add a task...
-                  </td>
-                </tr>
+                {!readOnly && (
+                  <tr className="hover:bg-muted/10 transition-colors cursor-pointer group/add" onClick={() => onAddTask(group.id)}>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center justify-center">
+                        <Plus size={16} className="text-muted-foreground/30 group-hover/add:text-primary transition-colors" />
+                      </div>
+                    </td>
+                    <td colSpan={6} className="px-4 py-2.5 text-[12px] text-muted-foreground italic group-hover/add:text-primary transition-colors">
+                      Add a task...
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

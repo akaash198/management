@@ -182,7 +182,7 @@ export default function ProjectsPage() {
         />
         <StatTile
           label="Team members"
-          value={allProjects.reduce((s, p) => s + (p.member_count ?? 0), 0)}
+          value={activeTeam?.member_count ?? 0}
           sub="Across all projects"
           icon={Users}
           iconColor="text-violet-600 dark:text-violet-400"

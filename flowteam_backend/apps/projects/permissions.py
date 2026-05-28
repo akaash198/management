@@ -61,6 +61,10 @@ def check_project_permission(user, project, permission: str) -> bool:
       4. Team Manager/Member default editor capabilities
       5. Guardian object permission fallback
     """
+    # Superuser -> always True
+    if getattr(user, "is_superuser", False):
+        return True
+
     # Fast path for team admins
     if TeamMember.objects.filter(
         team=project.team, user=user, role__in=list(_TEAM_ADMIN_ROLES)
@@ -85,6 +89,10 @@ def check_project_permission(user, project, permission: str) -> bool:
         member = TeamMember.objects.get(team=project.team, user=user)
     except TeamMember.DoesNotExist:
         return False
+
+    # Hard rule: team-level viewers are read-only everywhere.
+    if member.role == TeamMember.VIEWER:
+        return permission == "view_project"
 
     implicit_role = {"manager": "editor", "member": "editor", "viewer": "viewer"}.get(member.role)
     if implicit_role and capability:

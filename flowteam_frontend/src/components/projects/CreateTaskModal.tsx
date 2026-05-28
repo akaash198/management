@@ -63,6 +63,7 @@ interface CreateTaskModalProps {
   columns: Column[];
   labels?: ProjectLabel[];
   members?: TeamMember[];
+  readOnly?: boolean;
 }
 
 export function CreateTaskModal({ 
@@ -71,7 +72,8 @@ export function CreateTaskModal({
   projectId, 
   columns,
   labels = [],
-  members = []
+  members = [],
+  readOnly = false
 }: CreateTaskModalProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -116,6 +118,10 @@ export function CreateTaskModal({
   }, [open, columns, columnId]);
 
   const handleCreate = () => {
+    if (readOnly) {
+      toast.error("You have viewer access and cannot create tasks.");
+      return;
+    }
     if (!title.trim() || !columnId) return;
     
     setUploadingFiles(queuedFiles.length > 0);
@@ -181,6 +187,10 @@ export function CreateTaskModal({
   };
 
   const handleGenerateTasks = async () => {
+    if (readOnly) {
+      toast.error("You have viewer access and cannot create tasks.");
+      return;
+    }
     if (!aiEnabled) {
       toast.error("AI features are not enabled for this team");
       return;
@@ -204,6 +214,7 @@ export function CreateTaskModal({
   };
 
   const handleAutoDescription = async () => {
+    if (readOnly) return;
     if (!aiEnabled || !activeTeamId) return;
     const trimmed = title.trim();
     if (trimmed.length < 6) return;
@@ -270,6 +281,10 @@ export function CreateTaskModal({
   };
 
   const createSelectedGenerated = async () => {
+    if (readOnly) {
+      toast.error("You have viewer access and cannot create tasks.");
+      return;
+    }
     if (!columnId) return;
     const selected = generatedTasks.filter((_, index) => selectedGenerated.has(index));
     if (!selected.length) return;
@@ -670,7 +685,7 @@ export function CreateTaskModal({
                 variant="outline" 
                 size="sm"
                 onClick={() => void createSelectedGenerated()} 
-                disabled={createTask.isPending || selectedGenerated.size === 0}
+                disabled={readOnly || createTask.isPending || selectedGenerated.size === 0}
                 className="h-10 px-5 text-[13px] font-bold border-primary/30 text-primary hover:bg-primary/10 transition-all rounded-xl gap-2"
               >
                 Create {selectedGenerated.size} suggested
@@ -678,7 +693,7 @@ export function CreateTaskModal({
             )}
             <Button 
               onClick={handleCreate} 
-              disabled={!title.trim() || !columnId || createTask.isPending}
+              disabled={readOnly || !title.trim() || !columnId || createTask.isPending}
               className="h-10 px-8 text-[13px] font-bold bg-primary text-primary-foreground shadow-glow hover:shadow-glow-strong hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-xl"
             >
               {createTask.isPending ? (

@@ -148,6 +148,11 @@ export default function ProjectBoardPage() {
     enabled: !!project?.team,
   });
 
+  const isReadOnly = useMemo(() => {
+    const myRole = teamMembers?.find((m) => m.user.id === user?.id)?.role ?? null;
+    return myRole === "viewer";
+  }, [teamMembers, user?.id]);
+
   const { data: health } = useQuery<{ health_score: number; health_label: string }>({
     queryKey: ["project-health-lite", id],
     queryFn: async () => {
@@ -330,7 +335,14 @@ export default function ProjectBoardPage() {
 
             <Button
               size="sm"
-              onClick={() => setIsTaskModalOpen(true)}
+              onClick={() => {
+                if (isReadOnly) {
+                  toast.error("You have viewer access and cannot create tasks.");
+                  return;
+                }
+                setIsTaskModalOpen(true);
+              }}
+              disabled={isReadOnly}
               className="h-8 px-3 text-[13px] font-semibold gap-1.5 shadow-sm"
             >
               <Plus size={14} />New task
@@ -434,7 +446,7 @@ export default function ProjectBoardPage() {
       <div className="flex-1 overflow-auto bg-background custom-scrollbar">
         {activeView === "board" && (
           <div className="p-5 h-full">
-            <KanbanBoard projectId={id} searchTerm={search} />
+            <KanbanBoard projectId={id} searchTerm={search} readOnly={isReadOnly} />
           </div>
         )}
         {(activeView === "list" || activeView === "bugs") && (
@@ -443,7 +455,14 @@ export default function ProjectBoardPage() {
               tasks={filteredTasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))}
               groupBy={activeView === "bugs" ? "column" : "sprint"}
               onTaskClick={(tId) => router.push(`/projects/${id}?task=${tId}`)}
-              onAddTask={() => setIsTaskModalOpen(true)}
+              onAddTask={() => {
+                if (isReadOnly) {
+                  toast.error("You have viewer access and cannot create tasks.");
+                  return;
+                }
+                setIsTaskModalOpen(true);
+              }}
+              readOnly={isReadOnly}
             />
           </div>
         )}
@@ -471,6 +490,7 @@ export default function ProjectBoardPage() {
         columns={project.columns || []}
         labels={project.labels || []}
         members={teamMembers || []}
+        readOnly={isReadOnly}
       />
     </div>
   );
