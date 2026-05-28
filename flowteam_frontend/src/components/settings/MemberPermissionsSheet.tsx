@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { TeamMember } from "@/types";
+import { toast } from "sonner";
+import { toErrorMessage } from "@/lib/errorMessage";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -289,6 +291,9 @@ export function MemberPermissionsSheet({
     try {
       await onSave(member.user.id, perms);
       setDirty(false);
+      toast.success("Saved successfully.");
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to save permissions"));
     } finally {
       setSaving(false);
     }
