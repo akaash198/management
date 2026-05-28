@@ -4,7 +4,7 @@ import type { ComponentType } from "react";
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Download, FileSpreadsheet, FileText, FileType2, FolderOpen, Presentation, Search, Trash2, Upload } from "lucide-react";
+import { Download, ExternalLink, Eye, FileSpreadsheet, FileText, FileType2, FolderOpen, Presentation, Search, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { useDocuments, useCreateDocument } from "@/hooks/useOperations";
 import { useProject } from "@/hooks/useProjects";
@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import api from "@/lib/api";
 import { toErrorMessage } from "@/lib/errorMessage";
 import type { ProjectDocument } from "@/types/operations";
@@ -38,6 +39,13 @@ function fileNameFromUrl(url: string) {
   }
 }
 
+function fileExt(filename: string) {
+  const base = filename.split("?")[0].split("#")[0];
+  const idx = base.lastIndexOf(".");
+  if (idx === -1) return "";
+  return base.slice(idx + 1).toLowerCase();
+}
+
 export default function ProjectFilesPage() {
   const { id } = useParams() as { id: string };
   const { data: project } = useProject(id);
@@ -51,6 +59,7 @@ export default function ProjectFilesPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newCategory, setNewCategory] = useState<Category>("documentation");
   const [newFile, setNewFile] = useState<File | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<ProjectDocument | null>(null);
 
   const fileDocs = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -194,6 +203,8 @@ export default function ProjectFilesPage() {
                   ) : (
                     list.map((d) => {
                       const filename = fileNameFromUrl(d.attachment_url);
+                      const ext = fileExt(filename);
+                      const canInlinePreview = ["pdf", "png", "jpg", "jpeg", "gif", "webp"].includes(ext);
                       return (
                         <div key={d.id} className="flex items-center justify-between gap-3 rounded-xl border border-border px-3 py-2">
                           <div className="min-w-0">
@@ -201,10 +212,32 @@ export default function ProjectFilesPage() {
                             <p className="text-[11px] text-muted-foreground truncate">{filename}</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="gap-2"
+                              onClick={() => {
+                                if (!d.attachment_url) return;
+                                if (!canInlinePreview) {
+                                  toast.info("Preview not available for this file type. Use Open instead.");
+                                  return;
+                                }
+                                setPreviewDoc(d);
+                              }}
+                              disabled={!d.attachment_url}
+                            >
+                              <Eye className="h-4 w-4" />
+                              Preview
+                            </Button>
                             <Button asChild variant="outline" size="sm" className="gap-2">
                               <a href={d.attachment_url} target="_blank" rel="noreferrer">
+                                <ExternalLink className="h-4 w-4" />
+                                Open
+                              </a>
+                            </Button>
+                            <Button asChild variant="ghost" size="sm" className="text-muted-foreground" aria-label="Download file">
+                              <a href={d.attachment_url} download>
                                 <Download className="h-4 w-4" />
-                                Download
                               </a>
                             </Button>
                             <Button
@@ -228,6 +261,47 @@ export default function ProjectFilesPage() {
           })}
         </div>
       </div>
+
+      <Dialog open={!!previewDoc} onOpenChange={(open) => { if (!open) setPreviewDoc(null); }}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between gap-3">
+              <span className="truncate">{previewDoc?.title || (previewDoc?.attachment_url ? fileNameFromUrl(previewDoc.attachment_url) : "Preview")}</span>
+              {previewDoc?.attachment_url && (
+                <Button asChild variant="outline" size="sm" className="gap-2">
+                  <a href={previewDoc.attachment_url} target="_blank" rel="noreferrer">
+                    <ExternalLink className="h-4 w-4" />
+                    Open
+                  </a>
+                </Button>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          {previewDoc?.attachment_url ? (
+            (() => {
+              const ext = fileExt(fileNameFromUrl(previewDoc.attachment_url));
+              if (ext === "pdf") {
+                return <iframe title="PDF Preview" src={previewDoc.attachment_url} className="w-full h-[75vh] rounded-md border" />;
+              }
+              if (["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
+                return (
+                  <div className="w-full h-[75vh] overflow-auto rounded-md border bg-muted/10 flex items-start justify-center p-4">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewDoc.attachment_url} alt="Preview" className="max-w-full h-auto rounded" />
+                  </div>
+                );
+              }
+              return (
+                <div className="text-sm text-muted-foreground">
+                  Preview not available for this file type.
+                </div>
+              );
+            })()
+          ) : (
+            <div className="text-sm text-muted-foreground">No preview available.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
