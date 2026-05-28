@@ -38,6 +38,7 @@ class ChannelMember(models.Model):
     mute_until = models.DateTimeField(null=True, blank=True)
     notification_level = models.CharField(max_length=16, choices=NOTIFY_CHOICES, default=NOTIFY_ALL)
     notification_keywords = models.JSONField(default=list, blank=True)
+    is_pinned = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("channel", "user")

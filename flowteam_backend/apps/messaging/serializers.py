@@ -91,6 +91,7 @@ class ChannelSerializer(serializers.ModelSerializer):
     mute_until = serializers.SerializerMethodField()
     notification_level = serializers.SerializerMethodField()
     notification_keywords = serializers.SerializerMethodField()
+    is_pinned = serializers.SerializerMethodField()
     member_count = serializers.SerializerMethodField()
     created_by = SlimUserSerializer(read_only=True)
     dm_other_user_id = serializers.SerializerMethodField()
@@ -115,6 +116,7 @@ class ChannelSerializer(serializers.ModelSerializer):
             "mute_until",
             "notification_level",
             "notification_keywords",
+            "is_pinned",
             "member_count",
             "created_at",
             "created_by",
@@ -191,6 +193,16 @@ class ChannelSerializer(serializers.ModelSerializer):
         if not membership:
             return []
         return membership.notification_keywords or []
+
+    def get_is_pinned(self, obj):
+        request = self.context.get("request")
+        user = request.user if request else None
+        if not user:
+            return False
+        membership = obj.memberships.filter(user=user).first()
+        if not membership:
+            return False
+        return bool(getattr(membership, "is_pinned", False))
 
     def _get_dm_other(self, obj):
         """Return the other user in a 2-member private (DM) channel, or None."""
@@ -358,4 +370,3 @@ class CallParticipantSerializer(serializers.ModelSerializer):
         if "id" in ret and ret["id"]:
             ret["id"] = str(ret["id"])
         return ret
-

@@ -13,6 +13,7 @@ export interface Channel {
   mute_until?: string | null;
   notification_level?: "all" | "mentions" | "mute";
   notification_keywords?: string[];
+  is_pinned?: boolean;
   member_count?: number;
   created_at?: string;
   created_by?: SlimUser;

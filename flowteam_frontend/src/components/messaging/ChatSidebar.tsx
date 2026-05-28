@@ -1,7 +1,7 @@
 "use client";
 
 import { Channel, SidebarViewType } from "@/types/messaging";
-import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Inbox, Lock, MessageSquare, MessagesSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive, ArrowDownUp, Compass } from "lucide-react";
+import { Bell, BellOff, BellRing, CheckCircle2, ChevronDown, ChevronRight, EyeOff, Hash, Inbox, Lock, MessageSquare, MessagesSquare, MoreHorizontal, Plus, Search, Star, User, AtSign, Pencil, LogOut, Archive, ArrowDownUp, Compass, Pin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn, normalizeUrl } from "@/lib/utils";
@@ -66,7 +66,7 @@ export function ChatSidebar({
   const [starredIds, setStarredIds] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem('cowrk_starred') || '[]')); } catch { return new Set(); }
   });
-  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({ starred: true, channels: true, private: true, dm: true });
+  const [sectionsOpen, setSectionsOpen] = useState<Record<string, boolean>>({ pinned: true, starred: true, channels: true, private: true, dm: true });
   const [sortMode, setSortMode] = useState<'recent' | 'alpha' | 'unread'>('recent');
   const [browseOpen, setBrowseOpen] = useState(false);
   const [dmOpen, setDmOpen] = useState(false);
@@ -144,13 +144,25 @@ export function ChatSidebar({
     });
   }, [channels, query, showMuted, unreadOnly, sortMode]);
 
-  const publicChannels = useMemo(() => visible.filter((c) => !c.is_private && !starredIds.has(c.id)), [visible, starredIds]);
-  const directMessages = useMemo(() => visible.filter((c) => isDmChannel(c) && !starredIds.has(c.id)), [visible, starredIds]);
+  const pinnedChannels = useMemo(() => visible.filter((c) => !!c.is_pinned), [visible]);
+  const publicChannels = useMemo(() => visible.filter((c) => !c.is_private && !starredIds.has(c.id) && !c.is_pinned), [visible, starredIds]);
+  const directMessages = useMemo(() => visible.filter((c) => isDmChannel(c) && !starredIds.has(c.id) && !c.is_pinned), [visible, starredIds]);
   const privateChannels = useMemo(
-    () => visible.filter((c) => c.is_private && !isDmChannel(c) && !isMeetingChannel(c) && !starredIds.has(c.id)),
+    () => visible.filter((c) => c.is_private && !isDmChannel(c) && !isMeetingChannel(c) && !starredIds.has(c.id) && !c.is_pinned),
     [visible, starredIds]
   );
-  const starredChannels = useMemo(() => visible.filter((c) => starredIds.has(c.id)), [visible, starredIds]);
+  const starredChannels = useMemo(() => visible.filter((c) => starredIds.has(c.id) && !c.is_pinned), [visible, starredIds]);
+
+  const togglePin = async (channel: Channel) => {
+    try {
+      const next = !channel.is_pinned;
+      await api.post(`/messaging/channels/${channel.id}/pin/`, { pinned: next });
+      toast.success(next ? "Channel pinned" : "Channel unpinned");
+      onRefreshChannels?.();
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Failed to pin channel"));
+    }
+  };
 
   const toggleStar = (channelId: string) => {
     setStarredIds(prev => {
@@ -460,15 +472,66 @@ export function ChatSidebar({
         <div className="mx-3 mb-2 h-px bg-border/50" />
 
         {/* ── Starred ── */}
+        {pinnedChannels.length > 0 && (
+          <>
+            <SectionHeader
+              label="Pinned"
+              sectionKey="pinned"
+              isOpen={sectionsOpen.pinned}
+              onToggle={toggleSection}
+              icon={<Pin size={10} className="text-sky-400" />}
+            />
+            {sectionsOpen.pinned && (
+              <div className="mb-3 space-y-0.5 px-2">
+                {pinnedChannels.map((ch) =>
+                  isDmChannel(ch) ? (
+                    <DmRow
+                      key={ch.id}
+                      channel={ch}
+                      active={selectedId === ch.id}
+                      onSelect={onSelect}
+                      onlineUserIds={onlineUserIds}
+                      onMarkRead={markRead}
+                      onMarkUnread={markUnread}
+                      onMute={mute}
+                      onUnmute={unmute}
+                      starred={starredIds.has(ch.id)}
+                      onToggleStar={toggleStar}
+                      pinned
+                      onTogglePin={togglePin}
+                    />
+                  ) : (
+                    <ChannelRow
+                      key={ch.id}
+                      channel={ch}
+                      active={selectedId === ch.id}
+                      onSelect={onSelect}
+                      onMarkRead={markRead}
+                      onMarkUnread={markUnread}
+                      onMute={mute}
+                      onUnmute={unmute}
+                      starred={starredIds.has(ch.id)}
+                      onToggleStar={toggleStar}
+                      pinned
+                      onTogglePin={togglePin}
+                      onLeave={leaveChannel}
+                    />
+                  )
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         {starredChannels.length > 0 && (
           <>
             <SectionHeader label="Starred" sectionKey="starred" isOpen={sectionsOpen.starred} onToggle={toggleSection} icon={<Star size={10} className="text-amber-400" />} />
             {sectionsOpen.starred && (
               <div className="mb-3 space-y-0.5 px-2">
                 {starredChannels.map((ch) => isDmChannel(ch) ? (
-                  <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} />
+                  <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} pinned={false} onTogglePin={togglePin} />
                 ) : (
-                  <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} />
+                  <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred onToggleStar={toggleStar} pinned={false} onTogglePin={togglePin} />
                 ))}
               </div>
             )}
@@ -482,7 +545,7 @@ export function ChatSidebar({
             {isLoading ? [1,2,3].map(i => <SkeletonRow key={i} />) : publicChannels.length === 0 ? (
               <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No channels found.</p>
             ) : publicChannels.map((ch) => (
-              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} onLeave={leaveChannel} />
+              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} pinned={!!ch.is_pinned} onTogglePin={togglePin} onLeave={leaveChannel} />
             ))}
             {/* Browse all channels */}
             <button
@@ -502,7 +565,7 @@ export function ChatSidebar({
             {isLoading ? [1,2].map(i => <SkeletonRow key={`p-${i}`} />) : privateChannels.length === 0 ? (
               <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No private channels yet.</p>
             ) : privateChannels.map((ch) => (
-              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+              <ChannelRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} pinned={!!ch.is_pinned} onTogglePin={togglePin} />
             ))}
           </div>
         )}
@@ -514,7 +577,7 @@ export function ChatSidebar({
             {isLoading ? [1,2].map(i => <SkeletonRow key={i} />) : directMessages.length === 0 ? (
               <p className="px-2 py-1.5 text-[11px] italic" style={{ color: "hsl(var(--sidebar-fg-muted))" }}>No direct messages yet.</p>
             ) : directMessages.map((ch) => (
-              <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} />
+              <DmRow key={ch.id} channel={ch} active={selectedId === ch.id} onSelect={onSelect} onlineUserIds={onlineUserIds} onMarkRead={markRead} onMarkUnread={markUnread} onMute={mute} onUnmute={unmute} starred={starredIds.has(ch.id)} onToggleStar={toggleStar} pinned={!!ch.is_pinned} onTogglePin={togglePin} />
             ))}
           </div>
         )}
@@ -850,6 +913,8 @@ function ChannelRow({
   onUnmute,
   starred,
   onToggleStar,
+  pinned,
+  onTogglePin,
   onLeave,
 }: {
   channel: Channel;
@@ -861,6 +926,8 @@ function ChannelRow({
   onUnmute: (channelId: string) => void;
   starred?: boolean;
   onToggleStar?: (id: string) => void;
+  pinned?: boolean;
+  onTogglePin?: (channel: Channel) => void;
   onLeave?: (channelId: string) => void;
 }) {
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
@@ -898,6 +965,7 @@ function ChannelRow({
           <span className={cn("truncate font-medium transition-colors", active ? "text-accent" : hasUnread ? "font-bold text-foreground" : "text-muted-foreground/70")}>
             {channel.display_name}
           </span>
+          {pinned && <Pin size={10} className="shrink-0 text-sky-400" />}
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
         {(() => {
@@ -961,6 +1029,10 @@ function ChannelRow({
                 <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
                 {starred ? "Unstar" : "Star channel"}
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTogglePin?.(channel)} className="rounded-xl py-2.5">
+                <Pin size={16} className={cn("mr-2", pinned ? "text-sky-400" : "text-muted-foreground/40")} />
+                {pinned ? "Unpin from sidebar" : "Pin to sidebar"}
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">
                 <CheckCircle2 size={16} className="mr-2 text-green-500" /> Mark read
@@ -1005,6 +1077,8 @@ function DmRow({
   onUnmute,
   starred,
   onToggleStar,
+  pinned,
+  onTogglePin,
 }: {
   channel: Channel;
   active: boolean;
@@ -1016,6 +1090,8 @@ function DmRow({
   onUnmute: (channelId: string) => void;
   starred?: boolean;
   onToggleStar?: (id: string) => void;
+  pinned?: boolean;
+  onTogglePin?: (channel: Channel) => void;
 }) {
   const online = channel.dm_other_user_id ? !!onlineUserIds?.has(channel.dm_other_user_id) : false;
   const hasUnread = channel.unread_count > 0 && !active && !channel.is_muted;
@@ -1058,6 +1134,7 @@ function DmRow({
           <span className={cn("truncate font-medium transition-colors", active ? "text-accent" : hasUnread ? "font-bold text-foreground" : "text-muted-foreground/70")}>
             {channel.display_name}
           </span>
+          {pinned && <Pin size={10} className="shrink-0 text-sky-400" />}
           {channel.is_muted && <BellOff size={10} className="shrink-0 text-muted-foreground/40" />}
         </div>
         {(() => {
@@ -1120,6 +1197,10 @@ function DmRow({
               <DropdownMenuItem onClick={() => onToggleStar?.(channel.id)} className="rounded-xl py-2.5">
                 <Star size={16} className={cn("mr-2", starred ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40")} />
                 {starred ? "Unstar" : "Star conversation"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onTogglePin?.(channel)} className="rounded-xl py-2.5">
+                <Pin size={16} className={cn("mr-2", pinned ? "text-sky-400" : "text-muted-foreground/40")} />
+                {pinned ? "Unpin from sidebar" : "Pin to sidebar"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => void onMarkRead(channel.id)} className="rounded-xl py-2.5">

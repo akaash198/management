@@ -221,6 +221,18 @@ class ChannelViewSet(viewsets.ModelViewSet):
             ChannelMember.objects.get_or_create(channel=channel, user_id=m_id)
         return standardize_response(data={"message": "Members added"})
 
+    @action(detail=True, methods=["POST"])
+    def pin(self, request, pk=None):
+        channel = self.get_object()
+        if not self._is_channel_member(channel):
+            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+
+        pinned = bool(request.data.get("pinned", True))
+        membership, _ = ChannelMember.objects.get_or_create(channel=channel, user=request.user)
+        membership.is_pinned = pinned
+        membership.save(update_fields=["is_pinned"])
+        return standardize_response(data={"pinned": pinned})
+
     @action(detail=True, methods=["DELETE"], url_path="members/(?P<uid>[^/.]+)")
     def remove_member(self, request, pk=None, uid=None):
         channel = self.get_object()
