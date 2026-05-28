@@ -21,13 +21,11 @@ Production-safe:
 Usage:
     python manage.py seed_spectra_ai
     python manage.py seed_spectra_ai --reset --confirm
-    DEMO_PASSWORD=Spectra2026! python manage.py seed_spectra_ai
 """
 
 from __future__ import annotations
 
 import datetime
-import os
 import random
 import secrets
 
@@ -38,9 +36,10 @@ from django.utils import timezone
 
 User = get_user_model()
 
-DEMO_MARKER   = "[spectra-ai-seed]"
-COMPANY_NAME  = "Spectra AI"
-COMPANY_SLUG  = "spectra-ai"
+DEMO_MARKER      = "[spectra-ai-seed]"
+COMPANY_NAME     = "Spectra AI"
+COMPANY_SLUG     = "spectra-ai"
+FIXED_PASSWORD   = "Demo@123"
 
 # ── Seed roster ────────────────────────────────────────────────────────────────
 # (full_name, email, company_role, team_role)
@@ -78,7 +77,7 @@ class Command(BaseCommand):
                 )
             self._reset()
 
-        password = os.environ.get("DEMO_PASSWORD") or secrets.token_urlsafe(12)
+        password = FIXED_PASSWORD
 
         with transaction.atomic():
             users   = self._create_users(password)
@@ -127,7 +126,7 @@ class Command(BaseCommand):
                 defaults={"full_name": full_name, "is_active": True},
             )
             user.set_password(password)
-            user.save(update_fields=["password"] if not created else None)
+            user.save(update_fields=["password"])
             verb = "Created" if created else "Updated"
             self.stdout.write(f"  {verb} user: {email}")
             users[email] = user
@@ -803,7 +802,7 @@ class Command(BaseCommand):
         for full_name, email, _co_role, team_role in USERS:
             self.stdout.write(f"  {full_name:<18} {email:<36} {team_role:<12}")
         self.stdout.write("")
-        self.stdout.write(f"  Password for ALL accounts: {password}")
+        self.stdout.write(f"  Password for ALL accounts: {FIXED_PASSWORD}")
         self.stdout.write("")
         self.stdout.write("  NOTE: email_domain_verified=False — no real @spectrai.sg users")
         self.stdout.write("  will auto-join this company on registration.")
