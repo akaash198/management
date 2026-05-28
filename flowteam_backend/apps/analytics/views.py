@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework import permissions, status
 from django.db.models import Count, Q, Avg, F, Sum
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
@@ -27,7 +28,8 @@ def velocity_analytics(request):
     
     cache_key = f"velocity_{project_id}_{weeks}"
     cached_data = cache.get(cache_key)
-    if cached_data: return standardize_response(data=cached_data)
+    if cached_data is not None:
+        return standardize_response(data=cached_data)
 
     end_date = timezone.now().date()
     start_date = end_date - timedelta(weeks=weeks)
@@ -74,7 +76,8 @@ def burndown_analytics(request):
     
     cache_key = f"burndown_{project_id}"
     cached_data = cache.get(cache_key)
-    if cached_data: return standardize_response(data=cached_data)
+    if cached_data is not None:
+        return standardize_response(data=cached_data)
 
     total_tasks = Task.objects.filter(project=project).count()
     start_date = project.created_at.date()
@@ -105,33 +108,29 @@ def burndown_analytics(request):
 @api_view(["GET"])
 @permission_classes([permissions.IsAuthenticated])
 def member_stats_analytics(request):
-    team_id = request.query_params.get("team_id")
     project_id = request.query_params.get("project_id")
     days = int(request.query_params.get("days", 30))
 
-    if not team_id:
-        return standardize_response(success=False, error="team_id is required", status=status.HTTP_400_BAD_REQUEST)
+    if not project_id:
+        return standardize_response(success=False, error="project_id is required", status=status.HTTP_400_BAD_REQUEST)
 
-    if not request.user.is_superuser and not TeamMember.objects.filter(
-        team_id=team_id,
-        user=request.user,
-        role__in=[TeamMember.CEO, TeamMember.ADMIN, TeamMember.MANAGER],
-    ).exists():
+    project = get_object_or_404(Project, pk=project_id)
+    if not check_project_permission(request.user, project, "view_project"):
         return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
     
-    cache_key = f"member_stats_{team_id}_{project_id}_{days}"
+    cache_key = f"member_stats_{project.team_id}_{project_id}_{days}"
     cached_data = cache.get(cache_key)
-    if cached_data: return standardize_response(data=cached_data)
+    if cached_data is not None:
+        return standardize_response(data=cached_data)
 
-    members = TeamMember.objects.filter(team_id=team_id).select_related("user")
+    members = TeamMember.objects.filter(team_id=project.team_id).select_related("user")
     results = []
     
     start_date = timezone.now().date() - timedelta(days=days)
     
     for member in members:
         user = member.user
-        tasks = Task.objects.filter(assignee=user)
-        if project_id: tasks = tasks.filter(project_id=project_id)
+        tasks = Task.objects.filter(project_id=project_id, assignee=user)
         
         assigned_count = tasks.count()
         completed_count = tasks.filter(column__is_done_column=True).count()
@@ -151,6 +150,7 @@ def member_stats_analytics(request):
         
         results.append({
             "user": UserSerializer(user).data,
+            "team_role": member.role,
             "tasks_assigned": assigned_count,
             "tasks_completed": completed_count,
             "tasks_overdue": overdue_count,
@@ -172,7 +172,8 @@ def project_health_analytics(request):
     
     cache_key = f"project_health_{project_id}"
     cached_data = cache.get(cache_key)
-    if cached_data: return standardize_response(data=cached_data)
+    if cached_data is not None:
+        return standardize_response(data=cached_data)
 
     project = get_object_or_404(Project, pk=project_id)
     if not check_project_permission(request.user, project, "view_project"):

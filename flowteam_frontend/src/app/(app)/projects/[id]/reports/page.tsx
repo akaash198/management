@@ -30,6 +30,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AIGate } from "@/components/ai/AIGate";
 import { AIButton } from "@/components/ai/AIButton";
 import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
+import { toast } from "sonner";
+import { toErrorMessage } from "@/lib/errorMessage";
+import { cn } from "@/lib/utils";
 
 // Recharts (~150KB) — only load when chart tabs are visited
 const VelocityTabDynamic = dynamic(() => import("./VelocityTab"), {
@@ -232,12 +235,14 @@ function OverviewTab({ projectId }: { projectId: string }) {
               <div className="flex items-center gap-3">
                 <Badge variant="outline" className="px-3 py-1 rounded-full font-bold uppercase tracking-wider text-[10px]">Project Health</Badge>
                 <span className={cn("text-sm font-bold", getHealthColor(health?.health_score || 0))}>
-                  {health?.health_label}
+                  {health?.health_label ?? "Unknown"}
                 </span>
               </div>
-              <h2 className="text-4xl font-extrabold tracking-tight">Your project is looking {health?.health_label.toLowerCase()}.</h2>
+              <h2 className="text-4xl font-extrabold tracking-tight">
+                Your project is looking {(health?.health_label ?? "Unknown").toLowerCase()}.
+              </h2>
               <div className="space-y-4">
-                {health?.recommendations.map((rec, i) => (
+                {health?.recommendations?.map((rec, i) => (
                   <div key={i} className="flex items-start gap-3 p-4 bg-muted/30 rounded-xl border border-border group hover:border-warning/30 hover:bg-warning/5 transition-all">
                     <AlertCircle className="text-warning shrink-0 mt-0.5" size={18} />
                     <p className="text-sm text-foreground/80 font-medium">{rec}</p>
@@ -314,28 +319,35 @@ function OverviewTab({ projectId }: { projectId: string }) {
 
 
 function MembersTab({ projectId }: { projectId: string }) {
-  // Static for now, would fetch from /analytics/member-stats/
-  const { data, isLoading } = useQuery<MemberStat[]>({
+  const { data, isLoading, error } = useQuery<MemberStat[]>({
     queryKey: ["analytics", "member-stats", projectId],
     queryFn: async () => {
       const res = await api.get(`/analytics/member-stats/?project_id=${projectId}`);
       return res.data.data;
-    }
+    },
   });
 
   if (isLoading) return <OverviewSkeleton />;
+  if (error) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+        Failed to load member stats.
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
-       {data?.map((m, i) => (
+       {data?.length ? data.map((m, i) => (
          <Card key={i} className="hover:shadow-md transition-all">
             <CardContent className="p-6">
                 <div className="grid grid-cols-5 gap-6 items-center">
                    <div className="flex items-center gap-4">
-                       <img src={m.user.avatar || ""} className="h-10 w-10 rounded-full border bg-muted" />
+                       {/* eslint-disable-next-line @next/next/no-img-element */}
+                       <img src={m.user.avatar_url || ""} alt="" className="h-10 w-10 rounded-full border bg-muted object-cover" />
                        <div>
                           <p className="font-bold text-sm text-foreground">{m.user.full_name}</p>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase">{m.user.role || 'Member'}</p>
+                          <p className="text-[10px] text-muted-foreground font-bold uppercase">{m.team_role || "member"}</p>
                        </div>
                     </div>
                     <div className="text-center">
@@ -360,7 +372,11 @@ function MembersTab({ projectId }: { projectId: string }) {
                 </div>
             </CardContent>
          </Card>
-       ))}
+       )) : (
+        <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+          No member stats yet.
+        </div>
+       )}
     </div>
   );
 }
@@ -376,8 +392,9 @@ function ExportDropdown({ projectId }: { projectId: string }) {
       });
       const extension = format === 'xlsx' ? 'xlsx' : format;
       saveAs(res.data, `project_export_${projectId}.${extension}`);
-    } catch (e) {
-      console.error(e);
+      toast.success(`Exported ${extension.toUpperCase()}`);
+    } catch (e: unknown) {
+      toast.error(toErrorMessage(e, "Export failed"));
     } finally {
       setIsExporting(false);
     }
@@ -412,5 +429,3 @@ function OverviewSkeleton() {
     </div>
   );
 }
-
-import { cn } from "@/lib/utils";

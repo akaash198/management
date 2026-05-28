@@ -1,5 +1,5 @@
-import type { SlimUser } from "./messaging";
 import type { TaskPriority } from "./task";
+import type { TeamRoleSlug, User } from "./index";
 
 export interface VelocityWeek {
   week_start: string;
@@ -17,14 +17,14 @@ export interface BurndownPoint {
 }
 
 export interface MemberStat {
-  user: SlimUser;
+  user: User;
+  team_role?: TeamRoleSlug;
   tasks_assigned: number;
   tasks_completed: number;
   tasks_overdue: number;
   completion_rate: number;
   avg_completion_days: number;
   total_hours_logged: number;
-  most_active_day: string;
   tasks_by_priority: { priority: TaskPriority; count: number }[];
 }
 
