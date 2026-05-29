@@ -286,10 +286,17 @@ class InviteCreateView(generics.CreateAPIView):
         invite_link = TeamInviteSerializer(context={"request": self.request}).get_invite_link(invite)
         logger = logging.getLogger(__name__)
 
-        subject = f"You've been invited to join {team.name} on FlowTeam"
+        company_name = getattr(getattr(team, "company", None), "name", None) or team.name
+        inviter_name = self.request.user.full_name or self.request.user.email
+
+        subject = f"Invitation to join {company_name} on CowrkFlow"
         message = (
-            f"{self.request.user.full_name or self.request.user.email} invited you to join '{team.name}'.\n\n"
-            f"Accept invite: {invite_link}\n"
+            f"Hello,\n\n"
+            f"{inviter_name} invited you to join {company_name} on CowrkFlow.\n\n"
+            f"To accept the invitation, open this link:\n{invite_link}\n\n"
+            f"If you don’t have an account yet, you’ll be prompted to create one using this email address.\n\n"
+            f"Thanks,\n"
+            f"CowrkFlow\n"
         )
 
         result = send_transactional_email(to_email=invite.email, subject=subject, text=message)
