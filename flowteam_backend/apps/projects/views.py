@@ -2,6 +2,7 @@ from rest_framework import viewsets, status, permissions, generics
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from django.shortcuts import get_object_or_404
 from django.db import transaction
@@ -315,7 +316,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def import_csv(self, request, pk=None):
         project = self.get_object()
         if not check_project_permission(request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
 
         upload = request.FILES.get("file")
         if not upload:
@@ -409,12 +410,12 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if not check_project_permission(self.request.user, serializer.instance, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         if not check_project_permission(self.request.user, instance, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         instance.status = "archived"
         instance.save()
 
@@ -422,7 +423,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def restore(self, request, pk=None):
         project = self.get_object()
         if not check_project_permission(request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         project.status = "active"
         project.save(update_fields=["status", "updated_at"])
         return standardize_response(data={"message": "Project restored"})
@@ -431,7 +432,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def reorder_columns(self, request, pk=None):
         project = self.get_object()
         if not check_project_permission(request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         ordered_ids = request.data.get("ordered_ids", [])
         reorder_items(Column, ordered_ids, extra_filter={"project_id": pk})
         return standardize_response(data={"message": "Columns reordered"})
@@ -449,17 +450,17 @@ class ColumnViewSet(StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = get_object_or_404(Project, pk=self.kwargs["project_pk"])
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(project=project)
 
     def perform_update(self, serializer):
         if not check_project_permission(self.request.user, serializer.instance.project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         if not check_project_permission(self.request.user, instance.project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         super().perform_destroy(instance)
 
 class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
@@ -534,7 +535,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def get_object(self):
         instance = super().get_object()
         if not check_project_permission(self.request.user, instance.project, "view_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         return instance
 
     def list(self, request, *args, **kwargs):
@@ -570,7 +571,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
                  project = get_object_or_404(Project, pk=project_id)
         
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("No permission to create tasks")
+            raise PermissionDenied("No permission to create tasks")
         
         column = serializer.validated_data.get("column")
         order = Task.objects.filter(column=column).count()
@@ -618,7 +619,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         if not check_project_permission(self.request.user, serializer.instance.project, "edit_project"):
-            raise permissions.PermissionDenied("No permission to edit tasks")
+            raise PermissionDenied("No permission to edit tasks")
         old_task = Task.objects.get(pk=serializer.instance.pk)
         old_assignee_ids = set(old_task.assignees.values_list("id", flat=True))
         super().perform_update(serializer)
@@ -666,7 +667,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         if not check_project_permission(self.request.user, instance.project, "manage_project"):
-            raise permissions.PermissionDenied("No permission to delete tasks")
+            raise PermissionDenied("No permission to delete tasks")
         super().perform_destroy(instance)
 
     @action(detail=True, methods=["post"])
@@ -732,7 +733,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             watchers = TaskWatcher.objects.filter(task=task).select_related("user")
             return standardize_response(data=TaskWatcherSerializer(watchers, many=True).data)
         if not check_project_permission(request.user, task.project, "view_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         watcher, _ = TaskWatcher.objects.get_or_create(task=task, user=request.user)
         create_project_notification(
             recipient=request.user,
@@ -755,7 +756,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def reorder_subtasks(self, request, pk=None):
         task = self.get_object()
         if not check_project_permission(request.user, task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         ordered_ids = request.data.get("ordered_ids", [])
         reorder_items(SubTask, ordered_ids, extra_filter={"task_id": pk})
         return standardize_response(data={"message": "Subtasks reordered"})
@@ -770,11 +771,11 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
     def _require_view(self, project):
         if not check_project_permission(self.request.user, project, "view_project"):
-            raise permissions.PermissionDenied("You do not have permission to view this project's members.")
+            raise PermissionDenied("You do not have permission to view this project's members.")
 
     def _require_manage_members(self, project):
         if not check_project_permission(self.request.user, project, "manage_members"):
-            raise permissions.PermissionDenied("You do not have permission to manage this project's members.")
+            raise PermissionDenied("You do not have permission to manage this project's members.")
 
     def get_queryset(self):
         project = self._get_project()
@@ -801,9 +802,10 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         target_role = serializer.validated_data.get("role")
         if assigner_role and not self.request.user.is_superuser:
             if not can_assign_role(assigner_role, target_role):
-                raise permissions.PermissionDenied(
+                raise PermissionDenied(
                     f"Your role '{assigner_role}' cannot assign the '{target_role}' role."
                 )
+
 
         role_obj = serializer.save(project=project, assigned_by=self.request.user)
         sync_project_permissions(role_obj)
@@ -824,7 +826,7 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         assigner_role = get_user_project_role(request.user, project)
         if assigner_role and not request.user.is_superuser:
             if not can_assign_role(assigner_role, target_role):
-                raise permissions.PermissionDenied(
+                raise PermissionDenied(
                     f"Your role '{assigner_role}' cannot assign the '{target_role}' role."
                 )
 
@@ -853,25 +855,25 @@ class SubTaskViewSet(viewsets.ModelViewSet):
         task_id = self.kwargs.get("task_pk")
         task = get_object_or_404(Task, pk=task_id)
         if not check_project_permission(self.request.user, task.project, "view_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         return SubTask.objects.filter(task=task)
 
     def perform_create(self, serializer):
         task_id = self.kwargs.get("task_pk")
         task = get_object_or_404(Task, pk=task_id)
         if not check_project_permission(self.request.user, task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         order = SubTask.objects.filter(task=task).count()
         serializer.save(task=task, created_by=self.request.user, order=order)
 
     def perform_update(self, serializer):
         if not check_project_permission(self.request.user, serializer.instance.task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         super().perform_update(serializer)
 
     def perform_destroy(self, instance):
         if not check_project_permission(self.request.user, instance.task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         super().perform_destroy(instance)
 
     def list(self, request, *args, **kwargs):
@@ -906,14 +908,14 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         if "task_pk" in self.kwargs:
             task = get_object_or_404(Task, pk=self.kwargs["task_pk"])
             if not check_project_permission(self.request.user, task.project, "view_project"):
-                raise permissions.PermissionDenied()
+                raise PermissionDenied()
             return TimeLog.objects.filter(task=task)
         
         project_id = self.request.query_params.get("project_id")
         if project_id:
             project = get_object_or_404(Project, pk=project_id)
             if not check_project_permission(self.request.user, project, "view_project"):
-                raise permissions.PermissionDenied()
+                raise PermissionDenied()
             return TimeLog.objects.filter(task__project=project)
         return TimeLog.objects.none()
 
@@ -937,7 +939,7 @@ class TimeLogViewSet(viewsets.ModelViewSet):
         task_id = self.kwargs.get("task_pk")
         task = get_object_or_404(Task, pk=task_id)
         if not check_project_permission(self.request.user, task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         serializer.save(task=task, user=self.request.user)
 
 class AttachmentUploadView(generics.CreateAPIView):
@@ -947,7 +949,7 @@ class AttachmentUploadView(generics.CreateAPIView):
     def post(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
         if not check_project_permission(request.user, task.project, "edit_project"):
-             raise permissions.PermissionDenied()
+             raise PermissionDenied()
         file = request.FILES.get("file")
         if not file:
             return standardize_response(success=False, error="No file provided", status=400)
@@ -968,7 +970,7 @@ class AttachmentDeleteView(generics.DestroyAPIView):
     def delete(self, request, attachment_id):
         attachment = get_object_or_404(Attachment, id=attachment_id)
         if not check_project_permission(request.user, attachment.task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         attachment.file.delete(save=False)
         attachment.delete()
         return standardize_response(data={"message": "Attachment deleted"})
@@ -1004,7 +1006,7 @@ class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         capacities = serializer.validated_data.pop("capacities", [])
         sprint = serializer.save(created_by=self.request.user)
         for capacity in capacities:
@@ -1020,7 +1022,7 @@ class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_update(self, serializer):
         sprint = serializer.instance
         if not check_project_permission(self.request.user, sprint.project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         capacities = serializer.validated_data.pop("capacities", None)
         sprint = serializer.save()
         if capacities is not None:
@@ -1057,7 +1059,7 @@ class MilestoneViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class TaskLinkViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1084,7 +1086,7 @@ class TaskLinkViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         source_task = serializer.validated_data["source_task"]
         if not check_project_permission(self.request.user, source_task.project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class SavedIssueViewViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1103,7 +1105,7 @@ class SavedIssueViewViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         team = serializer.validated_data["team"]
         if not self.request.user.is_superuser and not TeamMember.objects.filter(team=team, user=self.request.user).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(user=self.request.user)
 
 class ProjectTemplateViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1124,7 +1126,7 @@ class ProjectTemplateViewSet(AuditedModelMixin, StandardizedModelViewSet):
         if not self.request.user.is_superuser and not TeamMember.objects.filter(
             team=team, user=self.request.user, role__in=[TeamMember.ADMIN, TeamMember.CEO, TeamMember.MANAGER]
         ).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class RecurringTaskRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1150,14 +1152,14 @@ class RecurringTaskRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
     @action(detail=True, methods=["post"])
     def run(self, request, pk=None):
         rule = self.get_object()
         if not check_project_permission(request.user, rule.project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         task = create_task_from_rule(rule, request.user)
         return standardize_response(data=TaskDetailSerializer(task, context={"request": request}).data)
 
@@ -1184,7 +1186,7 @@ class TaskApprovalViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         approval = serializer.save(requested_by=self.request.user)
         approvers = TeamMember.objects.filter(team=project.team, role__in=[TeamMember.MANAGER, TeamMember.ADMIN, TeamMember.CEO]).select_related("user")
         for approver in approvers:
@@ -1204,7 +1206,7 @@ class TaskApprovalViewSet(AuditedModelMixin, StandardizedModelViewSet):
         approval = self.get_object()
         role = TeamMember.objects.filter(team=approval.project.team, user=request.user).values_list("role", flat=True).first()
         if not request.user.is_superuser and role not in {TeamMember.MANAGER, TeamMember.ADMIN, TeamMember.CEO}:
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         decision = request.data.get("status")
         if decision not in {TaskApproval.STATUS_APPROVED, TaskApproval.STATUS_REJECTED}:
             return standardize_response(success=False, error="Invalid status", status=400)
@@ -1247,7 +1249,7 @@ class ProjectDocumentViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "comment_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         parent = serializer.validated_data.get("parent_document")
         version = (parent.version + 1) if parent else 1
         serializer.save(created_by=self.request.user, version=version)
@@ -1255,13 +1257,13 @@ class ProjectDocumentViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_update(self, serializer):
         project = serializer.instance.project
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save()
 
     def perform_destroy(self, instance):
         project = instance.project
         if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         instance.delete()
 
 class NotificationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1281,7 +1283,7 @@ class NotificationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1298,7 +1300,7 @@ class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, StandardizedModelViewSe
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save()
 
 class TaskCustomFieldValueViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1315,7 +1317,7 @@ class TaskCustomFieldValueViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         task = serializer.validated_data["task"]
         if not check_project_permission(self.request.user, task.project, "edit_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save()
 
 class AutomationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1335,7 +1337,7 @@ class AutomationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class ClientPortalAccessViewSet(AuditedModelMixin, StandardizedModelViewSet):
@@ -1355,7 +1357,7 @@ class ClientPortalAccessViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data["project"]
         if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
 class CommentAttachmentUploadView(generics.CreateAPIView):
@@ -1364,7 +1366,7 @@ class CommentAttachmentUploadView(generics.CreateAPIView):
     def post(self, request, comment_id):
         comment = get_object_or_404(Comment, id=comment_id)
         if not check_project_permission(request.user, comment.task.project, "comment_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         file = request.FILES.get("file")
         if not file:
             return standardize_response(success=False, error="No file provided", status=400)
@@ -1385,7 +1387,7 @@ class AttachmentVersionUploadView(generics.CreateAPIView):
     def post(self, request, attachment_id):
         attachment = get_object_or_404(Attachment, id=attachment_id)
         if not check_project_permission(request.user, attachment.task.project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         file = request.FILES.get("file")
         if not file:
             return standardize_response(success=False, error="No file provided", status=400)
@@ -1662,7 +1664,7 @@ class EpicViewSet(AuditedModelMixin, StandardizedModelViewSet):
     def perform_create(self, serializer):
         project = serializer.validated_data.get("project")
         if not check_project_permission(self.request.user, project, "edit_project"):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         serializer.save(created_by=self.request.user)
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -1705,7 +1707,7 @@ class RetrospectiveViewSet(viewsets.ModelViewSet):
         team_id = self.request.data.get("team")
         team = get_object_or_404(Team, id=team_id)
         if not IsTeamMember().has_object_permission(self.request, self, team):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         serializer.save(created_by=self.request.user)
 
     def list(self, request, *args, **kwargs):
@@ -1739,7 +1741,7 @@ class RetroItemViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         retro = serializer.validated_data.get("retrospective")
         if not IsTeamMember().has_object_permission(self.request, self, retro.team):
-            raise permissions.PermissionDenied()
+            raise PermissionDenied()
         serializer.save(submitter=self.request.user)
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

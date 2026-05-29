@@ -1,6 +1,7 @@
 from guardian.shortcuts import assign_perm, remove_perm
 from apps.projects.models import ProjectRole
 from django.db import models
+from apps.teams.models import TeamMember
 
 # Maps API permission name → capability key on ProjectRole
 CAPABILITY_MAP = {
@@ -44,6 +45,15 @@ def check_project_permission(user, project, permission: str) -> bool:
     # Superuser -> always True
     if getattr(user, "is_superuser", False):
         return True
+
+    # Team-level admins retain full access across team projects.
+    team_role = TeamMember.objects.filter(team=project.team, user=user).values_list("role", flat=True).first()
+    if team_role in {TeamMember.CEO, TeamMember.ADMIN}:
+        return True
+    if team_role == TeamMember.MANAGER:
+        return permission in {"view_project", "edit_project", "comment_project", "export_project"}
+    if team_role == TeamMember.VIEWER:
+        return permission == "view_project"
 
     capability = CAPABILITY_MAP.get(permission)
 
