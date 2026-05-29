@@ -2,18 +2,26 @@ import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 
-function getAllowedHostnames(requestOrigin: string): Set<string> {
+function getHostnameFromHostHeader(host: string): string {
+  // Can be: "example.com", "example.com:443", or (forwarded) "a.com, b.com"
+  const first = host.split(",")[0]?.trim() ?? host.trim();
+  return first.replace(/:\d+$/, "");
+}
+
+function getAllowedHostnames(req: NextRequest): Set<string> {
   const allowed = new Set<string>();
-  try {
-    allowed.add(new URL(requestOrigin).hostname);
-  } catch {
-    // ignore
-  }
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const host = req.headers.get("host");
+  const publicHost = forwardedHost || host;
+  if (publicHost) allowed.add(getHostnameFromHostHeader(publicHost));
+
+  // Fallback to what Next thinks the origin is (may be internal behind proxies).
+  try { allowed.add(req.nextUrl.hostname); } catch { /* ignore */ }
 
   const apiEnv = process.env.NEXT_PUBLIC_API_URL;
   if (apiEnv) {
     try {
-      const apiUrl = new URL(apiEnv, requestOrigin);
+      const apiUrl = new URL(apiEnv, req.nextUrl.origin);
       allowed.add(apiUrl.hostname);
     } catch {
       // ignore
@@ -48,7 +56,7 @@ export async function GET(req: NextRequest) {
     return new Response("Unsupported url protocol", { status: 400 });
   }
 
-  const allowedHostnames = getAllowedHostnames(req.nextUrl.origin);
+  const allowedHostnames = getAllowedHostnames(req);
   if (!allowedHostnames.has(target.hostname)) {
     return new Response("Unsupported url origin", { status: 400 });
   }
