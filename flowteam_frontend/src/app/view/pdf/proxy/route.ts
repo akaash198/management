@@ -90,6 +90,9 @@ export async function GET(req: NextRequest) {
       "content-type": contentType,
       "cache-control": "no-store",
       "content-disposition": `${download ? "attachment" : "inline"}; filename="${filename.replace(/\"/g, "")}"`,
+      "x-proxy-final-url": upstream.url,
+      "x-proxy-content-type": contentType,
+      "x-proxy-content-length": String(body.byteLength),
     },
   });
 }
