@@ -141,7 +141,11 @@ export default function SettingsMembersPage() {
     if (!activeTeam || !inviteEmail.trim()) return;
     try {
       setInviting(true);
-      await api.post(`/teams/${activeTeam.id}/invite/`, { email: inviteEmail.trim(), role: inviteRole });
+      const email = inviteEmail.trim();
+      await api.post(`/teams/${activeTeam.id}/invite/`, { email, role: inviteRole });
+      try {
+        sessionStorage.setItem("cowrk_invite_sent", JSON.stringify({ email, ts: Date.now() }));
+      } catch { /* ignore */ }
       toast.success(`Invite sent to ${inviteEmail}`);
       setInviteOpen(false);
       setInviteEmail("");

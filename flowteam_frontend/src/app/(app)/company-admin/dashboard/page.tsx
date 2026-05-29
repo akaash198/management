@@ -155,6 +155,10 @@ export default function CompanyAdminDashboard() {
       return res.data.data;
     },
     onSuccess: () => {
+      const email = inviteEmail.trim();
+      try {
+        sessionStorage.setItem("cowrk_invite_sent", JSON.stringify({ email, ts: Date.now() }));
+      } catch { /* ignore */ }
       toast.success(`Invite sent to ${inviteEmail}`);
       setInviteOpen(false);
       setInviteEmail("");
@@ -225,6 +229,10 @@ export default function CompanyAdminDashboard() {
       return res.data;
     },
     onSuccess: () => {
+      const email = teamInviteEmail.trim();
+      try {
+        sessionStorage.setItem("cowrk_invite_sent", JSON.stringify({ email, ts: Date.now() }));
+      } catch { /* ignore */ }
       toast.success(`Invite sent to ${teamInviteEmail}`);
       setTeamInviteTarget(null);
       setTeamInviteEmail("");

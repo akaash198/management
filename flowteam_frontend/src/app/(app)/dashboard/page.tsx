@@ -1,7 +1,7 @@
 "use client";
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
@@ -53,6 +53,7 @@ import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 import { FocusCard } from "@/components/ai/FocusCard";
 import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/dashboard/shared";
+import { toast } from "sonner";
 
 // Role-specific dashboards are large and mutually exclusive — load only the one needed
 const CEODashboard = dynamic(
@@ -97,6 +98,7 @@ const PRIORITY_ORDER = ["urgent", "high", "normal", "low"] as PriorityKey[];
 export default function DashboardPage() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { activeTeamId, fetchTeams, isLoading: isTeamsLoading } = useTeamStore();
   const { role, isCEO, isAdmin, isManager, isMember } = useTeamPermissions();
@@ -104,6 +106,28 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchTeams();
   }, [fetchTeams]);
+
+  useEffect(() => {
+    // Show one-time success message after sending invites from elsewhere.
+    const qp = searchParams.get("invite_sent");
+    if (qp) {
+      const email = qp === "1" ? "" : qp;
+      toast.success(email ? `Invitation sent to ${email}` : "Invitation sent");
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("invite_sent");
+      router.replace(next.toString() ? `/dashboard?${next.toString()}` : "/dashboard");
+      return;
+    }
+
+    try {
+      const raw = sessionStorage.getItem("cowrk_invite_sent");
+      if (!raw) return;
+      sessionStorage.removeItem("cowrk_invite_sent");
+      const parsed = JSON.parse(raw) as { email?: string } | null;
+      const email = (parsed?.email || "").trim();
+      toast.success(email ? `Invitation sent to ${email}` : "Invitation sent");
+    } catch { /* ignore */ }
+  }, [router, searchParams]);
 
   useEffect(() => {
     if (user?.is_superuser) router.replace("/super-admin/dashboard");
