@@ -359,7 +359,6 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                       (() => {
                         const a = task.assignee || task.assignees?.[0];
                         if (!a) return null;
-                        const isUnavailable = !onlineUserIds.has(a.id);
                         return (
                           <div className="flex items-center gap-2 flex-wrap">
                             <div
@@ -375,65 +374,138 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                             <span className="text-[13px] font-medium">
                               {a.full_name}
                             </span>
-                            {isUnavailable && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 px-2 text-[10px] font-semibold text-amber-700 bg-amber-50 hover:bg-amber-100 dark:text-amber-400 dark:bg-amber-950/30 dark:hover:bg-amber-900/30 border border-amber-200 dark:border-amber-900 rounded-md flex items-center gap-1 transition-all shadow-sm"
-                                  >
-                                    Reassign
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="start" className="w-56 max-h-64 overflow-y-auto p-1.5 bg-popover text-popover-foreground border border-border rounded-lg shadow-md z-[100]">
-                                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2 py-1 mb-1 border-b border-border/40">
-                                    Reassign to available member
-                                  </div>
-                                  {teamMembers.length === 0 ? (
-                                    <div className="text-xs text-muted-foreground text-center py-3">No team members found</div>
-                                  ) : (
-                                    teamMembers.map((member) => {
-                                      const isOnline = onlineUserIds.has(member.user.id);
-                                      return (
-                                        <DropdownMenuItem
-                                          key={member.user.id}
-                                          onClick={() => {
-                                            updateTask.mutate({
-                                              id: task.id,
-                                              data: {
-                                                assignee: member.user.id,
-                                                assignee_ids: [member.user.id],
-                                              }
-                                            });
-                                          }}
-                                          className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer text-xs hover:bg-accent hover:text-accent-foreground"
-                                        >
-                                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground relative">
-                                            {member.user.full_name[0]?.toUpperCase() || "?"}
-                                            <span className={cn(
-                                              "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
-                                              isOnline ? "bg-emerald-500" : "bg-slate-400"
-                                            )} />
-                                          </span>
-                                          <span className="flex-1 truncate font-medium">{member.user.full_name}</span>
-                                          {isOnline ? (
-                                            <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full font-bold">Online</span>
-                                          ) : (
-                                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full font-bold">Offline</span>
-                                          )}
-                                        </DropdownMenuItem>
-                                      );
-                                    })
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  disabled={teamMembers.length === 0}
+                                  className="h-6 px-2 text-[10px] font-semibold border border-border rounded-md flex items-center gap-1 transition-all"
+                                >
+                                  Reassign
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="w-56 max-h-64 overflow-y-auto p-1.5 bg-popover text-popover-foreground border border-border rounded-lg shadow-md z-[100]">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2 py-1 mb-1 border-b border-border/40">
+                                  Assign to member
+                                </div>
+                                {teamMembers.length === 0 ? (
+                                  <div className="text-xs text-muted-foreground text-center py-3">No team members found</div>
+                                ) : (
+                                  <>
+                                    {teamMembers
+                                      .filter((m) => m.user.id !== a.id)
+                                      .map((member) => {
+                                        const isOnline = onlineUserIds.has(member.user.id);
+                                        return (
+                                          <DropdownMenuItem
+                                            key={member.user.id}
+                                            onClick={() => {
+                                              updateTask.mutate({
+                                                id: task.id,
+                                                data: {
+                                                  assignee: member.user.id,
+                                                  assignee_ids: [member.user.id],
+                                                }
+                                              });
+                                            }}
+                                            className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer text-xs hover:bg-accent hover:text-accent-foreground"
+                                          >
+                                            <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground relative">
+                                              {member.user.full_name[0]?.toUpperCase() || "?"}
+                                              <span className={cn(
+                                                "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
+                                                isOnline ? "bg-emerald-500" : "bg-slate-400"
+                                              )} />
+                                            </span>
+                                            <span className="flex-1 truncate font-medium">{member.user.full_name}</span>
+                                            {isOnline ? (
+                                              <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full font-bold">Online</span>
+                                            ) : (
+                                              <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full font-bold">Offline</span>
+                                            )}
+                                          </DropdownMenuItem>
+                                        );
+                                      })}
+                                    <div className="my-1 border-t border-border/40" />
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        updateTask.mutate({
+                                          id: task.id,
+                                          data: {
+                                            assignee: null,
+                                            assignee_ids: [],
+                                          }
+                                        });
+                                      }}
+                                      className="text-xs rounded-md px-2 py-1.5 cursor-pointer text-destructive hover:bg-destructive/10"
+                                    >
+                                      Unassign
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         );
                       })()
                     ) : (
-                      <span className="text-[13px] text-muted-foreground/40 italic">Unassigned</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] text-muted-foreground/40 italic">Unassigned</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              disabled={teamMembers.length === 0}
+                              className="h-6 px-2 text-[10px] font-semibold border border-border rounded-md"
+                            >
+                              Assign
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-56 max-h-64 overflow-y-auto p-1.5 bg-popover text-popover-foreground border border-border rounded-lg shadow-md z-[100]">
+                            <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2 py-1 mb-1 border-b border-border/40">
+                              Assign to member
+                            </div>
+                            {teamMembers.length === 0 ? (
+                              <div className="text-xs text-muted-foreground text-center py-3">No team members found</div>
+                            ) : (
+                              teamMembers.map((member) => {
+                                const isOnline = onlineUserIds.has(member.user.id);
+                                return (
+                                  <DropdownMenuItem
+                                    key={member.user.id}
+                                    onClick={() => {
+                                      updateTask.mutate({
+                                        id: task.id,
+                                        data: {
+                                          assignee: member.user.id,
+                                          assignee_ids: [member.user.id],
+                                        }
+                                      });
+                                    }}
+                                    className="flex items-center gap-2 rounded-md px-2 py-1.5 cursor-pointer text-xs hover:bg-accent hover:text-accent-foreground"
+                                  >
+                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-bold text-muted-foreground relative">
+                                      {member.user.full_name[0]?.toUpperCase() || "?"}
+                                      <span className={cn(
+                                        "absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full border border-background",
+                                        isOnline ? "bg-emerald-500" : "bg-slate-400"
+                                      )} />
+                                    </span>
+                                    <span className="flex-1 truncate font-medium">{member.user.full_name}</span>
+                                    {isOnline ? (
+                                      <span className="text-[10px] text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded-full font-bold">Online</span>
+                                    ) : (
+                                      <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full font-bold">Offline</span>
+                                    )}
+                                  </DropdownMenuItem>
+                                );
+                              })
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     )}
                   </div>
                 </div>
