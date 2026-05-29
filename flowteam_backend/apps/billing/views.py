@@ -8,6 +8,7 @@ from django.db import transaction
 from django.http import HttpRequest
 from django.shortcuts import get_object_or_404
 from rest_framework import permissions, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -160,7 +161,7 @@ class InvoiceDetailView(APIView):
             id=invoice_id,
         )
         if not _can_manage_invoice(self.request.user, invoice.team_id):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         return invoice
 
     def get(self, request, invoice_id: str):
@@ -198,7 +199,7 @@ class InvoiceHtmlView(APIView):
             id=invoice_id,
         )
         if not _can_manage_invoice(request.user, invoice.team_id):
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         items = list(invoice.line_items.all())
         currency = (invoice.currency or "USD").upper()
         html = _render_invoice_html(invoice, items, currency=currency)

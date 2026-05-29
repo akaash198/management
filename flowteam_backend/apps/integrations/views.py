@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import requests
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.conf import settings
 
@@ -74,7 +75,7 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
     def get_project(self):
         project = get_object_or_404(Project, id=self.kwargs["project_id"])
         if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         return project
 
     def get(self, request, project_id):
@@ -91,7 +92,7 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
             role__in=("ceo", "admin", "manager"),
         ).exists()
         if not is_manager:
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
 
         integration = GitHubIntegration.objects.filter(project=project).first()
         if not integration:
@@ -149,7 +150,7 @@ class ProjectGitLabIntegrationView(generics.GenericAPIView):
     def get_project(self):
         project = get_object_or_404(Project, id=self.kwargs["project_id"])
         if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         return project
 
     def get(self, request, project_id):
@@ -166,7 +167,7 @@ class ProjectGitLabIntegrationView(generics.GenericAPIView):
             role__in=("ceo", "admin", "manager"),
         ).exists()
         if not is_manager:
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
 
         integration = GitLabIntegration.objects.filter(project=project).first()
         if not integration:
@@ -215,7 +216,7 @@ class ProjectBitbucketIntegrationView(generics.GenericAPIView):
     def get_project(self):
         project = get_object_or_404(Project, id=self.kwargs["project_id"])
         if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         return project
 
     def get(self, request, project_id):
@@ -232,7 +233,7 @@ class ProjectBitbucketIntegrationView(generics.GenericAPIView):
             role__in=("ceo", "admin", "manager"),
         ).exists()
         if not is_manager:
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
 
         integration = BitbucketIntegration.objects.filter(project=project).first()
         if not integration:

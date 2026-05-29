@@ -11,6 +11,7 @@ from django.core import signing
 from django.shortcuts import redirect
 from django.utils import timezone
 from rest_framework import permissions, status, views
+from rest_framework.exceptions import PermissionDenied
 
 from apps.integrations.models import ExternalCalendarAccount
 from apps.integrations.serializers import ExternalCalendarAccountSerializer
@@ -35,7 +36,7 @@ def _require_team_member(user, team: Team) -> None:
     if getattr(user, "is_superuser", False):
         return
     if not team.members.filter(user=user).exists():
-        raise permissions.PermissionDenied("Forbidden")
+        raise PermissionDenied("Forbidden")
 
 
 def _state_sign(payload: dict) -> str:

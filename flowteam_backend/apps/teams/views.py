@@ -1,4 +1,5 @@
 from rest_framework import generics, status, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from .models import Team, TeamMember, TeamInvite
 from .serializers import TeamSerializer, TeamMemberSerializer, TeamInviteSerializer, TeamInvitePreviewSerializer
@@ -272,15 +273,15 @@ class InviteCreateView(generics.CreateAPIView):
         current_member_count = TeamMember.objects.filter(team=team).count()
         pending_invites = TeamInvite.objects.filter(team=team, is_accepted=False).count()
         if current_member_count + pending_invites >= int(limits.get("max_members", 5)):
-            raise permissions.PermissionDenied("Team member limit reached for your plan.")
+            raise PermissionDenied("Team member limit reached for your plan.")
 
         desired_role = normalize_team_role(serializer.validated_data.get("role"))
         if not is_valid_team_role(desired_role):
-            raise permissions.PermissionDenied("Invalid role.")
+            raise PermissionDenied("Invalid role.")
 
         allowed_roles = compute_team_capabilities(team=team, user=self.request.user).assignable_invite_roles
         if desired_role not in allowed_roles and not self.request.user.is_superuser:
-            raise permissions.PermissionDenied("You are not allowed to assign that role.")
+            raise PermissionDenied("You are not allowed to assign that role.")
 
         invite = serializer.save(team=team, invited_by=self.request.user, role=desired_role)
         invite_link = TeamInviteSerializer(context={"request": self.request}).get_invite_link(invite)

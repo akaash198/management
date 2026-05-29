@@ -1,6 +1,7 @@
 from rest_framework import viewsets, status, generics, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from .models import Channel, ChannelMember, Message, Notification, MessageAttachment, MessagePin, MessageSave, MessageEdit, ScheduledMessage, NotificationPreference, Call, CallParticipant
 from .serializers import (
@@ -690,7 +691,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_superuser and not ChannelMember.objects.filter(
             channel=channel, user=self.request.user
         ).exists():
-            raise permissions.PermissionDenied("Forbidden")
+            raise PermissionDenied("Forbidden")
         msg = serializer.save(sender=self.request.user, channel=channel)
         
         mentions = parse_mentions(msg.text, channel.team_id)
@@ -834,7 +835,7 @@ class CallViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         channel = serializer.validated_data['channel']
         if not ChannelMember.objects.filter(channel=channel, user=self.request.user).exists():
-            raise permissions.PermissionDenied("You are not a member of this channel")
+            raise PermissionDenied("You are not a member of this channel")
         serializer.save(started_by=self.request.user)
 
     @action(detail=True, methods=['post'])
