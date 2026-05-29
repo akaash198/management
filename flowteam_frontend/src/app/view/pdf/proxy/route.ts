@@ -84,6 +84,27 @@ export async function GET(req: NextRequest) {
   const contentType = upstream.headers.get("content-type") ?? "application/pdf";
   const body = await upstream.arrayBuffer();
 
+  // If we didn't actually get a PDF, return a short diagnostic payload instead of a blank viewer.
+  const isPdf = /^application\/pdf\b/i.test(contentType);
+  if (!isPdf) {
+    const snippet = new TextDecoder().decode(body.slice(0, Math.min(body.byteLength, 800)));
+    const msg =
+      `Unexpected content-type from upstream.\n` +
+      `content-type: ${contentType}\n` +
+      `final-url: ${upstream.url}\n\n` +
+      `body (first bytes):\n${snippet}`;
+    return new Response(msg, {
+      status: 502,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-store",
+        "x-proxy-final-url": upstream.url,
+        "x-proxy-content-type": contentType,
+        "x-proxy-content-length": String(body.byteLength),
+      },
+    });
+  }
+
   return new Response(body, {
     status: 200,
     headers: {
