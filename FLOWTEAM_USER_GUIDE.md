@@ -1,1445 +1,1869 @@
-# FlowTeam — Complete User Guide
+# Cowrk — Complete User Guide
 
-**Version:** 4.0  
-**Covers:** Every page and component — Company hierarchy, Teams, Settings (9 tabs), Dashboard (role-specific), Portfolio, My Tasks, Projects (6 view types), Issue Navigator, Planning Hub, Operations Hub, Project Reports, Timeline, Files, Docs, Billing, Project Settings & Permissions, Messaging (full feature set), Calls, Presence, Status, Meetings, Calendar, Search, Notifications, 2FA, Push, Audit Log, Exports, Client Portal, Automation, AI Features, Super Admin.
+**Version:** 5.0
+**Covers:** Every feature end-to-end — Authentication, Onboarding, Dashboard (all roles), Projects (all views), Tasks, Sprints, Epics, Issue Navigator, Planning, Timeline, Docs, Files, Billing, Reports, Meetings, Messaging, Calls, Calendar, Notifications, Automation, Approvals, Integrations (GitHub), Members & Roles, Audit Log, Client Portal, AI Features, Super Admin.
 
 ---
 
 ## Table of Contents
 
-1. [What is FlowTeam?](#1-what-is-flowteam)
-2. [Getting Started — Register & Sign In](#2-getting-started--register--sign-in)
-3. [Onboarding — Create Your Workspace](#3-onboarding--create-your-workspace)
-4. [Company Structure & Roles](#4-company-structure--roles)
-5. [Company Admin Dashboard](#5-company-admin-dashboard)
-6. [Team Management](#6-team-management)
-7. [Settings — All 9 Tabs](#7-settings--all-9-tabs)
-8. [Dashboard — Role-Specific Views](#8-dashboard--role-specific-views)
-9. [Portfolio](#9-portfolio)
-10. [My Tasks](#10-my-tasks)
-11. [Projects List](#11-projects-list)
-12. [Project Board — 6 View Types](#12-project-board--6-view-types)
-13. [Tasks — Full Feature Breakdown](#13-tasks--full-feature-breakdown)
-14. [Issue Navigator](#14-issue-navigator)
-15. [Planning Hub](#15-planning-hub)
-16. [Operations Hub — 8 Tabs](#16-operations-hub--8-tabs)
-17. [Project Reports & Insights](#17-project-reports--insights)
-18. [Project Timeline](#18-project-timeline)
-19. [Project Files](#19-project-files)
-20. [Project Docs](#20-project-docs)
-21. [Project Billing](#21-project-billing)
-22. [Project Settings & Permissions](#22-project-settings--permissions)
-23. [Messages — Real-Time Chat](#23-messages--real-time-chat)
-24. [Calls — Audio & Video](#24-calls--audio--video)
-25. [Presence & Custom Status](#25-presence--custom-status)
-26. [Meetings](#26-meetings)
-27. [Calendar](#27-calendar)
-28. [Search](#28-search)
-29. [Notifications](#29-notifications)
-30. [Dark / Light Theme](#30-dark--light-theme)
-31. [Two-Factor Authentication (2FA)](#31-two-factor-authentication-2fa)
-32. [Web Push Notifications](#32-web-push-notifications)
-33. [Audit Log](#33-audit-log)
-34. [Exports](#34-exports)
-35. [Client Portal](#35-client-portal)
-36. [Automation Rules](#36-automation-rules)
-37. [AI Features (AI Plan)](#37-ai-features-ai-plan)
-38. [Super Admin](#38-super-admin)
-39. [Plan Limits](#39-plan-limits)
-40. [Quick Reference — Field Limits](#40-quick-reference--field-limits)
-41. [Appendix A — Production Setup](#appendix-a--production-setup)
+1. [What is Cowrk?](#1-what-is-flowteam)
+2. [Getting Started](#2-getting-started)
+   - 2.1 [Creating an Account](#21-creating-an-account)
+   - 2.2 [Onboarding Your Workspace](#22-onboarding-your-workspace)
+   - 2.3 [Accepting an Invitation](#23-accepting-an-invitation)
+   - 2.4 [Two-Factor Authentication (2FA)](#24-two-factor-authentication-2fa)
+3. [Navigation Overview](#3-navigation-overview)
+4. [Dashboard](#4-dashboard)
+   - 4.1 [Role-Based Dashboards](#41-role-based-dashboards)
+   - 4.2 [Daily Briefing (AI)](#42-daily-briefing-ai)
+   - 4.3 [Activity Feed](#43-activity-feed)
+   - 4.4 [My Tasks (Dashboard Widget)](#44-my-tasks-dashboard-widget)
+5. [Projects](#5-projects)
+   - 5.1 [Creating a Project](#51-creating-a-project)
+   - 5.2 [Projects List View](#52-projects-list-view)
+   - 5.3 [Kanban Board](#53-kanban-board)
+   - 5.4 [List View](#54-list-view)
+   - 5.5 [Epics View](#55-epics-view)
+   - 5.6 [Retrospectives View](#56-retrospectives-view)
+   - 5.7 [Timeline View](#57-timeline-view)
+   - 5.8 [Bugs View](#58-bugs-view)
+   - 5.9 [Archiving and Restoring Projects](#59-archiving-and-restoring-projects)
+   - 5.10 [Exporting a Project](#510-exporting-a-project)
+6. [Tasks](#6-tasks)
+   - 6.1 [Creating a Task](#61-creating-a-task)
+   - 6.2 [Task Fields Reference](#62-task-fields-reference)
+   - 6.3 [Editing a Task](#63-editing-a-task)
+   - 6.4 [Assigning Tasks](#64-assigning-tasks)
+   - 6.5 [Task Priority](#65-task-priority)
+   - 6.6 [Labels](#66-labels)
+   - 6.7 [Attachments](#67-attachments)
+   - 6.8 [Comments and Threads](#68-comments-and-threads)
+   - 6.9 [Task Links](#69-task-links)
+   - 6.10 [Subtasks](#610-subtasks)
+   - 6.11 [Time Logging](#611-time-logging)
+   - 6.12 [Approvals](#612-approvals)
+   - 6.13 [Task Activity Log](#613-task-activity-log)
+7. [Issue Navigator](#7-issue-navigator)
+   - 7.1 [Filtering Issues](#71-filtering-issues)
+   - 7.2 [Grouping Issues](#72-grouping-issues)
+   - 7.3 [Bulk Actions](#73-bulk-actions)
+   - 7.4 [Saving Custom Views](#74-saving-custom-views)
+   - 7.5 [Issue Stats Panel](#75-issue-stats-panel)
+8. [Sprints and Planning](#8-sprints-and-planning)
+   - 8.1 [Creating a Sprint](#81-creating-a-sprint)
+   - 8.2 [Sprint Capacity Planning](#82-sprint-capacity-planning)
+   - 8.3 [Moving Tasks into a Sprint](#83-moving-tasks-into-a-sprint)
+   - 8.4 [Completing a Sprint](#84-completing-a-sprint)
+   - 8.5 [Recurring Tasks](#85-recurring-tasks)
+9. [Epics](#9-epics)
+   - 9.1 [Creating an Epic](#91-creating-an-epic)
+   - 9.2 [Epic Phases and Priorities](#92-epic-phases-and-priorities)
+   - 9.3 [Linking Tasks to an Epic](#93-linking-tasks-to-an-epic)
+10. [Calendar](#10-calendar)
+    - 10.1 [Calendar Views](#101-calendar-views)
+    - 10.2 [Filtering the Calendar](#102-filtering-the-calendar)
+    - 10.3 [Drag-Drop Rescheduling](#103-drag-drop-rescheduling)
+    - 10.4 [External Calendars](#104-external-calendars)
+    - 10.5 [Exporting to ICS](#105-exporting-to-ics)
+11. [Meetings](#11-meetings)
+    - 11.1 [Scheduling a Meeting](#111-scheduling-a-meeting)
+    - 11.2 [Starting an Instant Meeting](#112-starting-an-instant-meeting)
+    - 11.3 [Joining and Running a Meeting](#113-joining-and-running-a-meeting)
+    - 11.4 [Meeting Recordings and Transcription](#114-meeting-recordings-and-transcription)
+    - 11.5 [AI Meeting Summaries and Action Items](#115-ai-meeting-summaries-and-action-items)
+    - 11.6 [Cancelling a Meeting](#116-cancelling-a-meeting)
+12. [Messaging](#12-messaging)
+    - 12.1 [Channels](#121-channels)
+    - 12.2 [Direct Messages](#122-direct-messages)
+    - 12.3 [Message Threads and Drafts](#123-message-threads-and-drafts)
+    - 12.4 [Online Presence](#124-online-presence)
+    - 12.5 [Calls from Channels](#125-calls-from-channels)
+13. [Members and Roles](#13-members-and-roles)
+    - 13.1 [Team Roles](#131-team-roles)
+    - 13.2 [Project Roles](#132-project-roles)
+    - 13.3 [Inviting Members](#133-inviting-members)
+    - 13.4 [Changing Roles](#134-changing-roles)
+    - 13.5 [Custom Permissions](#135-custom-permissions)
+    - 13.6 [Removing Members](#136-removing-members)
+14. [Project Settings](#14-project-settings)
+    - 14.1 [Docs](#141-docs)
+    - 14.2 [Files](#142-files)
+    - 14.3 [Reports](#143-reports)
+    - 14.4 [Billing and Time Tracking](#144-billing-and-time-tracking)
+    - 14.5 [Permissions](#145-permissions)
+    - 14.6 [GitHub Webhooks](#146-github-webhooks)
+15. [Notifications and Automation](#15-notifications-and-automation)
+    - 15.1 [Notification Rules](#151-notification-rules)
+    - 15.2 [Automation Rules](#152-automation-rules)
+16. [Audit Log](#16-audit-log)
+17. [Client Portal](#17-client-portal)
+18. [AI Features](#18-ai-features)
+19. [Super Admin](#19-super-admin)
+20. [My Tasks Page](#20-my-tasks-page)
+21. [Keyboard Shortcuts and Tips](#21-keyboard-shortcuts-and-tips)
+22. [Workflow Examples (End-to-End)](#22-workflow-examples-end-to-end)
+    - 22.1 [Launching a New Project from Zero](#221-launching-a-new-project-from-zero)
+    - 22.2 [Running a Two-Week Sprint](#222-running-a-two-week-sprint)
+    - 22.3 [Onboarding a New Team Member](#223-onboarding-a-new-team-member)
+    - 22.4 [Triaging a Bug Report](#224-triaging-a-bug-report)
+    - 22.5 [Planning and Running a Design Epic](#225-planning-and-running-a-design-epic)
+    - 22.6 [Scheduling, Running, and Following Up on a Meeting](#226-scheduling-running-and-following-up-on-a-meeting)
+    - 22.7 [Cross-Project Issue Triage Session](#227-cross-project-issue-triage-session)
+    - 22.8 [Client Progress Review via Client Portal](#228-client-progress-review-via-client-portal)
+    - 22.9 [Tracking and Invoicing Billable Hours](#229-tracking-and-invoicing-billable-hours)
+    - 22.10 [Connecting GitHub PRs to Tasks](#2210-connecting-github-prs-to-tasks)
 
 ---
 
-## 1. What is FlowTeam?
+## 1. What is Cowrk?
 
-FlowTeam is an all-in-one team workspace combining:
+Cowrk is an all-in-one project management and team collaboration platform. It combines structured task management (Kanban boards, sprints, epics, timelines), real-time communication (channels, direct messages, audio/video calls), scheduling (meetings, calendar), and analytics — all under one roof.
 
-- **Company & team hierarchy** — multi-level roles (CEO → Admin → Manager → Member → Viewer)
-- **Project management** — Kanban, table, epics, bugs, timeline, retrospectives, sprints, milestones
-- **Cross-project views** — Issue Navigator (Jira-style filtering), Planning Hub, Operations Hub, Portfolio
-- **Real-time messaging** — channels, DMs, threads, reactions, pinning, voice memos, slash commands, GIFs, polls, message scheduling
-- **Audio & video calls** — WebRTC peer-to-peer calls with screen sharing and recording
-- **Presence & custom status** — live indicators with emoji status, expiry timers, quick presets
-- **AI assistant** — daily briefing, focus recommendations, sprint planning, task generation, retrospectives, client reports (AI plan)
-- **Dark / light theme** — persisted per browser
-- **Notifications** — in-app, email, web push, per-project rules
-- **Enterprise security** — 2FA, RBAC, audit log, OAuth
+**Key principles:**
+
+- **Everything in one place.** Tasks, docs, files, meetings, chat, and billing live together so your team never needs to context-switch between five different tools.
+- **Role-aware.** Every page, stat, and action adapts to whether you are a CEO, Admin, Manager, Member, or Viewer.
+- **Real-time.** Activity feeds, messaging, and call notifications update live via WebSocket without page refreshes.
+- **AI-assisted (when enabled).** Daily briefings, meeting summaries, action items, and project health scoring are generated automatically.
 
 ---
 
-## 2. Getting Started — Register & Sign In
+## 2. Getting Started
 
-### 2.1 Sign Up
+### 2.1 Creating an Account
 
-1. Go to your FlowTeam URL and click **Sign up**
-2. Enter full name, email, password (min 8 characters)
-3. Verify email via the link sent to your inbox
-4. If your company already exists and your email domain matches the allowed domain, you are automatically added
+1. Open Cowrk in your browser and click **Sign up**.
+2. Enter your **full name**, **email address**, and a **password** (minimum 8 characters), then click **Create account**.
+3. Check your inbox for a **verification email** and click the link inside. Your account is now active.
 
-### 2.2 Sign In Options
+**OAuth sign-up:** If your organisation uses Google or another OAuth provider, click the provider button on the login/register page. You will be redirected to the provider and then back to Cowrk via `/auth/callback`.
 
-- **Email + password** — standard form
-- **Google OAuth** — click "Continue with Google" (if enabled by your admin)
-
-### 2.3 Forgot Password
-
-Click **Forgot password** → enter email → follow reset link in your inbox.
-
-### 2.4 Session Management
-
-JWT access tokens refresh automatically and silently. Only a confirmed 401 authentication failure will log you out — network errors or server errors will not.
+> If you already have an invite link from a team member, go to [Section 2.3](#23-accepting-an-invitation) instead of signing up from scratch.
 
 ---
 
-## 3. Onboarding — Create Your Workspace
+### 2.2 Onboarding Your Workspace
 
-After first login:
+After your first login, Cowrk walks you through workspace setup at `/onboarding`.
 
-1. Create or join a company (name, plan)
-2. Set your company role
-3. Create your first team (e.g. "Engineering")
-4. Invite teammates by email or shareable invite link
-5. Create your first project (blank or from template)
+**Steps:**
 
----
-
-## 4. Company Structure & Roles
-
-### 4.1 Hierarchy
-
-```
-Company
- └── Teams (Engineering, Design, Marketing…)
-      └── Projects
-           └── Tasks / Issues
-```
-
-### 4.2 Company / Team Roles
-
-| Role    | Manage team | Invite | Change roles | Delete team | Audit log | Create projects |
-|---------|-------------|--------|--------------|-------------|-----------|-----------------|
-| CEO     | ✓           | ✓      | ✓            | ✓           | ✓         | ✓               |
-| Admin   | ✓           | ✓      | ✓            | —           | ✓         | ✓               |
-| Manager | — (own)     | ✓      | —            | —           | —         | ✓               |
-| Member  | —           | —      | —            | —           | —         | —               |
-| Viewer  | —           | —      | —            | —           | —         | —               |
-
-### 4.3 Project Roles
-
-| Role          | View | Edit tasks | Export | Comment | Admin |
-|---------------|------|------------|--------|---------|-------|
-| Project Admin | ✓    | ✓          | ✓      | ✓       | ✓     |
-| Editor        | ✓    | ✓          | ✓      | ✓       | —     |
-| Commenter     | ✓    | —          | —      | ✓       | —     |
-| Viewer        | ✓    | —          | —      | —       | —     |
-
-Team role implies a project role by default: CEO/Admin → Project Admin, Manager/Member → Editor, Viewer → Viewer. These can be overridden per user per project in Project Settings.
+1. **Name your workspace** — Enter a company or team name. Cowrk generates a unique URL slug for you (e.g., `acme-corp`).
+2. **Describe your team** — Choose your industry and approximate team size.
+3. **Invite teammates** — Enter email addresses for the people you want to add immediately. You can skip this and invite later from Settings.
+4. **Create your first project** — Give it a name and optionally pick a colour and icon.
+5. **Done.** You land on the Dashboard with your first project and columns ready to use.
 
 ---
 
-## 5. Company Admin Dashboard
+### 2.3 Accepting an Invitation
 
-**Route:** `/company-admin/dashboard`  
-Available to CEO and Admin roles.
+When you receive an invite email:
 
-Four tabs:
+1. Click **Accept invitation** in the email.
+2. If you already have an account you are taken to `/accept-invite/[token]` and joined automatically.
+3. If you are new, you are prompted to create a password first, then joined.
 
-### 5.1 Overview
-
-Stats: total members, teams, projects, pending invites. Summary of company plan and capabilities.
-
-### 5.2 Members
-
-- Full member list with role colour badges
-- Change role via the `⋯` menu (dropdown: CEO / Admin / Manager / Member / Viewer)
-- Deactivate or remove a member
-- Your own role cannot be lowered
-
-### 5.3 Invites
-
-- Lists all pending invites with status: pending / accepted / expired
-- Resend or cancel an invite
-- Send new invite: enter email, select role → **Send invite**
-
-### 5.4 Teams
-
-- List of all teams in the company with member count and project count
-- Drill into a team → see its members and their roles
-- Create a new team from this view
+**Company-level invites** (sent by a CEO-role user) go to `/company-invite/[token]` and add you to the company _and_ its default team simultaneously.
 
 ---
 
-## 6. Team Management
+### 2.4 Two-Factor Authentication (2FA)
 
-Access via the **team switcher** in the top-left sidebar or **Settings → Team**.
+2FA adds a one-time password (TOTP) requirement at every login.
 
-- **Create a team** — name, description
-- **Switch active team** — all project/task/planning views filter to the active team
-- **Team roles** — separate from company roles (Owner, Admin, Member within the team context)
-- **Invite to team** — from Settings → Members → Invite Member (see Section 7)
+**Enabling 2FA:**
 
----
+1. Go to **Settings → Security** (in your profile/account settings).
+2. Click **Enable two-factor authentication**.
+3. Scan the QR code with an authenticator app (Google Authenticator, Authy, 1Password, etc.).
+4. Enter the 6-digit code to confirm.
+5. Save your **backup codes** in a safe place — these let you log in if you lose your device.
 
-## 7. Settings — All 9 Tabs
+**Logging in with 2FA enabled:**
 
-**Route:** `/settings` (also openable with `?tab=<name>`)
+1. Enter your email and password as usual.
+2. You are prompted for a 6-digit code.
+3. Open your authenticator app, copy the current code, and submit.
 
-The Settings page has 9 tabs accessible to all users (some sections are role-gated):
-
-### 7.1 Profile
-
-- **Full Name** — update display name
-- **Email** — shown read-only (email cannot be changed)
-- **Timezone** — select from a list of common timezones (UTC, ET, CT, MT, PT, London, Paris, Tokyo, Singapore); used for due-date display and notifications
-- **Avatar** — shown; upload coming soon
-- **Reporting Structure card** — if you have a manager or CEO above you in the hierarchy, a card shows who you directly report to and their role
-
-### 7.2 Team
-
-- Update **team name** (shown with slug)
-- **Danger Zone** — Delete team button (only enabled for CEO/Admin with `can_delete_team` capability)
-
-### 7.3 Members
-
-- Table of all team members: avatar, name, email, role badge, joined date
-- `⋯` menu per row: **Change Role** (modal with role selector) and **Remove** (with confirmation)
-- **Invite Member** button (top-right) — opens invite modal: enter email, select role from your assignable roles
-- Assignable roles depend on your own role (CEO can assign all; Manager can only assign Member/Viewer)
-
-### 7.4 Notifications
-
-- **Browser notifications** (push) — toggle to enable/disable OS-level alerts
-- Five individual toggles (saved to `localStorage`):
-  - Task Assigned
-  - Task Completed
-  - Project Updates
-  - Member Joined
-  - Weekly Digest
-- **Save Preferences** button
-
-### 7.5 Integrations
-
-- **Google Calendar** — OAuth connect; toggle sync of external events into FlowTeam calendar
-- **Microsoft Calendar** — OAuth connect; same toggle
-- **Slack Webhooks** — add webhook URLs (name + URL + enable/disable toggle); multiple webhooks supported; copy URL button; delete button
-
-### 7.6 AI
-
-- **AI Features toggle** — master on/off for the entire team (CEO/Admin only)
-- Shows a grid of all 10 AI capabilities with icons and descriptions:
-  - Daily Briefing, Auto Task Descriptions, Weekly Status Reports, Sprint Planning AI, Channel Catch-up, Project Health Score, Workload Balancer, Client Reports, Focus Recommendations, Auto Label & Triage
-- When AI is off, all AI buttons in the app are visible but show a "not enabled" toast
-
-### 7.7 Plan
-
-- Shows current plan and whether AI is enabled
-- Plan upgrades coming soon
-
-### 7.8 Security
-
-- **Change Password** — enter current password + new password (min 8 characters, must match confirmation)
-- **Account Security card** — shows email verification status, your account role in the active team
-- **Two-Factor Authentication** — embedded TwoFactorCard (enable/disable TOTP; see Section 31)
-
-### 7.9 Roles & Access (RBAC)
-
-- **Your Permissions** — colour-coded list of what you can do in the team (green = allowed, grey = not allowed): manage team settings, invite members, change roles, remove members, delete team, view audit log, create projects
-- **Team Role Capability Matrix** — full table showing which capabilities each team role (CEO/Admin/Manager/Member/Viewer) has
-- **Project Role Capability Matrix** — full table showing which capabilities each project role (Project Admin / Editor / Commenter / Viewer) has
+> If you lose access to your authenticator, use one of the backup codes. Each backup code can only be used once.
 
 ---
 
-## 8. Dashboard — Role-Specific Views
+## 3. Navigation Overview
 
-**Route:** `/dashboard`
+After login, the left sidebar is your primary navigation:
 
-The dashboard automatically renders a different layout based on your team role.
+| Section | What you find there |
+|---------|---------------------|
+| **Dashboard** | Personal stats, activity feed, quick task overview |
+| **My Tasks** | Every task assigned to you across all projects |
+| **Projects** | All your projects (list + sub-pages per project) |
+| **Issues** | Cross-project issue navigator |
+| **Planning** | Sprint planner and roadmap |
+| **Operations** | Operations management view |
+| **Calendar** | Tasks and meetings on a visual calendar |
+| **Meetings** | Schedule and join meetings |
+| **Messages** | Channels and direct messages |
+| **Settings** | Team members, roles, audit log |
 
-### 8.1 All Dashboards (common)
-
-- **Missed Messages Pulse** — top card showing channels with unread messages since last login; animated pulse; up to 3 channel previews with last message + sender; click to jump to `/messages?channel={id}`
-- **Time-of-day greeting** — "Good morning/afternoon/evening, [first name]"
-- **Refresh button** — re-fetches all dashboard data
-- Current date shown in header
-
-### 8.2 CEO Dashboard
-
-- **KPI row**: Total members, Active projects, Completed this week, Overdue tasks
-- **Organisation pulse banner** — delivery velocity %, most active member, tasks created vs completed this week
-- **Top projects** — sorted by progress %, up to 4 project cards
-- **Leadership team** — cards for CEO/Admin/Manager members
-- **Quick actions** — Invite member, New project, View reports
-- **AI: Daily Briefing card** — AI text summary of overdue/due-today/meeting counts (requires AI plan)
-- **AI: Focus Recommendations card** — ranked list of up to 6 tasks to work on next, each with urgency badge and reason (requires AI plan)
-
-### 8.3 Admin Dashboard
-
-- **KPI row**: Total members, Viewers/pending count, Active projects, Overdue tasks
-- **Organisation pulse banner** — same as CEO
-- **Team members table** — sorted by role; shows pending count
-- **Quick actions** — Invite, New project, Settings
-- **Missed Messages Pulse**
-
-### 8.4 Manager Dashboard
-
-- **KPI row**: Active projects, Overdue tasks, Completed this week, Delivery velocity %
-- **Priority breakdown bar** — visual distribution of your tasks by priority (urgent/high/normal/low)
-- **Focus tasks** — up to 4 tasks sorted by overdue first, then due date
-- **Active projects grid** — up to 4 project cards
-- **Team members** list (member role only)
-- **Missed Messages Pulse**
-
-### 8.5 Member Dashboard
-
-- **KPI row**: Active projects, Overdue tasks, Due today, Completed this week
-- **My tasks** — searchable list of all assigned tasks; filtered tasks with project name, priority badge, due date
-- **Focus tasks** — top 4 by urgency
-- **Projects grid** — projects you're part of
-- **Reporting to** — shows your manager's avatar and role
-- **Missed Messages Pulse**
-
-### 8.6 Viewer Dashboard
-
-- **Projects grid** — read-only view of all projects in the team
-- **Team activity** sidebar — recent events feed
-- "View only" badge in the header
+The top-right corner contains:
+- **Search** — full-text search across tasks, projects, and people
+- **Notifications bell** — in-app notification centre
+- **Your avatar** — profile settings, 2FA, logout
 
 ---
 
-## 9. Portfolio
+## 4. Dashboard
 
-**Route:** `/portfolio`
+The Dashboard (`/dashboard`) is your home page after login. It is role-aware — the widgets and stats shown depend on your team role.
 
-A cross-project health and delivery view for your active team.
+### 4.1 Role-Based Dashboards
 
-- **Summary badges** — total projects, projects with overdue tasks, projects "at risk" (health score < 50)
-- **Project cards grid** — one card per project showing:
-  - Health score (0–100) with colour-coded label (green ≥ 80, amber ≥ 50, red < 50)
-  - Team name
-  - Progress bar (% complete)
-  - Open/total tasks count
-  - Overdue task count (shown in red if > 0)
-  - Next milestone name and due date
-  - **Open project** button → links to `/projects/[id]`
-- **Refresh button** — re-fetches portfolio data (with spin animation while loading)
+| Role | What they see |
+|------|---------------|
+| **CEO** | Company-wide KPIs: total projects, open tasks, overdue items, team velocity, billing summary |
+| **Admin** | Team-level project health, member utilisation, recent activity |
+| **Manager** | Sprint progress, tasks due soon, assignee workload |
+| **Member** | Tasks assigned to me, upcoming deadlines, recent comments |
+| **Viewer** | Read-only snapshot of projects they can access |
 
----
+### 4.2 Daily Briefing (AI)
 
-## 10. My Tasks
+If AI is enabled for your team, a **Daily Briefing** card appears at the top of the Dashboard each morning. It summarises:
 
-**Route:** `/dashboard/my-tasks`
+- Overdue tasks that need attention
+- Upcoming deadlines today and tomorrow
+- Recent decisions and discussion highlights
+- Suggested priorities for the day
 
-All tasks assigned to you in the active team, in a dedicated full-page view.
+The briefing is generated fresh each day. Click any item in the briefing to jump directly to the relevant task or meeting.
 
-**Filters:**
-- **Status** — All / Open / Done
-- **Due** — All / Overdue / Today / This week (also settable via URL `?due=overdue`)
-- **Search** — free text across task titles
+### 4.3 Activity Feed
 
-**Summary badges** — shows current Status filter, Due filter, and total task count.
+The right panel of the Dashboard shows a live **Activity Feed** — a real-time stream of actions taken by your team:
 
-Each task row shows: title, project, epic, priority, due date, sprint, status. Click a task to open it in the project board.
+- Task created / moved / assigned / completed
+- Comments posted
+- Meetings scheduled or started
+- Files uploaded
 
-Back button returns to `/dashboard`.
+The feed updates automatically without a page refresh (powered by WebSocket). Click any activity item to navigate to the source task or project.
 
----
+### 4.4 My Tasks (Dashboard Widget)
 
-## 11. Projects List
-
-**Route:** `/projects`
-
-- Lists all active projects in the active team
-- Each project card: icon, name, team, status badge, progress bar, task counts
-- **New Project** button → opens create project modal
-  - Name, description, team, colour, icon (emoji)
-  - Start from a template (see Planning Hub → Templates)
-- **Project status filter** — All / Active / Archived
+A compact task list shows tasks assigned to you, sorted by due date. Click any task to open its full detail view. Click **View all** to go to the full [My Tasks page](#20-my-tasks-page).
 
 ---
 
-## 12. Project Board — 6 View Types
+## 5. Projects
 
-**Route:** `/projects/[id]`
+Projects are the primary organisational unit. Every task, sprint, epic, doc, and file belongs to a project.
 
-The project has a tab bar with 6 view types:
+### 5.1 Creating a Project
 
-| Tab | View | Description |
-|-----|------|-------------|
-| Board | Kanban | Drag-and-drop column view |
-| Table | List | Flat list of all tasks with sortable columns |
-| Epics | Epic grid | Cards for each epic with progress and child task count |
-| Timeline | Placeholder | Coming soon — Gantt-style timeline |
-| Bugs | Bug filter | Kanban filtered to issue_type = bug only |
-| Retrospectives | Placeholder | Coming soon — Sprint retrospectives |
+1. From the sidebar, click **Projects**.
+2. Click the **+ New project** button (top-right of the project list).
+3. Fill in:
+   - **Name** — required
+   - **Description** — optional but recommended
+   - **Icon** — choose an emoji icon
+   - **Colour** — pick a colour for visual identification
+4. Click **Create project**.
 
-### 12.1 Board Header
+Cowrk creates a default set of columns (e.g., Backlog, In Progress, In Review, Done). You can customise columns immediately from the board view.
 
-- Back button (history aware)
-- Project icon + name + status badge
-- **Health score badge** — colour-coded (green/amber/red); score comes from AI health check if AI enabled, else static analytics
-- Column count · task count · completion %
-- **Watch (N) badge** — shows how many people are watching the project; click to watch/unwatch and receive notifications for all project activity
-- **Reports** quick link
-- **New task** button
+**Example:**
 
-### 12.2 Board Filters Bar
-
-Available in board and table views:
-
-- **Search tasks** — full-text filter
-- **Priority filter** — All / Urgent / High / Normal / Low
-- **Due filter** — All / Overdue / Today / This week
-- **Assignee filter** — All / Me / [any team member]
-- Active filter count badge; **Clear filters** button when any are active
-
-### 12.3 Export
-
-Dropdown on the board: **Export CSV**, **Export XLSX**, **Export PDF** — downloads immediately.
-
-### 12.4 Kanban Board
-
-- Drag task cards between columns
-- Keyboard-accessible (dnd-kit PointerSensor + KeyboardSensor)
-- Drag a card and drop onto a column header or between existing cards to set order
-- **Add column inline** — click `+` at the right end of the column row; enter name; Enter or click check
-- Columns show task count; the "done" column is styled distinctly
-
-### 12.5 Table View
-
-Flat sortable list of all tasks:
-
-- Columns: title, assignee avatar, priority, due date, sprint, status/column, issue type, labels
-- Click a row to open the task detail panel
-
-### 12.6 Epics View
-
-- Grid of epic cards showing: title, status (backlog/discovery/wip/review/done), progress bar, assignee, start/end dates, child task count
-- **Create Epic** button
-- **Search** field to filter epics by title
-
-### 12.7 Bugs View
-
-Same list view as Table but pre-filtered to `issue_type = "bug"`, grouped by column. Useful for QA triage without leaving the project.
-
-### 12.8 Retrospectives View
-
-Currently a placeholder screen with a **Start Retrospective** button. The interactive per-project retro board (columns: Keep / Improve / Discussion, voting, sidebar list) is available as the `RetrospectiveView` component and is being integrated into this tab.
-
-AI-generated retrospectives (per sprint) are available now in the Planning Hub → Sprint Planning (requires AI plan).
+> You are starting a product redesign initiative. Click **+ New project**, name it "Website Redesign Q3", pick the palette icon and blue colour, add a short description ("Full redesign of marketing site"), and click Create.
 
 ---
 
-## 13. Tasks — Full Feature Breakdown
+### 5.2 Projects List View
 
-### 13.1 Task Fields
+At `/projects` you see all projects your team has access to.
 
-| Field | Details |
-|-------|---------|
-| Title | Required, max 200 chars |
-| Description | Markdown rich text |
-| Issue type | Epic / Story / Task / Bug / Subtask (configurable per project) |
-| Status | Column assignment |
-| Priority | Critical / High / Normal / Low |
-| Assignee | Any team member |
-| Due date | Date picker |
-| Labels | Colour-coded tags |
-| Sprint | Assign to a sprint |
-| Epic | Group under an epic |
-| Story points | Numeric estimate |
-| Time tracking | Built-in timer + manual log (see 13.5) |
-| Dependencies | Block / blocked-by task links |
-| Attachments | File uploads |
-| Custom fields | Text / number / date / select (configured per issue type in Operations Hub) |
+**Switching view modes:**
 
-### 13.2 Creating a Task
+- **Grid view** — card-style layout showing project icon, name, task counts, and team avatars
+- **List view** — compact table with columns for status, task count, completion %, overdue count, team members
 
-- Kanban: click `+` in any column header for quick-add inline
-- Board header: **New task** button → opens full create modal
-- Issue Navigator: **Create issue** button → modal with project selector
-- Keyboard shortcut: `N` (while not in an input)
+**Filtering and searching:**
 
-### 13.3 Task Detail Panel
+- **Status filter** — All, Active, Archived
+- **Search bar** — filter projects by name in real time
 
-Opens as a side panel (not a full-page navigation) when clicking a task card.
+**Stats bar (top of page):**
 
-- Edit all fields inline
-- **Activity tab** — full history of field changes, assignments, and comments
-- **Comments** — markdown with @mentions; reaction emoji on each comment
-- **Subtasks** — nested task list; add subtask button
-- **Dependencies** — search and link tasks as "blocks" / "blocked-by"
-- **Watch / Unwatch** — click the Watch button in the task panel to subscribe to this task; you receive notifications for all changes. The watcher count and avatars of all watchers are shown in the panel
-- **Time tracker** (see 13.5)
-- **Attachments** — upload files; existing attachments listed with download links
-
-### 13.4 Task Completion Modal
-
-When moving a task to a "done" column, a completion modal may appear prompting for notes or a rating.
-
-### 13.5 Time Tracker
-
-- **Start** — click play button; a live timer counts up in seconds
-- **Stop** — saves the session as a time log entry (converted to minutes)
-- **Manual log** — enter minutes + optional note → **Log time**
-- **History** — list of all time log entries for the task with date, duration, and note
-- **Delete** individual log entries
-
-### 13.6 Subtasks
-
-Open task → **Add subtask** → enter title. Subtasks appear nested. Completing all subtasks does not auto-complete the parent.
-
-### 13.7 Task Dependencies
-
-Task detail → **Dependencies** → search tasks → link as "blocks" or "blocked by". Blocked tasks show a warning badge on their card.
+| Stat | Meaning |
+|------|---------|
+| Active projects | Projects not archived |
+| Overall completion | % of tasks in done columns across all projects |
+| Team members | Unique members across all projects |
+| Overdue tasks | Tasks past their due date |
 
 ---
 
-## 14. Issue Navigator
+### 5.3 Kanban Board
 
-**Route:** `/projects/issues`
+The Board is the default view for a project. Each column represents a workflow stage, and tasks appear as cards.
 
-Cross-project Jira-style view of all issues across every project in the active team.
+**Creating a column:**
 
-### 14.1 Filters (7 dimensions)
+1. Scroll to the rightmost column and click **+ Add column**.
+2. Enter a column name.
+3. Optionally mark it as the **Done column** (tasks moved here get a resolution timestamp).
+
+**Marking a column as Done:**
+
+Right-click a column header → **Mark as done column**. Only one column per project can be the Done column.
+
+**Moving tasks:**
+
+Drag a task card from one column and drop it into another. The task's status updates instantly. All watchers and the activity log are notified.
+
+**Filtering the board:**
+
+Use the filter toolbar above the board to narrow displayed cards:
 
 | Filter | Options |
 |--------|---------|
-| Search | Title full-text |
-| Project | Any active project |
-| Status | Column names |
-| Priority | Critical / High / Normal / Low |
-| Due date | Overdue / Today / This week / This month |
-| Sprint | Any sprint |
-| Assignee | Any team member |
+| Priority | Urgent, High, Normal, Low |
+| Due date | Overdue, Due today, Due this week, No date |
+| Assignee | Select one or more team members |
 
-Filters stack; count and stats update in real time.
+**Searching tasks:**
 
-### 14.2 Stats Bar
-
-Shows: visible issues, urgent issues, overdue issues, unassigned issues.
-
-### 14.3 Saved Views
-
-1. Apply filters → **Save view** → enter name
-2. Saved views appear in the left sidebar
-3. Click to restore any saved filter combination
-4. Delete saved views from the sidebar
-
-### 14.4 Bulk Actions
-
-Select multiple issues (checkbox) → bulk action toolbar:
-
-- Set priority
-- Move to sprint
-- Move to column
-- Mark complete
+Type in the search box (top of board) to instantly filter cards by title.
 
 ---
 
-## 15. Planning Hub
+### 5.4 List View
 
-**Route:** `/projects/planning`
+Click the **List** tab on the project page to switch from the Kanban board to a sortable table of all tasks.
 
-Team-level planning across 5 tabs. Header shows: sprint count, milestone count, recurring rule count, team member count.
+Columns shown: Title, Assignee, Priority, Status, Due Date, Labels, Estimated Hours.
 
-### 15.1 Sprint Planning Tab
-
-**Create sprint form:**
-- Project, name, goal, start date, end date, total capacity hours
-- Per-member capacity (enter hours for each team member)
-- **Create sprint** button
-
-**Backlog assignment:**
-- Table of open tasks with no sprint assigned
-- Select tasks with checkboxes
-- Choose target sprint → **Assign to sprint**
-- **AI: Suggest scope** — analyses backlog vs capacity; selects best-fit tasks; shows reasoning text (requires AI plan)
-
-**Sprint list:**
-- All sprints with status, goal, dates
-- Per-sprint **Generate retrospective** button (AI analyses sprint; outputs What went well / What didn't / Action items; requires AI plan)
-
-### 15.2 Roadmap Tab
-
-Visual milestone timeline:
-
-- Bar chart of all milestones across projects with names and due dates
-- Status colour coding: planned / in progress / completed
-
-### 15.3 Templates Tab
-
-Create reusable project templates for the team:
-
-- Name, description, colour (hex picker), icon (emoji)
-- **Columns** — one per line; name a column "Done" to auto-set the done column
-- **Labels** — `Name:#hexcolor` one per line (e.g. `Bug:#ef4444`)
-- **Issue types** — one per line (e.g. `epic`, `story`, `task`, `bug`, `subtask`)
-
-Templates appear as options when creating a new project.
-
-### 15.4 Recurring Work Tab
-
-Automate repeating task creation:
-
-- Project, column, optional assignee, title, description, issue type, priority
-- Frequency: **daily** / **weekly** / **monthly** + interval (e.g. every 2 weeks)
-- Next run date
-- Active/inactive toggle
-- **Run now** — manually triggers the rule immediately
-- Rules listed with last-run date and next-run date
-
-### 15.5 Workload Tab
-
-Team member workload overview:
-
-- Table: member name, role, open task count, total story points
-- Use to identify imbalance before sprint planning
+Click any column header to sort. Click a task row to open its detail panel.
 
 ---
 
-## 16. Operations Hub — 8 Tabs
+### 5.5 Epics View
 
-**Route:** `/projects/operations`
+Click the **Epics** tab to see all epics for this project. Each epic is displayed with its phase, priority, owner, date range, and linked task count. See [Section 9](#9-epics) for full epic management.
 
-Cross-project operational layer.
+---
 
-### 16.1 Approvals
+### 5.6 Retrospectives View
 
-**Request tab:**
-- Select project, title, description, one or more approvers
-- Submit approval request
+Click the **Retrospectives** tab to access the sprint retro board for this project.
 
-**Queue tab:**
-- Lists pending approvals where you are an approver
-- Approve or reject with a note
+**Creating a retro entry:**
 
-### 16.2 Activity
+1. Click **+ Add item** under **Keep**, **Improve**, or **Discussion**.
+2. Type your observation.
+3. Press Enter or click the checkmark.
 
-- Timeline feed of all project events: task created/moved/assigned/commented, sprint started, file uploaded, etc.
-- Filter by project
-- Each event links to the source task or project
+Retro items are stored per sprint and are visible to all project members. Use this after every sprint to capture what worked and what didn't.
 
-### 16.3 Reporting
+---
 
-Advanced cross-project metrics:
+### 5.7 Timeline View
 
-| Metric | Description |
-|--------|-------------|
-| Lead time | Avg time from creation to completion |
-| Cycle time | Avg time from "in progress" to completion |
-| Throughput | Tasks completed per week bar chart |
-| Overdue trend | Overdue count over past weeks |
-| Sprint burndown | Remaining vs ideal per day |
-| Velocity | Story points per sprint |
+Click the **Timeline** tab for a Gantt-style view of tasks with start and due dates.
 
-**ICS Calendar Export** — downloads a `.ics` file of all milestone due dates for import into Google Calendar / Outlook / Apple Calendar.
+- Each task appears as a horizontal bar spanning its start → due date.
+- Bars are colour-coded by priority.
+- Drag the edges of a bar to adjust dates.
+- Click a bar to open the task detail panel.
 
-### 16.4 Docs (Knowledge Base)
+**Ideal for:** Spotting deadline conflicts, visualising parallel work streams, and presenting roadmaps to stakeholders.
 
-- Create and list knowledge base documents per project
-- Markdown editor with live preview
-- Also accessible from each project's Docs tab
+---
 
-### 16.5 Notifications (Preferences & Rules)
+### 5.8 Bugs View
 
-**Global preferences:**
+Click the **Bugs** tab to see a filtered view of all tasks with issue type **Bug** in this project. The layout is identical to the List view but pre-filtered. Quickly triage defects without scrolling through non-bug tasks.
 
-| Setting | Default |
-|---------|---------|
-| Email notifications | On |
-| Due reminders | On |
-| Overdue digest (daily) | Off |
-| Watch notifications | On |
-| Approval notifications | On |
+---
 
-**Digest preview** — sample of what your daily digest email looks like.
+### 5.9 Archiving and Restoring Projects
 
-**Per-project notification rules:**
-- Create rule: select project + event type + delivery channel (in-app / email / both)
-- Rules override global defaults for that project
-- List of active rules with delete button
+**Archiving** hides a project from the active list without deleting any data.
 
-### 16.6 Automation
+1. On the Projects list, hover a project card and click the **⋮ menu**.
+2. Select **Archive project**.
+3. Confirm the prompt.
 
-**AI rule builder:**
-- Describe automation in plain English → AI generates trigger + condition + action (requires AI plan)
+The project disappears from the default list. Switch the Status filter to **Archived** to find it.
 
-**Manual rule builder:**
-- Trigger: task created / task moved to column / due date reached / task assigned
-- Condition: issue type / priority / assignee / column
-- Action: assign user / move to column / set priority / send notification
+**Restoring:**
 
-Active rules listed with toggle on/off and delete.
+1. Set the Status filter to **Archived**.
+2. Hover the archived project → **⋮ menu** → **Restore project**.
 
-### 16.7 Issue Fields (Custom Fields)
+---
 
-Per-project, per-issue-type custom fields:
+### 5.10 Exporting a Project
 
-| Type | Example |
+1. Inside a project, click the **⋮ menu** (top-right of the board).
+2. Select **Export**.
+3. Choose format: **CSV**, **Excel (.xlsx)**, or **PDF**.
+4. The file downloads immediately.
+
+The export includes all tasks with their fields (title, assignee, priority, status, due date, labels, estimated hours, time logged).
+
+---
+
+## 6. Tasks
+
+Tasks are the core unit of work. They live inside projects and belong to a column (status).
+
+### 6.1 Creating a Task
+
+**From the board:**
+
+Click the **+ Add task** button at the bottom of any column. Type a title and press Enter for a quick-create.
+
+**Full create form:**
+
+Click **+ New task** in the top bar of the project (or the "+" icon next to a column header) to open the full Create Task modal.
+
+Fields available on creation:
+
+- Title (required)
+- Description (rich text)
+- Assignees
+- Priority
+- Due date
+- Labels
+- Issue type (Epic, Story, Task, Bug, Subtask)
+- Sprint
+- Epic
+- Parent task (if creating a subtask)
+- Estimated hours
+
+---
+
+### 6.2 Task Fields Reference
+
+| Field | Description |
+|-------|-------------|
+| **Title** | Short name of the work item |
+| **Description** | Rich text with formatting, bullet lists, checklists, code blocks |
+| **Issue type** | Epic, Story, Task, Bug, Subtask |
+| **Priority** | Urgent (red), High (orange), Normal (blue), Low (grey) |
+| **Status** | The column the task is in (reflects workflow stage) |
+| **Assignees** | One or more team members responsible |
+| **Reporter** | Who created the task (set automatically) |
+| **Sprint** | Which sprint this task is planned for |
+| **Epic** | The higher-level initiative this task belongs to |
+| **Parent task** | For subtasks, the parent task |
+| **Labels** | Colour-coded tags (customisable per project) |
+| **Start date** | When work is expected to begin |
+| **Due date** | Deadline — appears on the calendar |
+| **Estimated hours** | Planned effort |
+| **Time logged** | Actual hours tracked via time logs |
+| **Watchers** | Users who receive notifications on all task updates |
+| **Attachments** | Files attached to this task |
+| **Linked tasks** | Blocks / Blocked by / Duplicates / Relates to |
+| **GitHub PRs** | Pull requests linked to this task via GitHub integration |
+
+---
+
+### 6.3 Editing a Task
+
+Click any task card to open the **Task Detail Panel** (slides in from the right, or opens as a modal). All fields are editable inline:
+
+- Click a field value to edit it.
+- Changes save automatically when you click away or press Enter.
+
+To edit the task in a dedicated full-page view, click the **Open in full page** icon (arrow icon, top-right of the panel).
+
+---
+
+### 6.4 Assigning Tasks
+
+Cowrk supports **multi-assignee** tasks.
+
+1. Open the task detail panel.
+2. Click the **Assignees** field.
+3. Search for or click team member names to add them.
+4. Click a member again to remove them.
+
+Each assignee receives a notification and sees the task in their My Tasks list.
+
+---
+
+### 6.5 Task Priority
+
+Priorities signal urgency:
+
+| Priority | Colour | Meaning |
+|----------|--------|---------|
+| **Urgent** | Red | Drop everything — needs immediate attention |
+| **High** | Orange | Important, complete this sprint |
+| **Normal** | Blue | Standard priority (default) |
+| **Low** | Grey | Nice to have, no immediate pressure |
+
+Set priority from the task detail panel or directly on the card via the right-click context menu.
+
+---
+
+### 6.6 Labels
+
+Labels are free-form colour tags scoped to a project.
+
+**Creating a label:**
+
+1. Inside a project, open any task → click **Labels**.
+2. Click **+ Create label**.
+3. Enter a name and pick a colour.
+4. Click Save.
+
+**Applying a label:**
+
+Click **Labels** in the task detail panel and select one or more labels from the dropdown.
+
+**Filtering by label:**
+
+Use the board's filter toolbar → Labels dropdown to show only tasks with specific labels.
+
+---
+
+### 6.7 Attachments
+
+You can attach files directly to tasks or to individual comments.
+
+**Uploading:**
+
+1. Open the task detail panel.
+2. Scroll to the **Attachments** section.
+3. Click **Upload file** or drag-and-drop files onto the panel.
+
+**Versioning:** If you upload a file with the same name as an existing attachment, Cowrk prompts you to create a new version. Previous versions are retained and accessible.
+
+**Actions per attachment:**
+
+- **Preview** — opens an in-app viewer for images and PDFs
+- **Rename** — change the display name
+- **Replace** — upload a new version
+- **Download** — save locally
+- **Delete** — permanently removes the attachment (requires appropriate role)
+
+---
+
+### 6.8 Comments and Threads
+
+Comments appear in the task detail panel below the description.
+
+**Posting a comment:**
+
+1. Click the comment box at the bottom of the task panel.
+2. Type your message (supports basic markdown: **bold**, _italic_, `code`, bullet lists).
+3. Use `@mention` to notify a specific team member.
+4. Press **Cmd/Ctrl + Enter** or click **Comment**.
+
+**Replying to a comment:**
+
+Click **Reply** under any comment to start a thread. Threads keep discussions focused on a specific point.
+
+**Editing / deleting your comment:**
+
+Hover a comment → click the **pencil** icon to edit, or the **trash** icon to delete. An edit timestamp is shown after editing.
+
+---
+
+### 6.9 Task Links
+
+Link related tasks to create dependencies and prevent blockers from going unnoticed.
+
+**Link types:**
+
+| Type | Meaning |
 |------|---------|
-| Text | External ticket ID |
-| Number | Budget, story points override |
-| Date | Target ship date |
-| Select | Region, environment |
+| **Blocks** | This task must be completed before the linked task |
+| **Blocked by** | This task cannot start until the linked task is done |
+| **Duplicates** | This task is a duplicate of the linked task |
+| **Relates to** | A loose relationship with no dependency implication |
 
-Custom fields appear in the task create/edit form for the configured issue type.
+**Adding a link:**
 
-### 16.8 Client Portal
-
-- **Generate AI client report** — AI produces a client-ready progress summary (requires AI plan)
-- **Grant access** — enter client email; they receive a read-only portal link
-- **Portal links** — list all active links; copy or revoke
-
----
-
-## 17. Project Reports & Insights
-
-**Route:** `/projects/[id]/reports`
-
-Per-project analytics across 4 tabs.
-
-### 17.1 Overview Tab
-
-- Health score (0–100) composite metric with colour indicator
-- Progress ring — % tasks completed
-- Open / In-progress / Done counts
-- Overdue count with warning
-- Team member task bar chart
-
-### 17.2 Velocity Tab
-
-- Weekly velocity bar chart (story points per week)
-- Sprint-over-sprint comparison line chart
-
-### 17.3 Burndown Tab
-
-- Sprint burndown: remaining work vs ideal burn rate per day
-- Hover to see exact values per day
-
-### 17.4 Team Tab
-
-- Per-member: assigned, completed, in-progress, completion rate %
-- **AI insights** button — AI narrative summary with recommendations (requires AI plan)
-
-**Export** — dropdown on the page: export charts as PNG or full report as CSV.
+1. Open the task detail panel.
+2. Scroll to **Linked tasks** → click **+ Add link**.
+3. Select the link type, then search for the target task by title.
+4. Click **Save**.
 
 ---
 
-## 18. Project Timeline
+### 6.10 Subtasks
 
-**Route:** `/projects/[id]/timeline`
+Subtasks are tasks nested under a parent task. They follow the same fields as regular tasks.
 
-The Timeline tab in the project board currently shows a placeholder screen ("Visualize your project roadmap and dependencies in a Gantt-style timeline" + Configure Timeline button). The full Gantt implementation is in progress.
+**Creating a subtask:**
 
-A separate per-project Timeline page exists at `/projects/[id]/timeline` with:
-- Gantt-style horizontal bars for tasks and milestones
-- Drag bars to adjust start/end dates
-- Dependency arrows between linked tasks
-- Group by epic or assignee
-- Zoom: day / week / month view
+1. Open the parent task detail panel.
+2. Scroll to **Subtasks** → click **+ Add subtask**.
+3. Enter a title. The subtask is created and linked.
 
----
-
-## 19. Project Files
-
-**Route:** `/projects/[id]/files`
-
-Upload and manage file attachments scoped to a project.
-
-### 19.1 Categories
-
-| Category | Description |
-|----------|-------------|
-| Documentation | Technical docs, specs |
-| PPT | Presentations |
-| Excel | Spreadsheets |
-| Use case | Flow diagrams |
-| Other | Anything else |
-
-### 19.2 Upload
-
-1. Enter a title
-2. Select category
-3. Choose file from device
-4. **Upload**
-
-### 19.3 Managing
-
-- **Search** — filter by title
-- **Download** — download icon on each file
-- **Delete** — trash icon (owner or project admin only)
+Subtask progress is rolled up into the parent (shown as a progress bar on the parent card).
 
 ---
 
-## 20. Project Docs
+### 6.11 Time Logging
 
-**Route:** `/projects/[id]/docs`
+Track actual time spent on a task.
 
-Per-project knowledge base:
+**Logging time:**
 
-- Sidebar list of all documents
-- Click to open in a markdown editor
-- Create new document with a title
-- Also accessible via Operations Hub → Docs tab
+1. Open the task detail panel.
+2. Click **Log time**.
+3. Enter:
+   - **Minutes** — actual time spent
+   - **Date** — when the work was done (defaults to today)
+   - **Note** — brief description of what was done
+   - **Billable** — toggle if this time is client-billable
+   - **Hourly rate** — used for invoicing calculations
+4. Click **Save log**.
 
----
-
-## 21. Project Billing
-
-**Route:** `/projects/[id]/billing`
-
-- Set total project budget
-- Log expense line items: name, amount, date, category
-- Budget gauge: spent vs remaining
-- Export billing data as CSV
+You can add multiple logs per task (one per work session). All logs are visible in the **Billing** view of the project and can be exported for invoicing.
 
 ---
 
-## 22. Project Settings & Permissions
+### 6.12 Approvals
 
-**Route:** `/projects/[id]/settings/permissions`
+Certain tasks or releases require formal approval before proceeding.
 
-### 22.1 Project Roles
+**Requesting an approval:**
 
-- Lists all team members with their implied project role (derived from team role)
-- Override any member's project role: Project Admin / Editor / Commenter / Viewer
-- Add a member to the project with a specific role
-- Remove a member's project override (reverts to team-role default)
+1. Open the task detail panel.
+2. Click **Request approval**.
+3. Enter:
+   - **Title** — what is being approved
+   - **Description** — context for the approver
+   - **Target type** — Task or Release
+4. Submit. The approval is created with status **Pending**.
 
-### 22.2 Role Capability Matrix
+**Approving or rejecting:**
 
-Visual table showing what each project role (Project Admin / Editor / Commenter / Viewer) can do across all capabilities.
+Users with Manager role or above see a notification. They open the approval and click:
 
-### 22.3 Git Integrations (per project)
+- **Approve** — with an optional decision note
+- **Reject** — with a required reason note
 
-Three integration cards available:
-
-**GitHub:**
-- OAuth connect (redirects to GitHub)
-- Link a repository (owner/repo format)
-- Connected status badge with GitHub username
-
-**GitLab:**
-- Same flow as GitHub with GitLab OAuth
-
-**Bitbucket:**
-- Same flow with Bitbucket OAuth
-
-Once connected, commits and PRs mentioning a task ID appear in the task activity feed.
+The requestor is notified of the decision. The approval record is stored on the task permanently.
 
 ---
 
-## 23. Messages — Real-Time Chat
+### 6.13 Task Activity Log
 
-**Route:** `/messages`
+Every change to a task is recorded in the **Activity** section of the task detail panel:
 
-### 23.1 Sidebar Structure
+- Created, moved between columns, priority changed, assignee updated, due date changed, commented, attachment uploaded, time logged, approval requested, status changed.
 
-**Special views (top of sidebar):**
-- **All Unreads** — aggregated list of every channel with unread messages
-- **Threads** — all thread replies you participated in or that mention you
-- **Drafts & Sent** — your scheduled messages (pending and sent)
-
-**Starred channels section** — channels you've starred appear here for quick access
-
-**Channels** — `#channel-name` list with unread counts
-
-**Direct Messages** — one-to-one and group DMs with presence dots
-
-**Online members** — presence indicator on each avatar
-
-### 23.2 Channel Sorting
-
-Right-click the Channels group header or use the sort control:
-- **Recent** — most recently active first (default)
-- **Alphabetical** — A to Z
-- **Most Unread** — highest unread count first
-
-### 23.3 Sending a Message
-
-- Type and press **Enter** to send; **Shift+Enter** for a new line
-- Markdown: `**bold**`, `_italic_`, `` `code` ``, ` ```block``` `
-- @mention: `@username` → notification sent to that user
-- Channel mention: `#channel-name`
-- Emoji picker via the 😊 icon or `:emoji_name:`
-
-### 23.4 Slash Commands
-
-Type `/` to open the command menu:
-
-| Command | Effect |
-|---------|--------|
-| `/poll` | Create a poll with question + up to 4 options; members vote inline |
-| `/remind` | Set a personal reminder at a chosen time |
-| `/shrug` | Appends `¯\_(ツ)_/¯` |
-| `/giphy` | Search and send an animated GIF |
-| `/assign` | Assign a task to a team member from the composer |
-| `/status` | Update your custom status without leaving chat |
-| `/help` | Lists all available slash commands |
-
-### 23.5 Voice Memos
-
-Click the **microphone** icon in the composer:
-
-1. Click to start recording (uses browser MediaRecorder API)
-2. Timer shows duration while recording
-3. Click stop — preview the recording with play/pause
-4. **Send** to attach the audio to the message, or **Discard** to cancel
-
-### 23.6 Format Toolbar
-
-The composer has a format toolbar with quick-insert buttons for bold, italic, inline code, code block, links, and lists.
-
-### 23.7 Quote / Reply in Composer
-
-Hover a message → click **Quote** → the message is embedded as a blockquote in your composer.
-
-### 23.8 Reactions & Threads
-
-- Hover message → emoji icon → add reaction
-- Reactions aggregate with count; click an existing one to add yours
-- Click **Reply** to open the thread panel on the right
-- Thread replies are visible only in the Threads special view or when the thread is open
-
-### 23.9 Edit History
-
-- Hover message → `⋯` → **View edit history** — opens a modal showing all previous versions with timestamps
-
-### 23.10 Pinned Messages
-
-- Hover message → `⋯` → **Pin**
-- Pinned tab in the channel header shows all pinned messages
-- Click to jump to pinned message in history
-
-### 23.11 Starred Messages
-
-- Hover message → `⋯` → **Save / Star** — message saved to your personal saved list
-- Access starred messages from the `⋯` menu or via the channel details panel
-
-### 23.12 Star a Channel
-
-- Click the ⭐ icon in the channel header (top bar) to star/unstar
-- Starred channels appear in the dedicated **Starred** section at the top of the sidebar
-
-### 23.13 Notification Level per Channel
-
-In the channel header → `⋯` → **Notification preferences**:
-- **All messages** (default)
-- **Mentions only**
-- **Mute**
-- **Keywords** — enter comma-separated keywords; get notified only when those words appear
-
-### 23.14 Editing & Deleting Messages
-
-- Edit: hover → `⋯` → **Edit** (available for a limited window); inline editor appears
-- Delete: hover → `⋯` → **Delete**; removed for all users
-- Edited messages show "(edited)" label
-
-### 23.15 Scheduled Messages
-
-- In the composer, click the clock icon → set date/time → **Schedule**
-- Appears in **Drafts & Sent** until it sends
-- Cancel or reschedule from Drafts & Sent
-
-### 23.16 Message Search
-
-- Search icon in the channel header (or mobile search button)
-- Filter by: text query, sender, date from, date to
-- **Save preset** — save a named search preset for reuse
-- Click a search preset to re-run it instantly
-- Edit preset name inline; delete presets
-
-### 23.17 Jump to Unread
-
-When entering a channel with unread messages, a yellow **"Jump to first unread"** banner appears at the top. Click to scroll to the first unread message.
-
-### 23.18 New Message Count Banner
-
-While scrolled up in history, a pill at the bottom shows how many new messages have arrived. Click to jump to the bottom.
-
-### 23.19 File Sharing
-
-- Drag & drop up to **5 attachments** per message into the composer
-- Or click the paperclip icon to select files
-- Images render inline; other files show as download cards
-- Pending attachments shown as previews with a remove `×` button before sending
-
-### 23.20 Channel Management
-
-- **New channel** — click `+` next to Channels → name, description, public/private
-- **Private channels** — invite-only; non-members cannot see or join
-- **Add members** — channel header → 👥 icon → search team members → select → **Add**
-- **Channel details panel** — click ℹ icon → "About" tab (topic, description, member count) and "Members" tab (searchable list of all members)
-- **Archive** — Admin can archive; channel becomes read-only
-- **Leave** — any member can leave via `⋯` → Leave channel
-
-### 23.21 Direct Messages & Group DMs
-
-- Click `+` next to Direct Messages → search and select one or more users (up to 8) → **Open DM**
-- Group DMs show all participant avatars
-
-### 23.22 Mention Autocomplete
-
-While typing `@` in the composer, a popup shows matching team members. Arrow keys + Enter to select. The mention turns into a highlighted chip.
+The activity log is append-only and cannot be deleted, providing a full audit trail per task.
 
 ---
 
-## 24. Calls — Audio & Video
+## 7. Issue Navigator
 
-### 24.1 Starting a Call
+The Issue Navigator (`/projects/issues`) is a cross-project table of all tasks. Use it for triage sessions, status reviews, and bulk updates across multiple projects.
 
-- In any DM or channel → click the **phone** (audio) or **camera** (video) icon in the channel header
-- Caller hears a Web Audio API ringtone; callee sees an incoming call banner with caller name and avatar
+### 7.1 Filtering Issues
 
-### 24.2 In-Call Controls
+Use the filter bar at the top to narrow results:
 
-| Control | Action |
-|---------|--------|
-| Microphone | Mute / unmute |
-| Camera | Video on / off |
-| Screen share | Share entire screen or window |
-| Record | Start / stop recording (saved locally) |
-| End call | Hang up |
+| Filter | Options |
+|--------|---------|
+| **Project** | One or more projects |
+| **Status** | Column names (e.g., Backlog, In Progress, Done) |
+| **Priority** | Urgent, High, Normal, Low |
+| **Due date** | Overdue, Today, This week, This month, No date |
+| **Sprint** | Specific sprint or "No sprint" |
+| **Assignee** | One or more team members |
 
-### 24.3 Missed Calls
-
-Missed calls appear as a system message in the chat: "📞 Missed call from [name]".
-
-### 24.4 Technical Details
-
-- **WebRTC** via simple-peer for peer-to-peer audio/video
-- ICE signalling over the existing WebSocket connection
-- Web Audio API for ringtones (no audio files needed)
-- No third-party call service; runs within your deployment
+Filters stack — apply as many as needed. Active filters are shown as chips; click the × on any chip to remove it.
 
 ---
 
-## 25. Presence & Custom Status
+### 7.2 Grouping Issues
 
-### 25.1 Presence Indicators
+Click **Group by** to organise rows into collapsible sections:
 
-| Indicator | Meaning |
-|-----------|---------|
-| Green dot | Online — active last 5 minutes |
-| Yellow dot | Away — active last 30 minutes |
-| Grey dot | Offline |
+| Group | Result |
+|-------|--------|
+| **None** | Flat list (default) |
+| **Project** | Grouped by which project the task belongs to |
+| **Priority** | Grouped by Urgent / High / Normal / Low |
+| **Assignee** | Grouped by who the task is assigned to |
+| **Sprint** | Grouped by sprint name |
 
-Presence is broadcast in real time over WebSocket (TeamPresenceConsumer) and updates on all sidebar avatars, DM list, and member roster.
-
-### 25.2 Custom Status
-
-Click your **avatar** in the sidebar (bottom) → Status popover:
-
-1. Enter an emoji (e.g. 🎧) and text (e.g. "In deep focus")
-2. Or pick a **quick preset**: In a meeting, Out sick, On vacation, Working remotely, Focusing — DMs only, Commuting
-3. Set an optional **expiry** — status auto-clears after: 30 min, 1 hour, 4 hours, today, this week, or for a preset's built-in duration (e.g. "In a meeting" defaults to 1 hour)
-4. Click **Save status** or **Clear status** to remove it
-
-Status appears as `[emoji] [text]` next to your name in all channels and DMs.
-
-### 25.3 Update via Slash Command
-
-Type `/status` in any message composer → opens the status form inline.
+Collapse or expand any group header to focus on specific areas.
 
 ---
 
-## 26. Meetings
+### 7.3 Bulk Actions
 
-**Route:** `/meetings`, `/meetings/[id]`
+1. Click the **checkbox** on any row to select it. A bulk action toolbar appears at the bottom.
+2. Select more rows (or click the header checkbox to select all visible rows).
+3. Available bulk actions:
+   - **Change priority** — set priority for all selected tasks
+   - **Assign sprint** — move tasks into a sprint
+   - **Change status** — move tasks to a different column
+   - **Assign member** — set assignee for all selected
+   - **Delete** — delete selected tasks (requires Admin+)
 
-### 26.1 Creating a Meeting
-
-1. Click **New meeting**
-2. Title, description, start time, end time
-3. Select invitees from team members
-4. Optional video link or built-in FlowTeam call
-5. **Schedule**
-
-### 26.2 Meeting List
-
-- Lists upcoming and past meetings
-- Filter by date range or team member
-
-### 26.3 Meeting Detail Page (`/meetings/[id]`)
-
-- Attendee list with accept/decline status
-- Meeting notes editor (visible to all invitees)
-- Link to call recording (if recorded)
-- **Edit meeting** — opens edit dialog (title, time, attendees, link)
-
-### 26.4 Notifications
-
-Invitees receive an in-app notification and email (if enabled) when a meeting is scheduled or updated.
+> Bulk actions are irreversible for delete. For all others, you can undo via the task's activity log.
 
 ---
 
-## 27. Calendar
+### 7.4 Saving Custom Views
 
-**Route:** `/calendar`
+After configuring filters and grouping, click **Save view**:
 
-- **Views**: Month / Week / Day
-- **Events shown**: meetings, task due dates, sprint start/end, milestones
-- Click an event → detail panel
-- Click an empty slot → create meeting
-- **Filters**: by project or sprint
-- **ICS export** — download all calendar events as `.ics` for Google Calendar / Outlook / Apple Calendar (also available from Operations Hub → Reporting)
+1. Give the view a name (e.g., "My high-priority bugs this week").
+2. Toggle **Shared** to make it visible to all team members, or leave off for private use.
+3. Click **Save**.
 
----
-
-## 28. Search
-
-Universal search: press **Cmd/Ctrl + K** or click the magnifying glass in the top bar (debounced, triggers after 2 characters, 300ms delay).
-
-- Searches: tasks, projects, team members, channels
-- Results grouped by type with icons
-- Press **Enter** or click a result to navigate
-- Navigate results with arrow keys
+Saved views appear in the left panel of the Issue Navigator. Click one to instantly restore that filter and grouping configuration.
 
 ---
 
-## 29. Notifications
+### 7.5 Issue Stats Panel
 
-### 29.1 In-App Notification Panel
+At the top of the Issue Navigator, a stats ribbon shows:
 
-Click the **bell icon** in the top bar:
+| Stat | What it measures |
+|------|-----------------|
+| **Resolution velocity** | Average time tasks spend in the system before moving to Done |
+| **Priority spectrum** | Breakdown of open tasks by priority level |
+| **Workstream breakdown** | Task count split by project |
+| **Actionable bottlenecks** | Columns with the highest task accumulation |
 
-- Unread badge count on the bell
-- Categories: mentions, assignments, comments, approvals, calls
-- Click a notification to navigate to the source
-- **Mark all as read** button
-
-### 29.2 Email Notifications
-
-Configured in **Settings → Notifications**:
-
-- Task Assigned, Task Completed, Project Updates, Member Joined, Weekly Digest (toggles)
-- Saved locally to `localStorage`
-
-### 29.3 Per-Project Rules
-
-In **Operations Hub → Notifications → Notification Rules**:
-- Create: project + event type + delivery (in-app / email / both)
-- Rules override global defaults for that project
-
-### 29.4 Offline Email Notifications
-
-When you're offline and someone sends a message mentioning you, FlowTeam sends an email after a short delay (handled by the Notification WebSocket consumer + Celery background task).
+Use these stats to identify where work is getting stuck and which priority areas need more attention.
 
 ---
 
-## 30. Dark / Light Theme
+## 8. Sprints and Planning
 
-### 30.1 Toggle
+Sprints are time-boxed iterations (typically 1–2 weeks). The Planning view (`/projects/planning`) gives you a bird's-eye view of all sprints.
 
-Click the **sun / moon icon** in the top-right of the top bar:
-- In dark mode: shows sun icon → click to switch to light
-- In light mode: shows moon icon → click to switch to dark
+### 8.1 Creating a Sprint
 
-### 30.2 Persistence
-
-- Saved to `localStorage` key `flowteam-theme`
-- Applied as CSS class (`dark` or `light`) on the `<html>` element
-- Default for new users: **dark**
-- Persists across page reloads and browser restarts
-
----
-
-## 31. Two-Factor Authentication (2FA)
-
-Available in **Settings → Security → Two-Factor Authentication**.
-
-### 31.1 Enable
-
-1. Click **Enable 2FA**
-2. Scan QR code with Google Authenticator / Authy / any TOTP app
-3. Enter the 6-digit code to confirm
-4. Save your backup codes in a secure location
-
-### 31.2 Sign In with 2FA
-
-After email + password, enter the 6-digit TOTP code from your authenticator app.
-
-### 31.3 Disable
-
-Enter current TOTP code → **Disable 2FA**.
-
-Company Admins can enforce 2FA for all members at the company level.
+1. Open a project and click the **Planning** tab, or go to `/projects/planning`.
+2. Click **+ New sprint**.
+3. Fill in:
+   - **Sprint name** (e.g., "Sprint 12 — Auth Redesign")
+   - **Goal** — one sentence describing what success looks like
+   - **Start date** and **End date**
+   - **Capacity hours** — total available team hours for the sprint
+4. Click **Create sprint**.
 
 ---
 
-## 32. Web Push Notifications
+### 8.2 Sprint Capacity Planning
 
-- From **Settings → Notifications** → browser notification toggle → browser asks for permission → click **Allow**
-- Sent for: mentions, task assignments, incoming calls, approval requests
-- Works when FlowTeam tab is closed (browser must be running)
-- Revoke in browser notification settings or the Settings toggle
+Once a sprint is created, open it to access the capacity planner:
 
----
+1. Each team member's available hours are shown (defaults to capacity ÷ number of members).
+2. Adjust individual hours if someone has leave planned.
+3. As you add tasks, the estimated hours sum is compared against each person's capacity. A progress bar turns red when over-allocated.
 
-## 33. Audit Log
-
-**Route:** `/settings/audit-log` (CEO / Admin only)
-
-Every sensitive action logged with actor, timestamp, IP:
-
-- User invited / role changed / deactivated
-- 2FA enabled / disabled
-- API token created / revoked
-- Project created / deleted / archived
-- Permission changes
-- Login success / failure
-- Data export
-
-Filter by actor, action type, date range. Export as CSV.
+This prevents overcommitting before a sprint starts.
 
 ---
 
-## 34. Exports
+### 8.3 Moving Tasks into a Sprint
 
-| Data | Location | Format |
-|------|----------|--------|
-| Project board | Board header → Export dropdown | CSV / XLSX / PDF |
-| Project report | Reports page → Export | CSV / PNG |
-| Project billing | Billing page | CSV |
-| Audit log | Admin → Audit Log | CSV |
-| Calendar / milestones | Calendar or Operations Hub → Reporting | `.ics` |
-| Client report | Operations Hub → Client Portal | PDF (AI) |
+**From the board:**
 
----
+Right-click a task card → **Move to sprint** → select the target sprint.
 
-## 35. Client Portal
+**From the task detail panel:**
 
-**Route:** Operations Hub → Client Portal (per project)
+Click the **Sprint** field → select the sprint from the dropdown.
 
-- **Generate AI client report** — AI writes a polished progress summary: milestones, risks, upcoming deliverables (requires AI plan)
-- **Grant access** — enter client email; they get a read-only portal link
-- **Portal links** — list all active links; copy URL or revoke access
-- Clients see: project name, milestone status, key risks, upcoming work — no internal task details
+**From the Issue Navigator:**
+
+Select tasks via checkboxes → **Assign sprint** (bulk action).
 
 ---
 
-## 36. Automation Rules
+### 8.4 Completing a Sprint
 
-**Route:** Operations Hub → Automation
+When the sprint end date arrives:
 
-### 36.1 AI Rule Builder
+1. Open the sprint from the Planning view.
+2. Click **Complete sprint**.
+3. Cowrk shows a summary: tasks completed, tasks incomplete.
+4. Choose what to do with incomplete tasks:
+   - **Move to next sprint** — carry forward unfinished work
+   - **Move to backlog** — return them to the unassigned pool
+5. Confirm.
 
-Describe the rule in plain English → AI generates trigger + condition + action → review → **Save** (requires AI plan).
-
-### 36.2 Manual Rules
-
-- **Trigger**: Task created / Task moved to column / Due date reached / Task assigned
-- **Condition**: Issue type / Priority / Assignee / Column
-- **Action**: Assign user / Move to column / Set priority / Send notification
-
-### 36.3 Managing Rules
-
-Active rules are listed with:
-- Trigger + condition + action summary
-- Active / inactive toggle (pause without deleting)
-- Delete button
+The sprint status changes to **Completed** and is preserved for retrospective reference.
 
 ---
 
-## 37. AI Features (AI Plan)
+### 8.5 Recurring Tasks
 
-AI requires the team to have AI enabled (Settings → AI → toggle). When disabled, AI buttons are visible but show a "not enabled" toast. AI is powered by Claude.
+Some tasks repeat on a schedule (e.g., "Weekly status report", "Daily standup notes").
 
-### 37.1 Daily Briefing (Dashboard)
+**Setting up a recurring task:**
 
-Auto-generated morning summary on the dashboard: overdue count, due-today count, meeting count, and a narrative text. **Refresh** button to regenerate. Collapses/expands with a chevron.
+1. Open a task detail panel.
+2. Click **Recurrence**.
+3. Choose:
+   - **Frequency** — Daily, Weekly, Monthly
+   - **Day/date** — which day of week or day of month
+   - **End** — Never, On date, After N occurrences
+4. Click **Save**.
 
-### 37.2 Focus Recommendations (Dashboard)
-
-Up to 6 ranked task recommendations with urgency badge (CRITICAL / HIGH / MEDIUM / LOW) and the reason each task was recommended. **Refresh** button to regenerate.
-
-### 37.3 Sprint Scope Suggestion (Planning Hub)
-
-Planning Hub → Sprint Planning → **AI: Suggest scope** → selects best-fit backlog tasks for the target sprint based on priority and capacity hours. Shows reasoning text.
-
-### 37.4 AI Retrospective (Planning Hub)
-
-Per sprint → **Generate retrospective** → AI analyses completed/blocked tasks and returns:
-- What went well
-- What didn't go well
-- Action items
-
-### 37.5 Task Generation (Project Board)
-
-Board → AI button → **Generate tasks** → describe what you want to build → AI creates structured tasks with titles, descriptions, and priorities.
-
-### 37.6 Risk Analysis (Project Board)
-
-Board → AI → **Analyse risks** → AI reviews open tasks, due dates, and blockers → returns a prioritised risk list with mitigation suggestions.
-
-### 37.7 Project Health Score (Board Header & Portfolio)
-
-AI-powered health score (0–100) displayed as a badge on the board header and portfolio cards. Uses task completion rate, blocker count, and sprint velocity.
-
-### 37.8 AI Automation Builder (Operations Hub)
-
-Operations Hub → Automation → describe rule in plain English → AI generates the full trigger/condition/action.
-
-### 37.9 Client Report (Operations Hub)
-
-Operations Hub → Client Portal → **Generate AI client report** → client-ready narrative with milestone progress, risks, upcoming deliverables.
-
-### 37.10 Team Performance Insights (Reports)
-
-Project Reports → Team tab → **AI insights** → narrative performance summary with recommendations per team member.
-
-### 37.11 Channel Catch-up (AI feature)
-
-AI can summarise missed messages in a channel — triggered from the channel header AI button (requires AI plan).
-
-### 37.12 Auto Label & Triage
-
-On task creation, AI can suggest labels, issue type, and priority automatically.
-
-### 37.13 Workload Balancer
-
-AI detects overloaded team members and suggests task reassignments.
+When a recurring task is completed, Cowrk automatically creates the next instance with the same fields.
 
 ---
 
-## 38. Super Admin
+## 9. Epics
 
-**Route:** `/super-admin/dashboard` (platform operator only — `is_superuser`)
+Epics are large initiatives that span multiple tasks and often multiple sprints. They sit above stories and tasks in the hierarchy.
 
-Non-superusers are automatically redirected to `/dashboard`.
+### 9.1 Creating an Epic
 
-### 38.1 Stats Panel
-
-Platform-wide counts: users, teams, projects, tasks, messages. Activity: new users in 7d / 30d, task activity 7d, messages 7d.
-
-### 38.2 User Management
-
-- **Search users** — live search by email / name
-- **Create user** — email, full name, timezone, password, active/staff/superuser flags
-- **Edit user** — update any field except email; reset password
-- **Delete user** — confirmation dialog
-- **Bulk delete** — select multiple users → bulk delete (select-all checkbox with indeterminate state)
-
-### 38.3 Company Management Panel
-
-Full drill-down company management:
-
-- **Companies list** — all companies with status badges (active / paused / onboarding / trial / suspended)
-- **Create company** — via the Onboarding Wizard (name, plan, domain, settings)
-- **Company detail** — see all teams, members, pending invites; edit company settings JSON
-- **Team members drill-down** — for any team within a company
-- **Toggle company active/inactive**
-- **Edit onboarding status**
+1. Open a project and click the **Epics** tab.
+2. Click **+ New epic**.
+3. Fill in:
+   - **Title** — the initiative name
+   - **Description** — goals, background, acceptance criteria
+   - **Owner** — the team member leading this epic
+   - **Start date** and **End date**
+   - **Phase** (see 9.2)
+   - **Priority** (see 9.2)
+4. Click **Create epic**.
 
 ---
 
-## 39. Plan Limits
+### 9.2 Epic Phases and Priorities
 
-| Feature | Free | Pro | AI |
-|---------|------|-----|----|
-| Team members | 5 | Unlimited | Unlimited |
-| Projects | 3 | Unlimited | Unlimited |
-| Storage | 1 GB | 20 GB | 100 GB |
-| Message history | 30 days | Unlimited | Unlimited |
-| AI features | — | — | ✓ |
-| Client portal | — | ✓ | ✓ |
-| Custom fields | — | ✓ | ✓ |
-| Automation rules | — | ✓ | ✓ |
-| Audit log | — | ✓ | ✓ |
-| 2FA enforcement | — | ✓ | ✓ |
-| Priority support | — | ✓ | ✓ |
+**Phases** track the lifecycle of the epic:
 
----
+| Phase | Meaning |
+|-------|---------|
+| **Backlog** | Identified but not yet started |
+| **Discovery** | Research and scoping in progress |
+| **WIP** | Active development |
+| **Review** | In final review / QA |
+| **Done** | Completed and shipped |
 
-## 40. Quick Reference — Field Limits
+**Priorities** indicate business value:
 
-| Field | Limit |
-|-------|-------|
-| Task title | 200 characters |
-| Channel name | 80 characters |
-| Message | 4000 characters |
-| Custom status text | 100 characters |
-| Sprint name | 100 characters |
-| Milestone name | 100 characters |
-| Template name | 80 characters |
-| Document title | 200 characters |
-| File upload (single) | 50 MB |
-| Attachments per message | 5 |
-| Poll options | 4 |
-| Group DM participants | 8 |
-| Recurring rule interval | 1–365 (days / weeks / months) |
-| WebSocket rate limit | 60 events per 10 seconds |
-| Search min characters | 2 |
-| Search debounce | 300 ms |
-| Focus recommendations shown | 6 (out of all returned) |
+| Priority | Meaning |
+|----------|---------|
+| **Critical** | Must ship — business-critical |
+| **Must Have** | Important, no ship without this |
+| **Nice to Have** | Valuable but not blocking |
+| **Best Effort** | Do it if there's capacity |
 
 ---
 
-## Appendix A — Production Setup
+### 9.3 Linking Tasks to an Epic
 
-### A.1 Environment Variables
+**From the task detail panel:**
 
-**Backend (Django):**
-```
-SECRET_KEY=
-DATABASE_URL=
-REDIS_URL=
-ALLOWED_HOSTS=
-CORS_ALLOWED_ORIGINS=
-EMAIL_HOST=
-EMAIL_HOST_USER=
-EMAIL_HOST_PASSWORD=
-DEFAULT_FROM_EMAIL=
-DJANGO_SUPERUSER_EMAIL=
-DJANGO_SUPERUSER_PASSWORD=
-DJANGO_SUPERUSER_USERNAME=
-AI_API_KEY=          # Anthropic key for AI plan features
-FRONTEND_URL=        # Used in email links
-```
+Open a task → click the **Epic** field → select the target epic.
 
-**Frontend (Next.js):**
-```
-NEXT_PUBLIC_API_URL=https://your-domain/api
-NEXT_PUBLIC_WS_URL=wss://your-domain/ws
-```
+**From the Epics view:**
 
-### A.2 Services Required
+Click an epic to open it → click **+ Add task** → search and select tasks to link.
 
-| Service | Role |
-|---------|------|
-| Django + Channels | REST API + WebSocket server |
-| PostgreSQL | Primary database |
-| Redis | WebSocket channel layer + task queue |
-| Celery | Email sending, offline notifications, recurring rules, digests |
-| Nginx | Reverse proxy, static files, WebSocket upgrade |
-
-### A.3 Deploying Updates
-
-```bash
-python scripts/deploy_hetzner_paramiko.py --prune
-```
-
-`--prune` runs `docker system prune -af` on the server before uploading to reclaim disk space. File uploads use raw SSH exec stdin-piping (`cat > file.tmp`) — SFTP is not used.
-
-### A.4 WebSocket Consumers
-
-| Consumer | Path | Purpose |
-|----------|------|---------|
-| ChatConsumer | `/ws/chat/{team_id}/` | Real-time messaging |
-| ChannelEventsConsumer | `/ws/channel-events/{team_id}/` | Board updates, task events |
-| TeamPresenceConsumer | `/ws/presence/{team_id}/` | Online/away/offline presence |
-| NotificationConsumer | `/ws/notifications/{user_id}/` | Per-user in-app notifications |
-
-Rate limit: 60 events per 10 seconds per consumer.
-
-### A.5 Authentication Flow
-
-- JWT access tokens (15-minute expiry) + refresh tokens (7-day expiry)
-- `ROTATE_REFRESH_TOKENS=True` — each refresh issues a new refresh token
-- Concurrent 401s are serialised through a shared `refreshPromise` lock in `api.ts` to prevent token-invalidation race conditions
-- WebSocket connections authenticate with the access token on connect
-- Only a confirmed 401 clears the user session — network errors and 5xx responses do not log users out
+A progress bar on the epic card shows the % of linked tasks that are in Done columns.
 
 ---
 
-*FlowTeam User Guide v4.0 — reflects full codebase as of May 2026*
+## 10. Calendar
+
+The Calendar (`/calendar`) visualises tasks (by due date) and meetings together on a single calendar.
+
+### 10.1 Calendar Views
+
+Use the view selector (top-right of calendar):
+
+| View | Best for |
+|------|---------|
+| **Month** | Getting a high-level overview of the month |
+| **Week** | Detailed planning — see every task and meeting for the week |
+| **Day** | Hour-by-hour view of a single day |
+| **List** | Scrollable list of upcoming items sorted by date |
+
+---
+
+### 10.2 Filtering the Calendar
+
+Use the filter panel (left sidebar or top bar):
+
+| Filter | Options |
+|--------|---------|
+| **Project** | Show items from specific projects |
+| **Priority** | Urgent, High, Normal, Low |
+| **Meeting status** | Upcoming, Live, Past, Cancelled |
+| **Mine only** | Toggle to show only tasks assigned to you |
+
+---
+
+### 10.3 Drag-Drop Rescheduling
+
+In Month and Week views, drag a task or meeting to a different date to reschedule it. The task's due date (or meeting start time) updates automatically, and all assignees/attendees are notified.
+
+---
+
+### 10.4 External Calendars
+
+If Google Calendar or Outlook is connected, external events appear on your Cowrk calendar as read-only items (shown in a lighter shade). This lets you see work deadlines alongside personal commitments without double-booking.
+
+To connect:
+
+1. Go to **Settings → Integrations** (or the Calendar settings panel).
+2. Click **Connect Google Calendar** (or Outlook).
+3. Authorise the OAuth prompt.
+4. External events appear within minutes.
+
+---
+
+### 10.5 Exporting to ICS
+
+Click the **Export** button (top-right of calendar) → **Download ICS**.
+
+The ICS file can be imported into any calendar app (Google Calendar, Apple Calendar, Outlook) to see Cowrk tasks and meetings alongside your other events.
+
+---
+
+## 11. Meetings
+
+The Meetings section (`/meetings`) is the hub for all scheduled and instant audio/video meetings.
+
+### 11.1 Scheduling a Meeting
+
+1. Click **+ Schedule meeting**.
+2. Fill in:
+   - **Title** — what the meeting is about
+   - **Description** — optional agenda
+   - **Date and time** — when it starts
+   - **Duration** — in minutes
+   - **Call type** — Audio or Video
+   - **Attendees** — search and select team members
+3. Click **Schedule**.
+
+Cowrk automatically:
+- Creates a dedicated **channel** for the meeting (attendees are added).
+- Sends a notification to all attendees.
+- Adds the meeting to attendees' calendars.
+
+The meeting appears in the **Meetings list** with status **Scheduled**.
+
+---
+
+### 11.2 Starting an Instant Meeting
+
+For impromptu calls:
+
+1. Click **Start instant meeting**.
+2. Choose call type (Audio / Video).
+3. Optionally add attendees.
+4. Click **Start**.
+
+The meeting goes live immediately with status **Active**. A notification (with ringtone) is sent to invited attendees — they can accept or decline from the notification.
+
+---
+
+### 11.3 Joining and Running a Meeting
+
+**From the Meetings list:**
+
+- If the meeting is **Live**, a **Join** button is shown. Click it to enter the call.
+- If you are an attendee and the meeting is upcoming, a countdown shows the time to start.
+
+**In the meeting call:**
+
+- Toggle audio mute / unmute
+- Toggle video on / off
+- View the attendee list
+- Use the integrated chat (via the meeting's auto-created channel)
+
+**Week strip:** The top of the Meetings page shows a horizontal week strip with coloured dots indicating scheduled/live meetings. Click a day to jump to meetings on that day.
+
+---
+
+### 11.4 Meeting Recordings and Transcription
+
+If recording is enabled (requires appropriate permissions and storage configured):
+
+1. During the meeting, click **Start recording**.
+2. After the meeting ends, the recording is uploaded and processed.
+3. Status progresses: **Uploaded → Transcribing → Transcribed**.
+4. Once transcribed, the meeting detail page shows a full text transcript, searchable by keyword.
+
+---
+
+### 11.5 AI Meeting Summaries and Action Items
+
+When AI is enabled and the recording is transcribed, Cowrk automatically generates:
+
+- **Summary** — 3–5 bullet points capturing the key discussion points and decisions
+- **Action items** — a JSON-formatted list of agreed next steps with (when mentioned) responsible owner and deadline
+
+Both appear on the meeting detail page and in the meeting's channel. Action items can be clicked to create tasks directly from them.
+
+---
+
+### 11.6 Cancelling a Meeting
+
+From the Meetings list, hover the meeting → click **⋮ menu** → **Cancel meeting**. All attendees receive a cancellation notification. The meeting status changes to **Cancelled** and it moves to the Past/Cancelled filter.
+
+---
+
+## 12. Messaging
+
+The Messages section (`/messages`) provides real-time team communication through channels and direct messages.
+
+### 12.1 Channels
+
+Channels are topic-based group conversations.
+
+**Creating a channel:**
+
+1. In the Messages sidebar, click **+ New channel**.
+2. Enter a channel name (no spaces — use dashes, e.g., `design-team`).
+3. Choose **Public** (anyone on the team can join) or **Private** (invite-only).
+4. Add initial members.
+5. Click **Create**.
+
+**Joining an existing channel:**
+
+In the sidebar, click **Browse channels** to see all public channels. Click **Join** next to any channel.
+
+**Channel types:**
+
+| Type | Access |
+|------|--------|
+| **Public** | Any team member can view and join |
+| **Private** | Only members explicitly added can see or join |
+| **Meeting channel** | Auto-created when a meeting is scheduled. Named after the meeting. |
+
+---
+
+### 12.2 Direct Messages
+
+To start a direct message with a team member:
+
+1. In the sidebar under **Direct Messages**, click the **+** icon.
+2. Search for the person by name.
+3. Click their name to open or create the DM thread.
+
+DMs are always private and only visible to the two parties.
+
+---
+
+### 12.3 Message Threads and Drafts
+
+**Threads:**
+
+Reply to a specific message to start a thread (keeps the main channel clean):
+1. Hover a message → click **Reply in thread**.
+2. The thread panel opens on the right.
+3. All replies stay attached to the original message.
+
+Access all your active threads from the **Threads** tab in the sidebar.
+
+**Drafts:**
+
+If you start typing a message and navigate away, Cowrk saves it as a draft. Access drafts from the **Drafts** tab. Click a draft to resume editing.
+
+**Unread messages:**
+
+The **Unreads** tab shows all channels and DMs with unread messages, sorted by most recent. Click any item to jump to the first unread message.
+
+---
+
+### 12.4 Online Presence
+
+User presence (online / offline) is displayed next to avatars throughout the messaging UI:
+
+- **Green dot** — online and active
+- **Grey dot** — offline or inactive
+
+Presence updates in real time. Cowrk detects inactivity and updates your status automatically.
+
+---
+
+### 12.5 Calls from Channels
+
+You can start an audio or video call directly from any channel without scheduling it:
+
+1. Open a channel.
+2. Click the **phone** or **video camera** icon in the channel header.
+3. An instant call is created for the channel.
+4. All channel members receive a call notification with a ringtone.
+5. Members click **Accept** to join or **Decline** to dismiss.
+
+The active call indicator shows in the channel sidebar until the call ends.
+
+---
+
+## 13. Members and Roles
+
+### 13.1 Team Roles
+
+Cowrk uses five team-level roles:
+
+| Role | Typical use | Key capabilities |
+|------|-------------|-----------------|
+| **CEO** | Company/team owner | Full access, delete team, manage billing, all settings |
+| **Admin** | Senior manager | Create/manage projects, manage members (not CEO), access audit log |
+| **Manager** | Team lead | Create projects, manage sprints, invite limited roles, export reports |
+| **Member** | Individual contributor | Create/edit tasks, comment, message, join meetings |
+| **Viewer** | Stakeholder/client | Read-only access to permitted projects |
+
+---
+
+### 13.2 Project Roles
+
+Within a project, members can be granted a project-level role that overrides their team role for that project:
+
+| Project Role | Can do |
+|-------------|--------|
+| **Project Admin** | Full project management, delete project |
+| **Editor** | Create/edit all tasks, manage columns |
+| **Commenter** | View everything, comment on tasks, cannot edit tasks |
+| **Viewer** | View only, no comments, no edits |
+
+Project roles are set per-member per-project in **Project Settings → Permissions**.
+
+---
+
+### 13.3 Inviting Members
+
+1. Go to **Settings → Members**.
+2. Click **+ Invite member**.
+3. Enter the email address.
+4. Select a **Role** (CEO, Admin, Manager, Member, Viewer).
+5. Click **Send invite**.
+
+The invitee receives an email with an accept link. Once accepted, they appear in the Members list with the assigned role.
+
+**Auto-join by domain:** If your organisation's email domain is configured, anyone who signs up with a matching email automatically joins the team with the default role (usually Member).
+
+---
+
+### 13.4 Changing Roles
+
+1. Go to **Settings → Members**.
+2. Find the member in the list.
+3. Click their current role badge.
+4. Select the new role from the dropdown.
+5. The change takes effect immediately.
+
+> Only CEOs can promote someone to CEO. Only Admins+ can change roles. Managers can only assign Member or Viewer roles.
+
+---
+
+### 13.5 Custom Permissions
+
+For fine-grained control, you can override specific capabilities per member:
+
+1. Go to **Settings → Members** → click the member's name.
+2. Click **Custom permissions**.
+3. Toggle individual capabilities on or off (e.g., "Can export data", "Can manage integrations").
+4. Click **Save**.
+
+Custom permissions layer on top of the member's base role. If a capability is off in their role but toggled on in custom permissions, they gain it.
+
+---
+
+### 13.6 Removing Members
+
+1. Go to **Settings → Members**.
+2. Find the member → click **⋮ menu** → **Remove from team**.
+3. Confirm.
+
+Removed members lose access immediately. Their tasks and comments remain intact (data is not deleted).
+
+---
+
+## 14. Project Settings
+
+Access project-specific settings by opening a project and navigating to the sub-pages or clicking the Settings gear in the project header.
+
+### 14.1 Docs
+
+The **Docs** tab stores project documentation.
+
+**Creating a document:**
+
+1. Click **+ New doc**.
+2. Enter a **Title**.
+3. Select **Doc type**: SOP, Spec, Meeting Note, Decision Log, or Note.
+4. Select **Category**: PPT, Use Case, Documentation, Excel, or Other.
+5. Write content in the rich-text editor.
+6. Click **Save**.
+
+Documents are versioned — each save creates a new version. Open a document → **Version history** to review or restore previous versions.
+
+---
+
+### 14.2 Files
+
+The **Files** tab is a file repository for the project (separate from task-specific attachments).
+
+**Uploading a file:**
+
+1. Click **Upload file** or drag files onto the page.
+2. Add an optional description.
+3. Click **Upload**.
+
+Files can be previewed (images, PDFs), downloaded, renamed, versioned, or deleted. Organise files into folders by clicking **+ New folder**.
+
+---
+
+### 14.3 Reports
+
+The **Reports** tab provides project analytics:
+
+| Report | What it shows |
+|--------|--------------|
+| **Task completion over time** | Line chart of tasks moved to Done per day/week |
+| **Overdue tasks** | Count and list of tasks past their due date |
+| **Team velocity** | Average tasks completed per sprint |
+| **Workload distribution** | Tasks per assignee |
+| **Burndown chart** | Sprint progress vs ideal completion rate |
+| **Priority breakdown** | Open task count by priority |
+
+Use the date range picker to adjust the reporting window. Click **Export** to download any report as PDF or CSV.
+
+---
+
+### 14.4 Billing and Time Tracking
+
+The **Billing** tab aggregates all time logs for the project.
+
+**Viewing time logs:**
+
+Logs are shown in a table: Task, Member, Date, Minutes, Billable, Hourly Rate, Amount.
+
+**Generating an invoice:**
+
+1. Filter logs to the desired date range.
+2. Toggle **Billable only** to exclude non-billable time.
+3. Click **Generate invoice**.
+4. Add client name, address, and payment terms.
+5. Download as PDF.
+
+**Bulk marking as billable/non-billable:**
+
+Select time log rows → bulk action → **Mark billable** or **Mark non-billable**.
+
+---
+
+### 14.5 Permissions
+
+**Project Permissions** (`/projects/[id]/settings/permissions`) lets you control who can access this project and at what level.
+
+1. Click **+ Add member**.
+2. Search for a team member.
+3. Assign a **Project Role** (Project Admin, Editor, Commenter, Viewer).
+4. Optionally set a **Validity window** (access from date / until date) for contractors or temporary access.
+5. Click **Save**.
+
+---
+
+### 14.6 GitHub Webhooks
+
+**GitHub integration** lets you link Pull Requests to tasks.
+
+**Setup:**
+
+1. Open **Project Settings → GitHub Webhooks**.
+2. Copy the **Webhook URL** shown on the page.
+3. In your GitHub repository, go to **Settings → Webhooks → Add webhook**.
+4. Paste the URL, set Content-Type to `application/json`, and select events: **Pull requests**.
+5. Click **Add webhook**.
+
+**How it works:**
+
+When a PR is opened, merged, or closed in the linked repository, Cowrk matches it to a task (by task ID in the PR title or branch name, e.g., `TASK-123`) and displays:
+
+- PR number, title, URL
+- Status: Open / Merged / Closed
+- Author, base/head branches
+- Review state and check status
+- Reviewers and labels
+
+PRs appear in the task detail panel under **GitHub Pull Requests**.
+
+---
+
+## 15. Notifications and Automation
+
+### 15.1 Notification Rules
+
+Notification Rules let you define when Cowrk sends alerts — beyond the defaults.
+
+**Creating a rule:**
+
+1. Go to **Project Settings → Notification Rules** (or **Settings → Notifications** for team-wide rules).
+2. Click **+ New rule**.
+3. Configure:
+   - **Trigger** — e.g., "Task overdue", "Task moved to Done", "New comment"
+   - **Filters** — e.g., "Only for high priority tasks", "Only in Sprint 12"
+   - **Delivery** — In-app, Email, or Both
+4. Toggle **Active** and click **Save**.
+
+---
+
+### 15.2 Automation Rules
+
+Automation Rules execute actions automatically when conditions are met.
+
+**Examples:**
+
+- When a task is moved to "Done" → send a Slack message (if integrated)
+- When a task becomes overdue → automatically increase priority to High
+- When an approval is requested → notify all Managers
+
+**Creating an automation:**
+
+1. Go to **Project Settings → Automation**.
+2. Click **+ New rule**.
+3. Define:
+   - **Trigger** — the event that starts the rule (task done, task overdue, approval requested, etc.)
+   - **Conditions** — optional filters (e.g., "only if priority is Urgent")
+   - **Actions** — what happens (send notification, change field, assign member, etc.)
+4. Toggle **Active** and click **Save**.
+
+Automation rules are per-project. Admins and above can create and manage them.
+
+---
+
+## 16. Audit Log
+
+The Audit Log (`/settings/audit-log`) records every significant action taken in the workspace:
+
+| Event category | Examples |
+|----------------|---------|
+| **Authentication** | Login, logout, 2FA enabled, password changed |
+| **Members** | Invited, role changed, removed |
+| **Projects** | Created, archived, restored, deleted |
+| **Tasks** | Created, moved, deleted, bulk updated |
+| **Settings** | Permissions changed, integrations connected |
+| **Exports** | Data exported (by whom, when, what) |
+
+**Filtering the log:**
+
+- Date range picker
+- Actor filter (who performed the action)
+- Event type filter
+- Search by keyword
+
+**Exporting:**
+
+Click **Export log** to download the filtered log as CSV. Only CEOs and Admins can access the Audit Log.
+
+---
+
+## 17. Client Portal
+
+The Client Portal gives external clients read-only access to specific project data without needing a full Cowrk account.
+
+**Creating a portal access link:**
+
+1. Open a project → **Project Settings → Client Portal**.
+2. Click **+ Create access link**.
+3. Enter:
+   - **Client email** — for identification purposes
+   - **Display name** — how they appear in the portal
+   - **Allowed statuses** — which task columns they can see
+   - **Allowed documents** — which doc categories they can access
+4. Click **Create**.
+5. Copy and share the generated link.
+
+**What clients can see:**
+
+- Tasks in permitted columns (read-only — no editing, no comments)
+- Documents in permitted categories
+- Basic project progress metrics
+
+**Revoking access:**
+
+Find the access entry → **⋮ menu** → **Revoke access**. The link becomes immediately invalid.
+
+---
+
+## 18. AI Features
+
+Cowrk's AI features are enabled per-team. Ask your Admin or CEO to enable AI in Team Settings.
+
+| Feature | Where | What it does |
+|---------|-------|-------------|
+| **Daily Briefing** | Dashboard | Morning summary of priorities, overdue items, upcoming deadlines |
+| **Meeting Summary** | Meeting detail page | Auto-summary of recording transcripts |
+| **Action Items** | Meeting detail page | Extracted to-do list from meeting transcript |
+| **Project Health Score** | Project board | AI-calculated score (0–100) based on overdue %, task velocity, and sprint completion rate |
+| **Description suggestions** | Task create/edit | Suggests a task description based on the title (shown as a ghost text hint) |
+
+**AI data handling:** AI features process data within your organisation's security boundary. No task or meeting data is used to train third-party models.
+
+---
+
+## 19. Super Admin
+
+The Super Admin dashboard (`/super-admin/dashboard`) is only accessible to Cowrk system administrators — not regular team users.
+
+**Capabilities:**
+
+- View all companies and teams registered in the system
+- Enable or disable AI features per team
+- Manage system-wide settings
+- Access global audit logs
+- Impersonate a team for debugging (with audit trail)
+
+> This section is not relevant for standard team users. Contact your Cowrk instance administrator if you need system-level changes.
+
+---
+
+## 20. My Tasks Page
+
+The My Tasks page (`/dashboard/my-tasks`) shows every task assigned to you across all projects in one place.
+
+**Filters available:**
+
+| Filter | Options |
+|--------|---------|
+| **Status** | All, Active (not done), Completed |
+| **Priority** | All, Urgent, High, Normal, Low |
+| **Project** | Filter by specific project |
+| **Due date** | Overdue, Today, This week, No date |
+
+**Sorting:**
+
+Click any column header (Title, Priority, Due Date, Project) to sort ascending/descending.
+
+**Opening a task:**
+
+Click any row to open the task detail panel. Edit the task directly without leaving My Tasks.
+
+**Marking complete:**
+
+Click the circle/checkbox on the left of a task row to mark it done instantly. The task moves to the Completed filter.
+
+---
+
+## 21. Keyboard Shortcuts and Tips
+
+| Shortcut | Action |
+|----------|--------|
+| `Cmd/Ctrl + K` | Open command palette / global search |
+| `Cmd/Ctrl + Enter` | Submit a comment |
+| `Escape` | Close a modal or panel |
+| `?` | Show all available shortcuts (on most pages) |
+| `N` (on board) | Quick-create a new task in focused column |
+| `F` (on board) | Open filter panel |
+
+**Pro tips:**
+
+- Use `@mention` in comments and descriptions to notify teammates directly.
+- Star important projects by hovering the project card and clicking the star icon — starred projects appear at the top of the list.
+- The **command palette** (`Cmd/Ctrl + K`) lets you jump to any project, task, or page without using the sidebar.
+- Pin your most-used saved views in the Issue Navigator for one-click access.
+- On the board, right-click a task card for a context menu with quick actions (change priority, assign sprint, move column, copy link).
+
+---
+
+## 22. Workflow Examples (End-to-End)
+
+This section walks through realistic, complete workflows from first click to finished outcome.
+
+---
+
+### 22.1 Launching a New Project from Zero
+
+**Scenario:** Your team needs to build a new customer portal. You are the Manager.
+
+**Step 1 — Create the project**
+
+1. Sidebar → Projects → **+ New project**.
+2. Name: `Customer Portal`, icon: 🌐, colour: Teal.
+3. Description: "Self-service portal for enterprise clients to manage their accounts."
+4. Click **Create project**.
+
+**Step 2 — Customise columns**
+
+Cowrk creates default columns. For this project you want a QA stage:
+
+1. On the board, click **+ Add column** → name it `QA`.
+2. Drag the `QA` column to sit between `In Review` and `Done`.
+3. Right-click `Done` → **Mark as done column**.
+
+**Step 3 — Create the first epic**
+
+1. Click the **Epics** tab → **+ New epic**.
+2. Title: `User Authentication`, phase: Discovery, priority: Must Have.
+3. Owner: assign to the lead developer.
+4. Start date: today, End date: end of next sprint.
+5. Click **Create epic**.
+
+**Step 4 — Add tasks to the epic**
+
+1. Click **+ New task** → Title: `Design login UI mockups`.
+2. Set: Epic = `User Authentication`, Priority = High, Assignee = Designer.
+3. Due date: end of this week.
+4. Repeat for `Implement OAuth integration`, `Write login API tests`, `QA login flow`.
+
+**Step 5 — Create the first sprint**
+
+1. Planning tab → **+ New sprint**.
+2. Name: `Sprint 1 — Auth MVP`, goal: "Ship a working login with OAuth".
+3. Dates: next two weeks, capacity: 80 hours.
+4. Click **Create sprint**.
+
+**Step 6 — Move tasks into the sprint**
+
+1. Open each task → Sprint field → select `Sprint 1 — Auth MVP`.
+2. Or: Issue Navigator → filter by project → select all tasks → bulk action → Assign sprint.
+
+**Step 7 — Invite the team**
+
+1. Settings → Members → **+ Invite member**.
+2. Invite designer (Member role), developer (Member role), QA lead (Member role).
+3. Each accepts the invite and gains access to the project.
+
+**Project is live.** Your team can now pick up tasks, move them across the board, log time, and track progress in Reports.
+
+---
+
+### 22.2 Running a Two-Week Sprint
+
+**Scenario:** Sprint 1 is starting Monday. You are the Manager.
+
+**Sprint kick-off (Monday morning):**
+
+1. Planning → open `Sprint 1 — Auth MVP` → click **Start sprint**.
+2. Sprint status changes to **Active**.
+3. Post a message in the team channel: "Sprint 1 starts today! Goal: ship OAuth login. Board: [project link]."
+
+**During the sprint (daily):**
+
+1. Dashboard → check the Activity Feed for overnight updates.
+2. My Tasks → review your assigned tasks and priorities.
+3. Board → look for tasks stuck in a column for more than 2 days (these are candidates for a blocker conversation).
+4. Use the Issue Navigator to quickly find overdue tasks across the sprint (filter: Sprint = Sprint 1, Due date = Overdue).
+
+**Mid-sprint (end of week 1):**
+
+1. Reports tab → open Burndown chart. Are you on track?
+2. If behind: hold a 15-min sync (Meetings → Start instant meeting, invite relevant devs).
+3. Adjust: drag lower-priority tasks out of the sprint to protect the core goal.
+
+**Sprint end (Friday of week 2):**
+
+1. Planning → `Sprint 1` → **Complete sprint**.
+2. Review summary: 14/16 tasks completed.
+3. Move 2 incomplete tasks to Sprint 2.
+4. Epics tab → `User Authentication` epic shows 87.5% progress.
+
+**Retrospective:**
+
+1. Board → Retrospectives tab.
+2. Team adds items:
+   - Keep: "Daily async updates in the channel worked great."
+   - Improve: "QA column was a bottleneck — QA lead needs tasks earlier."
+   - Discussion: "Should we split auth into two epics?"
+
+---
+
+### 22.3 Onboarding a New Team Member
+
+**Scenario:** A new developer, Sam, joins the team next Monday. You are the Admin.
+
+**Before Sam arrives:**
+
+1. Settings → Members → **+ Invite member**.
+2. Email: `sam@company.com`, Role: Member.
+3. Click **Send invite**.
+4. Sam receives an email and creates their account.
+
+**Sam's first day:**
+
+1. Sam logs in and lands on the Onboarding flow (if first account) or directly on the Dashboard.
+2. Sam goes to Settings → Security → **Enable 2FA** (company policy).
+3. Sam sets their timezone in profile settings.
+
+**Granting project access:**
+
+1. Open the `Customer Portal` project → **Project Settings → Permissions**.
+2. **+ Add member** → select Sam → Project Role: Editor.
+3. Sam now sees the project in their sidebar and My Tasks shows their assigned tasks.
+
+**Orientation meeting:**
+
+1. Meetings → **+ Schedule meeting**.
+2. Title: "Sam Onboarding - Project Overview".
+3. Add Sam and the team lead as attendees. Duration: 45 min.
+4. Run the meeting, record it.
+5. After the meeting: AI summary and action items (e.g., "Sam to set up local dev environment") appear on the meeting page.
+6. Click an action item → **Create task** → it appears in the project backlog assigned to Sam.
+
+---
+
+### 22.4 Triaging a Bug Report
+
+**Scenario:** A user reports a critical bug: "Payment fails on checkout." You are a Member.
+
+**Step 1 — Create the bug task**
+
+1. Open the `E-Commerce Platform` project → **+ New task**.
+2. Title: `[BUG] Payment fails on checkout`.
+3. Issue type: **Bug**, Priority: **Urgent**.
+4. Description: paste the error log and steps to reproduce.
+5. Assignee: backend developer.
+6. Due date: today (critical bug).
+7. Click **Create**.
+
+**Step 2 — Link to other tasks**
+
+1. Open the bug task → **Linked tasks → + Add link**.
+2. Link type: **Blocks**, target: `Release v2.4.0` task.
+3. The release is now visibly blocked.
+
+**Step 3 — Notify the team**
+
+1. In the project's channel, type: "🚨 Critical bug reported: payment fails on checkout. Task: [link]. Dev on it now."
+2. `@mention` the CTO for visibility.
+
+**Step 4 — Track progress**
+
+1. Dev investigates, moves task to `In Progress`, logs time.
+2. Dev pushes a fix branch → opens a PR on GitHub (branch name: `fix/TASK-123-payment-checkout`).
+3. PR auto-links to the task via the webhook. Task detail shows PR status: **Open**.
+4. PR is reviewed → merged → task PR status: **Merged**.
+5. Dev moves task to `QA`.
+6. QA verifies fix → moves task to `Done`.
+7. Resolution timestamp is set. Bug closed.
+
+**Step 5 — Post-mortem**
+
+1. Create a doc in the project: type = Decision Log, title = "Checkout Bug Post-Mortem".
+2. Document root cause, fix, and prevention steps.
+
+---
+
+### 22.5 Planning and Running a Design Epic
+
+**Scenario:** Your team is redesigning the onboarding flow. You are the Manager.
+
+**Step 1 — Define the epic**
+
+1. Projects → `Mobile App` → Epics → **+ New epic**.
+2. Title: `Onboarding Redesign`.
+3. Phase: Discovery, Priority: Must Have.
+4. Owner: Lead Designer.
+5. Dates: next 6 weeks.
+
+**Step 2 — Populate discovery tasks**
+
+Create tasks under the epic:
+- `User research: 5 interviews with churned users` (Assignee: UX Researcher)
+- `Analyse drop-off funnel in analytics` (Assignee: Product Analyst)
+- `Competitive analysis: 3 competitor onboarding flows` (Assignee: Lead Designer)
+
+**Step 3 — Move to WIP**
+
+After discovery:
+1. Epics → `Onboarding Redesign` → change Phase to **WIP**.
+2. Create design tasks:
+   - `Design wireframes for 5-step onboarding` 
+   - `Design high-fidelity mockups`
+   - `Prototype in Figma`
+3. Add each to Sprint 3.
+
+**Step 4 — Review**
+
+1. Epic phase → **Review**.
+2. Create task: `Design review session with stakeholders`.
+3. Schedule a meeting (Meetings → Schedule), invite stakeholders.
+4. After meeting: review AI action items, create follow-up tasks.
+
+**Step 5 — Done**
+
+1. All tasks complete → epic phase → **Done**.
+2. Epic progress bar: 100%.
+3. Export project report as PDF for stakeholder summary.
+
+---
+
+### 22.6 Scheduling, Running, and Following Up on a Meeting
+
+**Scenario:** Weekly team standup, every Monday 9am. You are the Manager.
+
+**One-time setup — Schedule recurring:**
+
+1. Meetings → **+ Schedule meeting**.
+2. Title: "Weekly Team Standup".
+3. Date: next Monday 9:00am, Duration: 30 min, Type: Video.
+4. Attendees: full team.
+5. Click **Schedule**.
+
+*(For recurring meetings, re-schedule each week after the prior one completes, or use a Calendar block.)*
+
+**Monday 9am — Running the meeting:**
+
+1. Meetings list → "Weekly Team Standup" is **Live** → click **Join**.
+2. Meeting opens in the video call interface.
+3. Screen share or discuss items.
+4. Click **Start recording** at the beginning.
+
+**After the meeting:**
+
+1. Meeting detail page → Status: **Ended**.
+2. Recording processes: Uploaded → Transcribing → Transcribed (takes a few minutes).
+3. AI Summary appears: key decisions and blockers.
+4. Action items appear: "Alex to finish auth PR by Wednesday", "Sam to set up staging environment by Thursday".
+5. Click each action item → **Create task** → tasks appear in the project backlog.
+6. Assign tasks to the responsible people, set due dates.
+7. Post the meeting summary to the team channel: paste the AI summary.
+
+---
+
+### 22.7 Cross-Project Issue Triage Session
+
+**Scenario:** End-of-week team triage: 30 minutes to clear high-priority issues across all projects. You are the Admin.
+
+**Step 1 — Open Issue Navigator**
+
+Sidebar → **Issues**.
+
+**Step 2 — Set up the triage filter**
+
+1. Filter: Priority = Urgent, High.
+2. Filter: Due date = Overdue + Today.
+3. Filter: Status = Backlog, In Progress (not Done).
+4. Group by: **Project**.
+
+Result: all high-priority, overdue or due-today tasks, grouped by project.
+
+**Step 3 — Work through each group**
+
+For each project group:
+- Is this task assigned? If not → bulk action → Assign member.
+- Is the due date realistic? If not → click task → update due date.
+- Should this be in the current sprint? If not → bulk action → Assign sprint.
+
+**Step 4 — Save the view for next week**
+
+1. Click **Save view**.
+2. Name: "Weekly Triage — High Priority Overdue".
+3. Toggle **Shared** so all managers can use it.
+4. Click **Save**.
+
+Next Friday: click the saved view → immediately get the same filtered, grouped list.
+
+**Step 5 — Record the session**
+
+1. Copy the triage summary (which tasks were reassigned, what decisions made).
+2. Create a doc: Project = General → Type = Meeting Note → paste summary.
+
+---
+
+### 22.8 Client Progress Review via Client Portal
+
+**Scenario:** A client wants weekly visibility into their project's progress. You are the Admin.
+
+**Step 1 — Create a client portal link**
+
+1. Open the `Client X Website` project → **Project Settings → Client Portal**.
+2. **+ Create access link**.
+3. Client email: `jane.client@clientco.com`, Display name: "Jane (Client Co)".
+4. Allowed statuses: "In Review", "QA", "Done" (client sees completed and near-complete work only).
+5. Allowed documents: "Documentation" (they can see specs but not internal notes).
+6. Click **Create**.
+7. Copy the portal link and email it to Jane.
+
+**Each week:**
+
+1. Jane visits the portal link (no Cowrk account needed).
+2. She sees tasks in the permitted columns and progress %.
+3. She reviews approved documentation.
+4. She emails you with questions → you update tasks with her feedback in the internal board.
+
+**Revoking at project end:**
+
+Project Settings → Client Portal → find Jane's entry → **Revoke access**.
+
+---
+
+### 22.9 Tracking and Invoicing Billable Hours
+
+**Scenario:** Your agency tracks time on client projects and invoices monthly. You are the Admin.
+
+**Daily — Developers log time:**
+
+1. After working on a task, open the task detail panel.
+2. Click **Log time**.
+3. Enter: 90 minutes, date: today, note: "Implemented auth endpoints".
+4. Toggle **Billable**: on.
+5. Hourly rate: $150/hr.
+6. Click **Save log**.
+
+**Monthly — Generate invoice:**
+
+1. Open the project → **Billing** tab.
+2. Date range: first to last day of last month.
+3. Toggle **Billable only**: on.
+4. Review the list: confirm correct rates and hours.
+5. Click **Generate invoice**.
+6. Fill in: client name, address, payment terms (e.g., Net 30).
+7. Download as PDF.
+8. Send to client.
+
+**Tip:** Bulk-mark all logs for a sprint as billable by selecting them in the Billing table → **Mark billable**.
+
+---
+
+### 22.10 Connecting GitHub PRs to Tasks
+
+**Scenario:** Your dev team wants PR status visible directly on tasks. You are the Admin.
+
+**Step 1 — Configure the webhook (once per project)**
+
+1. Open the project → **Project Settings → GitHub Webhooks**.
+2. Copy the **Webhook URL**.
+3. On GitHub: repository → Settings → Webhooks → **Add webhook**.
+4. Paste the URL. Content-Type: `application/json`. Events: **Pull requests**.
+5. Click **Add webhook**.
+
+**Step 2 — Developers name branches correctly**
+
+When opening a PR, the title or branch name must reference the task ID:
+
+- Branch: `feature/TASK-456-user-auth`
+- PR title: `[TASK-456] Implement user authentication`
+
+Cowrk parses the task ID and links the PR automatically.
+
+**Step 3 — Visible in task detail**
+
+Open the task → scroll to **GitHub Pull Requests**. You see:
+
+- PR #47 — "Implement user authentication" — **Open** — Review: Pending
+- Reviewers: @alice, @bob
+- Checks: ✅ CI passing
+
+When the PR is merged on GitHub, the task shows: **Merged**. You know the code is in. The QA team knows to start testing.
+
+**Step 4 — Using PR status in triage**
+
+In the Issue Navigator, filter by tasks with open PRs to identify work that is "in code review" but not yet moving to QA — a common bottleneck.
+
+---
+
+*End of Cowrk User Guide — Version 5.0*
+
+*For support, contact your Cowrk administrator or submit an issue at the team's designated support channel.*

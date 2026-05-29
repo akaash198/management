@@ -1,12 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  Type, 
-  AlignLeft, 
-  Layout, 
-  Flag, 
-  Sparkles, 
+import {
+  Type,
+  AlignLeft,
+  Layout,
+  Flag,
+  Sparkles,
   CheckCircle2,
   X,
   Target,
@@ -18,6 +18,9 @@ import {
   Loader2,
   Paperclip
 } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   Dialog, 
   DialogContent, 
@@ -84,7 +87,7 @@ export function CreateTaskModal({
   const [columnId, setColumnId] = useState("");
   const [priority, setPriority] = useState<TaskPriority>("normal");
   const [issueType, setIssueType] = useState<string>("task");
-  const [assigneeId, setAssigneeId] = useState<string>("");
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([]);
   const [dueDate, setDueDate] = useState<string>("");
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
@@ -122,7 +125,9 @@ export function CreateTaskModal({
       setColumnId(initialTask.column ?? "");
       setPriority(initialTask.priority ?? "normal");
       setIssueType(initialTask.issue_type ?? "task");
-      setAssigneeId(initialTask.assignee?.id ?? "");
+      setAssigneeIds(
+        (initialTask.assignees?.map((a: { id: string }) => a.id) ?? (initialTask.assignee ? [initialTask.assignee.id] : [])).filter(Boolean)
+      );
       setDueDate(initialTask.due_date ?? "");
       setEstimatedHours(initialTask.estimated_hours != null ? String(initialTask.estimated_hours) : "");
       setSelectedLabelIds(new Set((initialTask.labels ?? []).map((l) => l.id)));
@@ -150,7 +155,8 @@ export function CreateTaskModal({
           column: columnId,
           priority,
           issue_type: issueType as any,
-          assignee: (assigneeId && assigneeId !== "unassigned") ? assigneeId : null,
+          assignee: assigneeIds[0] || null,
+          assignee_ids: assigneeIds,
           due_date: dueDate || null,
           estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
           label_ids: Array.from(selectedLabelIds),
@@ -170,7 +176,8 @@ export function CreateTaskModal({
       project: projectId,
       priority,
       issue_type: issueType as any,
-      assignee: (assigneeId && assigneeId !== "unassigned") ? assigneeId : null,
+      assignee: assigneeIds[0] || null,
+      assignee_ids: assigneeIds,
       due_date: dueDate || null,
       estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
       label_ids: Array.from(selectedLabelIds),
@@ -204,7 +211,7 @@ export function CreateTaskModal({
     setDescription("");
     setIssueType("task");
     setPriority("normal");
-    setAssigneeId("");
+    setAssigneeIds([]);
     setDueDate("");
     setEstimatedHours("");
     setSelectedLabelIds(new Set());
@@ -541,21 +548,87 @@ export function CreateTaskModal({
               <div className="space-y-2.5">
                 <Label className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70 ml-1 flex items-center gap-2">
                   <User className="h-3.5 w-3.5" />
-                  Assignee
+                  Assignees
                 </Label>
-                <Select value={assigneeId} onValueChange={setAssigneeId}>
-                  <SelectTrigger className="h-10 bg-background/50 border-border/50 rounded-xl shadow-sm">
-                    <SelectValue placeholder="Unassigned" />
-                  </SelectTrigger>
-                  <SelectContent className="glass-panel border-border/50">
-                    <SelectItem value="unassigned" className="text-[13px] py-2.5">Unassigned</SelectItem>
-                    {members.map(member => (
-                      <SelectItem key={member.user.id} value={member.user.id} className="text-[13px] py-2.5 cursor-pointer">
-                        {member.user.full_name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="flex flex-wrap gap-1.5 p-2 min-h-[42px] rounded-xl border border-border/50 bg-background/50 shadow-sm items-center">
+                  {assigneeIds.length === 0 ? (
+                    <span className="text-[13px] text-muted-foreground px-1">Unassigned</span>
+                  ) : (
+                    assigneeIds.map((id) => {
+                      const member = members.find((m) => m.user.id === id);
+                      if (!member) return null;
+                      return (
+                        <span key={id} className="flex items-center gap-1 pl-1 pr-1.5 py-0.5 rounded-full text-[12px] font-medium bg-muted/60 border border-border/50">
+                          <Avatar className="h-4 w-4">
+                            <AvatarImage src={member.user.avatar_url || ""} />
+                            <AvatarFallback className="text-[9px] font-bold">
+                              {member.user.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{member.user.full_name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setAssigneeIds(assigneeIds.filter((a) => a !== id))}
+                            className="text-muted-foreground hover:text-foreground transition-colors ml-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </span>
+                      );
+                    })
+                  )}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 h-7 px-2 ml-auto rounded-full border border-dashed border-border/60 text-[12px] text-muted-foreground hover:bg-muted/30 hover:text-foreground hover:border-border transition-all"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        <span>Assign</span>
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-60 p-2 glass-panel border-border/50" align="end">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/75 px-2.5 py-1.5 border-b border-border/50 mb-1">
+                        Assignees
+                      </div>
+                      <div className="max-h-48 overflow-y-auto space-y-0.5">
+                        {members.length === 0 ? (
+                          <div className="text-xs text-muted-foreground text-center py-4">No team members</div>
+                        ) : (
+                          members.map((member) => {
+                            const checked = assigneeIds.includes(member.user.id);
+                            return (
+                              <label
+                                key={member.user.id}
+                                className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-md hover:bg-accent text-xs cursor-pointer select-none transition-colors"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarImage src={member.user.avatar_url || ""} />
+                                    <AvatarFallback className="text-[10px] font-bold">
+                                      {member.user.full_name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="truncate font-medium">{member.user.full_name}</span>
+                                </div>
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(isChecked) => {
+                                    if (isChecked) {
+                                      setAssigneeIds([...assigneeIds, member.user.id]);
+                                    } else {
+                                      setAssigneeIds(assigneeIds.filter((a) => a !== member.user.id));
+                                    }
+                                  }}
+                                />
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               {/* Issue Type */}
