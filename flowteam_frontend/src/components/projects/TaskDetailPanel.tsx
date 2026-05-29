@@ -27,6 +27,9 @@ import {
   Trash2,
   FileText,
   Download,
+  Pencil,
+  RefreshCw,
+  Check,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -91,8 +94,13 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [replacingId, setReplacingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch attachments from the task detail endpoint
   useEffect(() => {
     if (!taskId) return;
     setAttachmentsLoading(true);
@@ -104,6 +112,29 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
       .finally(() => setAttachmentsLoading(false));
   }, [taskId]);
 
+  // Fetch the current user's role on this project for RBAC checks
+  const { data: userProjectRole } = useQuery<string | null>({
+    queryKey: ["user-project-role", task?.project, user?.id],
+    queryFn: async () => {
+      if (!task?.project || !user?.id) return null;
+      const res = await api.get<{ success: boolean; data: { role: string } | null }>(
+        `/projects/${task.project}/my-role/`
+      );
+      return res.data.data?.role ?? null;
+    },
+    enabled: !!task?.project && !!user?.id,
+  });
+
+  // RBAC helpers (mirrors backend logic)
+  const isAdmin = userProjectRole === "project_admin";
+  const canUpload = userProjectRole === "project_admin" || userProjectRole === "editor";
+  const canDeleteAny = isAdmin;
+  const canManageAny = isAdmin; // rename/replace any file
+  const canDeleteOwn = (att: Attachment) =>
+    canDeleteAny || (canUpload && att.uploaded_by?.id === user?.id);
+  const canRenameOrReplace = (att: Attachment) =>
+    canManageAny || (canUpload && att.uploaded_by?.id === user?.id);
+
   const handleAttachFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
     setUploading(true);
@@ -114,9 +145,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
         const res = await api.post<{ success: boolean; data: Attachment }>(
           `/tasks/${taskId}/attachments/`, form
         );
-        if (res.data.success) {
-          setAttachments((prev) => [res.data.data, ...prev]);
-        }
+        if (res.data.success) setAttachments((prev) => [res.data.data, ...prev]);
       }
       toast.success("File uploaded");
     } catch (err) {
@@ -134,6 +163,44 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
       toast.success("Attachment removed");
     } catch (err) {
       toast.error(toErrorMessage(err, "Delete failed"));
+    }
+  };
+
+  const handleRenameConfirm = async (id: string) => {
+    const name = renameValue.trim();
+    if (!name) { setRenamingId(null); return; }
+    try {
+      const res = await api.patch<{ success: boolean; data: Attachment }>(
+        `/tasks/attachments/${id}/`, { original_filename: name }
+      );
+      if (res.data.success) {
+        setAttachments((prev) => prev.map((a) => a.id === id ? res.data.data : a));
+        toast.success("Renamed");
+      }
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Rename failed"));
+    } finally {
+      setRenamingId(null);
+    }
+  };
+
+  const handleReplaceFile = async (id: string, file: File) => {
+    setReplacingId(id);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await api.post<{ success: boolean; data: Attachment }>(
+        `/tasks/attachments/${id}/replace/`, form
+      );
+      if (res.data.success) {
+        setAttachments((prev) => prev.map((a) => a.id === id ? res.data.data : a));
+        toast.success("File replaced");
+      }
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Replace failed"));
+    } finally {
+      setReplacingId(null);
+      if (replaceInputRef.current) replaceInputRef.current.value = "";
     }
   };
 
@@ -651,6 +718,17 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
 
               {/* Attachments Section */}
               <div className="space-y-3">
+                {/* hidden replace-file input — one per panel, reused for whichever att is being replaced */}
+                <input
+                  ref={replaceInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f && replacingId) handleReplaceFile(replacingId, f);
+                  }}
+                />
+
                 <div className="flex items-center justify-between">
                   <h3 className="text-[13px] font-medium flex items-center gap-2">
                     <Paperclip size={14} className="text-muted-foreground/60" />
@@ -659,21 +737,25 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                       <span className="text-[11px] text-muted-foreground">({attachments.length})</span>
                     )}
                   </h3>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
-                  >
-                    {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
-                    {uploading ? "Uploading…" : "Upload"}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={(e) => handleAttachFiles(e.target.files)}
-                  />
+                  {canUpload && (
+                    <>
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={uploading}
+                        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+                      >
+                        {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                        {uploading ? "Uploading…" : "Upload"}
+                      </button>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => handleAttachFiles(e.target.files)}
+                      />
+                    </>
+                  )}
                 </div>
 
                 {attachmentsLoading ? (
@@ -681,12 +763,16 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                     <Loader2 size={16} className="animate-spin text-muted-foreground" />
                   </div>
                 ) : attachments.length === 0 ? (
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full rounded-lg border border-dashed border-border py-4 text-[12px] text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground transition-colors"
-                  >
-                    Drop files or click Upload
-                  </button>
+                  canUpload ? (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full rounded-lg border border-dashed border-border py-4 text-[12px] text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                    >
+                      Drop files or click Upload
+                    </button>
+                  ) : (
+                    <p className="text-[12px] text-muted-foreground/40 italic">No attachments.</p>
+                  )
                 ) : (
                   <div className="space-y-1.5">
                     {attachments.map((att) => {
@@ -695,40 +781,123 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                       const previewUrl = isPdf
                         ? `/view/pdf?url=${encodeURIComponent(att.url)}&name=${encodeURIComponent(att.original_filename)}`
                         : att.url;
+                      const isRenaming = renamingId === att.id;
+                      const isReplacing = replacingId === att.id;
+                      const showEdit = canRenameOrReplace(att);
+                      const showDelete = canDeleteOwn(att);
+
                       return (
                         <div
                           key={att.id}
                           className="group flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2 hover:bg-muted/60 transition-colors"
                         >
-                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background border border-border">
+                          {/* Thumbnail / icon */}
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background border border-border overflow-hidden">
                             {isImage ? (
-                              <img src={att.url} alt="" className="h-7 w-7 rounded-md object-cover" />
+                              <img src={att.url} alt="" className="h-7 w-7 object-cover" />
                             ) : (
                               <FileText size={13} className="text-muted-foreground" />
                             )}
                           </div>
+
+                          {/* Filename — inline rename when editing */}
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[12px] font-medium">{att.original_filename}</p>
-                            <p className="text-[10px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                            {isRenaming ? (
+                              <div className="flex items-center gap-1">
+                                <input
+                                  autoFocus
+                                  value={renameValue}
+                                  onChange={(e) => setRenameValue(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") handleRenameConfirm(att.id);
+                                    if (e.key === "Escape") setRenamingId(null);
+                                  }}
+                                  className="flex-1 min-w-0 rounded border border-primary/50 bg-background px-1.5 py-0.5 text-[12px] font-medium outline-none focus:ring-1 focus:ring-primary/30"
+                                />
+                                <button
+                                  onClick={() => handleRenameConfirm(att.id)}
+                                  className="rounded p-0.5 text-primary hover:bg-primary/10"
+                                  title="Confirm rename"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  onClick={() => setRenamingId(null)}
+                                  className="rounded p-0.5 text-muted-foreground hover:bg-muted"
+                                  title="Cancel"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <p className="truncate text-[12px] font-medium">{att.original_filename}</p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground">
+                              {formatBytes(att.file_size)}
+                              {att.uploaded_by?.full_name && (
+                                <span className="ml-1.5 opacity-60">· {att.uploaded_by.full_name}</span>
+                              )}
+                            </p>
                           </div>
-                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a
-                              href={previewUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="rounded p-1 hover:bg-background transition-colors"
-                              title="Open"
-                            >
-                              <Download size={13} className="text-muted-foreground" />
-                            </a>
-                            <button
-                              onClick={() => handleDeleteAttachment(att.id)}
-                              className="rounded p-1 hover:bg-background transition-colors"
-                              title="Remove"
-                            >
-                              <Trash2 size={13} className="text-muted-foreground hover:text-destructive" />
-                            </button>
-                          </div>
+
+                          {/* Action buttons — always visible on hover */}
+                          {!isRenaming && (
+                            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* Open / download */}
+                              <a
+                                href={previewUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="rounded p-1 hover:bg-background transition-colors"
+                                title="Open"
+                              >
+                                <Download size={13} className="text-muted-foreground" />
+                              </a>
+
+                              {/* Rename — editor own / admin any */}
+                              {showEdit && (
+                                <button
+                                  onClick={() => {
+                                    setRenamingId(att.id);
+                                    setRenameValue(att.original_filename);
+                                  }}
+                                  className="rounded p-1 hover:bg-background transition-colors"
+                                  title="Rename"
+                                >
+                                  <Pencil size={13} className="text-muted-foreground" />
+                                </button>
+                              )}
+
+                              {/* Replace file — editor own / admin any */}
+                              {showEdit && (
+                                <button
+                                  disabled={isReplacing}
+                                  onClick={() => {
+                                    setReplacingId(att.id);
+                                    replaceInputRef.current?.click();
+                                  }}
+                                  className="rounded p-1 hover:bg-background transition-colors disabled:opacity-40"
+                                  title="Replace file"
+                                >
+                                  {isReplacing
+                                    ? <Loader2 size={13} className="animate-spin text-muted-foreground" />
+                                    : <RefreshCw size={13} className="text-muted-foreground" />
+                                  }
+                                </button>
+                              )}
+
+                              {/* Delete — editor own / admin any */}
+                              {showDelete && (
+                                <button
+                                  onClick={() => handleDeleteAttachment(att.id)}
+                                  className="rounded p-1 hover:bg-background transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={13} className="text-muted-foreground hover:text-destructive" />
+                                </button>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     })}

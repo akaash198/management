@@ -419,6 +419,25 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         instance.status = "archived"
         instance.save()
 
+    @action(detail=True, methods=["get"], url_path="my-role")
+    def my_role(self, request, pk=None):
+        """Return the current user's effective role on this project."""
+        project = self.get_object()
+        role = get_user_project_role(request.user, project)
+        # Normalise team-level roles that bypass ProjectRole
+        if role is None:
+            from apps.teams.models import TeamMember as TM
+            team_role = TM.objects.filter(team=project.team, user=request.user).values_list("role", flat=True).first()
+            if team_role in {TM.CEO, TM.ADMIN}:
+                role = "project_admin"
+            elif team_role == TM.MANAGER:
+                role = "editor"
+            elif team_role == TM.VIEWER:
+                role = "viewer"
+        if request.user.is_superuser:
+            role = "project_admin"
+        return standardize_response(data={"role": role})
+
     @action(detail=True, methods=["post"])
     def restore(self, request, pk=None):
         project = self.get_object()
@@ -942,38 +961,132 @@ class TimeLogViewSet(viewsets.ModelViewSet):
             raise PermissionDenied()
         serializer.save(task=task, user=self.request.user)
 
+def _attachment_can_upload(user, project) -> bool:
+    """editor+ can upload attachments."""
+    return check_project_permission(user, project, "edit_project")
+
+def _attachment_can_delete(user, project, attachment) -> bool:
+    """
+    project_admin / team admin/ceo → delete any attachment.
+    editor → delete only attachments they uploaded.
+    commenter / viewer → cannot delete.
+    """
+    if not check_project_permission(user, project, "edit_project"):
+        return False
+    # Admins can delete any attachment
+    if check_project_permission(user, project, "delete_task"):
+        return True
+    # Editors can only delete their own uploads
+    return str(attachment.uploaded_by_id) == str(user.id)
+
+def _attachment_can_manage(user, project) -> bool:
+    """project_admin / team admin can rename and replace any attachment."""
+    return check_project_permission(user, project, "delete_task")
+
 class AttachmentUploadView(generics.CreateAPIView):
     serializer_class = AttachmentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, task_id):
         task = get_object_or_404(Task, id=task_id)
-        if not check_project_permission(request.user, task.project, "edit_project"):
-             raise PermissionDenied()
+        if not _attachment_can_upload(request.user, task.project):
+            raise PermissionDenied("You don't have permission to upload files to this project.")
         file = request.FILES.get("file")
         if not file:
             return standardize_response(success=False, error="No file provided", status=400)
-        
         attachment = Attachment.objects.create(
             task=task,
             file=file,
             original_filename=file.name,
             file_size=file.size,
             mime_type=file.content_type,
-            uploaded_by=request.user
+            uploaded_by=request.user,
         )
         return standardize_response(data=AttachmentSerializer(attachment, context={"request": request}).data)
 
-class AttachmentDeleteView(generics.DestroyAPIView):
+
+class AttachmentDetailView(generics.GenericAPIView):
+    """
+    PATCH  /api/tasks/attachments/<id>/   — rename (original_filename)
+    DELETE /api/tasks/attachments/<id>/   — delete file
+    """
     permission_classes = [permissions.IsAuthenticated]
 
+    def _get_attachment(self, attachment_id):
+        return get_object_or_404(
+            Attachment.objects.select_related("task__project", "uploaded_by"),
+            id=attachment_id,
+        )
+
+    def patch(self, request, attachment_id):
+        attachment = self._get_attachment(attachment_id)
+        project = attachment.task.project
+        # Rename: uploader can rename own; admin can rename any
+        is_own = str(attachment.uploaded_by_id) == str(request.user.id)
+        can_edit = check_project_permission(request.user, project, "edit_project")
+        can_manage = _attachment_can_manage(request.user, project)
+        if not can_edit or (not is_own and not can_manage):
+            raise PermissionDenied("You can only rename your own attachments.")
+        new_name = (request.data.get("original_filename") or "").strip()
+        if not new_name:
+            return standardize_response(success=False, error="original_filename is required", status=400)
+        attachment.original_filename = new_name
+        attachment.save(update_fields=["original_filename"])
+        return standardize_response(data=AttachmentSerializer(attachment, context={"request": request}).data)
+
     def delete(self, request, attachment_id):
-        attachment = get_object_or_404(Attachment, id=attachment_id)
-        if not check_project_permission(request.user, attachment.task.project, "edit_project"):
-            raise PermissionDenied()
+        attachment = self._get_attachment(attachment_id)
+        if not _attachment_can_delete(request.user, attachment.task.project, attachment):
+            raise PermissionDenied("You can only delete your own attachments.")
         attachment.file.delete(save=False)
         attachment.delete()
         return standardize_response(data={"message": "Attachment deleted"})
+
+
+class AttachmentReplaceView(generics.GenericAPIView):
+    """
+    POST /api/tasks/attachments/<id>/replace/
+    Replace the file while preserving the attachment record and its ID.
+    Only project_admin / team admin (can_delete_tasks capability) may replace any file;
+    editors may replace their own uploads.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, attachment_id):
+        attachment = get_object_or_404(
+            Attachment.objects.select_related("task__project", "uploaded_by"),
+            id=attachment_id,
+        )
+        project = attachment.task.project
+        is_own = str(attachment.uploaded_by_id) == str(request.user.id)
+        can_edit = check_project_permission(request.user, project, "edit_project")
+        can_manage = _attachment_can_manage(request.user, project)
+        if not can_edit or (not is_own and not can_manage):
+            raise PermissionDenied("You can only replace your own attachments.")
+
+        new_file = request.FILES.get("file")
+        if not new_file:
+            return standardize_response(success=False, error="No file provided", status=400)
+
+        # Save old file for deletion after the new one is committed
+        old_file = attachment.file
+        attachment.file = new_file
+        attachment.original_filename = new_file.name
+        attachment.file_size = new_file.size
+        attachment.mime_type = new_file.content_type or attachment.mime_type
+        attachment.uploaded_by = request.user
+        attachment.save(update_fields=["file", "original_filename", "file_size", "mime_type", "uploaded_by"])
+        # Delete old file from storage after the new one is safely saved
+        try:
+            old_file.delete(save=False)
+        except Exception:
+            pass
+
+        return standardize_response(data=AttachmentSerializer(attachment, context={"request": request}).data)
+
+
+# Keep old name as alias so existing import in task_urls.py doesn't break
+AttachmentDeleteView = AttachmentDetailView
 
 class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
