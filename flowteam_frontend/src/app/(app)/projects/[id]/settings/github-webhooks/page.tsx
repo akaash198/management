@@ -67,7 +67,7 @@ export default function GitHubWebhookLogPage() {
 
   return (
     <div className="space-y-6">
-      <ProjectTopNav projectId={projectId} activeTab="settings" />
+      <ProjectTopNav projectId={projectId} />
 
       <Card>
         <CardHeader>
