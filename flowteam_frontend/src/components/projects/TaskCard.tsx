@@ -20,12 +20,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Pencil } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
   isOverlay?: boolean;
   columns?: Column[];
   projectId?: string;
+  onEdit?: (task: Task) => void;
 }
 
 const priorityConfig = {
@@ -35,7 +37,7 @@ const priorityConfig = {
   low: { border: "border-l-muted-foreground/30", badge: "bg-muted/50 text-muted-foreground" },
 };
 
-export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
+export function TaskCard({ task, isOverlay, columns, onEdit }: TaskCardProps) {
   const router = useRouter();
   const moveTask = useMoveTask();
   const [completing, setCompleting] = useState(false);
@@ -179,6 +181,18 @@ export function TaskCard({ task, isOverlay, columns }: TaskCardProps) {
                     sideOffset={8}
                     className="w-52 p-1.5 glass-panel backdrop-blur-xl border-primary/20 shadow-2xl animate-in fade-in-0 zoom-in-95"
                   >
+                    {onEdit && (
+                      <>
+                        <DropdownMenuItem
+                          onSelect={() => onEdit(task)}
+                          className="flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-all focus:bg-primary/10 focus:text-primary"
+                        >
+                          <Pencil size={12} className="text-muted-foreground" />
+                          <span className="text-[13px] font-medium">Edit task</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator className="bg-primary/10 mx-1" />
+                      </>
+                    )}
                     <DropdownMenuLabel className="px-2.5 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground/70">
                       Transfer Task
                     </DropdownMenuLabel>

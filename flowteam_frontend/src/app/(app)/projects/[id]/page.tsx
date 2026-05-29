@@ -54,6 +54,7 @@ import {
 import { cn } from "@/lib/utils";
 import api from "@/lib/api";
 import type { ApiResponse, TeamMember } from "@/types";
+import type { Task } from "@/types/task";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,6 +91,9 @@ export default function ProjectBoardPage() {
   const [dueFilter, setDueFilter] = useState<"all" | "overdue" | "today" | "this_week">("all");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("");
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [editTask, setEditTask] = useState<Task | null>(null);
+  const openEditModal = (t: Task) => { setEditTask(t); setIsTaskModalOpen(true); };
+  const handleTaskModalClose = (open: boolean) => { setIsTaskModalOpen(open); if (!open) setEditTask(null); };
   const [isExporting, setIsExporting] = useState<false | "csv" | "xlsx" | "pdf">(false);
 
   const handleExport = async (format: "csv" | "xlsx" | "pdf") => {
@@ -446,7 +450,7 @@ export default function ProjectBoardPage() {
       <div className="flex-1 overflow-auto bg-background custom-scrollbar">
         {activeView === "board" && (
           <div className="p-5 h-full">
-            <KanbanBoard projectId={id} searchTerm={search} readOnly={isReadOnly} />
+            <KanbanBoard projectId={id} searchTerm={search} readOnly={isReadOnly} onEditTask={openEditModal} />
           </div>
         )}
         {(activeView === "list" || activeView === "bugs") && (
@@ -481,16 +485,17 @@ export default function ProjectBoardPage() {
         )}
       </div>
 
-      {taskId && <TaskDetailPanel key={taskId} taskId={taskId} projectId={id} columns={project.columns || []} />}
+      {taskId && <TaskDetailPanel key={taskId} taskId={taskId} projectId={id} columns={project.columns || []} onEdit={openEditModal} />}
 
       <CreateTaskModal
         open={isTaskModalOpen}
-        onOpenChange={setIsTaskModalOpen}
+        onOpenChange={handleTaskModalClose}
         projectId={id}
         columns={project.columns || []}
         labels={project.labels || []}
         members={teamMembers || []}
         readOnly={isReadOnly}
+        initialTask={editTask}
       />
     </div>
   );

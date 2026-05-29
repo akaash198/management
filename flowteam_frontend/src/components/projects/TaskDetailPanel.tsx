@@ -70,6 +70,7 @@ interface TaskDetailPanelProps {
   taskId: string;
   projectId: string;
   columns: Column[];
+  onEdit?: (task: import("@/types/task").Task) => void;
 }
 
 interface GitHubPullRequest {
@@ -116,7 +117,7 @@ type TaskGitCommit = {
 
 import { TaskCompletionModal } from "./TaskCompletionModal";
 
-export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelProps) {
+export function TaskDetailPanel({ taskId, projectId, columns, onEdit }: TaskDetailPanelProps) {
   const router = useRouter();
   const { user } = useAuthStore();
   const { data: task, isLoading } = useTask(taskId);
@@ -530,9 +531,20 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
               {isLoading ? "Loading..." : task?.title || "Task details"}
             </SheetTitle>
             {task && (
-              <AIButton variant="outline" size="sm" className="h-8 w-fit text-[12px]" loading={summarizing} onClick={() => void summarizeTask()}>
-                Summarize
-              </AIButton>
+              <div className="flex items-center gap-2">
+                {onEdit && (
+                  <button
+                    onClick={() => onEdit(task)}
+                    className="flex items-center gap-1.5 rounded-lg border border-border px-3 h-8 text-[12px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                  >
+                    <Pencil size={12} />
+                    Edit
+                  </button>
+                )}
+                <AIButton variant="outline" size="sm" className="h-8 w-fit text-[12px]" loading={summarizing} onClick={() => void summarizeTask()}>
+                  Summarize
+                </AIButton>
+              </div>
             )}
           </SheetHeader>
         </div>

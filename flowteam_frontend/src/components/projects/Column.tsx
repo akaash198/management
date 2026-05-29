@@ -30,9 +30,10 @@ interface ColumnProps {
   tasks: Task[];
   allColumns?: ColumnType[];
   readOnly?: boolean;
+  onEditTask?: (task: Task) => void;
 }
 
-export function Column({ column, projectId, tasks, allColumns, readOnly = false }: ColumnProps) {
+export function Column({ column, projectId, tasks, allColumns, readOnly = false, onEditTask }: ColumnProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState("");
   const createTask = useCreateTask();
@@ -106,7 +107,7 @@ export function Column({ column, projectId, tasks, allColumns, readOnly = false 
           strategy={verticalListSortingStrategy}
         >
           {tasks.map((task) => (
-            <TaskCard key={task.id} task={task} columns={allColumns} />
+            <TaskCard key={task.id} task={task} columns={allColumns} onEdit={onEditTask} />
           ))}
         </SortableContext>
         

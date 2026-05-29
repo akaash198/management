@@ -36,9 +36,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { useCreateTask } from "@/hooks/useTasks";
+import { useCreateTask, useUpdateTask } from "@/hooks/useTasks";
 import { Column, Label as ProjectLabel } from "@/types/project";
-import { TaskPriority } from "@/types/task";
+import { Task, TaskPriority } from "@/types/task";
 import api from "@/lib/api";
 import type { ApiResponse, TeamMember } from "@/types";
 import { AIButton } from "@/components/ai/AIButton";
@@ -64,17 +64,21 @@ interface CreateTaskModalProps {
   labels?: ProjectLabel[];
   members?: TeamMember[];
   readOnly?: boolean;
+  initialTask?: Task | null;
 }
 
-export function CreateTaskModal({ 
-  open, 
-  onOpenChange, 
-  projectId, 
+export function CreateTaskModal({
+  open,
+  onOpenChange,
+  projectId,
   columns,
   labels = [],
   members = [],
-  readOnly = false
+  readOnly = false,
+  initialTask = null,
 }: CreateTaskModalProps) {
+  const isEditMode = !!initialTask;
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [columnId, setColumnId] = useState("");
@@ -84,25 +88,25 @@ export function CreateTaskModal({
   const [dueDate, setDueDate] = useState<string>("");
   const [estimatedHours, setEstimatedHours] = useState<string>("");
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
-  
+
   const [autoWriting, setAutoWriting] = useState(false);
   const [suggestedLabels, setSuggestedLabels] = useState<string[]>([]);
   const [generatedTasks, setGeneratedTasks] = useState<GeneratedTask[]>([]);
   const [selectedGenerated, setSelectedGenerated] = useState<Set<number>>(new Set());
   const [generating, setGenerating] = useState(false);
-  
+
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const activeTeamId = useTeamStore((state) => state.activeTeamId);
-  
+
   const createTask = useCreateTask();
+  const updateTask = useUpdateTask();
 
   const [queuedFiles, setQueuedFiles] = useState<File[]>([]);
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const filesArray = Array.from(e.target.files);
-      setQueuedFiles((prev) => [...prev, ...filesArray]);
+      setQueuedFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
     }
   };
 
@@ -110,12 +114,25 @@ export function CreateTaskModal({
     setQueuedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Initialize columnId when open
+  // Populate fields when opening in edit mode; reset when closing create mode
   useEffect(() => {
-    if (open && !columnId && columns.length > 0) {
+    if (open && initialTask) {
+      setTitle(initialTask.title ?? "");
+      setDescription(initialTask.description ?? "");
+      setColumnId(initialTask.column ?? "");
+      setPriority(initialTask.priority ?? "normal");
+      setIssueType(initialTask.issue_type ?? "task");
+      setAssigneeId(initialTask.assignee?.id ?? "");
+      setDueDate(initialTask.due_date ?? "");
+      setEstimatedHours(initialTask.estimated_hours != null ? String(initialTask.estimated_hours) : "");
+      setSelectedLabelIds(new Set((initialTask.labels ?? []).map((l) => l.id)));
+    }
+    if (open && !initialTask && !columnId && columns.length > 0) {
       setColumnId(columns[0].id);
     }
-  }, [open, columns, columnId]);
+    if (!open && !initialTask) resetForm();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialTask?.id]);
 
   const handleCreate = () => {
     if (readOnly) {
@@ -123,7 +140,28 @@ export function CreateTaskModal({
       return;
     }
     if (!title.trim() || !columnId) return;
-    
+
+    if (isEditMode && initialTask) {
+      updateTask.mutate({
+        id: initialTask.id,
+        data: {
+          title: title.trim(),
+          description: description.trim(),
+          column: columnId,
+          priority,
+          issue_type: issueType as any,
+          assignee: (assigneeId && assigneeId !== "unassigned") ? assigneeId : null,
+          due_date: dueDate || null,
+          estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
+          label_ids: Array.from(selectedLabelIds),
+        },
+      }, {
+        onSuccess: () => { toast.success("Task updated"); onOpenChange(false); },
+        onError: (err) => toast.error(toErrorMessage(err, "Failed to update task")),
+      });
+      return;
+    }
+
     setUploadingFiles(queuedFiles.length > 0);
     createTask.mutate({
       title: title.trim(),
@@ -138,19 +176,17 @@ export function CreateTaskModal({
       label_ids: Array.from(selectedLabelIds),
     }, {
       onSuccess: async (createdTask) => {
-        if (queuedFiles.length > 0 && createdTask && createdTask.id) {
+        if (queuedFiles.length > 0 && createdTask?.id) {
           try {
             for (const file of queuedFiles) {
               const formData = new FormData();
               formData.append("file", file);
               await api.post(`/projects/tasks/${createdTask.id}/attachments/`, formData, {
-                headers: {
-                  "Content-Type": "multipart/form-data"
-                }
+                headers: { "Content-Type": "multipart/form-data" },
               });
             }
             toast.success("Attachments uploaded successfully");
-          } catch (err) {
+          } catch {
             toast.error("Task created, but some attachments failed to upload.");
           } finally {
             setUploadingFiles(false);
@@ -159,9 +195,7 @@ export function CreateTaskModal({
         resetForm();
         onOpenChange(false);
       },
-      onError: () => {
-        setUploadingFiles(false);
-      }
+      onError: () => setUploadingFiles(false),
     });
   };
 
@@ -330,20 +364,24 @@ export function CreateTaskModal({
                 <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Plus className="h-5 w-5 text-primary" />
                 </div>
-                Create Task
+                {isEditMode ? "Edit Task" : "Create Task"}
               </DialogTitle>
-              <p className="text-[13px] text-muted-foreground/80">Add a new work item to the project board</p>
+              <p className="text-[13px] text-muted-foreground/80">
+                {isEditMode ? "Update the task details below" : "Add a new work item to the project board"}
+              </p>
             </div>
-            <AIButton 
-              variant="outline" 
-              size="sm" 
-              className="h-9 px-4 text-[13px] shadow-glow hover:bg-primary/5 border-primary/20 transition-all duration-300 gap-2" 
-              loading={generating} 
-              onClick={() => void handleGenerateTasks()}
-            >
-              <Sparkles className="h-4 w-4" />
-              Magic Generate
-            </AIButton>
+            {!isEditMode && (
+              <AIButton
+                variant="outline"
+                size="sm"
+                className="h-9 px-4 text-[13px] shadow-glow hover:bg-primary/5 border-primary/20 transition-all duration-300 gap-2"
+                loading={generating}
+                onClick={() => void handleGenerateTasks()}
+              >
+                <Sparkles className="h-4 w-4" />
+                Magic Generate
+              </AIButton>
+            )}
           </div>
         </DialogHeader>
 
@@ -691,17 +729,17 @@ export function CreateTaskModal({
                 Create {selectedGenerated.size} suggested
               </Button>
             )}
-            <Button 
-              onClick={handleCreate} 
-              disabled={readOnly || !title.trim() || !columnId || createTask.isPending}
+            <Button
+              onClick={handleCreate}
+              disabled={readOnly || !title.trim() || !columnId || createTask.isPending || updateTask.isPending}
               className="h-10 px-8 text-[13px] font-bold bg-primary text-primary-foreground shadow-glow hover:shadow-glow-strong hover:scale-[1.02] active:scale-[0.98] transition-all duration-300 rounded-xl"
             >
-              {createTask.isPending ? (
+              {(isEditMode ? updateTask.isPending : createTask.isPending) ? (
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Saving..." : "Creating..."}
                 </div>
-              ) : "Create Task"}
+              ) : isEditMode ? "Save Changes" : "Create Task"}
             </Button>
           </div>
         </DialogFooter>

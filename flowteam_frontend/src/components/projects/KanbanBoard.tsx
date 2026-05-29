@@ -32,10 +32,12 @@ export function KanbanBoard({
   projectId,
   searchTerm,
   readOnly = false,
+  onEditTask,
 }: {
   projectId: string;
   searchTerm: string;
   readOnly?: boolean;
+  onEditTask?: (task: Task) => void;
 }) {
   const { columns, tasksByColumn, optimisticMoveTask } = useBoardStore();
   const moveTaskMutation = useMoveTask();
@@ -162,15 +164,16 @@ export function KanbanBoard({
     >
       <div className="flex gap-4 h-full items-start">
         {columns.map((column) => (
-          <Column 
-            key={column.id} 
+          <Column
+            key={column.id}
             column={column}
             projectId={projectId}
-            tasks={tasksByColumn[column.id]?.filter(t => 
+            tasks={tasksByColumn[column.id]?.filter(t =>
               t.title.toLowerCase().includes(searchTerm.toLowerCase())
             ) || []}
             allColumns={columns}
             readOnly={readOnly}
+            onEditTask={onEditTask}
           />
         ))}
         
