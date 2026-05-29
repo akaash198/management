@@ -474,9 +474,10 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             return Task.objects.none()
 
         visible_projects = Project.objects.filter(
-            Q(team__members__user=self.request.user)
-            | Q(roles__user=self.request.user)
+            Q(roles__user=self.request.user)
             | Q(created_by=self.request.user)
+            | Q(tasks__assignee=self.request.user)
+            | Q(tasks__reporter=self.request.user)
         ).values_list("id", flat=True)
 
         queryset = queryset.filter(project_id__in=visible_projects)
@@ -578,6 +579,11 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         serializer.save(reporter=self.request.user, order=order, project=project)
         task = serializer.instance
 
+        # Ensure assignees have explicit project membership so they can access the board.
+        from .permissions import ensure_project_member
+        for u in task.assignees.all():
+            ensure_project_member(project=project, user=u, assigned_by=self.request.user, role="editor")
+
         # Back-compat: keep `assignee` populated with the first assignee (if provided).
         if assignees:
             if not task.assignee_id:
@@ -618,6 +624,13 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         super().perform_update(serializer)
         task = serializer.instance
         new_assignee_ids = set(task.assignees.values_list("id", flat=True))
+
+        # Ensure newly added assignees have explicit project membership.
+        from .permissions import ensure_project_member
+        added_assignee_ids = new_assignee_ids - old_assignee_ids
+        if added_assignee_ids:
+            for u in task.assignees.filter(id__in=list(added_assignee_ids)):
+                ensure_project_member(project=task.project, user=u, assigned_by=self.request.user, role="editor")
 
         # Back-compat: keep `assignee` in sync (best-effort).
         if new_assignee_ids and (not task.assignee_id or task.assignee_id not in new_assignee_ids):
@@ -755,13 +768,17 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def _get_project(self):
         return get_object_or_404(Project, pk=self.kwargs["project_pk"])
 
-    def _require_manage(self, project):
-        if not check_project_permission(self.request.user, project, "manage_project"):
-            raise permissions.PermissionDenied("You do not have permission to manage this project's roles.")
+    def _require_view(self, project):
+        if not check_project_permission(self.request.user, project, "view_project"):
+            raise permissions.PermissionDenied("You do not have permission to view this project's members.")
+
+    def _require_manage_members(self, project):
+        if not check_project_permission(self.request.user, project, "manage_members"):
+            raise permissions.PermissionDenied("You do not have permission to manage this project's members.")
 
     def get_queryset(self):
         project = self._get_project()
-        self._require_manage(project)
+        self._require_view(project)
         return ProjectRole.objects.filter(project=project).select_related("user", "assigned_by")
 
     def list(self, request, *args, **kwargs):
@@ -776,7 +793,7 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def perform_create(self, serializer):
         from .permissions import can_assign_role, get_user_project_role, sync_project_permissions
         project = self._get_project()
-        self._require_manage(project)
+        self._require_manage_members(project)
 
         # Prevent privilege escalation: assigner cannot grant a role above their own
         assigner_role = get_user_project_role(request=None, project=project) if False else None
@@ -800,7 +817,7 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         project = self._get_project()
-        self._require_manage(project)
+        self._require_manage_members(project)
 
         # Prevent escalation on role changes
         target_role = request.data.get("role", instance.role)
@@ -820,7 +837,7 @@ class ProjectRoleViewSet(AuditedModelMixin, viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         project = self._get_project()
-        self._require_manage(project)
+        self._require_manage_members(project)
         # Remove Guardian perms before deleting
         instance.role = "viewer"
         instance.capabilities = {}

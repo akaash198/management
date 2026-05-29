@@ -51,6 +51,10 @@ urlpatterns = [
     # Project Roles
     path("<uuid:project_pk>/roles/", ProjectRoleViewSet.as_view({"get": "list", "post": "create"}), name="project-role-list"),
     path("<uuid:project_pk>/roles/<uuid:pk>/", ProjectRoleViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="project-role-detail"),
+
+    # Project Members (alias of roles; membership is represented by ProjectRole)
+    path("<uuid:project_pk>/members/", ProjectRoleViewSet.as_view({"get": "list", "post": "create"}), name="project-member-list"),
+    path("<uuid:project_pk>/members/<uuid:pk>/", ProjectRoleViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="project-member-detail"),
     
     # Time Logs
     path("tasks/<uuid:task_pk>/timelogs/", TimeLogViewSet.as_view({"get": "list", "post": "create"}), name="task-timelog-list"),
