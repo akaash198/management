@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { cn, normalizeUrl } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/runtimeConfig";
-import { Smile, MessageSquare, Edit2, Trash2, MoreHorizontal, X, Check, Phone, PhoneOff, Video, VideoOff, ChevronDown, FileText } from "lucide-react";
+import { Smile, MessageSquare, Edit2, Trash2, MoreHorizontal, X, Check, Phone, PhoneOff, Video, VideoOff, ChevronDown, FileText, Eye, Download } from "lucide-react";
 import { EmojiPicker } from "./EmojiPicker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useMemo, useRef, useState, useEffect, type ReactNode } from "react";
@@ -263,8 +263,10 @@ function AttachmentList({ items }: { items: Attachment[] }) {
         if (ct === "application/pdf") {
           const viewUrl = `/view/pdf?url=${encodeURIComponent(href)}&name=${encodeURIComponent(a.filename)}`;
           return (
-            <a key={a.id} href={viewUrl} target="_blank" rel="noreferrer"
-              className="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 transition-all w-64 shadow-sm">
+            <div
+              key={a.id}
+              className="group flex items-center gap-3 p-3 rounded-xl border border-border bg-card/50 hover:bg-card hover:border-primary/30 transition-all w-72 shadow-sm"
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 text-red-500">
                 <FileText size={20} />
               </div>
@@ -272,7 +274,28 @@ function AttachmentList({ items }: { items: Attachment[] }) {
                 <div className="text-[13px] font-semibold truncate text-foreground group-hover:text-primary transition-colors">{a.filename}</div>
                 <div className="text-[11px] text-muted-foreground">{formatBytes(a.size)} · PDF</div>
               </div>
-            </a>
+              <div className="flex shrink-0 items-center gap-1">
+                <a
+                  href={viewUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted/60 transition-colors"
+                  title="Preview"
+                >
+                  <Eye size={14} />
+                  Preview
+                </a>
+                <a
+                  href={href}
+                  download={a.filename}
+                  className="inline-flex items-center gap-1 rounded-lg border border-border bg-background/60 px-2.5 py-1.5 text-[11px] font-semibold text-foreground hover:bg-muted/60 transition-colors"
+                  title="Download"
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+              </div>
+            </div>
           );
         }
         return (

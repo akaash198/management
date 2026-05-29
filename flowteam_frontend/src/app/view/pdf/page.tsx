@@ -1,70 +1,28 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useMemo } from "react";
 
 function PDFViewerContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url");
   const name = searchParams.get("name") || "Document";
-  const [blobUrl, setBlobUrl] = useEffectState<string | null>(null);
-  const [loading, setLoading] = useEffectState(true);
-  const [error, setError] = useEffectState<string | null>(null);
+
+  const proxyUrl = useMemo(() => {
+    if (!url) return null;
+    return `/view/pdf/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}`;
+  }, [url, name]);
+
+  const downloadUrl = useMemo(() => {
+    if (!url) return null;
+    return `/view/pdf/proxy?url=${encodeURIComponent(url)}&name=${encodeURIComponent(name)}&download=1`;
+  }, [url, name]);
 
   useEffect(() => {
     if (name) {
       document.title = name;
     }
   }, [name]);
-
-  useEffect(() => {
-    if (!url) return;
-    
-    setLoading(true);
-    setError(null);
-
-    const loadAndFixPDF = async () => {
-      try {
-        // 1. Fetch the raw PDF
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`Failed to load PDF: ${response.statusText}`);
-        const data = await response.arrayBuffer();
-
-        // 2. Load pdf-lib dynamically to modify metadata
-        // We use a CDN here to avoid requiring a new npm install for this specific viewer fix
-        if (!(window as any).PDFLib) {
-          await new Promise((resolve, reject) => {
-            const script = document.createElement("script");
-            script.src = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
-            script.onload = resolve;
-            script.onerror = reject;
-            document.body.appendChild(script);
-          });
-        }
-
-        const { PDFDocument } = (window as any).PDFLib;
-        
-        // 3. Re-write the metadata in memory
-        const pdfDoc = await PDFDocument.load(data);
-        pdfDoc.setTitle(name); // This replaces "(anonymous)" in the viewer UI
-        
-        const pdfBytes = await pdfDoc.save();
-        const bUrl = URL.createObjectURL(new Blob([pdfBytes], { type: "application/pdf" }));
-        setBlobUrl(bUrl);
-      } catch (err: any) {
-        console.error("PDF Load Error:", err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAndFixPDF();
-
-    return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
-    };
-  }, [url, name]);
 
   if (!url) {
     return (
@@ -84,9 +42,9 @@ function PDFViewerContent() {
           <h1 className="text-[13px] font-semibold text-white truncate max-w-lg">{name}</h1>
         </div>
         <div className="flex items-center gap-2">
-          {blobUrl && (
+          {downloadUrl && (
             <a 
-              href={blobUrl} 
+              href={downloadUrl} 
               download={name}
               className="rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-white/10 transition-all"
             >
@@ -103,42 +61,17 @@ function PDFViewerContent() {
       </div>
       
       <div className="flex-1 relative bg-[#1e1e24]">
-        {loading && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 bg-[#0a0a0f]/50">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          </div>
-        )}
-        {error ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
-            <div className="mb-4 rounded-full bg-destructive/10 p-3 text-destructive">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            </div>
-            <h2 className="text-lg font-semibold text-white">Failed to load document</h2>
-            <p className="mt-2 text-sm text-muted-foreground max-w-xs">{error}</p>
-            <button 
-              onClick={() => window.location.reload()}
-              className="mt-6 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90"
-            >
-              Retry
-            </button>
-          </div>
-        ) : (
-          blobUrl && (
-            <embed 
-              src={`${blobUrl}#toolbar=0&navpanes=0&statusbar=0`} 
-              type="application/pdf"
-              className="h-full w-full border-0" 
-            />
-          )
-        )}
+        {proxyUrl ? (
+          <iframe
+            key={proxyUrl}
+            title={name}
+            src={`${proxyUrl}#toolbar=0&navpanes=0&statusbar=0`}
+            className="h-full w-full border-0"
+          />
+        ) : null}
       </div>
     </div>
   );
-}
-
-// Simple state helper to avoid multiple useState calls in the text
-function useEffectState<T>(initialValue: T): [T, (val: T) => void] {
-  return (require("react").useState)(initialValue);
 }
 
 export default function PDFViewerPage() {
