@@ -235,10 +235,12 @@ class GitHubOAuthCallbackView(APIView):
 
         project = Project.objects.filter(id=project_id).first()
         if project:
+            integration = GitHubIntegration.objects.filter(team=project.team, project=project).first()
+            webhook_secret = integration.webhook_secret if integration and integration.webhook_secret else secrets.token_hex(32)
             GitHubIntegration.objects.update_or_create(
                 team=project.team,
                 project=project,
-                defaults={"access_token": access_token, "github_user": github_user},
+                defaults={"access_token": access_token, "github_user": github_user, "webhook_secret": webhook_secret},
             )
             return redirect(f"{_frontend_base()}/projects/{project_id}/settings/permissions?github=connected")
 

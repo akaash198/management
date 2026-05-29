@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useProject } from "@/hooks/useProjects";
 import { 
   Sheet, 
   SheetContent, 
@@ -12,6 +11,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Calendar,
   User as UserIcon,
   CheckSquare,
@@ -19,6 +24,7 @@ import {
   Loader2,
   X,
   GitPullRequest,
+  GitBranch,
   Eye,
   EyeOff,
   Plus,
@@ -30,8 +36,11 @@ import {
   Pencil,
   RefreshCw,
   Check,
+  Clock,
+  AlertTriangle,
+  Copy,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -39,7 +48,7 @@ import { CommentSection } from "./CommentSection";
 import { TaskTimeTracker } from "./task-time-tracker";
 import api from "@/lib/api";
 import type { ApiResponse, TeamMember } from "@/types";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useTeamPresenceSocket } from "@/hooks/useMessaging";
 import {
   DropdownMenu,
@@ -71,7 +80,39 @@ interface GitHubPullRequest {
   pr_url: string;
   repo: string;
   status: "open" | "merged" | "closed";
+  head_branch?: string;
+  base_branch?: string;
+  review_state?: "pending" | "approved" | "changes_requested" | string;
+  reviewers?: { login: string; state: string }[];
+  checks_status?: "pending" | "success" | "failure" | "skipped" | string;
+  draft?: boolean;
 }
+
+interface GitHubIntegrationSummary {
+  connected: boolean;
+  full_repo?: string;
+  default_branch?: string;
+}
+
+type TaskGitBranch = {
+  id: string;
+  name: string;
+  base_branch: string;
+  sha: string;
+  author_login: string;
+  is_merged: boolean;
+  updated_at: string;
+};
+
+type TaskGitCommit = {
+  id: string;
+  sha: string;
+  message: string;
+  author_login: string;
+  url: string;
+  committed_at: string;
+  branch: string | null;
+};
 
 import { TaskCompletionModal } from "./TaskCompletionModal";
 
@@ -97,6 +138,8 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [replacingId, setReplacingId] = useState<string | null>(null);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
+  const [textPreview, setTextPreview] = useState<{ status: "idle" | "loading" | "ready" | "error"; text?: string; error?: string }>({ status: "idle" });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
 
@@ -134,6 +177,58 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
     canDeleteAny || (canUpload && att.uploaded_by?.id === user?.id);
   const canRenameOrReplace = (att: Attachment) =>
     canManageAny || (canUpload && att.uploaded_by?.id === user?.id);
+
+  const getFileProxyUrl = useCallback((att: Attachment, opts?: { download?: boolean }) => {
+    const name = att.original_filename || "file";
+    return `/view/file/proxy?url=${encodeURIComponent(att.url)}&name=${encodeURIComponent(name)}${opts?.download ? "&download=1" : ""}`;
+  }, []);
+
+  const getPdfViewerUrl = useCallback(
+    (att: Attachment) => `/view/pdf?url=${encodeURIComponent(att.url)}&name=${encodeURIComponent(att.original_filename || "Document")}`,
+    []
+  );
+
+  const isTextLike = useCallback((mime?: string) => {
+    if (!mime) return false;
+    if (mime.startsWith("text/")) return true;
+    return [
+      "application/json",
+      "application/ld+json",
+      "application/xml",
+      "application/x-yaml",
+      "application/yaml",
+    ].includes(mime);
+  }, []);
+
+  useEffect(() => {
+    const att = previewAttachment;
+    if (!att) {
+      setTextPreview({ status: "idle" });
+      return;
+    }
+
+    if (!isTextLike(att.mime_type)) {
+      setTextPreview({ status: "idle" });
+      return;
+    }
+
+    let cancelled = false;
+    setTextPreview({ status: "loading" });
+    const run = async () => {
+      try {
+        const res = await fetch(getFileProxyUrl(att), { credentials: "include", cache: "no-store" });
+        if (!res.ok) throw new Error(await res.text().catch(() => `Failed to load (${res.status})`));
+        const text = await res.text();
+        if (cancelled) return;
+        setTextPreview({ status: "ready", text });
+      } catch (e: unknown) {
+        if (cancelled) return;
+        setTextPreview({ status: "error", error: e instanceof Error ? e.message : "Failed to load preview" });
+      }
+    };
+    void run();
+    return () => { cancelled = true; };
+  }, [previewAttachment, getFileProxyUrl, isTextLike]);
 
   const handleAttachFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -235,9 +330,53 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const [summary, setSummary] = useState("");
   const [summarizing, setSummarizing] = useState(false);
   const [pullRequests, setPullRequests] = useState<GitHubPullRequest[]>([]);
+  const { data: githubIntegration } = useQuery<GitHubIntegrationSummary>({
+    queryKey: ["github-integration", projectId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<GitHubIntegrationSummary>>(`/integrations/projects/${projectId}/github/`);
+      return (res.data.data || { connected: false }) as GitHubIntegrationSummary;
+    },
+    enabled: !!projectId,
+  });
+
+  const { data: gitBranches = [] } = useQuery<TaskGitBranch[]>({
+    queryKey: ["task-git-branches", taskId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TaskGitBranch[]>>(`/tasks/${taskId}/git/branches/`);
+      return res.data.data ?? [];
+    },
+    enabled: !!taskId,
+  });
+
+  const { data: gitCommits = [] } = useQuery<TaskGitCommit[]>({
+    queryKey: ["task-git-commits", taskId],
+    queryFn: async () => {
+      const res = await api.get<ApiResponse<TaskGitCommit[]>>(`/tasks/${taskId}/git/commits/`);
+      return res.data.data ?? [];
+    },
+    enabled: !!taskId,
+  });
+
   const [isCompletionModalOpen, setIsCompletionModalOpen] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [watchLoading, setWatchLoading] = useState(false);
+
+  const createPr = useMutation({
+    mutationFn: async () => {
+      const res = await api.post<ApiResponse<GitHubPullRequest>>(`/tasks/${taskId}/create-pr/`, {});
+      return res.data.data;
+    },
+    onSuccess: async () => {
+      toast.success("Pull request created");
+      try {
+        const response = await api.get<ApiResponse<GitHubPullRequest[]>>(`/tasks/${taskId}/pull-requests/`);
+        setPullRequests(response.data.data ?? []);
+      } catch {
+        // ignore
+      }
+    },
+    onError: (err) => toast.error(toErrorMessage(err, "Failed to create PR")),
+  });
 
   useEffect(() => {
     async function loadPullRequests() {
@@ -251,6 +390,34 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
 
     if (taskId) void loadPullRequests();
   }, [taskId]);
+
+  const hasOpenGitHubPr = pullRequests.some((pr) => (pr.provider ?? "github") === "github" && pr.status === "open");
+
+  const getChecksBadge = (s?: string) => {
+    if (s === "success") return { label: "CI passing", icon: <CheckCircle2 size={12} className="text-emerald-500" /> };
+    if (s === "failure") return { label: "CI failing", icon: <AlertTriangle size={12} className="text-red-500" /> };
+    if (s === "pending") return { label: "CI pending", icon: <Clock size={12} className="text-amber-500" /> };
+    if (s === "skipped") return { label: "CI skipped", icon: <Clock size={12} className="text-muted-foreground" /> };
+    return { label: "CI —", icon: <Clock size={12} className="text-muted-foreground" /> };
+  };
+
+  const getReviewBadge = (s?: string) => {
+    if (s === "approved") return { label: "approved", cls: "text-emerald-600 bg-emerald-500/10 border-emerald-500/20" };
+    if (s === "changes_requested") return { label: "changes requested", cls: "text-red-600 bg-red-500/10 border-red-500/20" };
+    return { label: "pending", cls: "text-muted-foreground bg-muted border-border" };
+  };
+
+  const copyBranchName = async () => {
+    const ref = taskId.slice(0, 8);
+    const slug = (task?.title || "task").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+    const name = `feature/${ref}${slug ? `-${slug}` : ""}`;
+    try {
+      await navigator.clipboard.writeText(name);
+      toast.success("Branch name copied");
+    } catch {
+      toast.error("Couldn't copy branch name");
+    }
+  };
 
   const handleClose = () => {
     router.push(`/projects/${projectId}`, { scroll: false });
@@ -778,9 +945,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                     {attachments.map((att) => {
                       const isImage = att.mime_type?.startsWith("image/");
                       const isPdf = att.mime_type === "application/pdf";
-                      const previewUrl = isPdf
-                        ? `/view/pdf?url=${encodeURIComponent(att.url)}&name=${encodeURIComponent(att.original_filename)}`
-                        : att.url;
+                      const previewUrl = isPdf ? getPdfViewerUrl(att) : getFileProxyUrl(att);
                       const isRenaming = renamingId === att.id;
                       const isReplacing = replacingId === att.id;
                       const showEdit = canRenameOrReplace(att);
@@ -789,7 +954,8 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                       return (
                         <div
                           key={att.id}
-                          className="group flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2 hover:bg-muted/60 transition-colors"
+                          className="group flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2 hover:bg-muted/60 transition-colors cursor-pointer"
+                          onClick={() => setPreviewAttachment(att)}
                         >
                           {/* Thumbnail / icon */}
                           <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background border border-border overflow-hidden">
@@ -848,6 +1014,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                                 href={previewUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 className="rounded p-1 hover:bg-background transition-colors"
                                 title="Open"
                               >
@@ -858,9 +1025,12 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                               {showEdit && (
                                 <button
                                   onClick={() => {
+                                    // keep row click from opening preview while renaming
+                                    // (row click is disabled by stopPropagation on this button)
                                     setRenamingId(att.id);
                                     setRenameValue(att.original_filename);
                                   }}
+                                  onClickCapture={(e) => e.stopPropagation()}
                                   className="rounded p-1 hover:bg-background transition-colors"
                                   title="Rename"
                                 >
@@ -876,6 +1046,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                                     setReplacingId(att.id);
                                     replaceInputRef.current?.click();
                                   }}
+                                  onClickCapture={(e) => e.stopPropagation()}
                                   className="rounded p-1 hover:bg-background transition-colors disabled:opacity-40"
                                   title="Replace file"
                                 >
@@ -890,6 +1061,7 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
                               {showDelete && (
                                 <button
                                   onClick={() => handleDeleteAttachment(att.id)}
+                                  onClickCapture={(e) => e.stopPropagation()}
                                   className="rounded p-1 hover:bg-background transition-colors"
                                   title="Delete"
                                 >
@@ -912,34 +1084,142 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
               <Separator className="bg-border/60" />
 
               <div className="space-y-3">
-                <h3 className="text-[13px] font-medium flex items-center gap-2">
-                  <GitPullRequest size={14} className="text-muted-foreground/60" /> Pull Requests
-                </h3>
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="text-[13px] font-medium flex items-center gap-2">
+                    <GitPullRequest size={14} className="text-muted-foreground/60" /> Pull Requests
+                  </h3>
+                  {githubIntegration?.connected && !hasOpenGitHubPr && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-[11px]"
+                      disabled={createPr.isPending}
+                      onClick={() => createPr.mutate()}
+                    >
+                      {createPr.isPending ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                      Create PR
+                    </Button>
+                  )}
+                </div>
+
                 <div className="space-y-2">
                   {pullRequests.length ? (
-                    pullRequests.map((pr) => (
-                      <a
-                        key={pr.id}
-                        href={pr.pr_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 rounded-lg border border-border p-2.5 text-xs transition-colors hover:bg-muted"
-                      >
-                        <GitPullRequest size={12} className="shrink-0 text-muted-foreground" />
-                        <span className="min-w-0 flex-1 truncate font-medium">
-                          #{pr.pr_number} {pr.pr_title}
-                        </span>
-                        <Badge
-                          variant={pr.status === "merged" ? "default" : pr.status === "open" ? "secondary" : "outline"}
-                          className="shrink-0"
+                    pullRequests.map((pr) => {
+                      const checks = getChecksBadge(pr.checks_status);
+                      const review = getReviewBadge(pr.review_state);
+                      const statusLabel = pr.draft ? "draft" : pr.status;
+                      return (
+                        <a
+                          key={pr.id}
+                          href={pr.pr_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-lg border border-border p-2.5 text-xs transition-colors hover:bg-muted"
                         >
-                          {pr.status}
-                        </Badge>
-                      </a>
-                    ))
+                          <div className="flex items-center gap-2">
+                            <GitPullRequest size={12} className="shrink-0 text-muted-foreground" />
+                            <span className="min-w-0 flex-1 truncate font-medium">
+                              #{pr.pr_number} {pr.pr_title}
+                            </span>
+                            <Badge
+                              variant={pr.status === "merged" ? "default" : pr.status === "open" ? "secondary" : "outline"}
+                              className="shrink-0 capitalize"
+                            >
+                              {statusLabel}
+                            </Badge>
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                            {pr.base_branch && pr.head_branch && (
+                              <span className="font-mono opacity-80">{pr.base_branch} ← {pr.head_branch}</span>
+                            )}
+                            <span className="inline-flex items-center gap-1 rounded-full border px-2 py-0.5">
+                              {checks.icon} {checks.label}
+                            </span>
+                            <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 capitalize", review.cls)}>
+                              {review.label}
+                            </span>
+                          </div>
+                        </a>
+                      );
+                    })
                   ) : (
                     <p className="text-[12px] text-muted-foreground/40 italic">No pull requests linked.</p>
                   )}
+                </div>
+
+                <div className="rounded-lg border border-border bg-muted/20 p-2.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-[12px] font-medium">
+                      <GitBranch size={13} className="text-muted-foreground/70" />
+                      Branches
+                      {gitBranches.length > 0 && <span className="text-[11px] text-muted-foreground">({gitBranches.length})</span>}
+                    </div>
+                    {gitBranches.length === 0 && (
+                      <Button size="sm" variant="outline" className="h-7 px-2 text-[11px] gap-1" onClick={copyBranchName}>
+                        <Copy size={12} /> Copy branch name
+                      </Button>
+                    )}
+                  </div>
+
+                  {gitBranches.length ? (
+                    <div className="space-y-1">
+                      {gitBranches.slice(0, 3).map((b) => (
+                        <div key={b.id} className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5">
+                          <div className="min-w-0">
+                            <div className="truncate font-mono text-[11px]">{b.name}</div>
+                            <div className="text-[10px] text-muted-foreground truncate">
+                              {b.author_login ? `${b.author_login} · ` : ""}{new Date(b.updated_at).toLocaleString()}
+                            </div>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[11px]"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              void navigator.clipboard.writeText(b.name).then(() => toast.success("Copied"), () => toast.error("Copy failed"));
+                            }}
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground">No branches linked yet.</div>
+                  )}
+
+                  <div className="pt-1">
+                    <div className="flex items-center justify-between">
+                      <div className="text-[12px] font-medium">Commits {gitCommits.length ? <span className="text-[11px] text-muted-foreground">({gitCommits.length})</span> : null}</div>
+                    </div>
+                    {gitCommits.length ? (
+                      <div className="mt-1 space-y-1">
+                        {gitCommits.slice(0, 3).map((c) => (
+                          <a
+                            key={c.id}
+                            href={c.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-2 py-1.5 hover:bg-muted transition-colors"
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-[11px]">
+                                <span className="font-mono opacity-80">{c.sha.slice(0, 7)}</span>{" "}
+                                <span className="font-medium">{c.message}</span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {c.author_login ? `${c.author_login} · ` : ""}{new Date(c.committed_at).toLocaleString()}
+                              </div>
+                            </div>
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground">No commits linked yet.</div>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -971,6 +1251,103 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
           hasReviewColumn={!!reviewColumn}
         />
       )}
+      <Dialog open={!!previewAttachment} onOpenChange={(open) => { if (!open) setPreviewAttachment(null); }}>
+        <DialogContent className="max-w-5xl p-0 overflow-hidden">
+          {previewAttachment && (() => {
+            const att = previewAttachment;
+            const isPdf = att.mime_type === "application/pdf";
+            const isImage = att.mime_type?.startsWith("image/");
+            const isVideo = att.mime_type?.startsWith("video/");
+            const isAudio = att.mime_type?.startsWith("audio/");
+            const proxyUrl = getFileProxyUrl(att);
+            const downloadUrl = getFileProxyUrl(att, { download: true });
+            const openUrl = isPdf ? getPdfViewerUrl(att) : proxyUrl;
+
+            return (
+              <div className="flex flex-col">
+                <div className="border-b border-border px-5 py-4 pr-12">
+                  <DialogHeader className="space-y-1">
+                    <DialogTitle className="text-[14px] truncate">{att.original_filename}</DialogTitle>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                      <span>{formatBytes(att.file_size)}</span>
+                      {att.mime_type && <span className="opacity-70">{att.mime_type}</span>}
+                      {att.uploaded_by?.full_name && <span className="opacity-70">· {att.uploaded_by.full_name}</span>}
+                    </div>
+                  </DialogHeader>
+                  <div className="mt-3 flex items-center gap-2">
+                    <a
+                      href={openUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium hover:bg-muted transition-colors"
+                    >
+                      Open in new tab
+                    </a>
+                    <a
+                      href={downloadUrl}
+                      className="inline-flex h-8 items-center rounded-md border border-border bg-background px-3 text-[12px] font-medium hover:bg-muted transition-colors"
+                    >
+                      Download
+                    </a>
+                  </div>
+                </div>
+
+                <div className="bg-muted/10 p-4">
+                  {isPdf ? (
+                    <iframe
+                      title={att.original_filename}
+                      src={getPdfViewerUrl(att)}
+                      className="h-[70vh] w-full rounded-lg border border-border bg-background"
+                    />
+                  ) : isImage ? (
+                    <div className="flex items-center justify-center">
+                      <img
+                        src={proxyUrl}
+                        alt={att.original_filename}
+                        className="max-h-[70vh] w-full rounded-lg border border-border bg-background object-contain"
+                      />
+                    </div>
+                  ) : isVideo ? (
+                    <video
+                      controls
+                      src={proxyUrl}
+                      className="max-h-[70vh] w-full rounded-lg border border-border bg-background"
+                    />
+                  ) : isAudio ? (
+                    <div className="rounded-lg border border-border bg-background p-4">
+                      <audio controls src={proxyUrl} className="w-full" />
+                    </div>
+                  ) : isTextLike(att.mime_type) ? (
+                    <div className="rounded-lg border border-border bg-background p-4">
+                      {textPreview.status === "loading" ? (
+                        <div className="flex items-center justify-center py-10">
+                          <Loader2 size={18} className="animate-spin text-muted-foreground" />
+                        </div>
+                      ) : textPreview.status === "error" ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          Couldn&apos;t preview this file.
+                          {textPreview.error && <div className="mt-2 text-xs opacity-70 whitespace-pre-wrap">{textPreview.error}</div>}
+                        </div>
+                      ) : (
+                        <pre className="max-h-[70vh] overflow-auto whitespace-pre-wrap break-words text-[12px] leading-relaxed">
+                          {textPreview.text ?? ""}
+                        </pre>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-border bg-background p-10 text-center">
+                      <div className="text-[13px] font-medium">No preview available</div>
+                      <div className="mt-1 text-[12px] text-muted-foreground">
+                        Open in a new tab or download to view this file.
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </Sheet>
   );
 }

@@ -37,6 +37,13 @@ class GitHubIntegration(models.Model):
     repo_owner = models.CharField(max_length=255, blank=True)
     repo_name = models.CharField(max_length=255, blank=True)
     webhook_id = models.CharField(max_length=50, blank=True)
+    default_branch = models.CharField(max_length=255, default="main")
+    webhook_secret = models.CharField(max_length=64, blank=True, default="")
+    token_expires_at = models.DateTimeField(null=True, blank=True)
+    last_synced_at = models.DateTimeField(null=True, blank=True)
+    sync_commits = models.BooleanField(default=True)
+    sync_branches = models.BooleanField(default=True)
+    auto_advance_on_merge = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -45,6 +52,77 @@ class GitHubIntegration(models.Model):
     @property
     def full_repo(self):
         return f"{self.repo_owner}/{self.repo_name}" if self.repo_owner and self.repo_name else ""
+
+
+class GitBranch(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    integration = models.ForeignKey(GitHubIntegration, on_delete=models.CASCADE, related_name="branches")
+    task = models.ForeignKey("projects.Task", on_delete=models.SET_NULL, null=True, blank=True, related_name="git_branches")
+    name = models.CharField(max_length=255)
+    base_branch = models.CharField(max_length=255, default="main")
+    sha = models.CharField(max_length=40, blank=True, default="")
+    author_login = models.CharField(max_length=100, blank=True, default="")
+    is_merged = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("integration", "name")
+        indexes = [
+            models.Index(fields=["integration", "task"], name="gitbranch_integ_task_idx"),
+            models.Index(fields=["integration", "name"], name="gitbranch_integ_name_idx"),
+        ]
+
+
+class GitCommit(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    integration = models.ForeignKey(GitHubIntegration, on_delete=models.CASCADE, related_name="commits")
+    task = models.ForeignKey("projects.Task", on_delete=models.SET_NULL, null=True, blank=True, related_name="git_commits")
+    branch = models.ForeignKey(GitBranch, on_delete=models.SET_NULL, null=True, blank=True, related_name="commits")
+    sha = models.CharField(max_length=40, unique=True)
+    message = models.TextField(blank=True, default="")
+    author_login = models.CharField(max_length=100, blank=True, default="")
+    author_email = models.CharField(max_length=254, blank=True, default="")
+    url = models.URLField(max_length=500, blank=True, default="")
+    committed_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["integration", "task", "committed_at"], name="gitcommit_integ_task_time_idx"),
+            models.Index(fields=["integration", "branch", "committed_at"], name="gitcommit_integ_branch_time_idx"),
+        ]
+
+
+class WebhookDelivery(models.Model):
+    STATUS_RECEIVED = "received"
+    STATUS_PROCESSED = "processed"
+    STATUS_FAILED = "failed"
+    STATUS_IGNORED = "ignored"
+    STATUS_CHOICES = [
+        (STATUS_RECEIVED, "Received"),
+        (STATUS_PROCESSED, "Processed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_IGNORED, "Ignored"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    integration = models.ForeignKey(GitHubIntegration, on_delete=models.CASCADE, related_name="webhook_deliveries")
+    event = models.CharField(max_length=50)
+    delivery_id = models.CharField(max_length=64)
+    payload_hash = models.CharField(max_length=64)
+    payload = models.JSONField(default=dict, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_RECEIVED)
+    error = models.TextField(blank=True, default="")
+    processed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("integration", "delivery_id")
+        indexes = [
+            models.Index(fields=["integration", "status", "created_at"], name="whdel_integ_status_time_idx"),
+            models.Index(fields=["integration", "event", "created_at"], name="whdel_integ_event_time_idx"),
+        ]
 
 
 class GitLabIntegration(models.Model):

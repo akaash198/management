@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from django.db.models import Count, Q, F, Sum, Min
 from django.utils import timezone
+import re
 from .models import (
     Project,
     Column,
@@ -72,6 +73,9 @@ from datetime import date
 from django.utils.dateparse import parse_date
 from apps.messaging.models import Notification
 from config.utils import standardize_response, StandardizedModelViewSet
+from apps.integrations.models import GitHubIntegration, GitBranch, GitCommit
+from apps.integrations.github_client import create_pull_request
+from apps.integrations.tasks import github_apply_pr_labels
 
 def apply_template_to_project(project, template, actor):
     columns = template.columns or []
@@ -697,6 +701,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         
         column_id = request.data.get("column") or request.data.get("column_id")
         new_order = request.data.get("order", 0)
+        was_done = bool(task.column.is_done_column)
         
         with transaction.atomic():
             if column_id:
@@ -704,9 +709,36 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             task.order = new_order
             task.save()
         TaskActivity.objects.create(task=task, actor=request.user, verb="moved", detail={"column_id": str(task.column_id), "order": new_order})
-        if task.column.is_done_column:
+        is_done = bool(task.column.is_done_column)
+        if is_done:
             TaskActivity.objects.create(task=task, actor=request.user, verb="completed", detail={})
             run_project_automation(task, AutomationRule.TRIGGER_TASK_DONE, request.user)
+
+        # Task status -> PR labels (best-effort, async)
+        try:
+            integration = GitHubIntegration.objects.filter(project=task.project).first()
+            if integration and integration.full_repo:
+                open_prs = list(GitHubPullRequest.objects.filter(task=task, status=GitHubPullRequest.STATUS_OPEN))
+                if open_prs and (was_done != is_done):
+                    add_labels: list[str] = []
+                    remove_labels: list[str] = []
+                    if is_done:
+                        add_labels = ["ready-for-review"]
+                        remove_labels = ["in-progress"]
+                    elif was_done and not is_done:
+                        add_labels = ["in-progress"]
+                        remove_labels = ["ready-for-review"]
+
+                    for pr in open_prs:
+                        github_apply_pr_labels.delay(
+                            str(integration.id),
+                            pr.repo or integration.full_repo,
+                            int(pr.pr_number),
+                            add=add_labels,
+                            remove=remove_labels,
+                        )
+        except Exception:
+            pass
         return standardize_response(data=TaskDetailSerializer(task, context={"request": request}).data)
 
     @action(detail=False, methods=["post"], url_path="bulk-update")
@@ -1528,6 +1560,119 @@ def task_pull_requests(request, task_id):
     # Sort by updated_at descending when present.
     data.sort(key=lambda x: x.get("updated_at") or "", reverse=True)
     return standardize_response(data=data)
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def task_git_branches(request, task_id):
+    task = get_object_or_404(Task.objects.select_related("project"), id=task_id)
+    if not check_project_permission(request.user, task.project, "view_project"):
+        return standardize_response(success=False, error="Forbidden", status=403)
+    integration = GitHubIntegration.objects.filter(project=task.project).first()
+    if not integration:
+        return standardize_response(data=[])
+    branches = GitBranch.objects.filter(integration=integration, task=task).order_by("-updated_at")[:50]
+    data = [
+        {
+            "id": str(b.id),
+            "name": b.name,
+            "base_branch": b.base_branch,
+            "sha": b.sha,
+            "author_login": b.author_login,
+            "is_merged": b.is_merged,
+            "updated_at": b.updated_at,
+        }
+        for b in branches
+    ]
+    return standardize_response(data=data)
+
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def task_git_commits(request, task_id):
+    task = get_object_or_404(Task.objects.select_related("project"), id=task_id)
+    if not check_project_permission(request.user, task.project, "view_project"):
+        return standardize_response(success=False, error="Forbidden", status=403)
+    integration = GitHubIntegration.objects.filter(project=task.project).first()
+    if not integration:
+        return standardize_response(data=[])
+    commits = GitCommit.objects.filter(integration=integration, task=task).order_by("-committed_at")[:100]
+    data = [
+        {
+            "id": str(c.id),
+            "sha": c.sha,
+            "message": c.message,
+            "author_login": c.author_login,
+            "url": c.url,
+            "committed_at": c.committed_at,
+            "branch": c.branch.name if c.branch_id else None,
+        }
+        for c in commits
+    ]
+    return standardize_response(data=data)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def task_create_pr(request, task_id):
+    task = get_object_or_404(Task.objects.select_related("project"), id=task_id)
+    if not check_project_permission(request.user, task.project, "edit_project"):
+        return standardize_response(success=False, error="Forbidden", status=403)
+    integration = GitHubIntegration.objects.filter(project=task.project).first()
+    if not integration or not integration.full_repo:
+        return standardize_response(success=False, error="GitHub is not connected", status=400)
+
+    head_branch = (request.data.get("head_branch") or "").strip()
+    base_branch = (request.data.get("base_branch") or integration.default_branch or "main").strip() or "main"
+    title = (request.data.get("title") or "").strip()
+    body = (request.data.get("body") or "").strip()
+
+    task_ref = str(task.id)
+    if not head_branch:
+        slug = re.sub(r"[^a-z0-9]+", "-", (task.title or "task").lower()).strip("-")[:40]
+        head_branch = f"feature/{task_ref[:8]}-{slug}" if slug else f"feature/{task_ref[:8]}"
+
+    if not title:
+        title = f"[{task_ref[:8]}] {task.title}"[:255]
+    if not body:
+        desc = (task.description or "").strip()
+        body = f"Closes #{task_ref}\n\n{desc}"[:6000]
+
+    try:
+        pr = create_pull_request(
+            integration,
+            repo=integration.full_repo,
+            head_branch=head_branch,
+            base_branch=base_branch,
+            title=title,
+            body=body,
+        )
+    except Exception as e:
+        return standardize_response(success=False, error=str(e)[:500], status=400)
+
+    pr_number = pr.get("number")
+    pr_url = pr.get("html_url") or ""
+    author = ((pr.get("user") or {}).get("login")) or integration.github_user or ""
+    draft = bool(pr.get("draft"))
+    head_sha = ((pr.get("head") or {}).get("sha")) or ""
+
+    obj, _ = GitHubPullRequest.objects.update_or_create(
+        task=task,
+        repo=integration.full_repo,
+        pr_number=int(pr_number),
+        defaults={
+            "pr_title": (pr.get("title") or title)[:255],
+            "pr_url": pr_url,
+            "status": "open",
+            "author": author[:100],
+            "head_branch": head_branch[:255],
+            "base_branch": base_branch[:255],
+            "head_sha": head_sha[:40],
+            "draft": draft,
+            "labels": [lbl.get("name") for lbl in (pr.get("labels") or []) if isinstance(lbl, dict) and lbl.get("name")],
+        },
+    )
+    return standardize_response(data=GitHubPullRequestSerializer(obj).data, status=201)
 
 
 @api_view(["GET"])

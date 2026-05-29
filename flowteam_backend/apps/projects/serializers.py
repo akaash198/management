@@ -385,7 +385,27 @@ class TaskLinkSerializer(serializers.ModelSerializer):
 class GitHubPullRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = GitHubPullRequest
-        fields = ("id", "task", "pr_number", "pr_title", "pr_url", "repo", "status", "author", "created_at", "updated_at")
+        fields = (
+            "id",
+            "task",
+            "pr_number",
+            "pr_title",
+            "pr_url",
+            "repo",
+            "status",
+            "author",
+            "head_branch",
+            "base_branch",
+            "head_sha",
+            "review_state",
+            "reviewers",
+            "checks_status",
+            "merged_at",
+            "draft",
+            "labels",
+            "created_at",
+            "updated_at",
+        )
 
 
 class VcsPullRequestSerializer(serializers.ModelSerializer):

@@ -9,6 +9,9 @@ from django.utils import timezone
 from apps.integrations.models import OutboxEvent, SlackWebhook
 from apps.integrations.outbox import compute_next_attempt
 from apps.core.metrics import outbox_events_total
+from apps.integrations.models import GitHubIntegration
+from apps.integrations.github_client import add_pr_labels, remove_pr_label, list_open_pull_requests
+from apps.integrations.github_webhook import TASK_REF_RE, _find_task  # re-use matching logic safely
 
 
 def _slack_payload(event: OutboxEvent) -> dict:
@@ -81,3 +84,85 @@ def process_outbox(batch_size: int = 50) -> dict:
                 pass
 
     return {"sent": sent, "failed": failed, "total": len(events)}
+
+
+@shared_task
+def github_apply_pr_labels(integration_id: str, repo: str, pr_number: int, *, add: list[str] | None = None, remove: list[str] | None = None) -> dict:
+    integration = GitHubIntegration.objects.filter(id=integration_id).first()
+    if not integration:
+        return {"ok": False, "error": "integration_not_found"}
+    add = [x for x in (add or []) if x]
+    remove = [x for x in (remove or []) if x]
+    try:
+        if add:
+            add_pr_labels(integration, repo=repo, pr_number=int(pr_number), labels=add)
+        for lbl in remove:
+            try:
+                remove_pr_label(integration, repo=repo, pr_number=int(pr_number), label=lbl)
+            except Exception:
+                # Ignore if label doesn't exist.
+                pass
+        return {"ok": True}
+    except Exception as e:
+        return {"ok": False, "error": str(e)[:1000]}
+
+
+@shared_task
+def github_sync_open_prs() -> dict:
+    """
+    Periodic re-sync for open PRs to backfill missed webhooks.
+    """
+    from apps.projects.models import GitHubPullRequest
+
+    synced = 0
+    integrations = GitHubIntegration.objects.exclude(repo_owner="").exclude(repo_name="").select_related("project")
+    for integration in integrations:
+        if not integration.project_id:
+            continue
+        repo = integration.full_repo
+        if not repo:
+            continue
+        try:
+            prs = list_open_pull_requests(integration, repo=repo)
+        except Exception:
+            continue
+
+        for pr in prs:
+            pr_number = pr.get("number")
+            title = pr.get("title") or ""
+            body = pr.get("body") or ""
+            pr_url = pr.get("html_url") or ""
+            author = ((pr.get("user") or {}).get("login")) or ""
+            draft = bool(pr.get("draft"))
+            head_branch = ((pr.get("head") or {}).get("ref")) or ""
+            base_branch = ((pr.get("base") or {}).get("ref")) or ""
+            head_sha = ((pr.get("head") or {}).get("sha")) or ""
+            labels = [lbl.get("name") for lbl in (pr.get("labels") or []) if isinstance(lbl, dict) and lbl.get("name")]
+
+            refs = TASK_REF_RE.findall(f"{title} {body}")
+            if not refs or not pr_number:
+                continue
+
+            for ref in set(refs):
+                task = _find_task(ref, integration)
+                if not task:
+                    continue
+                GitHubPullRequest.objects.update_or_create(
+                    task=task,
+                    repo=repo,
+                    pr_number=int(pr_number),
+                    defaults={
+                        "pr_title": title[:255],
+                        "pr_url": pr_url,
+                        "status": "open",
+                        "author": author,
+                        "head_branch": head_branch[:255],
+                        "base_branch": base_branch[:255],
+                        "head_sha": head_sha[:40],
+                        "draft": draft,
+                        "labels": labels,
+                    },
+                )
+                synced += 1
+    GitHubIntegration.objects.filter(id__in=list(integrations.values_list("id", flat=True))).update(last_synced_at=timezone.now())
+    return {"synced": synced}

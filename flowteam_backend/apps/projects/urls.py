@@ -10,6 +10,7 @@ from .views import (
     AutomationRuleViewSet, ClientPortalAccessViewSet, CommentAttachmentUploadView,
     AttachmentVersionUploadView, activity_feed, advanced_reporting,
     calendar_export, client_portal_detail, task_pull_requests,
+    task_git_branches, task_git_commits, task_create_pr,
     SubTaskViewSet, EpicViewSet, RetrospectiveViewSet, RetroItemViewSet
 )
 
@@ -45,6 +46,9 @@ urlpatterns = [
     path("<uuid:project_pk>/columns/<uuid:pk>/", ColumnViewSet.as_view({"patch": "partial_update", "delete": "destroy"}), name="column-detail"),
     path("tasks/<uuid:task_id>/attachments/", AttachmentUploadView.as_view(), name="task-attachment-upload"),
     path("tasks/<uuid:task_id>/pull-requests/", task_pull_requests, name="task-pull-requests"),
+    path("tasks/<uuid:task_id>/git/branches/", task_git_branches, name="task-git-branches"),
+    path("tasks/<uuid:task_id>/git/commits/", task_git_commits, name="task-git-commits"),
+    path("tasks/<uuid:task_id>/create-pr/", task_create_pr, name="task-create-pr"),
     path("comments/<uuid:comment_id>/attachments/", CommentAttachmentUploadView.as_view(), name="comment-attachment-upload"),
     path("attachments/<uuid:attachment_id>/versions/", AttachmentVersionUploadView.as_view(), name="attachment-version-upload"),
     

@@ -5,6 +5,8 @@ from rest_framework import generics, permissions, status
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from django.conf import settings
+from django.utils import timezone
+import secrets
 
 from apps.integrations.models import GitHubIntegration, SlackWebhook
 from apps.integrations.models import BitbucketIntegration, GitLabIntegration
@@ -13,11 +15,14 @@ from apps.integrations.serializers import (
     GitHubIntegrationSerializer,
     GitLabIntegrationSerializer,
     SlackWebhookSerializer,
+    WebhookDeliverySerializer,
 )
 from apps.projects.models import Project
 from apps.teams.models import Team
 from apps.teams.permissions import IsTeamManager
 from config.utils import standardize_response
+from apps.integrations.github_client import ensure_repo_webhook
+from apps.integrations.models import WebhookDelivery
 
 
 class SlackWebhookListCreateView(generics.ListCreateAPIView):
@@ -111,6 +116,24 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
         integration.repo_name = repo_name
         update_fields = ["repo_owner", "repo_name"]
 
+        # Optional settings toggles
+        if "default_branch" in request.data:
+            integration.default_branch = (request.data.get("default_branch") or "main").strip() or "main"
+            update_fields.append("default_branch")
+        if "sync_commits" in request.data:
+            integration.sync_commits = bool(request.data.get("sync_commits"))
+            update_fields.append("sync_commits")
+        if "sync_branches" in request.data:
+            integration.sync_branches = bool(request.data.get("sync_branches"))
+            update_fields.append("sync_branches")
+        if "auto_advance_on_merge" in request.data:
+            integration.auto_advance_on_merge = bool(request.data.get("auto_advance_on_merge"))
+            update_fields.append("auto_advance_on_merge")
+
+        if not integration.webhook_secret:
+            integration.webhook_secret = secrets.token_hex(32)
+            update_fields.append("webhook_secret")
+
         if not integration.webhook_id:
             webhook_url = request.build_absolute_uri("/api/integrations/github/webhook/")
             try:
@@ -123,11 +146,11 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
                     json={
                         "name": "web",
                         "active": True,
-                        "events": ["pull_request", "push"],
+                        "events": ["pull_request", "push", "pull_request_review", "check_run", "check_suite"],
                         "config": {
                             "url": webhook_url,
                             "content_type": "json",
-                            "secret": getattr(settings, "GITHUB_WEBHOOK_SECRET", ""),
+                            "secret": integration.webhook_secret,
                             "insecure_ssl": "0",
                         },
                     },
@@ -138,9 +161,116 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
                     update_fields.append("webhook_id")
             except requests.RequestException:
                 pass
+        integration.last_synced_at = integration.last_synced_at or timezone.now()
+        if "last_synced_at" not in update_fields:
+            update_fields.append("last_synced_at")
 
         integration.save(update_fields=update_fields)
         return standardize_response(data=self.get_serializer(integration).data)
+
+
+class ProjectGitHubWebhookDeliveriesView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get_project(self):
+        project = get_object_or_404(Project, id=self.kwargs["project_id"])
+        if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
+            raise PermissionDenied("Forbidden")
+        return project
+
+    def get(self, request, project_id):
+        project = self.get_project()
+        is_manager = request.user.is_superuser or project.team.members.filter(
+            user=request.user,
+            role__in=("ceo", "admin", "manager"),
+        ).exists()
+        if not is_manager:
+            raise PermissionDenied("Forbidden")
+
+        integration = GitHubIntegration.objects.filter(project=project).first()
+        if not integration:
+            return standardize_response(data={"connected": False, "deliveries": []})
+
+        deliveries = WebhookDelivery.objects.filter(integration=integration).order_by("-created_at")[:200]
+        return standardize_response(data={"connected": True, "deliveries": WebhookDeliverySerializer(deliveries, many=True).data})
+
+
+class ProjectGitHubWebhookDeliveryRetryView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, project_id, delivery_id):
+        project = get_object_or_404(Project, id=project_id)
+        is_manager = request.user.is_superuser or project.team.members.filter(
+            user=request.user,
+            role__in=("ceo", "admin", "manager"),
+        ).exists()
+        if not is_manager:
+            raise PermissionDenied("Forbidden")
+
+        integration = GitHubIntegration.objects.filter(project=project).first()
+        if not integration:
+            return standardize_response(success=False, error="GitHub is not connected", status=404)
+
+        delivery = get_object_or_404(WebhookDelivery, id=delivery_id, integration=integration)
+
+        # Re-process the stored payload through the same dispatcher.
+        from apps.integrations.github_webhook import GitHubWebhookView
+
+        view = GitHubWebhookView()
+        try:
+            handled = view._dispatch(delivery.event, delivery.payload or {}, integration)
+            WebhookDelivery.objects.filter(id=delivery.id).update(
+                status=WebhookDelivery.STATUS_PROCESSED if handled else WebhookDelivery.STATUS_IGNORED,
+                processed_at=timezone.now(),
+                error="",
+            )
+            return standardize_response(data={"status": "ok", "handled": bool(handled)})
+        except Exception as e:
+            WebhookDelivery.objects.filter(id=delivery.id).update(
+                status=WebhookDelivery.STATUS_FAILED,
+                processed_at=timezone.now(),
+                error=str(e)[:5000],
+            )
+            return standardize_response(success=False, error=str(e)[:500], status=500)
+
+
+class ProjectGitHubWebhookReregisterView(generics.GenericAPIView):
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def post(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id)
+        is_manager = request.user.is_superuser or project.team.members.filter(
+            user=request.user,
+            role__in=("ceo", "admin", "manager"),
+        ).exists()
+        if not is_manager:
+            raise PermissionDenied("Forbidden")
+
+        integration = GitHubIntegration.objects.filter(project=project).first()
+        if not integration:
+            return standardize_response(success=False, error="GitHub is not connected", status=404)
+        if not integration.repo_owner or not integration.repo_name:
+            return standardize_response(success=False, error="Repository is not linked", status=400)
+
+        webhook_url = request.build_absolute_uri("/api/integrations/github/webhook/")
+        if not integration.webhook_secret:
+            integration.webhook_secret = secrets.token_hex(32)
+            integration.save(update_fields=["webhook_secret"])
+
+        try:
+            webhook_id = ensure_repo_webhook(
+                integration,
+                webhook_url=webhook_url,
+                events=["pull_request", "push", "pull_request_review", "check_run", "check_suite"],
+            )
+        except Exception as e:
+            return standardize_response(success=False, error=str(e)[:500], status=400)
+
+        if webhook_id:
+            integration.webhook_id = webhook_id
+            integration.save(update_fields=["webhook_id"])
+
+        return standardize_response(data=GitHubIntegrationSerializer(integration).data)
 
 
 class ProjectGitLabIntegrationView(generics.GenericAPIView):
