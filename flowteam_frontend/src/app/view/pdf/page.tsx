@@ -1,15 +1,26 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, Suspense } from "react";
+import { useEffect, Suspense, useState } from "react";
+
+type PDFDoc = {
+  setTitle: (title: string) => void;
+  save: () => Promise<Uint8Array>;
+};
+
+type PDFLibGlobal = {
+  PDFDocument: {
+    load: (data: ArrayBuffer) => Promise<PDFDoc>;
+  };
+};
 
 function PDFViewerContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url");
   const name = searchParams.get("name") || "Document";
-  const [blobUrl, setBlobUrl] = useEffectState<string | null>(null);
-  const [loading, setLoading] = useEffectState(true);
-  const [error, setError] = useEffectState<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (name) {
@@ -22,17 +33,21 @@ function PDFViewerContent() {
     
     setLoading(true);
     setError(null);
+    setBlobUrl(null);
 
     const loadAndFixPDF = async () => {
+      let createdUrl: string | null = null;
       try {
+        const proxyUrl = `/view/pdf/proxy?url=${encodeURIComponent(url)}`;
         // 1. Fetch the raw PDF
-        const response = await fetch(url);
+        const response = await fetch(proxyUrl, { cache: "no-store", credentials: "include" });
         if (!response.ok) throw new Error(`Failed to load PDF: ${response.statusText}`);
         const data = await response.arrayBuffer();
 
         // 2. Load pdf-lib dynamically to modify metadata
         // We use a CDN here to avoid requiring a new npm install for this specific viewer fix
-        if (!(window as any).PDFLib) {
+        const globalAny = window as unknown as { PDFLib?: PDFLibGlobal };
+        if (!globalAny.PDFLib) {
           await new Promise((resolve, reject) => {
             const script = document.createElement("script");
             script.src = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
@@ -42,18 +57,22 @@ function PDFViewerContent() {
           });
         }
 
-        const { PDFDocument } = (window as any).PDFLib;
+        const pdfLib = (window as unknown as { PDFLib?: PDFLibGlobal }).PDFLib;
+        if (!pdfLib) throw new Error("Failed to load PDF renderer library");
+        const { PDFDocument } = pdfLib;
         
         // 3. Re-write the metadata in memory
         const pdfDoc = await PDFDocument.load(data);
         pdfDoc.setTitle(name); // This replaces "(anonymous)" in the viewer UI
         
         const pdfBytes = await pdfDoc.save();
-        const bUrl = URL.createObjectURL(new Blob([pdfBytes], { type: "application/pdf" }));
-        setBlobUrl(bUrl);
-      } catch (err: any) {
+        createdUrl = URL.createObjectURL(new Blob([pdfBytes], { type: "application/pdf" }));
+        setBlobUrl(createdUrl);
+      } catch (err: unknown) {
         console.error("PDF Load Error:", err);
-        setError(err.message);
+        const msg = err instanceof Error ? err.message : "Unknown error";
+        setError(msg);
+        if (createdUrl) URL.revokeObjectURL(createdUrl);
       } finally {
         setLoading(false);
       }
@@ -62,7 +81,10 @@ function PDFViewerContent() {
     loadAndFixPDF();
 
     return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      setBlobUrl((prev) => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
     };
   }, [url, name]);
 
@@ -122,23 +144,20 @@ function PDFViewerContent() {
               Retry
             </button>
           </div>
+        ) : blobUrl ? (
+          <embed
+            src={`${blobUrl}#toolbar=0&navpanes=0&statusbar=0`}
+            type="application/pdf"
+            className="h-full w-full border-0"
+          />
         ) : (
-          blobUrl && (
-            <embed 
-              src={`${blobUrl}#toolbar=0&navpanes=0&statusbar=0`} 
-              type="application/pdf"
-              className="h-full w-full border-0" 
-            />
-          )
+          <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-muted-foreground">
+            Could not render this document.
+          </div>
         )}
       </div>
     </div>
   );
-}
-
-// Simple state helper to avoid multiple useState calls in the text
-function useEffectState<T>(initialValue: T): [T, (val: T) => void] {
-  return (require("react").useState)(initialValue);
 }
 
 export default function PDFViewerPage() {
