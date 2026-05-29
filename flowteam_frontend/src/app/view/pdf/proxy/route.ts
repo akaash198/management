@@ -4,7 +4,6 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function getInternalOrigin(req: NextRequest): string | null {
-  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
   const forwardedHost = req.headers.get("x-forwarded-host");
   const host = forwardedHost || req.headers.get("host");
   if (!host) return null;
@@ -14,8 +13,10 @@ function getInternalOrigin(req: NextRequest): string | null {
   const internal = process.env.INTERNAL_APP_ORIGIN;
   if (internal) return internal.replace(/\/$/, "");
 
-  const proto = forwardedProto === "http" || forwardedProto === "https" ? forwardedProto : "http";
-  return `${proto}://${host.split(",")[0].trim().replace(/\/$/, "")}`;
+  // Use plain HTTP for internal server-side fetches. In production TLS is typically terminated
+  // at the reverse proxy; attempting to fetch `https://` internally can throw
+  // ERR_SSL_WRONG_VERSION_NUMBER when the upstream is speaking HTTP.
+  return `http://${host.split(",")[0].trim().replace(/\/$/, "")}`;
 }
 
 function getHostnameFromHostHeader(host: string): string {
@@ -89,11 +90,9 @@ export async function GET(req: NextRequest) {
     const samePublicHost = !!publicHost && target.hostname === publicHost;
 
     const internalOrigin = getInternalOrigin(req);
-    const fetchUrl = samePublicHost
-      ? new URL(`${target.pathname}${target.search}`, req.nextUrl.origin).toString()
-      : (internalOrigin
-          ? new URL(`${target.pathname}${target.search}`, internalOrigin).toString()
-          : target.toString());
+    const fetchUrl = samePublicHost && internalOrigin
+      ? new URL(`${target.pathname}${target.search}`, internalOrigin).toString()
+      : target.toString();
 
     const upstream = await fetch(fetchUrl, {
       method: "GET",
