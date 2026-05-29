@@ -19,8 +19,8 @@ const WS_ORIGIN = API_ORIGIN ? API_ORIGIN.replace(/^http/, "ws") : "";
 // - Tightened for production; relaxed only where Next.js/WebRTC genuinely needs it.
 const csp = [
   "default-src 'self'",
-  // Scripts: self + inline (Next.js needs inline for __NEXT_DATA__ hydration)
-  "script-src 'self' 'unsafe-inline'",
+  // Scripts: self + inline (Next.js hydration) + eval (pdf.js worker requires it)
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   // Styles: self + inline + Google Fonts
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Images: self + data URIs + API origin (avatars, media)
