@@ -323,6 +323,26 @@ def main() -> int:
                 patches["ALLOWED_HOSTS"] = allowed
                 patches["CORS_ALLOWED_ORIGINS"] = "https://app.cowrkflow.com"
                 patches["FRONTEND_BASE_URL"] = "https://app.cowrkflow.com"
+
+            # Optional: patch email settings from CI environment variables (values are not printed).
+            # Only apply keys that are explicitly present and non-empty.
+            env_patch_keys = [
+                "EMAIL_PROVIDER",
+                "EMAIL_BACKEND",
+                "DEFAULT_FROM_EMAIL",
+                "EMAIL_HOST",
+                "EMAIL_PORT",
+                "EMAIL_HOST_USER",
+                "EMAIL_HOST_PASSWORD",
+                "EMAIL_USE_TLS",
+                "EMAIL_USE_SSL",
+                "RESEND_API_KEY",
+                "SENDGRID_API_KEY",
+            ]
+            for key in env_patch_keys:
+                val = (os.environ.get(key) or "").strip()
+                if val:
+                    patches[key] = val
             print(f"Patching {remote_env}...")
             _patch_env_prod(client, remote_env, patches)
 
