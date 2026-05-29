@@ -4,6 +4,8 @@ export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
   const rawUrl = req.nextUrl.searchParams.get("url");
+  const filename = req.nextUrl.searchParams.get("name") ?? "document.pdf";
+  const download = req.nextUrl.searchParams.get("download") === "1";
   if (!rawUrl) {
     return new Response("Missing url", { status: 400 });
   }
@@ -48,7 +50,7 @@ export async function GET(req: NextRequest) {
     headers: {
       "content-type": contentType,
       "cache-control": "no-store",
+      "content-disposition": `${download ? "attachment" : "inline"}; filename="${filename.replace(/\"/g, "")}"`,
     },
   });
 }
-
