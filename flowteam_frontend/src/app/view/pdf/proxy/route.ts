@@ -3,6 +3,21 @@ import { NextRequest } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function getInternalOrigin(req: NextRequest): string | null {
+  const forwardedProto = req.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const host = forwardedHost || req.headers.get("host");
+  if (!host) return null;
+
+  // If the request came through a reverse proxy, the public host may not be reachable from inside
+  // the app container. Allow an explicit internal origin override for server-side fetches.
+  const internal = process.env.INTERNAL_APP_ORIGIN;
+  if (internal) return internal.replace(/\/$/, "");
+
+  const proto = forwardedProto === "http" || forwardedProto === "https" ? forwardedProto : "http";
+  return `${proto}://${host.split(",")[0].trim().replace(/\/$/, "")}`;
+}
+
 function getHostnameFromHostHeader(host: string): string {
   // Can be: "example.com", "example.com:443", or (forwarded) "a.com, b.com"
   const first = host.split(",")[0]?.trim() ?? host.trim();
@@ -67,13 +82,27 @@ export async function GET(req: NextRequest) {
     const userAgent = req.headers.get("user-agent") ?? "";
     const referer = req.headers.get("referer") ?? "";
 
-    const upstream = await fetch(target.toString(), {
+    // Prefer fetching via Next's computed origin (typically internal / non-TLS) when the
+    // target host matches the public app host. This avoids the server needing to reach
+    // itself via external DNS/TLS.
+    const publicHost = getHostnameFromHostHeader(req.headers.get("x-forwarded-host") || req.headers.get("host") || "");
+    const samePublicHost = !!publicHost && target.hostname === publicHost;
+
+    const internalOrigin = getInternalOrigin(req);
+    const fetchUrl = samePublicHost
+      ? new URL(`${target.pathname}${target.search}`, req.nextUrl.origin).toString()
+      : (internalOrigin
+          ? new URL(`${target.pathname}${target.search}`, internalOrigin).toString()
+          : target.toString());
+
+    const upstream = await fetch(fetchUrl, {
       method: "GET",
       headers: {
         accept: "application/pdf,*/*",
         ...(cookie ? { cookie } : {}),
         ...(userAgent ? { "user-agent": userAgent } : {}),
         ...(referer ? { referer } : {}),
+        host: target.host,
       },
       cache: "no-store",
       redirect: "follow",
@@ -123,9 +152,14 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Unknown error";
-    const stack = e instanceof Error ? e.stack : "";
-    const body = `PDF proxy internal error.\n\n${message}\n\n${stack ?? ""}`;
+    const err = e instanceof Error ? e : new Error("Unknown error");
+    const cause = (err as unknown as { cause?: unknown }).cause;
+    const causeStr = cause ? (typeof cause === "string" ? cause : JSON.stringify(cause)) : "";
+    const message = err.message;
+    const stack = err.stack ?? "";
+    const body =
+      `PDF proxy internal error.\n\n${message}\n\n${stack ?? ""}` +
+      (causeStr ? `\n\ncause:\n${causeStr}` : "");
     return new Response(body, {
       status: 502,
       headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
