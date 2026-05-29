@@ -937,6 +937,17 @@ class AttachmentUploadView(generics.CreateAPIView):
         )
         return standardize_response(data=AttachmentSerializer(attachment, context={"request": request}).data)
 
+class AttachmentDeleteView(generics.DestroyAPIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, attachment_id):
+        attachment = get_object_or_404(Attachment, id=attachment_id)
+        if not check_project_permission(request.user, attachment.task.project, "edit_project"):
+            raise permissions.PermissionDenied()
+        attachment.file.delete(save=False)
+        attachment.delete()
+        return standardize_response(data={"message": "Attachment deleted"})
+
 class SprintViewSet(AuditedModelMixin, StandardizedModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 

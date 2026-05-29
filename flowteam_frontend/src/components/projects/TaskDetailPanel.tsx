@@ -11,10 +11,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Calendar, 
-  User as UserIcon, 
-  CheckSquare, 
+import {
+  Calendar,
+  User as UserIcon,
+  CheckSquare,
   CheckCircle2,
   Loader2,
   X,
@@ -22,8 +22,13 @@ import {
   Eye,
   EyeOff,
   Plus,
+  Paperclip,
+  Upload,
+  Trash2,
+  FileText,
+  Download,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -46,6 +51,7 @@ import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { RichEmbeds } from "@/components/embeds/RichEmbeds";
 import type { Column } from "@/types/project";
+import type { Attachment } from "@/types/task";
 import { useTask, useUpdateTask, useMoveTask, useTaskWatchers, useAddWatcher, useRemoveWatcher, useCreateSubtask, useUpdateSubtask, useDeleteSubtask } from "@/hooks/useTasks";
 
 interface TaskDetailPanelProps {
@@ -80,6 +86,62 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
   const deleteSubtask = useDeleteSubtask(taskId);
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const [draftDescription, setDraftDescription] = useState<string | null>(null);
+
+  // Attachments
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!taskId) return;
+    setAttachmentsLoading(true);
+    api.get<{ success: boolean; data: { attachments: Attachment[] } }>(`/projects/tasks/${taskId}/`)
+      .then((res) => {
+        if (res.data.success) setAttachments(res.data.data.attachments ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setAttachmentsLoading(false));
+  }, [taskId]);
+
+  const handleAttachFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setUploading(true);
+    try {
+      for (const file of Array.from(files)) {
+        const form = new FormData();
+        form.append("file", file);
+        const res = await api.post<{ success: boolean; data: Attachment }>(
+          `/tasks/${taskId}/attachments/`, form
+        );
+        if (res.data.success) {
+          setAttachments((prev) => [res.data.data, ...prev]);
+        }
+      }
+      toast.success("File uploaded");
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Upload failed"));
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteAttachment = async (id: string) => {
+    try {
+      await api.delete(`/tasks/attachments/${id}/`);
+      setAttachments((prev) => prev.filter((a) => a.id !== id));
+      toast.success("Attachment removed");
+    } catch (err) {
+      toast.error(toErrorMessage(err, "Delete failed"));
+    }
+  };
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
 
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
@@ -514,7 +576,96 @@ export function TaskDetailPanel({ taskId, projectId, columns }: TaskDetailPanelP
               </div>
 
               <Separator className="bg-border/60" />
-              
+
+              {/* Attachments Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-[13px] font-medium flex items-center gap-2">
+                    <Paperclip size={14} className="text-muted-foreground/60" />
+                    Attachments
+                    {attachments.length > 0 && (
+                      <span className="text-[11px] text-muted-foreground">({attachments.length})</span>
+                    )}
+                  </h3>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-50"
+                  >
+                    {uploading ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}
+                    {uploading ? "Uploading…" : "Upload"}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleAttachFiles(e.target.files)}
+                  />
+                </div>
+
+                {attachmentsLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 size={16} className="animate-spin text-muted-foreground" />
+                  </div>
+                ) : attachments.length === 0 ? (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full rounded-lg border border-dashed border-border py-4 text-[12px] text-muted-foreground/50 hover:border-muted-foreground/40 hover:text-muted-foreground transition-colors"
+                  >
+                    Drop files or click Upload
+                  </button>
+                ) : (
+                  <div className="space-y-1.5">
+                    {attachments.map((att) => {
+                      const isImage = att.mime_type?.startsWith("image/");
+                      const isPdf = att.mime_type === "application/pdf";
+                      const previewUrl = isPdf
+                        ? `/view/pdf?url=${encodeURIComponent(att.url)}&name=${encodeURIComponent(att.original_filename)}`
+                        : att.url;
+                      return (
+                        <div
+                          key={att.id}
+                          className="group flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2 hover:bg-muted/60 transition-colors"
+                        >
+                          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-background border border-border">
+                            {isImage ? (
+                              <img src={att.url} alt="" className="h-7 w-7 rounded-md object-cover" />
+                            ) : (
+                              <FileText size={13} className="text-muted-foreground" />
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[12px] font-medium">{att.original_filename}</p>
+                            <p className="text-[10px] text-muted-foreground">{formatBytes(att.file_size)}</p>
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a
+                              href={previewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded p-1 hover:bg-background transition-colors"
+                              title="Open"
+                            >
+                              <Download size={13} className="text-muted-foreground" />
+                            </a>
+                            <button
+                              onClick={() => handleDeleteAttachment(att.id)}
+                              className="rounded p-1 hover:bg-background transition-colors"
+                              title="Remove"
+                            >
+                              <Trash2 size={13} className="text-muted-foreground hover:text-destructive" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              <Separator className="bg-border/60" />
+
               <TaskTimeTracker taskId={taskId} projectId={projectId} />
 
               <Separator className="bg-border/60" />
