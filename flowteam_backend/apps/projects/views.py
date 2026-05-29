@@ -244,8 +244,16 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
         # Only show projects the user is explicitly included in.
         # Team membership alone should not grant access/visibility.
+        #
+        # A user is considered "included" if:
+        # - they created the project, OR
+        # - they have an explicit ProjectRole on it, OR
+        # - they are assigned/reporter on at least one task in the project.
         filtered_queryset = queryset.filter(
-            Q(roles__user=self.request.user) | Q(created_by=self.request.user)
+            Q(roles__user=self.request.user)
+            | Q(created_by=self.request.user)
+            | Q(tasks__assignee=self.request.user)
+            | Q(tasks__reporter=self.request.user)
         )
 
         return filtered_queryset.distinct()

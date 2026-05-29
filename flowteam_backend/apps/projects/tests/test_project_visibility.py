@@ -22,11 +22,13 @@ class ProjectVisibilityTests(TestCase):
         self.member = User.objects.create_user(email="mem@example.com", full_name="Member", password="password123")
         self.manager = User.objects.create_user(email="mgr@example.com", full_name="Manager", password="password123")
         self.unassigned = User.objects.create_user(email="nope@example.com", full_name="Unassigned", password="password123")
+        self.task_only = User.objects.create_user(email="task@example.com", full_name="Task Only", password="password123")
         self.team = Team.objects.create(name="Acme", created_by=self.ceo, plan="free")
         TeamMember.objects.create(team=self.team, user=self.ceo, role=TeamMember.CEO)
         TeamMember.objects.create(team=self.team, user=self.member, role=TeamMember.MEMBER)
         TeamMember.objects.create(team=self.team, user=self.manager, role=TeamMember.MANAGER)
         TeamMember.objects.create(team=self.team, user=self.unassigned, role=TeamMember.MEMBER)
+        TeamMember.objects.create(team=self.team, user=self.task_only, role=TeamMember.MEMBER)
 
         self.project = Project.objects.create(team=self.team, name="Website Redesign", created_by=self.ceo)
 
@@ -41,6 +43,15 @@ class ProjectVisibilityTests(TestCase):
             column=self.todo,
             reporter=self.ceo,
             assignee=self.member,
+            priority="normal",
+        )
+
+        Task.objects.create(
+            title="Task B",
+            project=self.project,
+            column=self.todo,
+            reporter=self.ceo,
+            assignee=self.task_only,
             priority="normal",
         )
 
@@ -61,8 +72,23 @@ class ProjectVisibilityTests(TestCase):
         resp = client.get("/api/tasks/", {"project_id": str(self.project.id)})
         self.assertEqual(resp.status_code, 200, f"Expected 200, got {resp.status_code}. Response: {resp.data}")
         items = (resp.data or {}).get("data") or []
+        self.assertEqual(len(items), 2)
+        titles = {i.get("title") for i in items}
+        self.assertIn("Task A", titles)
+        self.assertIn("Task B", titles)
+
+    def test_task_assignee_without_project_role_can_retrieve_project_board(self):
+        client = authed_client(self.task_only)
+        resp = client.get(f"/api/projects/{self.project.id}/")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_task_assignee_without_project_role_can_see_project_in_list(self):
+        client = authed_client(self.task_only)
+        resp = client.get("/api/projects/", {"team_id": str(self.team.id)})
+        self.assertEqual(resp.status_code, 200)
+        items = (resp.data or {}).get("data") or []
         self.assertEqual(len(items), 1)
-        self.assertEqual(items[0].get("title"), "Task A")
+        self.assertEqual(items[0].get("id"), str(self.project.id))
 
     def test_user_not_in_project_cannot_see_project_in_list(self):
         client = authed_client(self.unassigned)
