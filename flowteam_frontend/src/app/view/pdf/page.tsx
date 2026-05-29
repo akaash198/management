@@ -1,12 +1,36 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, Suspense, useMemo } from "react";
+import { useEffect, Suspense, useMemo, useRef, useState } from "react";
+
+type PdfJsModule = {
+  GlobalWorkerOptions: { workerSrc: string };
+  getDocument: (src: { data: ArrayBuffer }) => { promise: Promise<PdfDocument> };
+};
+
+type PdfDocument = {
+  numPages: number;
+  getPage: (pageNumber: number) => Promise<PdfPage>;
+};
+
+type PdfPage = {
+  getViewport: (opts: { scale: number }) => { width: number; height: number };
+  render: (opts: { canvasContext: CanvasRenderingContext2D; viewport: { width: number; height: number } }) => { promise: Promise<void> };
+};
+
+async function importPdfJs(url: string): Promise<PdfJsModule> {
+  const importer = new Function("u", "return import(u)") as (u: string) => Promise<unknown>;
+  const mod = await importer(url);
+  return mod as PdfJsModule;
+}
 
 function PDFViewerContent() {
   const searchParams = useSearchParams();
   const url = searchParams.get("url");
   const name = searchParams.get("name") || "Document";
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   const proxyUrl = useMemo(() => {
     if (!url) return null;
@@ -23,6 +47,65 @@ function PDFViewerContent() {
       document.title = name;
     }
   }, [name]);
+
+  useEffect(() => {
+    if (!proxyUrl) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    let cancelled = false;
+    el.innerHTML = "";
+    setStatus("loading");
+    setError(null);
+
+    const run = async () => {
+      try {
+        const response = await fetch(proxyUrl, { credentials: "include", cache: "no-store" });
+        if (!response.ok) {
+          const text = await response.text().catch(() => "");
+          throw new Error(text || `Failed to load PDF (${response.status})`);
+        }
+        const data = await response.arrayBuffer();
+        if (cancelled) return;
+
+        const pdfjs = await importPdfJs("/vendor/pdfjs/pdf.min.mjs");
+        pdfjs.GlobalWorkerOptions.workerSrc = "/vendor/pdfjs/pdf.worker.min.mjs";
+
+        const doc = await pdfjs.getDocument({ data }).promise;
+        const scale = 1.25;
+
+        for (let i = 1; i <= doc.numPages; i++) {
+          if (cancelled) return;
+          const page = await doc.getPage(i);
+          const viewport = page.getViewport({ scale });
+
+          const pageWrap = document.createElement("div");
+          pageWrap.className = "mx-auto my-4 w-fit rounded-lg bg-[#0a0a0f] shadow-sm border border-white/10";
+
+          const canvas = document.createElement("canvas");
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
+          canvas.className = "block";
+
+          pageWrap.appendChild(canvas);
+          el.appendChild(pageWrap);
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("Canvas not supported");
+          await page.render({ canvasContext: ctx, viewport }).promise;
+        }
+
+        if (!cancelled) setStatus("ready");
+      } catch (e: unknown) {
+        if (cancelled) return;
+        setStatus("error");
+        setError(e instanceof Error ? e.message : "Failed to render PDF");
+      }
+    };
+
+    void run();
+    return () => { cancelled = true; };
+  }, [proxyUrl]);
 
   if (!url) {
     return (
@@ -61,14 +144,21 @@ function PDFViewerContent() {
       </div>
       
       <div className="flex-1 relative bg-[#1e1e24]">
-        {proxyUrl ? (
-          <iframe
-            key={proxyUrl}
-            title={name}
-            src={`${proxyUrl}#toolbar=0&navpanes=0&statusbar=0`}
-            className="h-full w-full border-0"
-          />
-        ) : null}
+        {status === "loading" && (
+          <div className="absolute inset-0 flex items-center justify-center z-20 bg-[#0a0a0f]/40">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          </div>
+        )}
+        {status === "error" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+            <div className="mb-3 rounded-full bg-destructive/10 p-3 text-destructive">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <div className="text-white font-semibold">Couldn’t preview this PDF</div>
+            {error && <div className="mt-2 text-sm text-muted-foreground max-w-xl whitespace-pre-wrap">{error}</div>}
+          </div>
+        )}
+        <div ref={containerRef} className="h-full overflow-auto px-4" />
       </div>
     </div>
   );
