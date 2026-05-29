@@ -90,7 +90,7 @@ class GitCommit(models.Model):
     class Meta:
         indexes = [
             models.Index(fields=["integration", "task", "committed_at"], name="gitcommit_integ_task_time_idx"),
-            models.Index(fields=["integration", "branch", "committed_at"], name="gitcommit_integ_branch_time_idx"),
+            models.Index(fields=["integration", "branch", "committed_at"], name="gcom_integ_br_time_idx"),
         ]
 
 

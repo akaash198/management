@@ -132,7 +132,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="gitcommit",
-            index=models.Index(fields=["integration", "branch", "committed_at"], name="gitcommit_integ_branch_time_idx"),
+            index=models.Index(fields=["integration", "branch", "committed_at"], name="gcom_integ_br_time_idx"),
         ),
         migrations.AddIndex(
             model_name="webhookdelivery",
