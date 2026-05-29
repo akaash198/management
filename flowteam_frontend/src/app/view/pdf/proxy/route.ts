@@ -82,6 +82,7 @@ export async function GET(req: NextRequest) {
     const cookie = req.headers.get("cookie") ?? "";
     const userAgent = req.headers.get("user-agent") ?? "";
     const referer = req.headers.get("referer") ?? "";
+    const authorization = req.headers.get("authorization") ?? "";
 
     // Prefer fetching via Next's computed origin (typically internal / non-TLS) when the
     // target host matches the public app host. This avoids the server needing to reach
@@ -99,10 +100,14 @@ export async function GET(req: NextRequest) {
       headers: {
         accept: "application/pdf,*/*",
         ...(cookie ? { cookie } : {}),
+        ...(authorization ? { authorization } : {}),
         ...(userAgent ? { "user-agent": userAgent } : {}),
         ...(referer ? { referer } : {}),
-        host: target.host,
+        // Don't override Host when fetching internally — let the HTTP client
+        // use the URL host so Django's ALLOWED_HOSTS check passes naturally.
       },
+      // 30s timeout — media files can be large
+      signal: AbortSignal.timeout(30_000),
       cache: "no-store",
       redirect: "follow",
     });

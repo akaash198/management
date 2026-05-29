@@ -65,6 +65,9 @@ services:
     restart: unless-stopped
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://app.cowrkflow.com/api}
+      # Internal Docker hostname for server-side fetches (PDF proxy, etc.)
+      # Avoids routing through the public internet/Caddy from inside the container.
+      INTERNAL_APP_ORIGIN: http://backend:8000
     depends_on:
       - backend
     healthcheck:
