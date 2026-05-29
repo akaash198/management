@@ -6,7 +6,7 @@ from django.core import mail
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from apps.teams.models import Team, TeamMember
+from apps.teams.models import Team, TeamMember, TeamInvite
 from apps.users.models import User
 
 
@@ -126,3 +126,38 @@ class TeamRBACAPITests(TestCase):
 
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("invitee@example.com", mail.outbox[0].to)
+
+    def test_invite_preview_and_accept_requires_auth_and_email_match(self):
+        invitee = User.objects.create_user(email="invitee@example.com", full_name="Invitee", password="password123")
+
+        client = authed_client(self.ceo)
+        resp = client.post(
+            f"/api/teams/{self.team.id}/invite/",
+            {"email": "invitee@example.com", "role": "member"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        invite_id = ((resp.data or {}).get("data") or {}).get("id")
+        self.assertIsNotNone(invite_id)
+
+        # Preview is public
+        anon = APIClient()
+        preview = anon.get(f"/api/teams/invites/{invite_id}/")
+        self.assertEqual(preview.status_code, 200)
+
+        # Accept requires auth
+        accept_anon = anon.post(f"/api/teams/invites/{invite_id}/accept/")
+        self.assertEqual(accept_anon.status_code, 401)
+
+        # Wrong email cannot accept
+        wrong_user = User.objects.create_user(email="wrong@example.com", full_name="Wrong", password="password123")
+        wrong_client = authed_client(wrong_user)
+        accept_wrong = wrong_client.post(f"/api/teams/invites/{invite_id}/accept/")
+        self.assertEqual(accept_wrong.status_code, 403)
+
+        # Correct user can accept
+        invitee_client = authed_client(invitee)
+        accept_ok = invitee_client.post(f"/api/teams/invites/{invite_id}/accept/")
+        self.assertEqual(accept_ok.status_code, 200)
+        self.assertTrue(TeamMember.objects.filter(team=self.team, user=invitee).exists())
+        self.assertTrue(TeamInvite.objects.filter(id=invite_id, is_accepted=True).exists())

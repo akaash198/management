@@ -1,7 +1,7 @@
 from rest_framework import generics, status, permissions
 from django.shortcuts import get_object_or_404
 from .models import Team, TeamMember, TeamInvite
-from .serializers import TeamSerializer, TeamMemberSerializer, TeamInviteSerializer
+from .serializers import TeamSerializer, TeamMemberSerializer, TeamInviteSerializer, TeamInvitePreviewSerializer
 import logging
 from django.conf import settings
 from apps.core.email import send_transactional_email
@@ -318,32 +318,43 @@ class InviteCreateView(generics.CreateAPIView):
         return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
 
 class AcceptInviteView(generics.GenericAPIView):
-    permission_classes = [permissions.AllowAny]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, token):
         invite = get_object_or_404(TeamInvite, id=token, is_accepted=False)
-        
-        from apps.users.models import User
-        user = User.objects.filter(email=invite.email).first()
-        
-        if not user:
+
+        if (request.user.email or "").strip().lower() != (invite.email or "").strip().lower():
             return standardize_response(
-                success=False, 
-                error="User must register first or this flow needs to handle guest joining", 
-                status=status.HTTP_400_BAD_REQUEST
+                success=False,
+                error={"code": "email_mismatch", "message": "This invite is for a different email address."},
+                status=status.HTTP_403_FORBIDDEN,
             )
 
         with transaction.atomic():
-            TeamMember.objects.create(
+            member, _created = TeamMember.objects.get_or_create(
                 team=invite.team,
-                user=user,
-                role=invite.role,
-                custom_role=invite.custom_role,
-                invited_by=invite.invited_by,
+                user=request.user,
+                defaults={
+                    "role": invite.role,
+                    "custom_role": invite.custom_role,
+                    "invited_by": invite.invited_by,
+                },
             )
             invite.is_accepted = True
             invite.save()
 
-        return standardize_response(data={"message": "Invite accepted successfully"})
+        return standardize_response(data={"message": "Invite accepted successfully", "member": TeamMemberSerializer(member).data})
 
 
+class InvitePreviewView(generics.RetrieveAPIView):
+    permission_classes = [permissions.AllowAny]
+    serializer_class = TeamInvitePreviewSerializer
+    lookup_url_kwarg = "token"
+
+    def get_queryset(self):
+        return TeamInvite.objects.select_related("team", "invited_by", "custom_role").filter(is_accepted=False)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return standardize_response(data=serializer.data)

@@ -1,12 +1,12 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import api from "@/lib/api";
@@ -40,15 +40,21 @@ const leftFeatures = [
 
 export default function RegisterPage() {
   const router  = useRouter();
+  const searchParams = useSearchParams();
   const setUser = useAuthStore((s) => s.setUser);
   const [error, setError]     = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPw, setShowPw]   = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<RegisterFormValues>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
   });
+
+  useEffect(() => {
+    const emailFromQuery = (searchParams.get("email") || "").trim();
+    if (emailFromQuery) setValue("email", emailFromQuery);
+  }, [searchParams, setValue]);
 
   const continueWithGoogle = () => {
     window.location.href = `${getApiBaseUrl()}/auth/oauth/google/redirect/`;
@@ -63,7 +69,9 @@ export default function RegisterPage() {
         const { user, access, refresh } = res.data.data;
         setTokens(access, refresh);
         setUser(user);
-        router.push("/onboarding");
+        const redirect = (searchParams.get("redirect") || "").trim();
+        if (redirect) window.location.assign(redirect);
+        else router.push("/onboarding");
       }
     } catch (err: unknown) {
       const data = (err as { response?: { data?: unknown } })?.response?.data;

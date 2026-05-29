@@ -89,3 +89,17 @@ class TeamInviteSerializer(serializers.ModelSerializer):
         if not base:
             base = "http://localhost:3000"
         return f"{base}/accept-invite/{obj.id}"
+
+
+class TeamInvitePreviewSerializer(serializers.ModelSerializer):
+    team = serializers.SerializerMethodField()
+    invited_by = UserSerializer(read_only=True)
+    custom_role = CustomRoleMinimalSerializer(read_only=True)
+
+    class Meta:
+        model = TeamInvite
+        fields = ("id", "email", "role", "custom_role", "created_at", "team", "invited_by", "is_accepted")
+        read_only_fields = fields
+
+    def get_team(self, obj: TeamInvite) -> dict:
+        return {"id": str(obj.team_id), "name": obj.team.name}

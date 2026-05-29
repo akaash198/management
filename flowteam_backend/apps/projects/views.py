@@ -242,10 +242,10 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return Project.objects.none()
 
+        # Only show projects the user is explicitly included in.
+        # Team membership alone should not grant access/visibility.
         filtered_queryset = queryset.filter(
-            Q(team__members__user=self.request.user)
-            | Q(roles__user=self.request.user)
-            | Q(created_by=self.request.user)
+            Q(roles__user=self.request.user) | Q(created_by=self.request.user)
         )
 
         return filtered_queryset.distinct()

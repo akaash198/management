@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     TeamListCreateView, TeamDetailView, TeamMembersView,
-    TeamMemberDetailView, InviteCreateView, AcceptInviteView,
+    TeamMemberDetailView, InviteCreateView, AcceptInviteView, InvitePreviewView,
 )
 from .role_views import (
     CustomRoleListCreateView, CustomRoleDetailView,
@@ -19,5 +19,6 @@ urlpatterns = [
     path("<uuid:id>/roles/", CustomRoleListCreateView.as_view(), name="custom_role_list_create"),
     path("<uuid:id>/roles/<uuid:role_id>/", CustomRoleDetailView.as_view(), name="custom_role_detail"),
     path("<uuid:id>/invite/", InviteCreateView.as_view(), name="team_invite"),
+    path("invites/<uuid:token>/", InvitePreviewView.as_view(), name="team_invite_preview"),
     path("invites/<uuid:token>/accept/", AcceptInviteView.as_view(), name="accept_invite"),
 ]
