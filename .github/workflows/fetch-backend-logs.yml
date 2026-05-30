@@ -38,10 +38,10 @@ jobs:
           client.connect(os.environ["HETZNER_HOST"], username=os.environ["HETZNER_USER"], key_filename="hetzner_key")
 
           cmds = [
+              # Check GitHub OAuth keys in .env.prod (mask secrets, just show if set)
+              "grep -E '^GITHUB_(CLIENT_ID|CLIENT_SECRET|REDIRECT_URI|WEBHOOK_SECRET)=' /opt/flowteam/.env.prod | sed 's/=.*/=<set>/' || echo 'Could not read .env.prod'",
               # Print raw backend container logs
               "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker logs $CONTAINER --tail 150 2>&1",
-              # Force a traceback using force_authenticate on /api/auth/me/
-              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c \"\nimport os, traceback\nos.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'\nimport django; django.setup()\nfrom django.contrib.auth import get_user_model\nUser = get_user_model()\nu = User.objects.filter(is_active=True).first()\nprint('User:', u)\nfrom apps.users.views import UserMeView\nfrom rest_framework.test import APIRequestFactory, force_authenticate\nfactory = APIRequestFactory()\nreq = factory.get('/api/auth/me/')\nforce_authenticate(req, user=u)\ntry:\n    resp = UserMeView.as_view()(req)\n    print('Status:', resp.status_code)\nexcept Exception as e:\n    traceback.print_exc()\n\" 2>&1",
           ]
           for cmd in cmds:
               _, stdout, stderr = client.exec_command(cmd)
