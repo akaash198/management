@@ -338,6 +338,10 @@ def main() -> int:
                 "EMAIL_USE_SSL",
                 "RESEND_API_KEY",
                 "SENDGRID_API_KEY",
+                "GITHUB_CLIENT_ID",
+                "GITHUB_CLIENT_SECRET",
+                "GITHUB_REDIRECT_URI",
+                "GITHUB_WEBHOOK_SECRET",
             ]
             for key in env_patch_keys:
                 val = (os.environ.get(key) or "").strip()
