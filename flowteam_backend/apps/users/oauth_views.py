@@ -173,6 +173,12 @@ class GitHubOAuthRedirectView(APIView):
         project_id = request.GET.get("project_id", "")
         if project_id:
             state = f"{state}:{project_id}"
+
+        if not (getattr(settings, "GITHUB_CLIENT_ID", "") or "").strip() or not (getattr(settings, "GITHUB_REDIRECT_URI", "") or "").strip():
+            if project_id:
+                return redirect(f"{_frontend_base()}/projects/{project_id}/settings/permissions?error=github_not_configured")
+            return redirect(f"{_frontend_base()}/login?error=github_not_configured")
+
         params = {
             "client_id": settings.GITHUB_CLIENT_ID,
             "redirect_uri": settings.GITHUB_REDIRECT_URI,

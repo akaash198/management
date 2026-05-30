@@ -350,10 +350,17 @@ GOOGLE_CLIENT_ID = env("GOOGLE_CLIENT_ID", default="")
 GOOGLE_CLIENT_SECRET = env("GOOGLE_CLIENT_SECRET", default="")
 GOOGLE_REDIRECT_URI = env("GOOGLE_REDIRECT_URI", default="")
 GOOGLE_CALENDAR_REDIRECT_URI = env("GOOGLE_CALENDAR_REDIRECT_URI", default="")
-GITHUB_CLIENT_ID = env("GITHUB_CLIENT_ID", default="")
-GITHUB_CLIENT_SECRET = env("GITHUB_CLIENT_SECRET", default="")
-GITHUB_REDIRECT_URI = env("GITHUB_REDIRECT_URI", default="")
-GITHUB_WEBHOOK_SECRET = env("GITHUB_WEBHOOK_SECRET", default="")
+
+# GitHub Actions runners often reserve `GITHUB_*` env vars. In those environments we
+# accept `COWRK_GITHUB_*` aliases as a fallback.
+def _env_with_fallback(key: str, fallback_key: str) -> str:
+    return env(key, default=env(fallback_key, default=""))
+
+
+GITHUB_CLIENT_ID = _env_with_fallback("GITHUB_CLIENT_ID", "COWRK_GITHUB_CLIENT_ID")
+GITHUB_CLIENT_SECRET = _env_with_fallback("GITHUB_CLIENT_SECRET", "COWRK_GITHUB_CLIENT_SECRET")
+GITHUB_REDIRECT_URI = _env_with_fallback("GITHUB_REDIRECT_URI", "COWRK_GITHUB_REDIRECT_URI")
+GITHUB_WEBHOOK_SECRET = _env_with_fallback("GITHUB_WEBHOOK_SECRET", "COWRK_GITHUB_WEBHOOK_SECRET")
 
 GITLAB_CLIENT_ID = env("GITLAB_CLIENT_ID", default="")
 GITLAB_CLIENT_SECRET = env("GITLAB_CLIENT_SECRET", default="")
