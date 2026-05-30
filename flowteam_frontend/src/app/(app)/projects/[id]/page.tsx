@@ -152,10 +152,24 @@ export default function ProjectBoardPage() {
     enabled: !!project?.team,
   });
 
+  // Resolve effective project access: project-level role overrides team role
   const isReadOnly = useMemo(() => {
-    const myRole = teamMembers?.find((m) => m.user.id === user?.id)?.role ?? null;
-    return myRole === "viewer";
-  }, [teamMembers, user?.id]);
+    if (user?.is_superuser) return false;
+    // Check explicit project role first
+    const projectRole = project?.my_role ?? null;
+    if (projectRole) return projectRole === "viewer" || projectRole === "commenter";
+    // Fall back to team role
+    const myTeamRole = teamMembers?.find((m) => m.user.id === user?.id)?.role ?? null;
+    return myTeamRole === "viewer";
+  }, [project, teamMembers, user]);
+
+  const canExport = useMemo(() => {
+    if (user?.is_superuser) return true;
+    const projectRole = project?.my_role ?? null;
+    if (projectRole) return projectRole === "project_admin" || projectRole === "editor";
+    const myTeamRole = teamMembers?.find((m) => m.user.id === user?.id)?.role ?? null;
+    return myTeamRole !== "viewer";
+  }, [project, teamMembers, user]);
 
   const { data: health } = useQuery<{ health_score: number; health_label: string }>({
     queryKey: ["project-health-lite", id],
@@ -317,25 +331,27 @@ export default function ProjectBoardPage() {
               </Link>
             </Button>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2.5 text-[12px] gap-1"
-                  disabled={!!isExporting}
-                >
-                  <Download size={13} />
-                  {isExporting ? "Exporting…" : "Export"}
-                  <ChevronDown size={11} className="text-muted-foreground" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-36">
-                <DropdownMenuItem onClick={() => void handleExport("csv")}>Export CSV</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport("xlsx")}>Export Excel</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => void handleExport("pdf")}>Export PDF</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canExport && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2.5 text-[12px] gap-1"
+                    disabled={!!isExporting}
+                  >
+                    <Download size={13} />
+                    {isExporting ? "Exporting…" : "Export"}
+                    <ChevronDown size={11} className="text-muted-foreground" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-36">
+                  <DropdownMenuItem onClick={() => void handleExport("csv")}>Export CSV</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleExport("xlsx")}>Export Excel</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void handleExport("pdf")}>Export PDF</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             <Button
               size="sm"

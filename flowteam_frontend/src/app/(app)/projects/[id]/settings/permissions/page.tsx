@@ -109,11 +109,13 @@ function MemberRoleRow({
   onUpdate,
   onRemove,
   canManage,
+  isAdmin,
 }: {
   role: ProjectRole;
   onUpdate: (id: string, patch: Partial<{ role: ProjectRoleType; capabilities: Record<string, boolean>; valid_until: string | null }>) => void;
   onRemove: (id: string) => void;
   canManage: boolean;
+  isAdmin: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [localCaps, setLocalCaps] = useState<Record<string, boolean>>(role.effective_capabilities);
@@ -179,11 +181,13 @@ function MemberRoleRow({
                 value={role.role}
                 onChange={(e) => handleRoleChange(e.target.value as ProjectRoleType)}
               >
-                {(Object.keys(PROJECT_ROLE_LABELS) as ProjectRoleType[]).map((r) => (
-                  <option key={r} value={r}>
-                    {PROJECT_ROLE_LABELS[r]}
-                  </option>
-                ))}
+                {(Object.keys(PROJECT_ROLE_LABELS) as ProjectRoleType[])
+                  .filter((r) => isAdmin || r !== "project_admin")
+                  .map((r) => (
+                    <option key={r} value={r}>
+                      {PROJECT_ROLE_LABELS[r]}
+                    </option>
+                  ))}
               </select>
               <Button
                 variant="ghost"
@@ -421,6 +425,7 @@ export default function PermissionsPage() {
                     key={role.id}
                     role={role}
                     canManage={canManage}
+                    isAdmin={teamPerms.isAdmin}
                     onUpdate={(uid, patch) => updateRoleMutation.mutate({ uid, patch })}
                     onRemove={(uid) => removeRoleMutation.mutate(uid)}
                   />
