@@ -338,15 +338,23 @@ def main() -> int:
                 "EMAIL_USE_SSL",
                 "RESEND_API_KEY",
                 "SENDGRID_API_KEY",
-                "GITHUB_CLIENT_ID",
-                "GITHUB_CLIENT_SECRET",
-                "GITHUB_REDIRECT_URI",
-                "GITHUB_WEBHOOK_SECRET",
             ]
             for key in env_patch_keys:
                 val = (os.environ.get(key) or "").strip()
                 if val:
                     patches[key] = val
+            # GITHUB_* env vars are reserved by GitHub Actions runner, so they are
+            # passed with a COWRK_ prefix and remapped here before patching .env.prod.
+            cowrk_github_keys = {
+                "COWRK_GITHUB_CLIENT_ID": "GITHUB_CLIENT_ID",
+                "COWRK_GITHUB_CLIENT_SECRET": "GITHUB_CLIENT_SECRET",
+                "COWRK_GITHUB_REDIRECT_URI": "GITHUB_REDIRECT_URI",
+                "COWRK_GITHUB_WEBHOOK_SECRET": "GITHUB_WEBHOOK_SECRET",
+            }
+            for env_key, patch_key in cowrk_github_keys.items():
+                val = (os.environ.get(env_key) or "").strip()
+                if val:
+                    patches[patch_key] = val
             print(f"Patching {remote_env}...")
             _patch_env_prod(client, remote_env, patches)
 

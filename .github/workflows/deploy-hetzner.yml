@@ -57,10 +57,10 @@ jobs:
           EMAIL_USE_SSL: ${{ secrets.EMAIL_USE_SSL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           SENDGRID_API_KEY: ${{ secrets.SENDGRID_API_KEY }}
-          GITHUB_CLIENT_ID: ${{ secrets.COWRK_GITHUB_CLIENT_ID }}
-          GITHUB_CLIENT_SECRET: ${{ secrets.COWRK_GITHUB_CLIENT_SECRET }}
-          GITHUB_REDIRECT_URI: ${{ secrets.COWRK_GITHUB_REDIRECT_URI }}
-          GITHUB_WEBHOOK_SECRET: ${{ secrets.COWRK_GITHUB_WEBHOOK_SECRET }}
+          COWRK_GITHUB_CLIENT_ID: ${{ secrets.COWRK_GITHUB_CLIENT_ID }}
+          COWRK_GITHUB_CLIENT_SECRET: ${{ secrets.COWRK_GITHUB_CLIENT_SECRET }}
+          COWRK_GITHUB_REDIRECT_URI: ${{ secrets.COWRK_GITHUB_REDIRECT_URI }}
+          COWRK_GITHUB_WEBHOOK_SECRET: ${{ secrets.COWRK_GITHUB_WEBHOOK_SECRET }}
         run: |
           python - <<'PY'
           import os
