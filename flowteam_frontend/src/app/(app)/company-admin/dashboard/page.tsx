@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/auth";
-import type { ApiResponse, CompanyDetail, CompanyMember, CompanyInvite, CompanyCapabilities, CompanyRole, Team, TeamMember } from "@/types";
+import type { ApiResponse, CompanyDetail, CompanyMember, CompanyInvite, CompanyCapabilities, CompanyRole, Team } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,12 +25,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import {
   Users, Building2, Layers, MoreHorizontal, Plus, Mail, Trash2,
-  UserPlus, Shield, ChevronRight, CheckCircle2, Clock, XCircle,
+  UserPlus, Shield, CheckCircle2, Clock, XCircle,
 } from "lucide-react";
 
 // ── Role helpers ──────────────────────────────────────────────
@@ -257,6 +255,20 @@ export default function CompanyAdminDashboard() {
   const pendingInvites = (invites ?? []).filter(i => i.status === "pending");
   const myRole = caps?.role ?? company.your_role ?? "member";
 
+  // ── Access guard: only CEO and Admin can use this dashboard ──
+  if (caps && !caps.can_manage_company) {
+    return (
+      <div className="p-8 flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <Shield size={48} className="text-muted-foreground/40" />
+        <p className="text-muted-foreground text-sm font-medium">Access restricted</p>
+        <p className="text-xs text-muted-foreground/60">
+          This dashboard is only available to Company Admins and CEOs.
+        </p>
+        <RoleBadge role={myRole} />
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 space-y-8 min-h-screen bg-gradient-to-b from-background via-background to-muted/40">
       {/* ── Header ── */}
@@ -295,6 +307,7 @@ export default function CompanyAdminDashboard() {
       {/* ── Nav tabs ── */}
       <div className="flex items-center gap-1 border-b border-border">
         {(["overview", "members", "teams", "invites"] as const).map((v) => {
+          if (v === "members" && !caps?.can_view_members) return null;
           if (v === "invites" && !caps?.can_invite_members) return null;
           return (
             <button
@@ -426,32 +439,43 @@ export default function CompanyAdminDashboard() {
                       </td>
                       {caps?.can_change_roles && (
                         <td className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
-                              <DropdownMenuItem onClick={() => {
-                                setRoleDialogMember(m);
-                                setNewRole(m.role);
-                              }}>
-                                Change role
-                              </DropdownMenuItem>
-                              {caps?.can_remove_members && m.user.id !== user?.id && (
-                                <>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    className="text-destructive focus:text-destructive"
-                                    onClick={() => setRemoveDialogMember(m)}
-                                  >
-                                    Remove
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          {(() => {
+                            const isCeoTarget = m.role === "ceo";
+                            const actorIsCeo = myRole === "ceo";
+                            const canChangeThisRole = !isCeoTarget || actorIsCeo;
+                            const canRemoveThis = caps.can_remove_members && m.user.id !== user?.id && (!isCeoTarget || actorIsCeo);
+                            if (!canChangeThisRole && !canRemoveThis) return null;
+                            return (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  {canChangeThisRole && (
+                                    <DropdownMenuItem onClick={() => {
+                                      setRoleDialogMember(m);
+                                      setNewRole(m.role);
+                                    }}>
+                                      Change role
+                                    </DropdownMenuItem>
+                                  )}
+                                  {canRemoveThis && (
+                                    <>
+                                      {canChangeThisRole && <DropdownMenuSeparator />}
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => setRemoveDialogMember(m)}
+                                      >
+                                        Remove
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            );
+                          })()}
                         </td>
                       )}
                     </tr>
@@ -648,10 +672,15 @@ export default function CompanyAdminDashboard() {
               onChange={e => setNewRole(e.target.value as CompanyRole)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              {(caps?.assignable_invite_roles ?? Object.keys(ROLE_LABELS) as CompanyRole[]).map(r => (
-                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
-              ))}
+              {(caps?.assignable_invite_roles ?? Object.keys(ROLE_LABELS) as CompanyRole[])
+                .filter(r => r !== roleDialogMember?.role)
+                .map(r => (
+                  <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+                ))}
             </select>
+            <p className="text-xs text-muted-foreground">
+              Current role: <span className="font-medium">{ROLE_LABELS[roleDialogMember?.role ?? ""] ?? roleDialogMember?.role}</span>
+            </p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setRoleDialogMember(null)}>Cancel</Button>

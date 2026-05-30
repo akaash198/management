@@ -260,7 +260,9 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
   };
 
   const isCompanyAdmin = !!(user?.is_superuser) ||
-    (myCompanies ?? []).some((c) => c.your_role === "ceo" || c.your_role === "admin");
+    (myCompanies ?? []).some((c) =>
+      c.your_role === "ceo" || c.your_role === "admin" || c.your_role === "manager"
+    );
 
   const isActive = (href: string) =>
     href === "/dashboard"
