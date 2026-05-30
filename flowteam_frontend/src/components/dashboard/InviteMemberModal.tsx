@@ -40,7 +40,7 @@ export function InviteMemberModal({ open, onOpenChange, teamId, canInviteManager
 
     setLoading(true);
     try {
-      await api.post<ApiResponse<unknown>>(`/teams/${teamId}/members/invite/`, {
+      await api.post<ApiResponse<unknown>>(`/teams/${teamId}/invite/`, {
         email: trimmed,
         role,
       });
@@ -49,7 +49,15 @@ export function InviteMemberModal({ open, onOpenChange, teamId, canInviteManager
       onOpenChange(false);
       onSuccess?.();
     } catch (err: any) {
-      const msg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to send invitation";
+      const raw = err?.response?.data?.error ?? err?.response?.data?.detail;
+      const msg =
+        typeof raw === "string"
+          ? raw
+          : typeof raw?.detail === "string"
+            ? raw.detail
+            : raw
+              ? JSON.stringify(raw)
+              : "Failed to send invitation";
       toast.error(msg);
     } finally {
       setLoading(false);
