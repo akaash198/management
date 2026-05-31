@@ -82,10 +82,20 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     labels = LabelSerializer(many=True, read_only=True)
     team_name = serializers.CharField(source="team.name", read_only=True)
     team = serializers.UUIDField(source="team_id", read_only=True)
+    my_role = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
-        fields = ("id", "name", "description", "color", "icon", "status", "team", "team_name", "columns", "labels", "created_at")
+        fields = ("id", "name", "description", "color", "icon", "status", "team", "team_name", "columns", "labels", "created_at", "my_role")
+
+    def get_my_role(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user.is_authenticated:
+            return None
+        if request.user.is_superuser:
+            return "project_admin"
+        from .permissions import get_user_project_role
+        return get_user_project_role(request.user, obj)
 
 
 class ProjectCreateUpdateSerializer(serializers.ModelSerializer):
