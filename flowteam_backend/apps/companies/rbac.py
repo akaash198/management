@@ -19,15 +19,13 @@ def get_user_company_role(*, company_id: str, user) -> str | None:
 
 
 def assignable_roles_for_company(*, actor_role: str | None) -> list[str]:
-    """Which roles an actor can assign when inviting a company member.
-
-    Admin has full rights — same as CEO — so they can manage all roles
-    including assigning or promoting other Admins and CEOs.
-    """
+    """Which roles an actor can assign when inviting a company member."""
     if not actor_role:
         return []
-    if actor_role in (CompanyMember.CEO, CompanyMember.ADMIN):
+    if actor_role == CompanyMember.CEO:
         return [CompanyMember.CEO, CompanyMember.ADMIN, CompanyMember.MANAGER, CompanyMember.MEMBER, CompanyMember.VIEWER]
+    if actor_role == CompanyMember.ADMIN:
+        return [CompanyMember.ADMIN, CompanyMember.MANAGER, CompanyMember.MEMBER, CompanyMember.VIEWER]
     if actor_role == CompanyMember.MANAGER:
         return [CompanyMember.MEMBER, CompanyMember.VIEWER]
     return []
@@ -48,13 +46,17 @@ def can_change_company_member_role(
         return False, "not_a_member"
     if current_role == new_role:
         return True, "ok"
-    # Admin has full rights — can change any role including CEO.
+    # Only CEO can touch CEO slots (assign or demote).
+    if current_role == CompanyMember.CEO and actor_role != CompanyMember.CEO:
+        return False, "ceo_protected"
+    if new_role == CompanyMember.CEO and actor_role != CompanyMember.CEO:
+        return False, "ceo_protected"
+    # Prevent removing the last CEO.
+    if current_role == CompanyMember.CEO and new_role != CompanyMember.CEO:
+        ceo_count = CompanyMember.objects.filter(company_id=company_id, role=CompanyMember.CEO).count()
+        if ceo_count <= 1:
+            return False, "last_ceo"
     if actor_role in (CompanyMember.CEO, CompanyMember.ADMIN):
-        # Prevent removing the last CEO.
-        if current_role == CompanyMember.CEO and new_role != CompanyMember.CEO:
-            ceo_count = CompanyMember.objects.filter(company_id=company_id, role=CompanyMember.CEO).count()
-            if ceo_count <= 1:
-                return False, "last_ceo"
         return True, "ok"
     return False, "forbidden"
 
@@ -73,7 +75,9 @@ def can_remove_company_member(
         return False, "not_a_member"
     if actor_role not in (CompanyMember.CEO, CompanyMember.ADMIN):
         return False, "forbidden"
-    # Prevent removing the last CEO.
+    # Only CEO can remove another CEO.
+    if target_role == CompanyMember.CEO and actor_role != CompanyMember.CEO:
+        return False, "ceo_protected"
     if target_role == CompanyMember.CEO:
         ceo_count = CompanyMember.objects.filter(company_id=company_id, role=CompanyMember.CEO).count()
         if ceo_count <= 1:
