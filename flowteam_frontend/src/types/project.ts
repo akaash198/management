@@ -37,6 +37,7 @@ export interface Label {
 export interface ProjectDetail extends Project {
   columns: Column[];
   labels: Label[];
+  my_role?: ProjectRoleType | null;
 }
 
 export interface ProjectCreateInput {
