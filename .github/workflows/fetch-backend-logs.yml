@@ -38,16 +38,15 @@ jobs:
           client.connect(os.environ["HETZNER_HOST"], username=os.environ["HETZNER_USER"], key_filename="hetzner_key")
 
           cmds = [
-              # Print raw backend container logs
-              "CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker logs $CONTAINER --tail 100 2>&1",
-              # Diagnose 404 - check project and team membership for the failing project
+              # Diagnose project 404 - full picture
               """CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c "
 import os, django
 os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
 django.setup()
-from apps.projects.models import Project
+from apps.projects.models import Project, ProjectRole
 from apps.teams.models import TeamMember
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 User = get_user_model()
 
 project_id = '4a865163-998b-424e-9cf2-f61a0c79b67a'
@@ -55,11 +54,29 @@ p = Project.objects.filter(id=project_id).first()
 if not p:
     print('PROJECT NOT FOUND IN DB')
 else:
-    print(f'Project: {p.name}, team_id: {p.team_id}')
+    print(f'Project: {p.name} | team_id: {p.team_id} | created_by: {p.created_by}')
+    print()
     members = TeamMember.objects.filter(team_id=p.team_id).select_related('user')
     print(f'Team members ({members.count()}):')
     for m in members:
-        print(f'  {m.user.email} -> {m.role}')
+        print(f'  {m.user.email} | {m.role}')
+    print()
+    roles = ProjectRole.objects.filter(project=p).select_related('user')
+    print(f'ProjectRoles ({roles.count()}):')
+    for r in roles:
+        print(f'  {r.user.email} | {r.role}')
+    print()
+    # Check all users and whether they can see this project
+    for u in User.objects.filter(is_active=True)[:10]:
+        admin_team_ids = list(TeamMember.objects.filter(user=u, role__in=['ceo','admin']).values_list('team_id', flat=True))
+        can_see = Project.objects.filter(
+            Q(id=project_id) & (
+                Q(roles__user=u) | Q(created_by=u) |
+                Q(tasks__assignee=u) | Q(tasks__reporter=u) |
+                Q(team_id__in=admin_team_ids)
+            )
+        ).exists()
+        print(f'  {u.email} -> can_see={can_see}')
 " 2>&1""",
           ]
           for cmd in cmds:
