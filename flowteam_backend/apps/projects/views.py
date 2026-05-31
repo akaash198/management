@@ -247,18 +247,24 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         if self.request.user.is_superuser:
             return Project.objects.none()
 
-        # Only show projects the user is explicitly included in.
-        # Team membership alone should not grant access/visibility.
-        #
-        # A user is considered "included" if:
-        # - they created the project, OR
-        # - they have an explicit ProjectRole on it, OR
-        # - they are assigned/reporter on at least one task in the project.
+        # A user can see a project if:
+        # - they created it, OR
+        # - they have an explicit ProjectRole, OR
+        # - they are assigned/reporter on a task, OR
+        # - they are a CEO or Admin on the team that owns the project
+        #   (team admins retain visibility across all team projects)
+        from apps.teams.models import TeamMember as TM
+        admin_team_ids = TM.objects.filter(
+            user=self.request.user,
+            role__in=[TM.CEO, TM.ADMIN],
+        ).values_list("team_id", flat=True)
+
         filtered_queryset = queryset.filter(
             Q(roles__user=self.request.user)
             | Q(created_by=self.request.user)
             | Q(tasks__assignee=self.request.user)
             | Q(tasks__reporter=self.request.user)
+            | Q(team_id__in=admin_team_ids)
         )
 
         return filtered_queryset.distinct()
