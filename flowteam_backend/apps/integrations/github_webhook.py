@@ -17,8 +17,24 @@ from rest_framework.views import APIView
 
 from apps.integrations.models import GitBranch, GitCommit, GitHubIntegration, WebhookDelivery
 
-TASK_REF_RE = re.compile(r"#([A-Z0-9]+-\d+|[0-9a-f]{8}(?:-[0-9a-f]{4}){0,4}|\d+)", re.I)
-TASK_IN_BRANCH_RE = re.compile(r"(?:^|/|-)([A-Z][A-Z0-9]+-\d+)(?:$|/|-)", re.I)
+# Matches task refs in commit messages / PR titles:
+#   #32d4ea71  (8-char UUID prefix)
+#   #32d4ea71-360b-415f-958e-103d8f8ac042  (full UUID)
+#   #SPEC-1  (Jira-style)
+#   #42  (short number)
+TASK_REF_RE = re.compile(
+    r"#([0-9a-f]{8}(?:-[0-9a-f]{4}){0,4}|[A-Z][A-Z0-9]*-\d+|\d+)",
+    re.I,
+)
+
+# Matches task refs embedded in branch names:
+#   task-32d4ea71-some-description
+#   feature/32d4ea71-description
+#   SPEC-1-description
+TASK_IN_BRANCH_RE = re.compile(
+    r"(?:^|/|-)([0-9a-f]{8}(?:-[0-9a-f]{4}){0,3}|[A-Z][A-Z0-9]*-\d+)(?:$|/|-)",
+    re.I,
+)
 
 
 def _sha256_hex(data: bytes) -> str:
@@ -48,14 +64,21 @@ def _find_task(ref: str, integration: GitHubIntegration):
         return None
 
     queryset = Task.objects.filter(project_id=integration.project_id)
+
+    # Try exact UUID match first
     try:
         return queryset.filter(id=uuid.UUID(ref)).first()
     except (ValueError, AttributeError):
         pass
 
-    task = queryset.filter(id__istartswith=ref).first()
-    if task:
-        return task
+    # Match by UUID prefix (first 8+ hex chars, e.g. "32d4ea71")
+    if re.match(r"^[0-9a-f]{8}(-[0-9a-f]{4}){0,3}$", ref, re.I):
+        # Normalise: strip dashes, use as prefix of the UUID string (no dashes stored)
+        prefix = ref.replace("-", "")
+        task = queryset.filter(id__istartswith=prefix[:8]).first()
+        if task:
+            return task
+
     return queryset.filter(Q(title__icontains=f"#{ref}") | Q(title__icontains=ref)).first()
 
 

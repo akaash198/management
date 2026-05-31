@@ -25,6 +25,18 @@ from apps.integrations.github_client import ensure_repo_webhook
 from apps.integrations.models import WebhookDelivery
 
 
+def _public_webhook_url(path: str, request) -> str:
+    """Return a publicly reachable URL for a webhook endpoint.
+
+    Prefers FRONTEND_BASE_URL (the public domain) so GitHub can reach the
+    server even when build_absolute_uri returns an internal Docker address.
+    """
+    base = (getattr(settings, "FRONTEND_BASE_URL", "") or "").rstrip("/")
+    if base:
+        return f"{base}/api{path}"
+    return request.build_absolute_uri(path)
+
+
 class SlackWebhookListCreateView(generics.ListCreateAPIView):
     serializer_class = SlackWebhookSerializer
 
@@ -135,7 +147,7 @@ class ProjectGitHubIntegrationView(generics.GenericAPIView):
             update_fields.append("webhook_secret")
 
         if not integration.webhook_id:
-            webhook_url = request.build_absolute_uri("/api/integrations/github/webhook/")
+            webhook_url = _public_webhook_url("/integrations/github/webhook/", request)
             try:
                 response = requests.post(
                     f"https://api.github.com/repos/{repo_owner}/{repo_name}/hooks",
@@ -252,7 +264,7 @@ class ProjectGitHubWebhookReregisterView(generics.GenericAPIView):
         if not integration.repo_owner or not integration.repo_name:
             return standardize_response(success=False, error="Repository is not linked", status=400)
 
-        webhook_url = request.build_absolute_uri("/api/integrations/github/webhook/")
+        webhook_url = _public_webhook_url("/integrations/github/webhook/", request)
         if not integration.webhook_secret:
             integration.webhook_secret = secrets.token_hex(32)
             integration.save(update_fields=["webhook_secret"])
