@@ -8,6 +8,7 @@ import { saveAs } from "file-saver";
 import { toast } from "sonner";
 import { useProject } from "@/hooks/useProjects";
 import { useTasks } from "@/hooks/useTasks";
+import { useProjectPermissions } from "@/hooks/usePermissions";
 import { useBoardStore } from "@/store/boardStore";
 import { useAuthStore } from "@/store/auth";
 import { useAIStore } from "@/store/ai";
@@ -121,12 +122,38 @@ export default function ProjectBoardPage() {
   }, [activeView, assigneeFilter, dueFilter, id, priorityFilter, user?.id]);
 
   const { data: project, isLoading: projectLoading, error: projectError } = useProject(id);
-  const { data: tasks, isLoading: tasksLoading, error: tasksError } = useTasks(taskFilters);
+  const roleForPerms = project ? (project.my_role ?? "viewer") : null;
+  const projectPerms = useProjectPermissions(roleForPerms);
+  const canViewProject = projectPerms.can("can_view");
+
+  const { data: tasks, isLoading: tasksLoading, error: tasksError } = useTasks(taskFilters, {
+    enabled: !!id && canViewProject,
+  });
   const setBoard = useBoardStore((state) => state.setBoard);
 
   useEffect(() => {
     if (project && tasks) setBoard(project, tasks);
   }, [project, tasks, setBoard]);
+
+  const getAxiosStatus = (error: unknown): number | null => {
+    if (typeof error !== "object" || error === null) return null;
+    if (!("response" in error)) return null;
+    const response = (error as { response?: unknown }).response;
+    if (typeof response !== "object" || response === null) return null;
+    const status = (response as { status?: unknown }).status;
+    return typeof status === "number" ? status : null;
+  };
+
+  const accessDenied = (() => {
+    const status = getAxiosStatus(projectError) ?? getAxiosStatus(tasksError);
+    return status === 403 || status === 404;
+  })();
+
+  useEffect(() => {
+    if (!accessDenied) return;
+    toast.error("You don’t have access to that project.");
+    router.replace("/projects");
+  }, [accessDenied, router]);
 
   const filteredTasks = tasks ?? [];
 
@@ -223,6 +250,20 @@ export default function ProjectBoardPage() {
   }
 
   if (projectError || tasksError) {
+    if (accessDenied) {
+      return (
+        <div className="flex flex-col h-full bg-background items-center justify-center p-8">
+          <div className="max-w-md w-full bg-muted/40 border border-border rounded-xl p-6 text-center">
+            <AlertTriangle size={20} className="text-muted-foreground mx-auto mb-3" />
+            <h2 className="text-[15px] font-semibold mb-1">No access</h2>
+            <p className="text-[13px] text-muted-foreground">Redirecting you back to projects…</p>
+            <Button size="sm" variant="outline" className="mt-4" onClick={() => router.replace("/projects")}>
+              Back to projects
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex flex-col h-full bg-background items-center justify-center p-8">
         <div className="max-w-md w-full bg-destructive/5 border border-destructive/20 rounded-xl p-6 text-center">

@@ -20,7 +20,7 @@ const getApiErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-export const useTasks = (filters: TaskFilters = {}) => {
+export const useTasks = (filters: TaskFilters = {}, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ["tasks", filters],
     queryFn: async () => {
@@ -28,7 +28,7 @@ export const useTasks = (filters: TaskFilters = {}) => {
       // Defensive: never return undefined (React Query will throw if we do)
       return res.data.data ?? [];
     },
-    enabled: true,
+    enabled: options?.enabled ?? true,
   });
 };
 

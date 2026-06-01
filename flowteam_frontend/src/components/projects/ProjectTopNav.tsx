@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, FileText, FolderOpen, GanttChartSquare, Kanban, Receipt, Shield } from "lucide-react";
 import { useProject } from "@/hooks/useProjects";
+import { useProjectPermissions, type Capability } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ type NavItem = {
   label: string;
   icon: ComponentType<{ className?: string }>;
   match: (pathname: string, projectId: string) => boolean;
+  requiredAnyCaps?: Capability[];
 };
 
 const NAV: NavItem[] = [
@@ -22,42 +24,49 @@ const NAV: NavItem[] = [
     label: "Board",
     icon: Kanban,
     match: (p, id) => p === `/projects/${id}`,
+    requiredAnyCaps: ["can_view"],
   },
   {
     href: (id) => `/projects/${id}/reports`,
     label: "Reports",
     icon: BarChart3,
     match: (p, id) => p.startsWith(`/projects/${id}/reports`),
+    requiredAnyCaps: ["can_view"],
   },
   {
     href: (id) => `/projects/${id}/docs`,
     label: "Docs",
     icon: FileText,
     match: (p, id) => p.startsWith(`/projects/${id}/docs`),
+    requiredAnyCaps: ["can_view"],
   },
   {
     href: (id) => `/projects/${id}/files`,
     label: "Files",
     icon: FolderOpen,
     match: (p, id) => p.startsWith(`/projects/${id}/files`),
+    requiredAnyCaps: ["can_view"],
   },
   {
     href: (id) => `/projects/${id}/timeline`,
     label: "Timeline",
     icon: GanttChartSquare,
     match: (p, id) => p.startsWith(`/projects/${id}/timeline`),
+    requiredAnyCaps: ["can_view"],
   },
   {
     href: (id) => `/projects/${id}/billing`,
     label: "Billing",
     icon: Receipt,
     match: (p, id) => p.startsWith(`/projects/${id}/billing`),
+    requiredAnyCaps: ["can_manage_project"],
   },
   {
     href: (id) => `/projects/${id}/settings/permissions`,
     label: "Permissions",
     icon: Shield,
     match: (p, id) => p.startsWith(`/projects/${id}/settings/permissions`),
+    requiredAnyCaps: ["can_manage_members", "can_manage_project"],
   },
 ];
 
@@ -67,12 +76,19 @@ export function ProjectTopNav({ projectId }: { projectId: string | string[] | un
   const normalizedProjectId =
     typeof projectId === "string" ? projectId : Array.isArray(projectId) ? projectId[0] ?? "" : "";
   const { data: project } = useProject(normalizedProjectId);
+  const roleForPerms = project ? (project.my_role ?? "viewer") : null;
+  const projectPerms = useProjectPermissions(roleForPerms);
 
   if (!normalizedProjectId) return null;
 
-  const activeIdx = NAV.findIndex((item) => item.match(pathname, normalizedProjectId));
-  const prevItem = activeIdx > 0 ? NAV[activeIdx - 1] : null;
-  const nextItem = activeIdx < NAV.length - 1 ? NAV[activeIdx + 1] : null;
+  const visibleNav = NAV.filter((item) => {
+    if (!item.requiredAnyCaps?.length) return true;
+    return item.requiredAnyCaps.some((cap) => projectPerms.can(cap));
+  });
+
+  const activeIdx = visibleNav.findIndex((item) => item.match(pathname, normalizedProjectId));
+  const prevItem = activeIdx > 0 ? visibleNav[activeIdx - 1] : null;
+  const nextItem = activeIdx >= 0 && activeIdx < visibleNav.length - 1 ? visibleNav[activeIdx + 1] : null;
 
   return (
     <div className="border-b border-border bg-background">
@@ -95,14 +111,14 @@ export function ProjectTopNav({ projectId }: { projectId: string | string[] | un
             </div>
             {/* Breadcrumb hint */}
             <p className="hidden sm:block text-[11px] text-muted-foreground/50 mt-0.5 pl-10">
-              All projects &rsaquo; {project?.name ?? "Project"}{activeIdx >= 0 ? ` › ${NAV[activeIdx].label}` : ""}
+              All projects &rsaquo; {project?.name ?? "Project"}{activeIdx >= 0 ? ` › ${visibleNav[activeIdx].label}` : ""}
             </p>
           </div>
 
           {/* Right: section tabs + prev/next */}
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 flex-wrap">
-              {NAV.map((item) => {
+              {visibleNav.map((item) => {
                 const active = item.match(pathname, normalizedProjectId);
                 const Icon = item.icon;
                 return (
