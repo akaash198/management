@@ -3,9 +3,11 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
 import { useTeamStore } from "@/store/team";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,12 +32,22 @@ type PortfolioProject = {
 
 export default function PortfolioPage() {
   const { activeTeamId, fetchTeams, teams } = useTeamStore();
+  const router = useRouter();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessReports = canTeamCap("can_access_reports");
 
   useEffect(() => {
     void fetchTeams();
   }, [fetchTeams]);
 
   const activeTeam = useMemo(() => teams.find((t) => t.id === activeTeamId) ?? null, [activeTeamId, teams]);
+
+  useEffect(() => {
+    if (capsLoading) return;
+    if (!activeTeamId) return;
+    if (canAccessReports) return;
+    router.replace("/dashboard");
+  }, [activeTeamId, canAccessReports, capsLoading, router]);
 
   const { data, isLoading, refetch, isFetching } = useQuery<{ projects: PortfolioProject[] }>({
     queryKey: ["portfolio", activeTeamId],
@@ -45,7 +57,7 @@ export default function PortfolioPage() {
       });
       return res.data.data ?? { projects: [] };
     },
-    enabled: true,
+    enabled: !!activeTeamId && canAccessReports,
     staleTime: 30_000,
   });
 
@@ -57,6 +69,14 @@ export default function PortfolioPage() {
     const atRisk = projects.filter((p) => (p.health_score ?? 0) < 50).length;
     return { total, overdue, atRisk };
   }, [projects]);
+
+  if (!capsLoading && activeTeamId && !canAccessReports) {
+    return (
+      <div className="mx-auto max-w-[1400px] p-6">
+        <p className="text-sm text-muted-foreground">Redirecting…</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-[1400px] space-y-7 p-6">
@@ -138,4 +158,3 @@ export default function PortfolioPage() {
     </div>
   );
 }
-

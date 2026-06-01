@@ -45,6 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TeamSwitcher } from "@/components/teams/TeamSwitcher";
+import { useMyTeamCapabilities, type TeamCapabilityKey } from "@/hooks/usePermissions";
 
 /* ── Quick status presets ── */
 const STATUS_PRESETS = [
@@ -57,10 +58,12 @@ const STATUS_PRESETS = [
 ] as const;
 
 /* ── Navigation definitions ── */
-const NAV_MAIN = [
+type MainNavItem = { name: string; href: string; icon: any; requiredCap?: TeamCapabilityKey };
+
+const NAV_MAIN: MainNavItem[] = [
   { name: "Dashboard", href: "/dashboard",  icon: LayoutDashboard },
-  { name: "Portfolio",  href: "/portfolio",  icon: Briefcase },
-  { name: "Projects",   href: "/projects",   icon: Kanban },
+  { name: "Portfolio",  href: "/portfolio",  icon: Briefcase, requiredCap: "can_access_reports" },
+  { name: "Projects",   href: "/projects",   icon: Kanban, requiredCap: "can_create_project" },
   { name: "Messages",   href: "/messages",   icon: MessagesSquare },
   { name: "Calendar",   href: "/calendar",   icon: CalendarDays },
   { name: "Meetings",   href: "/meetings",   icon: Presentation },
@@ -215,6 +218,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
 
   const activeTeamId = useTeamStore((s) => s.activeTeamId);
   const teams = useTeamStore((s) => s.teams);
+  const { can: canTeam, isLoading: teamCapsLoading } = useMyTeamCapabilities(activeTeamId);
   const activeTeam = teams.find(t => t.id === activeTeamId);
 
   const { data: myCompanies } = useQuery<Company[]>({
@@ -315,7 +319,11 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
 
       {/* ── Main nav ── */}
       <nav className="flex-1 flex flex-col items-center gap-1 py-3">
-        {NAV_MAIN.map((item) => (
+        {NAV_MAIN.filter((item) => {
+          if (!item.requiredCap) return true;
+          if (teamCapsLoading) return false;
+          return canTeam(item.requiredCap);
+        }).map((item) => (
           <RailItem
             key={item.href}
             href={item.href}

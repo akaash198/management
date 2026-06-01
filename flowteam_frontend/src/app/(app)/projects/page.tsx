@@ -17,11 +17,12 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/types/project";
 import type { LucideIcon } from "lucide-react";
@@ -48,6 +49,7 @@ type ViewMode = "grid" | "list";
 
 export default function ProjectsPage() {
   const { user } = useAuthStore();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -63,11 +65,16 @@ export default function ProjectsPage() {
   useEffect(() => { fetchTeams(); }, [fetchTeams]);
 
   const activeTeam = useMemo(() => teams.find((t) => t.id === activeTeamId) ?? null, [teams, activeTeamId]);
-  const canCreate =
-    activeTeam?.your_role === "admin" ||
-    activeTeam?.your_role === "ceo"   ||
-    activeTeam?.your_role === "manager" ||
-    user?.is_superuser;
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canCreate = user?.is_superuser || canTeamCap("can_create_project");
+
+  useEffect(() => {
+    if (capsLoading) return;
+    if (!activeTeamId && !user?.is_superuser) return;
+    if (user?.is_superuser) return;
+    if (canCreate) return;
+    router.replace("/dashboard");
+  }, [activeTeamId, canCreate, capsLoading, router, user?.is_superuser]);
 
   const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, user?.is_superuser, statusFilter);
   const allProjects = useMemo(() => projects ?? [], [projects]);
@@ -117,6 +124,14 @@ export default function ProjectsPage() {
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (!capsLoading && activeTeamId && !user?.is_superuser && !canCreate) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <p className="text-sm text-muted-foreground">Redirecting…</p>
       </div>
     );
   }

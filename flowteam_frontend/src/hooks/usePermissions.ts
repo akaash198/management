@@ -1,7 +1,9 @@
 import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
 import { useTeamStore } from "@/store/team";
-import type { Team } from "@/types";
+import api from "@/lib/api";
+import type { ApiResponse, MemberPermissions, Team } from "@/types";
 
 export type TeamRole = "ceo" | "admin" | "manager" | "member" | "viewer";
 export type ProjectRole = "project_admin" | "editor" | "commenter" | "viewer";
@@ -94,6 +96,24 @@ export interface TeamPermissions {
   canManageIntegrations: boolean;
 }
 
+export type TeamCapabilityKey =
+  | "can_manage_team"
+  | "can_invite_members"
+  | "can_change_roles"
+  | "can_remove_members"
+  | "can_delete_team"
+  | "can_view_audit_log"
+  | "can_create_project"
+  | "can_manage_billing"
+  | "can_access_reports"
+  | "can_manage_integrations";
+
+export interface ResolvedTeamCapabilities {
+  resolved: Record<string, boolean>;
+  can: (cap: TeamCapabilityKey) => boolean;
+  isLoading: boolean;
+}
+
 export interface ProjectPermissions {
   role: ProjectRole | null;
   /** Resolved effective capabilities (role defaults merged with overrides) */
@@ -141,6 +161,40 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
       canManageIntegrations: isAdmin,
     };
   }, [user, team, teams, activeTeamId]);
+}
+
+/**
+ * Source-of-truth team capability flags for the current user.
+ * Includes custom-role defaults + per-member overrides resolved by the backend.
+ */
+export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapabilities {
+  const { user } = useAuthStore();
+
+  if (user?.is_superuser) {
+    return {
+      resolved: {},
+      can: () => true,
+      isLoading: false,
+    };
+  }
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["my-team-capabilities", teamId, user?.id],
+    queryFn: async () => {
+      if (!teamId || !user?.id) return { resolved: {} as Record<string, boolean> };
+      const res = await api.get<ApiResponse<MemberPermissions>>(`/teams/${teamId}/members/${user.id}/permissions/`);
+      return { resolved: res.data.data?.resolved ?? {} };
+    },
+    enabled: !!teamId && !!user?.id,
+    staleTime: 30_000,
+  });
+
+  const resolved = data?.resolved ?? {};
+  return {
+    resolved,
+    can: (cap: TeamCapabilityKey) => !!resolved[cap],
+    isLoading,
+  };
 }
 
 /**
