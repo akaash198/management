@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from .models import Team, TeamMember, CustomRole, ALL_TEAM_CAPABILITIES
+from .models import Team, TeamMember, CustomRole, ALL_TEAM_CAPABILITIES, DEFAULT_ROLE_CAPABILITIES
 
 
 def normalize_team_role(role: str | None) -> str:
@@ -81,9 +81,15 @@ def ceo_count(*, team_id: str) -> int:
     return TeamMember.objects.filter(team_id=team_id, role=TeamMember.CEO).count()
 
 
-def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None) -> dict:
+def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None, fallback_role: str | None = None) -> dict:
     """Merge role capability baseline with per-member overrides."""
-    base = dict(custom_role.capabilities) if custom_role else {c: False for c in ALL_TEAM_CAPABILITIES}
+    if custom_role:
+        base = dict(custom_role.capabilities)
+    elif fallback_role:
+        role = normalize_team_role(fallback_role)
+        base = dict(DEFAULT_ROLE_CAPABILITIES.get(role, {}))
+    else:
+        base = {c: False for c in ALL_TEAM_CAPABILITIES}
     overrides = permissions_json or {}
     result = {}
     for cap in ALL_TEAM_CAPABILITIES:
@@ -323,7 +329,7 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
         )
 
     custom_role = membership.custom_role
-    caps = _resolve_caps(custom_role, membership.permissions_json)
+    caps = _resolve_caps(custom_role, membership.permissions_json, membership.role)
     has_ceo = team_has_owner(team_id=str(team.id))
     assignable = assignable_custom_roles_for_invite(actor_custom_role=custom_role, team_id=str(team.id))
 

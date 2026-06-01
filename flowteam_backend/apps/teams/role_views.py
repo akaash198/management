@@ -332,7 +332,7 @@ class MemberPermissionsView(APIView):
     def get(self, request, team_id, uid):
         member = self._get_member(team_id, uid)
         from .rbac import _resolve_caps
-        resolved = _resolve_caps(member.custom_role, member.permissions_json)
+        resolved = _resolve_caps(member.custom_role, member.permissions_json, member.role)
         return standardize_response(data={
             "role_name": member.custom_role.name if member.custom_role else member.role,
             "role_capabilities": dict(member.custom_role.capabilities) if member.custom_role else {},
@@ -400,7 +400,7 @@ class MemberPermissionsView(APIView):
         from .rbac import _resolve_caps
         return standardize_response(data={
             "overrides": member.permissions_json or {},
-            "resolved": _resolve_caps(member.custom_role, member.permissions_json),
+            "resolved": _resolve_caps(member.custom_role, member.permissions_json, member.role),
         })
 
     def delete(self, request, team_id, uid):
@@ -422,7 +422,7 @@ class MemberPermissionsView(APIView):
             actor=request.user, action="permission_change", instance=member,
             changes={"overrides": "reset_to_role_defaults"}, request=request,
         )
-        return standardize_response(data={"overrides": {}, "resolved": _resolve_caps(member.custom_role, None)})
+        return standardize_response(data={"overrides": {}, "resolved": _resolve_caps(member.custom_role, None, member.role)})
 
 
 class TeamCapabilitiesView(APIView):
