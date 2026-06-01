@@ -9,8 +9,6 @@ def get_user_company_role(*, company_id: str, user) -> str | None:
     """Return the user's role within a company, or None if not a member."""
     if not getattr(user, "is_authenticated", False):
         return None
-    if getattr(user, "is_superuser", False):
-        return CompanyMember.CEO
     # The designated CEO FK always has CEO-level access.
     if Company.objects.filter(id=company_id, ceo=user).exists():
         return CompanyMember.CEO
@@ -40,8 +38,6 @@ def can_change_company_member_role(
     current_role: str,
     new_role: str,
 ) -> tuple[bool, str]:
-    if getattr(actor, "is_superuser", False):
-        return True, "ok"
     if not actor_role:
         return False, "not_a_member"
     if current_role == new_role:
@@ -69,8 +65,6 @@ def can_remove_company_member(
     target_user_id: str,
     target_role: str,
 ) -> tuple[bool, str]:
-    if getattr(actor, "is_superuser", False):
-        return True, "ok"
     if not actor_role:
         return False, "not_a_member"
     if actor_role not in (CompanyMember.CEO, CompanyMember.ADMIN):

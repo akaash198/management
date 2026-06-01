@@ -125,6 +125,36 @@ class IsTeamMember(permissions.BasePermission):
         if not team_id: return False
         return TeamMember.objects.filter(team_id=team_id, user=request.user).exists()
 
+
+class IsTeamMemberOrCompanyAdmin(permissions.BasePermission):
+    """
+    Any team member OR a Company Admin/CEO for the team's company.
+
+    Industry-standard: company admins can administer all teams in their company
+    even if they don't have an explicit TeamMember row.
+    """
+
+    def has_permission(self, request, view):
+        if not request.user.is_authenticated:
+            return False
+        team_id = _get_team_id(request, view)
+        if not team_id:
+            return False
+
+        if TeamMember.objects.filter(team_id=team_id, user=request.user).exists():
+            return True
+
+        from .models import Team
+        team = Team.objects.select_related("company").filter(id=team_id).first()
+        if not team or not team.company_id:
+            return False
+
+        from apps.companies.rbac import get_user_company_role
+        from apps.companies.models import CompanyMember
+
+        role = get_user_company_role(company_id=str(team.company_id), user=request.user)
+        return role in (CompanyMember.CEO, CompanyMember.ADMIN)
+
 class IsAIEnabled(permissions.BasePermission):
     message = "AI features require an AI-enabled plan. Upgrade in Settings > Plan."
 

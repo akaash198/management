@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTeamStore } from "@/store/team";
@@ -49,7 +49,6 @@ type ViewMode = "grid" | "list";
 
 export default function ProjectsPage() {
   const { user } = useAuthStore();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchText, setSearchText] = useState("");
@@ -66,17 +65,9 @@ export default function ProjectsPage() {
 
   const activeTeam = useMemo(() => teams.find((t) => t.id === activeTeamId) ?? null, [teams, activeTeamId]);
   const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
-  const canCreate = user?.is_superuser || canTeamCap("can_create_project");
+  const canCreate = canTeamCap("can_create_project");
 
-  useEffect(() => {
-    if (capsLoading) return;
-    if (!activeTeamId && !user?.is_superuser) return;
-    if (user?.is_superuser) return;
-    if (canCreate) return;
-    router.replace("/dashboard");
-  }, [activeTeamId, canCreate, capsLoading, router, user?.is_superuser]);
-
-  const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, user?.is_superuser, statusFilter);
+  const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, false, statusFilter);
   const allProjects = useMemo(() => projects ?? [], [projects]);
 
   const stats = useMemo(() => {
@@ -109,7 +100,7 @@ export default function ProjectsPage() {
 
   const hasActiveFilters = searchText || statusFilter !== "all" || sortBy !== "updated";
 
-  if (isLoading || (!activeTeamId && !user?.is_superuser)) {
+  if (isLoading || !activeTeamId) {
     return (
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         <div className="flex items-center justify-between">
@@ -124,14 +115,6 @@ export default function ProjectsPage() {
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (!capsLoading && activeTeamId && !user?.is_superuser && !canCreate) {
-    return (
-      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
-        <p className="text-sm text-muted-foreground">Redirecting…</p>
       </div>
     );
   }

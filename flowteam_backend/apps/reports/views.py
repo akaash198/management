@@ -8,6 +8,8 @@ from django.utils import timezone
 from rest_framework import permissions, status, views
 
 from apps.projects.models import Milestone, Project, Task, TaskActivity
+from apps.teams.models import Team
+from apps.teams.rbac import compute_team_capabilities
 from config.utils import standardize_response
 
 
@@ -38,15 +40,38 @@ class PortfolioView(views.APIView):
         team_id = request.query_params.get("team_id")
         scope = (request.query_params.get("scope") or "all").strip().lower()
 
-        projects_qs = Project.objects.filter(status="active").select_related("team")
-        if team_id:
-            projects_qs = projects_qs.filter(team_id=team_id)
+        # Industry-standard: Portfolio reports are gated by team capability.
+        # The frontend always passes team_id (active team).
+        if not team_id:
+            return standardize_response(
+                success=False,
+                error={"code": "team_required", "message": "team_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        if not request.user.is_superuser:
-            # Visible projects: team member, explicit role, or creator.
-            projects_qs = projects_qs.filter(
-                Q(team__members__user=request.user) | Q(roles__user=request.user) | Q(created_by=request.user)
-            ).distinct()
+        team = Team.objects.filter(id=team_id).first()
+        if not team:
+            return standardize_response(
+                success=False,
+                error={"code": "not_found", "message": "Team not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        caps = compute_team_capabilities(team=team, user=request.user)
+        if not caps.can_access_reports:
+            return standardize_response(
+                success=False,
+                error={"code": "forbidden", "message": "You do not have access to reports for this team."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        projects_qs = Project.objects.filter(status="active").select_related("team")
+        projects_qs = projects_qs.filter(team_id=team_id)
+
+        # Visible projects: team member, explicit role, or creator.
+        projects_qs = projects_qs.filter(
+            Q(team__members__user=request.user) | Q(roles__user=request.user) | Q(created_by=request.user)
+        ).distinct()
 
         projects = list(projects_qs.order_by("team__name", "name")[:200])
         project_ids = [p.id for p in projects]
@@ -130,4 +155,3 @@ class PortfolioView(views.APIView):
             )
 
         return standardize_response(data={"projects": payload})
-

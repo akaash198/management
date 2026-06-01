@@ -9,7 +9,7 @@ from apps.audit.models import AuditLog
 from config.utils import standardize_response
 
 from .models import ALL_TEAM_CAPABILITIES, CustomRole, Team, TeamMember
-from .permissions import IsTeamAdmin, IsTeamMember
+from .permissions import IsTeamAdmin, IsTeamMember, IsTeamMemberOrCompanyAdmin
 from .rbac import (
     _resolve_caps,
     assignable_custom_roles_for_invite,
@@ -323,7 +323,7 @@ class MemberPermissionsView(APIView):
     PATCH /teams/{team_id}/members/{uid}/permissions/ — grant/revoke individual capabilities
     DELETE /teams/{team_id}/members/{uid}/permissions/ — reset overrides to role defaults
     """
-    permission_classes = [permissions.IsAuthenticated, IsTeamMember]
+    permission_classes = [permissions.IsAuthenticated, IsTeamMemberOrCompanyAdmin]
 
     def _get_member(self, team_id, uid) -> TeamMember:
         team = get_object_or_404(Team, id=team_id)
@@ -356,7 +356,7 @@ class MemberPermissionsView(APIView):
 
         # Prevent owner-role members from having caps revoked by non-owners.
         if member.custom_role and member.custom_role.is_owner_role:
-            if not (actor_custom_role and actor_custom_role.is_owner_role) and not request.user.is_superuser:
+            if not (actor_custom_role and actor_custom_role.is_owner_role):
                 return standardize_response(
                     success=False,
                     error={"code": "owner_protected", "message": "Cannot modify permissions of an owner role member."},
@@ -410,12 +410,11 @@ class MemberPermissionsView(APIView):
 
         if not (actor_custom_role and (actor_custom_role.is_owner_role or
                 _resolve_caps(actor_custom_role, None).get("can_change_roles"))):
-            if not request.user.is_superuser:
-                return standardize_response(
-                    success=False,
-                    error={"code": "forbidden", "message": "Not permitted."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+            return standardize_response(
+                success=False,
+                error={"code": "forbidden", "message": "Not permitted."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         member.permissions_json = None
         member.save(update_fields=["permissions_json"])
