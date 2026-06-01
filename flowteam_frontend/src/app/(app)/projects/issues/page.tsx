@@ -33,6 +33,7 @@ import { useDeleteTask, useTasks } from "@/hooks/useTasks";
 import { useBulkUpdateTasks, useCreateSavedIssueView, useSavedIssueViews, useSprints } from "@/hooks/usePlanning";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -70,6 +71,8 @@ const ISSUE_TYPE_CONFIG = {
 export default function ProjectIssuesPage() {
   const { user } = useAuthStore();
   const { teams, activeTeamId, fetchTeams } = useTeamStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessIssues = canTeamCap("can_access_issues");
   const [search, setSearch] = useState("");
   const [projectId, setProjectId] = useState("");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -91,7 +94,12 @@ export default function ProjectIssuesPage() {
     void fetchTeams();
   }, [fetchTeams]);
 
-  const { data: projects = [], isLoading: projectsLoading } = useProjects(activeTeamId ?? undefined, !!user?.is_superuser, "active");
+  const { data: projects = [], isLoading: projectsLoading } = useProjects(activeTeamId ?? undefined, false, "active", {
+    enabled: !!activeTeamId && canAccessIssues,
+  });
+
+
+
   const { data: sprints = [] } = useSprints({ teamId: activeTeamId ?? undefined });
   const { data: savedViews = [] } = useSavedIssueViews(activeTeamId ?? undefined);
   const createSavedView = useCreateSavedIssueView();

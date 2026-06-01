@@ -107,7 +107,13 @@ export type TeamCapabilityKey =
   | "can_create_project"
   | "can_manage_billing"
   | "can_access_reports"
-  | "can_manage_integrations";
+  | "can_manage_integrations"
+  | "can_access_messages"
+  | "can_access_calendar"
+  | "can_access_meetings"
+  | "can_access_issues"
+  | "can_access_planning"
+  | "can_access_operations";
 
 export interface ResolvedTeamCapabilities {
   resolved: Record<string, boolean>;
@@ -188,6 +194,12 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
         "can_manage_billing",
         "can_access_reports",
         "can_manage_integrations",
+        "can_access_messages",
+        "can_access_calendar",
+        "can_access_meetings",
+        "can_access_issues",
+        "can_access_planning",
+        "can_access_operations",
       ]) {
         resolved[key] = !!caps[key];
       }

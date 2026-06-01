@@ -15,14 +15,45 @@ ALL_TEAM_CAPABILITIES = [
     "can_manage_billing",
     "can_access_reports",
     "can_manage_integrations",
+    "can_access_messages",
+    "can_access_calendar",
+    "can_access_meetings",
+    "can_access_issues",
+    "can_access_planning",
+    "can_access_operations",
 ]
 
 DEFAULT_ROLE_CAPABILITIES = {
     "ceo":     {c: True  for c in ALL_TEAM_CAPABILITIES},
     "admin":   {c: True  if c != "can_delete_team" else False for c in ALL_TEAM_CAPABILITIES},
-    "manager": {c: c in ("can_invite_members", "can_access_projects", "can_create_project", "can_access_reports") for c in ALL_TEAM_CAPABILITIES},
-    "member":  {c: c == "can_access_projects" for c in ALL_TEAM_CAPABILITIES},
-    "viewer":  {c: c == "can_access_projects" for c in ALL_TEAM_CAPABILITIES},
+    "manager": {c: c in (
+        "can_invite_members",
+        "can_access_projects",
+        "can_create_project",
+        "can_access_reports",
+        "can_access_messages",
+        "can_access_calendar",
+        "can_access_meetings",
+        "can_access_issues",
+        "can_access_planning",
+        "can_access_operations",
+    ) for c in ALL_TEAM_CAPABILITIES},
+    "member":  {c: c in (
+        "can_access_projects",
+        "can_access_messages",
+        "can_access_calendar",
+        "can_access_meetings",
+        "can_access_issues",
+        "can_access_planning",
+    ) for c in ALL_TEAM_CAPABILITIES},
+    "viewer":  {c: c in (
+        "can_access_projects",
+        "can_access_messages",
+        "can_access_calendar",
+        "can_access_meetings",
+        "can_access_issues",
+        "can_access_planning",
+    ) for c in ALL_TEAM_CAPABILITIES},
 }
 
 class Team(models.Model):

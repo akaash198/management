@@ -448,6 +448,12 @@ class TeamCapabilitiesView(APIView):
             "can_manage_billing": caps.can_manage_billing,
             "can_access_reports": caps.can_access_reports,
             "can_manage_integrations": caps.can_manage_integrations,
+            "can_access_messages": caps.can_access_messages,
+            "can_access_calendar": caps.can_access_calendar,
+            "can_access_meetings": caps.can_access_meetings,
+            "can_access_issues": caps.can_access_issues,
+            "can_access_planning": caps.can_access_planning,
+            "can_access_operations": caps.can_access_operations,
             "assignable_invite_roles": caps.assignable_invite_roles,
             "assignable_custom_role_ids": caps.assignable_custom_role_ids,
         })

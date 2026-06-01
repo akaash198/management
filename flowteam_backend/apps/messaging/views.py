@@ -173,6 +173,14 @@ class ChannelViewSet(viewsets.ModelViewSet):
         )
 
     def list(self, request, *args, **kwargs):
+        team_id = request.query_params.get("team_id")
+        if team_id and not request.user.is_superuser:
+            team = Team.objects.filter(id=team_id).first()
+            if team:
+                from apps.teams.rbac import compute_team_capabilities
+                caps = compute_team_capabilities(team=team, user=request.user)
+                if not caps.can_access_messages:
+                    return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return standardize_response(data=serializer.data)

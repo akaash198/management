@@ -31,6 +31,12 @@ const ALL_CAPS: { key: string; label: string; description: string }[] = [
   { key: "can_manage_billing",      label: "Manage billing",          description: "View and update plan and billing" },
   { key: "can_access_reports",      label: "Access reports",          description: "View analytics and reporting data" },
   { key: "can_manage_integrations", label: "Manage integrations",     description: "Connect GitHub, Slack, calendars, etc." },
+  { key: "can_access_messages",     label: "Access messages",         description: "Use team messaging (channels, DMs, calls)" },
+  { key: "can_access_calendar",     label: "Access calendar",         description: "Use the Calendar module" },
+  { key: "can_access_meetings",     label: "Access meetings",         description: "Use the Meetings module" },
+  { key: "can_access_issues",       label: "Access issues",           description: "Access project issues view" },
+  { key: "can_access_planning",     label: "Access planning",         description: "Access project planning view" },
+  { key: "can_access_operations",   label: "Access operations",       description: "Access project operations view" },
 ];
 
 // ── Override state per capability: null = inherited, true = granted, false = revoked

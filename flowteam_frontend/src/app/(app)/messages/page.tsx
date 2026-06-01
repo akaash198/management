@@ -11,6 +11,7 @@ import api from "@/lib/api";
 import { MessageSquare, Phone, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { useChannelEventsSocket, useTeamPresenceSocket } from "@/hooks/useMessaging";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
@@ -31,6 +32,8 @@ export default function MessagingPage() {
   const acceptCallIdParam = searchParams.get("acceptCall");
   const acceptCallTypeParam = searchParams.get("callType") as 'audio' | 'video' | null;
   const { activeTeamId, fetchTeams } = useTeamStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessMessages = canTeamCap("can_access_messages");
   const selectedChannelIdRef = useRef<string>("");
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(true);
@@ -110,11 +113,19 @@ export default function MessagingPage() {
     fetchTeams().then(() => {
       const teamId = useTeamStore.getState().activeTeamId;
       initializedRef.current = true;
-      if (teamId) fetchChannels(teamId);
+      if (teamId && canAccessMessages) fetchChannels(teamId);
       else setIsLoading(false);
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (capsLoading) return;
+    if (!activeTeamId) return;
+    if (canAccessMessages) return;
+    toast.error("You don’t have access to Messages for this team.");
+    router.replace("/dashboard");
+  }, [activeTeamId, canAccessMessages, capsLoading, router]);
 
   // After init, re-load channels whenever the user switches teams.
   useEffect(() => {

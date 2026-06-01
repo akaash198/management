@@ -24,6 +24,11 @@ def _require_team_access(request, team_id: str) -> Team:
     team = get_object_or_404(Team, id=team_id)
     if not ensure_team_membership(team=team, user=request.user):
         raise PermissionError("Forbidden")
+
+    from apps.teams.rbac import compute_team_capabilities
+    caps = compute_team_capabilities(team=team, user=request.user)
+    if not caps.can_access_meetings:
+        raise PermissionError("Forbidden")
     return team
 
 

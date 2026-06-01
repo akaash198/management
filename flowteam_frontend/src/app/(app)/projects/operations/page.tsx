@@ -63,6 +63,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import api from "@/lib/api";
 import { getApiBaseUrl } from "@/lib/runtimeConfig";
 import type { ApiResponse, TeamMember } from "@/types";
@@ -90,31 +91,42 @@ function fmtAgo(v: string | null | undefined) {
 export default function ProjectOperationsPage() {
   const { activeTeamId, teams, fetchTeams } = useTeamStore();
   const { user } = useAuthStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessOperations = canTeamCap("can_access_operations");
+  const teamIdForQueries = canAccessOperations ? (activeTeamId ?? undefined) : undefined;
   const aiEnabled = useAIStore((state) => state.aiEnabled);
 
   useEffect(() => { void fetchTeams(); }, [fetchTeams]);
 
-  const { data: projects = [] } = useProjects(activeTeamId ?? undefined, !!user?.is_superuser, "active");
+  const { data: projects = [] } = useProjects(teamIdForQueries, false, "active");
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
-    queryKey: ["operations-team-members", activeTeamId],
+    queryKey: ["operations-team-members", teamIdForQueries],
     queryFn: async () => {
-      if (!activeTeamId) return [];
-      const r = await api.get<ApiResponse<TeamMember[]>>(`/teams/${activeTeamId}/members/`);
+      if (!teamIdForQueries) return [];
+      const r = await api.get<ApiResponse<TeamMember[]>>(`/teams/${teamIdForQueries}/members/`);
       return r.data.data ?? [];
     },
-    enabled: !!activeTeamId,
+    enabled: !!teamIdForQueries,
   });
 
-  const { data: approvals = [] } = useApprovals({ teamId: activeTeamId ?? undefined });
-  const { data: activity = [] } = useActivityFeed({ teamId: activeTeamId ?? undefined });
-  const { data: reporting } = useAdvancedReporting({ teamId: activeTeamId ?? undefined });
-  const { data: documents = [] } = useDocuments({ teamId: activeTeamId ?? undefined });
-  const { data: notificationRules = [] } = useNotificationRules({ teamId: activeTeamId ?? undefined });
-  const { data: automationRules = [] } = useAutomationRules({ teamId: activeTeamId ?? undefined });
-  const { data: clientAccess = [] } = useClientAccess({ teamId: activeTeamId ?? undefined });
+  const { data: approvals = [] } = useApprovals({ teamId: teamIdForQueries });
+  const { data: activity = [] } = useActivityFeed({ teamId: teamIdForQueries });
+  const { data: reporting } = useAdvancedReporting({ teamId: teamIdForQueries });
+  const { data: documents = [] } = useDocuments({ teamId: teamIdForQueries });
+  const { data: notificationRules = [] } = useNotificationRules({ teamId: teamIdForQueries });
+  const { data: automationRules = [] } = useAutomationRules({ teamId: teamIdForQueries });
+  const { data: clientAccess = [] } = useClientAccess({ teamId: teamIdForQueries });
   const { data: preferences } = useNotificationPreferences();
   const { data: digestPreview } = useNotificationDigestPreview();
+
+  if (!capsLoading && activeTeamId && !canAccessOperations) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <p className="text-sm text-muted-foreground">You don’t have access to Operations for this team.</p>
+      </div>
+    );
+  }
 
   const [fieldProjectId, setFieldProjectId] = useState("");
   const { data: issueFields = [] } = useIssueFields(fieldProjectId || undefined);

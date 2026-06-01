@@ -66,6 +66,9 @@ export default function ProjectsPage() {
   const activeTeam = useMemo(() => teams.find((t) => t.id === activeTeamId) ?? null, [teams, activeTeamId]);
   const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
   const canAccessProjects = canTeamCap("can_access_projects");
+  const canAccessIssues = canTeamCap("can_access_issues");
+  const canAccessPlanning = canTeamCap("can_access_planning");
+  const canAccessOperations = canTeamCap("can_access_operations");
   const canCreate = canTeamCap("can_create_project");
 
   const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, false, statusFilter, {
@@ -141,31 +144,25 @@ export default function ProjectsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap sm:shrink-0 sm:justify-end">
-          {canCreate && (
-            <>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
-                <Link href="/projects/issues"><LayoutList size={13} />Issues</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
-                <Link href="/projects/planning"><LayoutPanelTop size={13} />Planning</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
-                <Link href="/projects/operations"><ShieldCheck size={13} />Operations</Link>
-              </Button>
-              <Button onClick={() => setIsModalOpen(true)} size="sm" className="h-8 px-3 text-[13px] gap-1.5">
-                <Plus size={14} />New project
-              </Button>
-            </>
+          {canAccessIssues && (
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
+              <Link href="/projects/issues"><LayoutList size={13} />Issues</Link>
+            </Button>
           )}
-          {!canCreate && (
-            <>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
-                <Link href="/projects/issues"><LayoutList size={13} />Issues</Link>
-              </Button>
-              <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
-                <Link href="/projects/planning"><LayoutPanelTop size={13} />Planning</Link>
-              </Button>
-            </>
+          {canAccessPlanning && (
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
+              <Link href="/projects/planning"><LayoutPanelTop size={13} />Planning</Link>
+            </Button>
+          )}
+          {canAccessOperations && (
+            <Button asChild variant="outline" size="sm" className="hidden sm:inline-flex h-8 px-3 text-[12.5px] gap-1.5">
+              <Link href="/projects/operations"><ShieldCheck size={13} />Operations</Link>
+            </Button>
+          )}
+          {canCreate && (
+            <Button onClick={() => setIsModalOpen(true)} size="sm" className="h-8 px-3 text-[13px] gap-1.5">
+              <Plus size={14} />New project
+            </Button>
           )}
         </div>
       </div>

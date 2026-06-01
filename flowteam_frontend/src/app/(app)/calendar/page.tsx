@@ -49,6 +49,7 @@ import {
 import { saveAs } from "file-saver";
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { CreateMeetingDialog } from "@/components/meetings/CreateMeetingDialog";
 import { toast } from "sonner";
 import { format, isToday, isTomorrow, addDays, isWithinInterval, startOfDay, endOfDay, isBefore } from "date-fns";
@@ -115,6 +116,8 @@ export default function CalendarPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { activeTeamId, fetchTeams } = useTeamStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessCalendar = canTeamCap("can_access_calendar");
   const calendarRef = useRef<{ getApi(): CalendarApi } | null>(null);
 
   const [view, setView] = useState("dayGridMonth");
@@ -176,6 +179,14 @@ export default function CalendarPage() {
     fetchTeams();
   }, [fetchTeams]);
 
+  useEffect(() => {
+    if (capsLoading) return;
+    if (!activeTeamId) return;
+    if (canAccessCalendar) return;
+    toast.error("You don’t have access to Calendar for this team.");
+    router.replace("/dashboard");
+  }, [activeTeamId, canAccessCalendar, capsLoading, router]);
+
   // Debounce search input
   useEffect(() => {
     const id = setTimeout(() => setSearch(searchInput), 300);
@@ -197,7 +208,7 @@ export default function CalendarPage() {
       >(`/dashboard/calendar/?${params.toString()}`);
       return res.data.data;
     },
-    enabled: !!activeTeamId && !!dateRange.start && !!dateRange.end,
+    enabled: canAccessCalendar && !!activeTeamId && !!dateRange.start && !!dateRange.end,
     staleTime: 60_000,
   });
 

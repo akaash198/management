@@ -266,6 +266,12 @@ class TeamCapabilities:
     can_manage_billing: bool
     can_access_reports: bool
     can_manage_integrations: bool
+    can_access_messages: bool
+    can_access_calendar: bool
+    can_access_meetings: bool
+    can_access_issues: bool
+    can_access_planning: bool
+    can_access_operations: bool
     assignable_invite_roles: list[str]
     assignable_custom_role_ids: list[str] = field(default_factory=list)
 
@@ -294,6 +300,8 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
                 can_delete_team=False, can_view_audit_log=False,
                 can_access_projects=False, can_create_project=False, can_manage_billing=False,
                 can_access_reports=False, can_manage_integrations=False,
+                can_access_messages=False, can_access_calendar=False, can_access_meetings=False,
+                can_access_issues=False, can_access_planning=False, can_access_operations=False,
                 assignable_invite_roles=[], assignable_custom_role_ids=[],
             )
 
@@ -335,6 +343,12 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
         can_manage_billing=caps.get("can_manage_billing", False),
         can_access_reports=caps.get("can_access_reports", False),
         can_manage_integrations=caps.get("can_manage_integrations", False),
+        can_access_messages=caps.get("can_access_messages", False),
+        can_access_calendar=caps.get("can_access_calendar", False),
+        can_access_meetings=caps.get("can_access_meetings", False),
+        can_access_issues=caps.get("can_access_issues", False),
+        can_access_planning=caps.get("can_access_planning", False),
+        can_access_operations=caps.get("can_access_operations", False),
         assignable_invite_roles=assignable_roles_for_invite(actor_role=membership.role, has_ceo=has_ceo),
         assignable_custom_role_ids=[str(r.id) for r in assignable],
     )

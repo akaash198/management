@@ -297,6 +297,13 @@ class CalendarView(views.APIView):
         if not _ensure_team_member(request, team_id):
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
+        team = Team.objects.filter(id=team_id).first()
+        if team:
+            from apps.teams.rbac import compute_team_capabilities
+            caps = compute_team_capabilities(team=team, user=request.user)
+            if not caps.can_access_calendar:
+                return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+
         tasks = Task.objects.filter(project__team_id=team_id, due_date__isnull=False)
         if start and end:
             tasks = tasks.filter(due_date__range=[start, end])

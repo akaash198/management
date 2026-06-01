@@ -64,9 +64,9 @@ const NAV_MAIN: MainNavItem[] = [
   { name: "Dashboard", href: "/dashboard",  icon: LayoutDashboard },
   { name: "Portfolio",  href: "/portfolio",  icon: Briefcase, requiredCap: "can_access_reports" },
   { name: "Projects",   href: "/projects",   icon: Kanban, requiredCap: "can_access_projects" },
-  { name: "Messages",   href: "/messages",   icon: MessagesSquare },
-  { name: "Calendar",   href: "/calendar",   icon: CalendarDays },
-  { name: "Meetings",   href: "/meetings",   icon: Presentation },
+  { name: "Messages",   href: "/messages",   icon: MessagesSquare, requiredCap: "can_access_messages" },
+  { name: "Calendar",   href: "/calendar",   icon: CalendarDays, requiredCap: "can_access_calendar" },
+  { name: "Meetings",   href: "/meetings",   icon: Presentation, requiredCap: "can_access_meetings" },
 ];
 
 /* ═══════════════════════════════════════════

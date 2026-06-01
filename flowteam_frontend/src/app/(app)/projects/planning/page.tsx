@@ -44,6 +44,7 @@ import {
 } from "@/hooks/usePlanning";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -81,29 +82,40 @@ const PRIORITY_COLORS: Record<string, string> = {
 export default function ProjectPlanningPage() {
   const { user } = useAuthStore();
   const { teams, activeTeamId, fetchTeams } = useTeamStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessPlanning = canTeamCap("can_access_planning");
+  const teamIdForQueries = canAccessPlanning ? (activeTeamId ?? undefined) : undefined;
   const aiEnabled = useAIStore((state) => state.aiEnabled);
   const queryClient = useQueryClient();
 
   useEffect(() => { void fetchTeams(); }, [fetchTeams]);
 
-  const { data: projects = [] } = useProjects(activeTeamId ?? undefined, !!user?.is_superuser, "active");
+  const { data: projects = [] } = useProjects(teamIdForQueries, false, "active");
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
-    queryKey: ["planning-team-members", activeTeamId],
+    queryKey: ["planning-team-members", teamIdForQueries],
     queryFn: async () => {
-      if (!activeTeamId) return [];
-      const r = await api.get<ApiResponse<TeamMember[]>>(`/teams/${activeTeamId}/members/`);
+      if (!teamIdForQueries) return [];
+      const r = await api.get<ApiResponse<TeamMember[]>>(`/teams/${teamIdForQueries}/members/`);
       return r.data.data ?? [];
     },
-    enabled: !!activeTeamId,
+    enabled: !!teamIdForQueries,
   });
 
-  const { data: backlogTasks = [] } = useTasks({ team_id: activeTeamId ?? undefined, status: "open" });
-  const { data: sprints = [] } = useSprints({ teamId: activeTeamId ?? undefined });
-  const { data: roadmap } = useRoadmapOverview(activeTeamId ?? undefined);
-  const { data: milestones = [] } = useMilestones({ teamId: activeTeamId ?? undefined });
-  const { data: workload = [] } = useWorkloadOverview(activeTeamId ?? undefined);
-  const { data: templates = [] } = useProjectTemplates(activeTeamId ?? undefined);
-  const { data: recurringRules = [] } = useRecurringRules({ teamId: activeTeamId ?? undefined });
+  const { data: backlogTasks = [] } = useTasks({ team_id: teamIdForQueries, status: "open" }, { enabled: !!teamIdForQueries });
+  const { data: sprints = [] } = useSprints({ teamId: teamIdForQueries });
+  const { data: roadmap } = useRoadmapOverview(teamIdForQueries);
+  const { data: milestones = [] } = useMilestones({ teamId: teamIdForQueries });
+  const { data: workload = [] } = useWorkloadOverview(teamIdForQueries);
+  const { data: templates = [] } = useProjectTemplates(teamIdForQueries);
+  const { data: recurringRules = [] } = useRecurringRules({ teamId: teamIdForQueries });
+
+  if (!capsLoading && activeTeamId && !canAccessPlanning) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <p className="text-sm text-muted-foreground">You don’t have access to Planning for this team.</p>
+      </div>
+    );
+  }
 
   const createSprint = useCreateSprint();
   const createMilestone = useCreateMilestone();

@@ -14,6 +14,7 @@ import type { ApiResponse } from "@/types";
 import type { Meeting } from "@/types/meetings";
 import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
+import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -69,6 +70,8 @@ export default function MeetingsPage() {
   const router = useRouter();
   const qc = useQueryClient();
   const { activeTeamId, fetchTeams } = useTeamStore();
+  const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessMeetings = canTeamCap("can_access_meetings");
   const user = useAuthStore((s) => s.user);
 
   const [createOpen, setCreateOpen] = useState(false);
@@ -81,6 +84,14 @@ export default function MeetingsPage() {
   const [creatingInstant, setCreatingInstant] = useState(false);
 
   useEffect(() => { fetchTeams(); }, [fetchTeams]);
+
+  useEffect(() => {
+    if (capsLoading) return;
+    if (!activeTeamId) return;
+    if (canAccessMeetings) return;
+    toast.error("You don’t have access to Meetings for this team.");
+    router.replace("/dashboard");
+  }, [activeTeamId, canAccessMeetings, capsLoading, router]);
 
   const range = useMemo(() => {
     const now = new Date();
@@ -96,7 +107,7 @@ export default function MeetingsPage() {
       const res = await api.get<ApiResponse<Meeting[]>>(`/meetings/teams/${activeTeamId}/meetings/?${qs.toString()}`);
       return res.data.data ?? [];
     },
-    enabled: !!activeTeamId,
+    enabled: canAccessMeetings && !!activeTeamId,
     staleTime: 30_000,
   });
 
