@@ -386,7 +386,10 @@ class MemberPermissionsView(APIView):
             overrides[cap] = False
 
         # Remove overrides that match the role baseline (keep json clean).
-        role_caps = member.custom_role.capabilities if member.custom_role else {}
+        # Use resolved baseline so missing keys in stored role JSON (from older teams) don't
+        # cause noisy overrides.
+        from .rbac import _resolve_caps
+        role_caps = _resolve_caps(member.custom_role, None, member.role)
         cleaned = {k: v for k, v in overrides.items() if role_caps.get(k) != v}
 
         member.permissions_json = cleaned or None

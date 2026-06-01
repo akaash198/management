@@ -83,11 +83,13 @@ def ceo_count(*, team_id: str) -> int:
 
 def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None, fallback_role: str | None = None) -> dict:
     """Merge role capability baseline with per-member overrides."""
+    role_hint = None
     if custom_role:
         base = dict(custom_role.capabilities)
+        role_hint = normalize_team_role(getattr(custom_role, "slug", None) or fallback_role)
     elif fallback_role:
-        role = normalize_team_role(fallback_role)
-        base = dict(DEFAULT_ROLE_CAPABILITIES.get(role, {}))
+        role_hint = normalize_team_role(fallback_role)
+        base = dict(DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}))
     else:
         base = {c: False for c in ALL_TEAM_CAPABILITIES}
     overrides = permissions_json or {}
@@ -95,7 +97,12 @@ def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None,
     for cap in ALL_TEAM_CAPABILITIES:
         override = overrides.get(cap)
         if override is None:
-            result[cap] = bool(base.get(cap, False))
+            if cap in base:
+                result[cap] = bool(base.get(cap, False))
+            elif role_hint:
+                result[cap] = bool(DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}).get(cap, False))
+            else:
+                result[cap] = False
         else:
             result[cap] = bool(override)
     return result
