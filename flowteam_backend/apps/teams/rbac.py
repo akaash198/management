@@ -261,6 +261,7 @@ class TeamCapabilities:
     can_remove_members: bool
     can_delete_team: bool
     can_view_audit_log: bool
+    can_access_projects: bool
     can_create_project: bool
     can_manage_billing: bool
     can_access_reports: bool
@@ -291,7 +292,7 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
                 can_manage_team=False, can_invite_members=False,
                 can_change_roles=False, can_remove_members=False,
                 can_delete_team=False, can_view_audit_log=False,
-                can_create_project=False, can_manage_billing=False,
+                can_access_projects=False, can_create_project=False, can_manage_billing=False,
                 can_access_reports=False, can_manage_integrations=False,
                 assignable_invite_roles=[], assignable_custom_role_ids=[],
             )
@@ -329,6 +330,7 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
         can_remove_members=caps.get("can_remove_members", False),
         can_delete_team=caps.get("can_delete_team", False),
         can_view_audit_log=caps.get("can_view_audit_log", False),
+        can_access_projects=caps.get("can_access_projects", False),
         can_create_project=caps.get("can_create_project", False),
         can_manage_billing=caps.get("can_manage_billing", False),
         can_access_reports=caps.get("can_access_reports", False),

@@ -443,6 +443,7 @@ class TeamCapabilitiesView(APIView):
             "can_remove_members": caps.can_remove_members,
             "can_delete_team": caps.can_delete_team,
             "can_view_audit_log": caps.can_view_audit_log,
+            "can_access_projects": caps.can_access_projects,
             "can_create_project": caps.can_create_project,
             "can_manage_billing": caps.can_manage_billing,
             "can_access_reports": caps.can_access_reports,

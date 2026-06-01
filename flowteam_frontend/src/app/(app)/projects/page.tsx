@@ -65,9 +65,12 @@ export default function ProjectsPage() {
 
   const activeTeam = useMemo(() => teams.find((t) => t.id === activeTeamId) ?? null, [teams, activeTeamId]);
   const { can: canTeamCap, isLoading: capsLoading } = useMyTeamCapabilities(activeTeamId);
+  const canAccessProjects = canTeamCap("can_access_projects");
   const canCreate = canTeamCap("can_create_project");
 
-  const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, false, statusFilter);
+  const { data: projects, isLoading, refetch } = useProjects(activeTeamId ?? undefined, false, statusFilter, {
+    enabled: !!activeTeamId && canAccessProjects,
+  });
   const allProjects = useMemo(() => projects ?? [], [projects]);
 
   const stats = useMemo(() => {
@@ -100,7 +103,7 @@ export default function ProjectsPage() {
 
   const hasActiveFilters = searchText || statusFilter !== "all" || sortBy !== "updated";
 
-  if (isLoading || !activeTeamId) {
+  if (isLoading || !activeTeamId || capsLoading) {
     return (
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto space-y-6">
         <div className="flex items-center justify-between">
@@ -115,6 +118,14 @@ export default function ProjectsPage() {
             <Skeleton key={i} className="h-48 rounded-xl" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (!canAccessProjects) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <p className="text-sm text-muted-foreground">You don’t have access to Projects for this team.</p>
       </div>
     );
   }

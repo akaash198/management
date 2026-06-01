@@ -103,6 +103,7 @@ export type TeamCapabilityKey =
   | "can_remove_members"
   | "can_delete_team"
   | "can_view_audit_log"
+  | "can_access_projects"
   | "can_create_project"
   | "can_manage_billing"
   | "can_access_reports"
@@ -182,6 +183,7 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
         "can_remove_members",
         "can_delete_team",
         "can_view_audit_log",
+        "can_access_projects",
         "can_create_project",
         "can_manage_billing",
         "can_access_reports",

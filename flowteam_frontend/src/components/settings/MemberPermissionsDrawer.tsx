@@ -26,6 +26,7 @@ const ALL_CAPS: { key: string; label: string; description: string }[] = [
   { key: "can_remove_members",      label: "Remove members",          description: "Kick members from the team" },
   { key: "can_delete_team",         label: "Delete team",             description: "Permanently delete the entire team" },
   { key: "can_view_audit_log",      label: "View audit log",          description: "See all team activity and changes" },
+  { key: "can_access_projects",     label: "Access projects",         description: "View the Projects module and open projects in this team" },
   { key: "can_create_project",      label: "Create projects",         description: "Start new projects in this team" },
   { key: "can_manage_billing",      label: "Manage billing",          description: "View and update plan and billing" },
   { key: "can_access_reports",      label: "Access reports",          description: "View analytics and reporting data" },

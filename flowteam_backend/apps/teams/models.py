@@ -10,6 +10,7 @@ ALL_TEAM_CAPABILITIES = [
     "can_remove_members",
     "can_delete_team",
     "can_view_audit_log",
+    "can_access_projects",
     "can_create_project",
     "can_manage_billing",
     "can_access_reports",
@@ -19,9 +20,9 @@ ALL_TEAM_CAPABILITIES = [
 DEFAULT_ROLE_CAPABILITIES = {
     "ceo":     {c: True  for c in ALL_TEAM_CAPABILITIES},
     "admin":   {c: True  if c != "can_delete_team" else False for c in ALL_TEAM_CAPABILITIES},
-    "manager": {c: c in ("can_invite_members", "can_create_project", "can_access_reports") for c in ALL_TEAM_CAPABILITIES},
-    "member":  {c: False for c in ALL_TEAM_CAPABILITIES},
-    "viewer":  {c: False for c in ALL_TEAM_CAPABILITIES},
+    "manager": {c: c in ("can_invite_members", "can_access_projects", "can_create_project", "can_access_reports") for c in ALL_TEAM_CAPABILITIES},
+    "member":  {c: c == "can_access_projects" for c in ALL_TEAM_CAPABILITIES},
+    "viewer":  {c: c == "can_access_projects" for c in ALL_TEAM_CAPABILITIES},
 }
 
 class Team(models.Model):

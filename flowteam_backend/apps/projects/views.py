@@ -269,6 +269,17 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
 
         return filtered_queryset.distinct()
 
+    def list(self, request, *args, **kwargs):
+        team_id = request.query_params.get("team_id")
+        if team_id and not request.user.is_superuser:
+            team = Team.objects.filter(id=team_id).first()
+            if team:
+                from apps.teams.rbac import compute_team_capabilities
+                caps = compute_team_capabilities(team=team, user=request.user)
+                if not caps.can_access_projects:
+                    return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+        return super().list(request, *args, **kwargs)
+
     def perform_create(self, serializer):
         project = serializer.save(created_by=self.request.user)
         template_id = serializer.validated_data.get("template_id")
@@ -291,12 +302,9 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             self.perform_create(serializer)
             return standardize_response(data=serializer.data, status=status.HTTP_201_CREATED)
 
-        is_power_user = TeamMember.objects.filter(
-            team=team, 
-            user=request.user, 
-            role__in=[TeamMember.ADMIN, TeamMember.CEO, TeamMember.MANAGER]
-        ).exists()
-        if not is_power_user:
+        from apps.teams.rbac import compute_team_capabilities
+        caps = compute_team_capabilities(team=team, user=request.user)
+        if not caps.can_create_project:
             return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
 
         limits = get_team_limits(team)

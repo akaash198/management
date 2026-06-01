@@ -23,7 +23,8 @@ const getProjectError = (error: unknown, fallback: string) => {
 export const useProjects = (
   teamId?: string,
   isSuperUser: boolean = false,
-  status: ProjectStatusFilter = "active"
+  status: ProjectStatusFilter = "active",
+  options?: { enabled?: boolean }
 ) => {
   return useQuery({
     queryKey: ["projects", teamId, isSuperUser, status],
@@ -36,7 +37,7 @@ export const useProjects = (
       });
       return res.data.data;
     },
-    enabled: !!teamId || isSuperUser,
+    enabled: options?.enabled ?? (!!teamId || isSuperUser),
     staleTime: 30000,
   });
 };

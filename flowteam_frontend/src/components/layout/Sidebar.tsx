@@ -63,7 +63,7 @@ type MainNavItem = { name: string; href: string; icon: any; requiredCap?: TeamCa
 const NAV_MAIN: MainNavItem[] = [
   { name: "Dashboard", href: "/dashboard",  icon: LayoutDashboard },
   { name: "Portfolio",  href: "/portfolio",  icon: Briefcase, requiredCap: "can_access_reports" },
-  { name: "Projects",   href: "/projects",   icon: Kanban },
+  { name: "Projects",   href: "/projects",   icon: Kanban, requiredCap: "can_access_projects" },
   { name: "Messages",   href: "/messages",   icon: MessagesSquare },
   { name: "Calendar",   href: "/calendar",   icon: CalendarDays },
   { name: "Meetings",   href: "/meetings",   icon: Presentation },
