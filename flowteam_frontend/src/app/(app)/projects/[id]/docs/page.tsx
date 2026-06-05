@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { FileText, Plus, Save, Trash2 } from "lucide-react";
+import { Bot, FileText, Plus, Save, Trash2 } from "lucide-react";
 import { useDocuments, useCreateDocument } from "@/hooks/useOperations";
 import { useProject } from "@/hooks/useProjects";
 import type { ProjectDocument } from "@/types/operations";
@@ -15,6 +15,70 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { ProjectTopNav } from "@/components/projects/ProjectTopNav";
+
+const DOC_TYPE_LABELS: Record<string, string> = {
+  note: "Note",
+  spec: "Spec",
+  sop: "SOP",
+  meeting: "Meeting",
+  decision: "Decision",
+  model_card: "Model Card",
+};
+
+const MODEL_CARD_TEMPLATE = `# Model Card
+
+## Model Overview
+- **Model Name:**
+- **Version:**
+- **Owner:**
+- **Created:**
+- **Last Updated:**
+
+## Intended Use
+- **Primary Use Case:**
+- **Primary Users:**
+- **Out-of-Scope Uses:**
+
+## Training Data
+- **Dataset Name:**
+- **Dataset Size:**
+- **Date Range:**
+- **Features Used:**
+
+## Evaluation Metrics
+| Metric | Value | Baseline |
+|--------|-------|----------|
+| Accuracy | — | — |
+| Precision | — | — |
+| Recall | — | — |
+| AUC-ROC | — | — |
+| F1 Score | — | — |
+
+## Model Performance
+- **Training Performance:**
+- **Validation Performance:**
+- **Test Performance:**
+
+## Known Limitations
+-
+-
+
+## Bias & Fairness Assessment
+- **Potential Biases:**
+- **Fairness Metrics Evaluated:**
+- **Mitigation Steps:**
+
+## Deployment
+- **Deployment Date:**
+- **Serving Infrastructure:**
+- **Latency (p99):**
+- **Retraining Schedule:**
+
+## Governance
+- **Approved By:**
+- **Compliance Review:**
+- **Data Privacy Notes:**
+`;
 
 export default function ProjectDocsPage() {
   const { id } = useParams() as { id: string };
@@ -68,12 +132,13 @@ export default function ProjectDocsPage() {
     setDraft({ title: doc.title, doc_type: doc.doc_type, content: doc.content ?? "" });
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (docType: ProjectDocument["doc_type"] = "note") => {
+    const isModelCard = docType === "model_card";
     const created = await createDoc.mutateAsync({
       project: id,
-      title: "New document",
-      doc_type: "note",
-      content: "",
+      title: isModelCard ? "New Model Card" : "New document",
+      doc_type: docType,
+      content: isModelCard ? MODEL_CARD_TEMPLATE : "",
     });
     if (created?.id) handleSelect(created);
   };
@@ -82,102 +147,117 @@ export default function ProjectDocsPage() {
     <div className="min-h-screen bg-background">
       <ProjectTopNav projectId={id} />
       <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-[22px] font-medium tracking-tight">Docs</h1>
-          <p className="text-[13px] text-muted-foreground/70 mt-0.5">{project?.name ?? "Project"} wiki and notes.</p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-[22px] font-medium tracking-tight">Docs</h1>
+            <p className="text-[13px] text-muted-foreground/70 mt-0.5">{project?.name ?? "Project"} wiki and notes.</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              className="gap-2 text-[12px]"
+              onClick={() => void handleCreate("model_card")}
+              disabled={createDoc.isPending}
+            >
+              <Bot className="h-3.5 w-3.5" />
+              New Model Card
+            </Button>
+            <Button className="gap-2" onClick={() => void handleCreate()} disabled={createDoc.isPending}>
+              <Plus className="h-4 w-4" />
+              New doc
+            </Button>
+          </div>
         </div>
-        <Button className="gap-2" onClick={() => void handleCreate()} disabled={createDoc.isPending}>
-          <Plus className="h-4 w-4" />
-          New doc
-        </Button>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Documents
-            </CardTitle>
-            <CardDescription>{docs.length} total</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {docs.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No documents yet.</div>
-            ) : (
-              docs.map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => handleSelect(d)}
-                  className={`w-full text-left rounded-xl border px-3 py-2 transition-colors ${
-                    d.id === selectedId ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"
-                  }`}
+        <div className="grid gap-6 lg:grid-cols-3">
+          <Card className="lg:col-span-1">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Documents
+              </CardTitle>
+              <CardDescription>{docs.length} total</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {docs.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No documents yet.</div>
+              ) : (
+                docs.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => handleSelect(d)}
+                    className={`w-full text-left rounded-xl border px-3 py-2 transition-colors ${
+                      d.id === selectedId ? "border-primary bg-primary/5" : "border-border hover:bg-muted/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold truncate">{d.title}</p>
+                      <Badge
+                        variant={d.doc_type === "model_card" ? "default" : "secondary"}
+                        className="text-[10px] shrink-0"
+                      >
+                        {DOC_TYPE_LABELS[d.doc_type] ?? d.doc_type}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">v{d.version}</p>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Editor</CardTitle>
+              <CardDescription>{selected ? "Edit and save your document." : "Select a document to edit."}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  placeholder="Title"
+                  value={draft.title}
+                  onChange={(e) => setDraft((s) => ({ ...s, title: e.target.value }))}
+                  disabled={!selected}
+                />
+                <select
+                  className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  value={draft.doc_type}
+                  onChange={(e) => setDraft((s) => ({ ...s, doc_type: e.target.value as ProjectDocument["doc_type"] }))}
+                  disabled={!selected}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold truncate">{d.title}</p>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {d.doc_type}
-                    </Badge>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground truncate">v{d.version}</p>
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Editor</CardTitle>
-            <CardDescription>{selected ? "Edit and save your document." : "Select a document to edit."}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="grid gap-3 md:grid-cols-3">
-              <Input
-                placeholder="Title"
-                value={draft.title}
-                onChange={(e) => setDraft((s) => ({ ...s, title: e.target.value }))}
+                  <option value="note">Note</option>
+                  <option value="spec">Spec</option>
+                  <option value="sop">SOP</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="decision">Decision</option>
+                  <option value="model_card">Model Card</option>
+                </select>
+                <div className="flex items-center justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => deleteDoc.mutate()}
+                    disabled={!selected || deleteDoc.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                  <Button className="gap-2" onClick={() => saveDoc.mutate()} disabled={!selected || saveDoc.isPending}>
+                    <Save className="h-4 w-4" />
+                    Save
+                  </Button>
+                </div>
+              </div>
+              <textarea
+                className="w-full min-h-[420px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
+                placeholder="Write markdown…"
+                value={draft.content}
+                onChange={(e) => setDraft((s) => ({ ...s, content: e.target.value }))}
                 disabled={!selected}
               />
-              <select
-                className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                value={draft.doc_type}
-                onChange={(e) => setDraft((s) => ({ ...s, doc_type: e.target.value as ProjectDocument["doc_type"] }))}
-                disabled={!selected}
-              >
-                <option value="note">Note</option>
-                <option value="spec">Spec</option>
-                <option value="sop">SOP</option>
-                <option value="meeting">Meeting</option>
-                <option value="decision">Decision</option>
-              </select>
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="outline"
-                  className="gap-2"
-                  onClick={() => deleteDoc.mutate()}
-                  disabled={!selected || deleteDoc.isPending}
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </Button>
-                <Button className="gap-2" onClick={() => saveDoc.mutate()} disabled={!selected || saveDoc.isPending}>
-                  <Save className="h-4 w-4" />
-                  Save
-                </Button>
-              </div>
-            </div>
-            <textarea
-              className="w-full min-h-[420px] rounded-md border border-input bg-background px-3 py-2 text-sm font-mono"
-              placeholder="Write markdown..."
-              value={draft.content}
-              onChange={(e) => setDraft((s) => ({ ...s, content: e.target.value }))}
-              disabled={!selected}
-            />
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

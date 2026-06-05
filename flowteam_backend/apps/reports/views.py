@@ -7,7 +7,7 @@ from django.db.models import Count, Q
 from django.utils import timezone
 from rest_framework import permissions, status, views
 
-from apps.projects.models import Milestone, Project, Task, TaskActivity
+from apps.projects.models import Milestone, Project, Task, TaskActivity, TaskCustomFieldValue
 from apps.teams.models import Team
 from apps.teams.rbac import compute_team_capabilities
 from config.utils import standardize_response
@@ -126,6 +126,39 @@ class PortfolioView(views.APIView):
             pid = str(row["task__project_id"])
             activity_by_project.setdefault(pid, {})[row["verb"]] = row["c"]
 
+        # ML Experiment stats per project
+        experiment_tasks = (
+            Task.objects.filter(project_id__in=project_ids, issue_type="experiment", is_archived=False)
+            .select_related("column")
+            .values("project_id", "column__is_done_column", "id")
+        )
+        exp_stats: dict[str, dict] = {}
+        for t in experiment_tasks:
+            pid = str(t["project_id"])
+            s = exp_stats.setdefault(pid, {"total": 0, "deployed": 0})
+            s["total"] += 1
+            if t["column__is_done_column"]:
+                s["deployed"] += 1
+
+        # Deployed model count: tasks with Experiment Status = "Deployed"
+        deployed_values = (
+            TaskCustomFieldValue.objects.filter(
+                task__project_id__in=project_ids,
+                field_definition__name="Experiment Status",
+                field_definition__issue_type="experiment",
+            ).values("task__project_id", "value")
+        )
+        deployed_by_project: dict[str, int] = {}
+        for v in deployed_values:
+            pid = str(v["task__project_id"])
+            val = v["value"]
+            if isinstance(val, dict):
+                text = val.get("value", "")
+            else:
+                text = str(val)
+            if text == "Deployed":
+                deployed_by_project[pid] = deployed_by_project.get(pid, 0) + 1
+
         payload = []
         for p in projects:
             pid = str(p.id)
@@ -134,6 +167,8 @@ class PortfolioView(views.APIView):
 
             cached_health = cache.get(_health_cache_key(pid))
             health = cached_health if isinstance(cached_health, dict) else _heuristic_health(p)
+
+            exp = exp_stats.get(pid, {"total": 0, "deployed": 0})
 
             payload.append(
                 {
@@ -151,6 +186,8 @@ class PortfolioView(views.APIView):
                     "health_label": health.get("label"),
                     "next_milestone": next_milestone_by_project.get(pid),
                     "activity_14d": activity_by_project.get(pid, {}),
+                    "experiment_total": exp["total"],
+                    "experiment_deployed": deployed_by_project.get(pid, exp["deployed"]),
                 }
             )
 

@@ -159,7 +159,11 @@ def create_project_notification(recipient, notification_type, title, body, refer
         pass
     return notification
 
-def run_project_automation(task, trigger, actor=None):
+def run_project_automation(task, trigger, actor=None, context=None):
+    """Execute all active automation rules for a given trigger.
+
+    context: optional dict with extra data (e.g. meeting action items for meeting_done trigger).
+    """
     rules = AutomationRule.objects.filter(project=task.project, trigger=trigger, is_active=True)
     for rule in rules:
         for action in rule.actions or []:
@@ -196,6 +200,36 @@ def run_project_automation(task, trigger, actor=None):
                         reference_type="task",
                         reference_id=task.id,
                         action_url=f"/projects/{task.project_id}?task={task.id}",
+                    )
+            elif action_type == "create_task":
+                # Create one task per action item when trigger is meeting_done.
+                # Falls back to a single task using action.title when no items in context.
+                items = (context or {}).get("action_items") or [{"title": action.get("title", "Meeting action item")}]
+                first_col = Column.objects.filter(project=task.project).order_by("order").first()
+                if not first_col:
+                    continue
+                for item in items:
+                    Task.objects.create(
+                        title=item.get("title") or action.get("title", "Meeting action item"),
+                        description=item.get("description", ""),
+                        project=task.project,
+                        column=first_col,
+                        reporter=actor or task.reporter,
+                        issue_type=action.get("issue_type", "task"),
+                        priority=action.get("priority", "normal"),
+                        order=Task.objects.filter(column=first_col).count(),
+                    )
+            elif action_type == "broadcast_experiment":
+                # Post a Slack/outbox notification summarising an experiment status change.
+                from apps.integrations.models import SlackWebhook, OutboxEvent
+                webhooks = SlackWebhook.objects.filter(team=task.project.team, enabled=True)
+                message = action.get("message_template", "Experiment *{title}* moved to {trigger}.").format(
+                    title=task.title, trigger=trigger
+                )
+                for wh in webhooks:
+                    OutboxEvent.objects.create(
+                        channel="slack",
+                        payload={"webhook_url": wh.webhook_url, "text": message},
                     )
 
 def create_default_watchers(task, actor):
@@ -1445,6 +1479,22 @@ class NotificationRuleViewSet(AuditedModelMixin, StandardizedModelViewSet):
             raise PermissionDenied("Forbidden")
         serializer.save(created_by=self.request.user)
 
+ML_EXPERIMENT_FIELD_DEFAULTS = [
+    {"name": "Model Name",        "field_type": "text",   "is_required": True,  "options": []},
+    {"name": "Dataset",           "field_type": "text",   "is_required": True,  "options": []},
+    {"name": "Baseline Metric",   "field_type": "number", "is_required": False, "options": []},
+    {"name": "Target Metric",     "field_type": "number", "is_required": False, "options": []},
+    {"name": "Result Metric",     "field_type": "number", "is_required": False, "options": []},
+    {"name": "Experiment Status", "field_type": "select", "is_required": False,
+     "options": ["Hypothesis", "In Progress", "Eval Review", "Staging", "Deployed", "Abandoned"]},
+    {"name": "Framework",         "field_type": "select", "is_required": False,
+     "options": ["PyTorch", "TensorFlow", "Scikit-learn", "XGBoost", "LightGBM", "HuggingFace", "Other"]},
+    {"name": "Experiment ID",     "field_type": "text",   "is_required": False, "options": []},
+    {"name": "Training Run Date", "field_type": "date",   "is_required": False, "options": []},
+    {"name": "Model Version",     "field_type": "text",   "is_required": False, "options": []},
+]
+
+
 class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = IssueTypeFieldDefinitionSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -1461,6 +1511,44 @@ class IssueTypeFieldDefinitionViewSet(AuditedModelMixin, StandardizedModelViewSe
         if not check_project_permission(self.request.user, project, "manage_project"):
             raise PermissionDenied("Forbidden")
         serializer.save()
+
+    @action(detail=False, methods=["post"], url_path="seed-ml-experiment")
+    def seed_ml_experiment(self, request):
+        """Seed the 10 default ML experiment custom fields for a project."""
+        project_id = request.data.get("project_id")
+        if not project_id:
+            return standardize_response(
+                success=False,
+                error={"code": "missing_field", "message": "project_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        project = get_object_or_404(Project, id=project_id)
+        if not check_project_permission(request.user, project, "manage_project"):
+            raise PermissionDenied("Forbidden")
+
+        existing = set(
+            IssueTypeFieldDefinition.objects.filter(
+                project=project, issue_type="experiment"
+            ).values_list("name", flat=True)
+        )
+        created = []
+        for field in ML_EXPERIMENT_FIELD_DEFAULTS:
+            if field["name"] not in existing:
+                obj = IssueTypeFieldDefinition.objects.create(
+                    project=project,
+                    issue_type="experiment",
+                    **field,
+                )
+                created.append(obj)
+
+        serializer = IssueTypeFieldDefinitionSerializer(
+            IssueTypeFieldDefinition.objects.filter(project=project, issue_type="experiment"),
+            many=True,
+        )
+        return standardize_response(
+            data={"fields": serializer.data, "seeded": len(created)},
+            status=status.HTTP_200_OK,
+        )
 
 class TaskCustomFieldValueViewSet(AuditedModelMixin, StandardizedModelViewSet):
     serializer_class = TaskCustomFieldValueSerializer

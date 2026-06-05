@@ -50,7 +50,7 @@ export interface ProjectDocument {
   task_title: string;
   parent_document: string | null;
   title: string;
-  doc_type: "sop" | "spec" | "meeting" | "decision" | "note";
+  doc_type: "sop" | "spec" | "meeting" | "decision" | "note" | "model_card";
   content: string;
   category: "ppt" | "usecase" | "documentation" | "excel" | "other";
   attachment_url: string;
@@ -92,7 +92,7 @@ export interface AutomationRule {
   id: string;
   project: string;
   name: string;
-  trigger: "task_done" | "task_overdue" | "approval_requested";
+  trigger: "task_done" | "task_overdue" | "approval_requested" | "meeting_done" | "experiment_moved";
   conditions: Record<string, unknown>;
   actions: Array<Record<string, unknown>>;
   is_active: boolean;

@@ -275,6 +275,19 @@ export const useCreateAutomationRule = () => {
   });
 };
 
+export const useDeleteIssueField = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (fieldId: string) => {
+      await api.delete(`/projects/issue-fields/${fieldId}/`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["ops", "issue-fields"] });
+    },
+    onError: (error: unknown) => toast.error(errText(error, "Failed to delete field")),
+  });
+};
+
 export const useClientAccess = (params: { teamId?: string; projectId?: string }) =>
   useQuery({
     queryKey: ["ops", "client-access", params],

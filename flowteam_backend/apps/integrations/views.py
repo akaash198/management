@@ -10,6 +10,7 @@ import secrets
 
 from apps.integrations.models import GitHubIntegration, SlackWebhook
 from apps.integrations.models import BitbucketIntegration, GitLabIntegration
+from apps.integrations.models import ExperimentBroadcastConfig, ExperimentBroadcastLog
 from apps.integrations.serializers import (
     BitbucketIntegrationSerializer,
     GitHubIntegrationSerializer,
@@ -422,3 +423,93 @@ class ProjectBitbucketIntegrationView(generics.GenericAPIView):
 
         integration.save(update_fields=update_fields)
         return standardize_response(data=self.get_serializer(integration).data)
+
+
+# ─── Experiment Broadcast Views ──────────────────────────────────────────────
+
+class ProjectExperimentBroadcastView(generics.GenericAPIView):
+    """GET/PUT config for experiment broadcast for a project."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def _get_project(self, project_id):
+        project = get_object_or_404(Project, id=project_id)
+        if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
+            raise PermissionDenied("Forbidden")
+        return project
+
+    def _is_manager(self, project):
+        return self.request.user.is_superuser or project.team.members.filter(
+            user=self.request.user, role__in=("ceo", "admin", "manager")
+        ).exists()
+
+    def get(self, request, project_id):
+        project = self._get_project(project_id)
+        cfg = ExperimentBroadcastConfig.objects.filter(project=project).first()
+        if not cfg:
+            return standardize_response(data={"configured": False})
+        webhooks = SlackWebhook.objects.filter(team=project.team, enabled=True).values("id", "name", "webhook_url")
+        return standardize_response(data={
+            "configured": True,
+            "enabled": cfg.enabled,
+            "slack_webhook_id": str(cfg.slack_webhook_id) if cfg.slack_webhook_id else None,
+            "notify_on_statuses": cfg.notify_on_statuses,
+            "message_template": cfg.message_template,
+            "slack_webhooks": list(webhooks),
+        })
+
+    def put(self, request, project_id):
+        project = self._get_project(project_id)
+        if not self._is_manager(project):
+            raise PermissionDenied("Forbidden")
+
+        slack_webhook_id = request.data.get("slack_webhook_id")
+        slack_webhook = None
+        if slack_webhook_id:
+            slack_webhook = get_object_or_404(SlackWebhook, id=slack_webhook_id, team=project.team)
+
+        cfg, _ = ExperimentBroadcastConfig.objects.get_or_create(
+            project=project,
+            defaults={"created_by": request.user},
+        )
+        cfg.enabled = bool(request.data.get("enabled", True))
+        cfg.slack_webhook = slack_webhook
+        cfg.notify_on_statuses = request.data.get("notify_on_statuses") or []
+        if request.data.get("message_template"):
+            cfg.message_template = request.data["message_template"]
+        cfg.save()
+        return standardize_response(data={
+            "configured": True,
+            "enabled": cfg.enabled,
+            "slack_webhook_id": str(cfg.slack_webhook_id) if cfg.slack_webhook_id else None,
+            "notify_on_statuses": cfg.notify_on_statuses,
+            "message_template": cfg.message_template,
+        })
+
+
+class ProjectExperimentBroadcastLogsView(generics.ListAPIView):
+    """List recent broadcast log entries for a project."""
+
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request, project_id):
+        project = get_object_or_404(Project, id=project_id)
+        if not self.request.user.is_superuser and not project.team.members.filter(user=self.request.user).exists():
+            raise PermissionDenied("Forbidden")
+        cfg = ExperimentBroadcastConfig.objects.filter(project=project).first()
+        if not cfg:
+            return standardize_response(data=[])
+        logs = ExperimentBroadcastLog.objects.filter(config=cfg).order_by("-created_at")[:50]
+        data = [
+            {
+                "id": str(log.id),
+                "task_title": log.task_title,
+                "experiment_status": log.experiment_status,
+                "message_sent": log.message_sent,
+                "status": log.status,
+                "error": log.error,
+                "created_at": log.created_at.isoformat(),
+            }
+            for log in logs
+        ]
+        return standardize_response(data=data)

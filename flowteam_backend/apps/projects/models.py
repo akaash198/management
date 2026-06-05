@@ -93,6 +93,7 @@ class Task(models.Model):
     ISSUE_TYPE_BUG = "bug"
     ISSUE_TYPE_EPIC = "epic"
     ISSUE_TYPE_SUBTASK = "subtask"
+    ISSUE_TYPE_EXPERIMENT = "experiment"
 
     PRIORITY_CHOICES = [
         ("urgent", "Urgent"),
@@ -106,6 +107,7 @@ class Task(models.Model):
         (ISSUE_TYPE_TASK, "Task"),
         (ISSUE_TYPE_BUG, "Bug"),
         (ISSUE_TYPE_SUBTASK, "Subtask"),
+        (ISSUE_TYPE_EXPERIMENT, "Experiment"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -655,12 +657,14 @@ class ProjectDocument(models.Model):
     DOC_MEETING = "meeting"
     DOC_DECISION = "decision"
     DOC_NOTE = "note"
+    DOC_MODEL_CARD = "model_card"
     DOC_CHOICES = [
         (DOC_SOP, "SOP"),
         (DOC_SPEC, "Spec"),
         (DOC_MEETING, "Meeting Note"),
         (DOC_DECISION, "Decision Log"),
         (DOC_NOTE, "Note"),
+        (DOC_MODEL_CARD, "Model Card"),
     ]
 
     CAT_PPT = "ppt"
@@ -756,10 +760,14 @@ class AutomationRule(models.Model):
     TRIGGER_TASK_DONE = "task_done"
     TRIGGER_TASK_OVERDUE = "task_overdue"
     TRIGGER_APPROVAL_REQUESTED = "approval_requested"
+    TRIGGER_MEETING_DONE = "meeting_done"
+    TRIGGER_EXPERIMENT_MOVED = "experiment_moved"
     TRIGGER_CHOICES = [
         (TRIGGER_TASK_DONE, "Task moved to done"),
         (TRIGGER_TASK_OVERDUE, "Task overdue"),
         (TRIGGER_APPROVAL_REQUESTED, "Approval requested"),
+        (TRIGGER_MEETING_DONE, "Meeting completed"),
+        (TRIGGER_EXPERIMENT_MOVED, "Experiment status changed"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -16,6 +16,8 @@ from apps.integrations.views import (
     ProjectGitHubWebhookDeliveryRetryView,
     ProjectGitHubWebhookReregisterView,
     ProjectGitLabIntegrationView,
+    ProjectExperimentBroadcastView,
+    ProjectExperimentBroadcastLogsView,
     SlackWebhookDetailView,
     SlackWebhookListCreateView,
 )
@@ -29,6 +31,8 @@ urlpatterns = [
     path("projects/<uuid:project_id>/github/webhooks/reregister/", ProjectGitHubWebhookReregisterView.as_view(), name="project-github-webhook-reregister"),
     path("projects/<uuid:project_id>/gitlab/", ProjectGitLabIntegrationView.as_view(), name="project-gitlab-integration"),
     path("projects/<uuid:project_id>/bitbucket/", ProjectBitbucketIntegrationView.as_view(), name="project-bitbucket-integration"),
+    path("projects/<uuid:project_id>/experiment-broadcast/", ProjectExperimentBroadcastView.as_view(), name="project-experiment-broadcast"),
+    path("projects/<uuid:project_id>/experiment-broadcast/logs/", ProjectExperimentBroadcastLogsView.as_view(), name="project-experiment-broadcast-logs"),
     path("github/webhook/", GitHubWebhookView.as_view(), name="github-webhook"),
     path("gitlab/webhook/", GitLabWebhookView.as_view(), name="gitlab-webhook"),
     path("bitbucket/webhook/", BitbucketWebhookView.as_view(), name="bitbucket-webhook"),

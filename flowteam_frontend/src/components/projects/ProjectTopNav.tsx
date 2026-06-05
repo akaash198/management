@@ -3,7 +3,7 @@
 import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, FileText, FolderOpen, GanttChartSquare, Kanban, Receipt, Shield } from "lucide-react";
+import { ArrowLeft, BarChart3, ChevronLeft, ChevronRight, FileText, FlaskConical, FolderOpen, GanttChartSquare, Kanban, Megaphone, Receipt, Shield, Zap } from "lucide-react";
 import { useProject } from "@/hooks/useProjects";
 import { useProjectPermissions, type Capability } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -67,6 +67,27 @@ const NAV: NavItem[] = [
     icon: Shield,
     match: (p, id) => p.startsWith(`/projects/${id}/settings/permissions`),
     requiredAnyCaps: ["can_manage_members", "can_manage_project"],
+  },
+  {
+    href: (id) => `/projects/${id}/settings/ml-experiment`,
+    label: "ML Setup",
+    icon: FlaskConical,
+    match: (p, id) => p.startsWith(`/projects/${id}/settings/ml-experiment`),
+    requiredAnyCaps: ["can_manage_project"],
+  },
+  {
+    href: (id) => `/projects/${id}/settings/automations`,
+    label: "Automations",
+    icon: Zap,
+    match: (p, id) => p.startsWith(`/projects/${id}/settings/automations`),
+    requiredAnyCaps: ["can_manage_project"],
+  },
+  {
+    href: (id) => `/projects/${id}/settings/experiment-broadcast`,
+    label: "Broadcast",
+    icon: Megaphone,
+    match: (p, id) => p.startsWith(`/projects/${id}/settings/experiment-broadcast`),
+    requiredAnyCaps: ["can_manage_project"],
   },
 ];
 

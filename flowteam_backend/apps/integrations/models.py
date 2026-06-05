@@ -196,6 +196,78 @@ class ExternalCalendarAccount(models.Model):
         ]
 
 
+class ExperimentBroadcastConfig(models.Model):
+    """Per-project configuration for broadcasting experiment status changes to Slack."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    project = models.OneToOneField(
+        "projects.Project",
+        on_delete=models.CASCADE,
+        related_name="experiment_broadcast_config",
+    )
+    slack_webhook = models.ForeignKey(
+        SlackWebhook,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="experiment_broadcast_configs",
+    )
+    enabled = models.BooleanField(default=True)
+    notify_on_statuses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='List of Experiment Status values that trigger a broadcast, e.g. ["Deployed", "Eval Review"]',
+    )
+    message_template = models.TextField(
+        default="Experiment *{title}* moved to *{status}* in project *{project}*.",
+        blank=True,
+    )
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="experiment_broadcast_configs",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Broadcast config for {self.project_id}"
+
+
+class ExperimentBroadcastLog(models.Model):
+    """Audit log of every experiment broadcast sent."""
+
+    STATUS_SENT = "sent"
+    STATUS_FAILED = "failed"
+    STATUS_SKIPPED = "skipped"
+    STATUS_CHOICES = [
+        (STATUS_SENT, "Sent"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_SKIPPED, "Skipped"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    config = models.ForeignKey(
+        ExperimentBroadcastConfig,
+        on_delete=models.CASCADE,
+        related_name="logs",
+    )
+    task_id = models.UUIDField(null=True, blank=True)
+    task_title = models.CharField(max_length=255, blank=True, default="")
+    experiment_status = models.CharField(max_length=100, blank=True, default="")
+    message_sent = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_SENT)
+    error = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["config", "created_at"], name="expbroadcast_config_time_idx"),
+        ]
+
+
 class OutboxEvent(models.Model):
     DEST_SLACK = "slack"
     DEST_CHOICES = [(DEST_SLACK, "Slack")]
