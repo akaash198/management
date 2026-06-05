@@ -15,7 +15,7 @@ const SearchModal = dynamic(
   () => import("@/components/search/SearchModal").then((m) => ({ default: m.SearchModal }))
 );
 import { cn } from "@/lib/utils";
-import { useTeamStore } from "@/store/team";
+
 import Link from "next/link";
 import { usePresenceStore } from "@/store/presence";
 import { PRESENCE_META, PRESENCE_OPTIONS } from "@/lib/presence";
@@ -64,7 +64,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname  = usePathname();
   const [searchOpen, setSearchOpen]   = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { teams, activeTeamId }       = useTeamStore();
+
   const [queryClient]                 = useState(() => new QueryClient());
   const [didInit, setDidInit]         = useState(false);
   const myPresence    = usePresenceStore((s) => s.status);
@@ -116,7 +116,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="flex h-screen overflow-hidden bg-background">
-        {/* Mobile sidebar overlay */}
+        {/* Desktop sidebar — always in flow */}
+        <div className="hidden md:block shrink-0">
+          <Sidebar />
+        </div>
+
+        {/* Mobile sidebar — slide-over overlay */}
         {sidebarOpen && (
           <div
             className="fixed inset-0 z-40 bg-black/40 md:hidden"
@@ -124,8 +129,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           />
         )}
         <div className={cn(
-          "fixed inset-y-0 left-0 z-50 md:relative md:z-auto md:translate-x-0 transition-transform duration-200",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+          "fixed inset-y-0 left-0 z-50 transition-transform duration-200 md:hidden",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}>
           <Sidebar onClose={() => setSidebarOpen(false)} />
         </div>
