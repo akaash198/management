@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,20 @@ import { Label } from "@/components/ui/label";
 import { Camera, Upload, X, Check, Users, ArrowRight, ArrowLeft } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth";
 
 const STEPS = ["Your workspace", "Invite teammates"] as const;
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { user, isLoading } = useAuthStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace("/login?redirect=/onboarding");
+    }
+  }, [isLoading, user, router]);
 
   // Step state
   const [step, setStep] = useState(0);

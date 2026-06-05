@@ -117,12 +117,6 @@ class LoginView(TokenObtainPairView):
         response = super().post(request, *args, **kwargs)
         if response.status_code == 200:
             user = User.objects.get(email=email)
-            if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", False) and not user.email_verified_at:
-                return standardize_response(
-                    success=False,
-                    error="Email address is not verified.",
-                    status=status.HTTP_403_FORBIDDEN,
-                )
             data = {
                 "user": UserSerializer(user, context={"request": request}).data,
                 "access": response.data["access"],

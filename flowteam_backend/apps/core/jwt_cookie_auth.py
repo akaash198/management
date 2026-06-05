@@ -2,11 +2,18 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
 from django.conf import settings
 
+_EMBED_PATH_PREFIXES = ("/api/projects/client-portal/", "/media/")
+
+
 class CookieJWTAuthentication(JWTAuthentication):
     """
     Custom JWT authentication that checks for the access token in:
     1. Authorization header (standard DRF JWT behavior)
-    2. `access_token` cookie (fallback for httpOnly cookie flow)
+    2. `access_token` httpOnly cookie (primary web flow)
+    3. `token` / `access_token` query param — only for embed/media paths
+       where cookies are unavailable (e.g. iframe src, direct file downloads).
+       Restricting this to known embed paths prevents tokens from leaking via
+       server logs or browser history on regular API calls.
     """
     def authenticate(self, request):
         result = super().authenticate(request)
@@ -15,7 +22,9 @@ class CookieJWTAuthentication(JWTAuthentication):
 
         raw_token = request.COOKIES.get("access_token")
         if not raw_token:
-            raw_token = request.GET.get("token") or request.GET.get("access_token")
+            path = getattr(request, "path", "") or ""
+            if any(path.startswith(p) for p in _EMBED_PATH_PREFIXES):
+                raw_token = request.GET.get("token") or request.GET.get("access_token")
 
         if not raw_token:
             return None

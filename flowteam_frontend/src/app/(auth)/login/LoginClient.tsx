@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { getApiBaseUrl } from "@/lib/runtimeConfig";
 
 const loginSchema = z.object({
-  email:    z.string().email("Enter a valid email address"),
+  email:    z.string().min(1, "Email is required").email("Enter a valid email address"),
   password: z.string().min(1, "Password is required"),
 });
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -37,7 +37,7 @@ export default function LoginClient() {
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
-  const { user, setUser } = useAuthStore();
+  const { setUser } = useAuthStore();
   const [error, setError]         = useState<string | null>(null);
   const [loading, setLoading]     = useState(false);
   const [showPw, setShowPw]       = useState(false);
@@ -78,28 +78,18 @@ export default function LoginClient() {
         else payload.otp_code = otpCode.trim().replace(/\s+/g, "");
       }
 
-      console.log("[Login] Attempting login for:", values.email);
       const res = await api.post("/auth/login/", payload);
-      
+
       if (res.data.success && res.data.data) {
-        try {
-          const { user: userData, access, refresh } = res.data.data;
-          console.log("[Login] Success! Data received:", !!userData);
-          
-          setTokens(access, refresh);
-          setUser(userData);
-          
-          const target = searchParams.get("redirect") || "/dashboard";
-          window.location.assign(target);
-        } catch (innerErr) {
-          console.error("[Login] Inner Error during state update:", innerErr);
-          setError("An internal error occurred after login. Please refresh.");
-        }
+        const { user: userData, access, refresh } = res.data.data;
+        setTokens(access, refresh);
+        setUser(userData);
+        const target = searchParams.get("redirect") || "/dashboard";
+        window.location.assign(target);
       } else {
         setError(res.data.error || "Login failed. Please check your credentials.");
       }
     } catch (err: any) {
-      console.error("[Login] Error:", err);
       const data   = err.response?.data;
       const apiErr = data?.error;
       
