@@ -175,7 +175,7 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
  * Includes custom-role defaults + per-member overrides resolved by the backend.
  */
 export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapabilities {
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["my-team-capabilities", teamId],
     queryFn: async () => {
       if (!teamId) return { resolved: {} as Record<string, boolean> };
@@ -206,16 +206,18 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
       return { resolved };
     },
     enabled: !!teamId,
-    staleTime: 5 * 60_000,   // 5 min — capabilities rarely change mid-session
-    gcTime: 10 * 60_000,     // keep in cache 10 min so navigation never causes a cache miss
+    staleTime: 10 * 60_000,      // 10 min — capabilities don't change mid-session
+    gcTime: 30 * 60_000,         // 30 min — survive the full session without cache miss
+    refetchOnWindowFocus: false, // don't re-fetch on tab switch
+    refetchOnMount: false,       // use cached value on navigation, don't re-fetch
   });
 
   const resolved = data?.resolved ?? {};
   return {
     resolved,
     can: (cap: TeamCapabilityKey) => !!resolved[cap],
-    // Consider loading only when there is truly no data yet (first fetch).
-    // Background refetches (isFetching with existing data) must not flash the sidebar.
+    // Only report loading when there is truly no data yet (first fetch).
+    // Background refetches must not flash the sidebar or block pages.
     isLoading: isLoading && !data,
   };
 }

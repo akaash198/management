@@ -82,7 +82,14 @@ def ceo_count(*, team_id: str) -> int:
 
 
 def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None, fallback_role: str | None = None) -> dict:
-    """Merge role capability baseline with per-member overrides."""
+    """Merge role capability baseline with per-member overrides.
+
+    Resolution order for each capability:
+      1. Per-member override (permissions_json) — explicit grant/revoke wins always.
+      2. Stored CustomRole.capabilities JSON value.
+      3. DEFAULT_ROLE_CAPABILITIES for the role slug — safety net so stale/incomplete
+         stored JSON never silently removes access from a system role.
+    """
     role_hint = None
     if custom_role:
         base = dict(custom_role.capabilities)
@@ -92,19 +99,33 @@ def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None,
         base = dict(DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}))
     else:
         base = {c: False for c in ALL_TEAM_CAPABILITIES}
+
+    # For system roles (ceo/admin/manager/member/viewer), the DEFAULT_ROLE_CAPABILITIES
+    # table is the canonical truth. Merge it under the stored JSON so any cap that is
+    # missing from or incorrect in stored JSON (e.g. from an incomplete migration) is
+    # corrected automatically — without overriding legitimate admin customisations.
+    is_system_role = role_hint in DEFAULT_ROLE_CAPABILITIES
+    role_defaults = DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}) if is_system_role else {}
+
     overrides = permissions_json or {}
     result = {}
     for cap in ALL_TEAM_CAPABILITIES:
         override = overrides.get(cap)
-        if override is None:
-            if cap in base:
-                result[cap] = bool(base.get(cap, False))
-            elif role_hint:
-                result[cap] = bool(DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}).get(cap, False))
-            else:
-                result[cap] = False
-        else:
+        if override is not None:
+            # Explicit per-member grant/revoke always wins.
             result[cap] = bool(override)
+        elif cap in base:
+            stored = bool(base[cap])
+            # For system roles: if stored is False but the canonical default is True,
+            # the stored value is stale (incomplete migration). Use the canonical default.
+            if not stored and is_system_role and role_defaults.get(cap, False):
+                result[cap] = True
+            else:
+                result[cap] = stored
+        elif role_hint:
+            result[cap] = bool(role_defaults.get(cap, False))
+        else:
+            result[cap] = False
     return result
 
 
