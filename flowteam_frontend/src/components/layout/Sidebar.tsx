@@ -321,7 +321,7 @@ export function Sidebar({ onClose }: { onClose?: () => void } = {}) {
       <nav className="flex-1 flex flex-col items-center gap-1 py-3">
         {NAV_MAIN.filter((item) => {
           if (!item.requiredCap) return true;
-          if (teamCapsLoading) return false;
+          if (teamCapsLoading || !activeTeamId) return true;
           return canTeam(item.requiredCap);
         }).map((item) => (
           <RailItem
