@@ -125,7 +125,7 @@ export default function ProjectsPage() {
     );
   }
 
-  if (!canAccessProjects) {
+  if (!capsLoading && activeTeamId && !canAccessProjects) {
     return (
       <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
         <p className="text-sm text-muted-foreground">You don’t have access to Projects for this team.</p>

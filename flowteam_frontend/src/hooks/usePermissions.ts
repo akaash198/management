@@ -175,7 +175,7 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
  * Includes custom-role defaults + per-member overrides resolved by the backend.
  */
 export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapabilities {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ["my-team-capabilities", teamId],
     queryFn: async () => {
       if (!teamId) return { resolved: {} as Record<string, boolean> };
@@ -206,14 +206,17 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
       return { resolved };
     },
     enabled: !!teamId,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,   // 5 min — capabilities rarely change mid-session
+    gcTime: 10 * 60_000,     // keep in cache 10 min so navigation never causes a cache miss
   });
 
   const resolved = data?.resolved ?? {};
   return {
     resolved,
     can: (cap: TeamCapabilityKey) => !!resolved[cap],
-    isLoading,
+    // Consider loading only when there is truly no data yet (first fetch).
+    // Background refetches (isFetching with existing data) must not flash the sidebar.
+    isLoading: isLoading && !data,
   };
 }
 
