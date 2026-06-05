@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
@@ -7,6 +8,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
+from django.core.cache import cache
 import logging
 from django.core.mail import send_mail
 
@@ -98,12 +100,30 @@ class LoginView(TokenObtainPairView):
             )
 
         if getattr(user, "two_factor_enabled", False):
+            if otp_code or backup_code:
+                # Per-account OTP brute-force protection: 5 failed attempts per 5 minutes.
+                uid_hash = hashlib.sha256(str(user.pk).encode()).hexdigest()[:16]
+                otp_key = f"otp_fail:{uid_hash}"
+                fail_count = cache.get(otp_key, 0)
+                if fail_count >= 5:
+                    return standardize_response(
+                        success=False,
+                        error={"code": "otp_locked", "message": "Too many failed 2FA attempts. Try again in 5 minutes."},
+                        status=status.HTTP_429_TOO_MANY_REQUESTS,
+                    )
+
             if otp_code:
                 if not user.totp_secret or not verify_totp(secret=user.totp_secret, code=otp_code):
+                    uid_hash = hashlib.sha256(str(user.pk).encode()).hexdigest()[:16]
+                    otp_key = f"otp_fail:{uid_hash}"
+                    cache.set(otp_key, cache.get(otp_key, 0) + 1, timeout=300)
                     return standardize_response(success=False, error="Invalid OTP code", status=status.HTTP_400_BAD_REQUEST)
             elif backup_code:
                 result = consume_backup_code(user.two_factor_backup_codes, backup_code)
                 if not result.ok:
+                    uid_hash = hashlib.sha256(str(user.pk).encode()).hexdigest()[:16]
+                    otp_key = f"otp_fail:{uid_hash}"
+                    cache.set(otp_key, cache.get(otp_key, 0) + 1, timeout=300)
                     return standardize_response(success=False, error="Invalid backup code", status=status.HTTP_400_BAD_REQUEST)
                 user.two_factor_backup_codes = result.remaining_hashed_codes
                 user.save(update_fields=["two_factor_backup_codes"])

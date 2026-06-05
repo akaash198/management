@@ -1,3 +1,4 @@
+import logging
 import time
 import re
 import uuid
@@ -8,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
 from urllib.parse import parse_qs
+
+_ws_logger = logging.getLogger("apps.core.ws_auth")
 
 User = get_user_model()
 from .request_id import request_id_ctx
@@ -56,7 +59,10 @@ class RateLimitMiddleware:
         r"^/api/auth/password-reset/request/$": (5, 60),  # 5 req / 60s
         r"^/api/auth/password-reset/confirm/$": (3, 60),  # 3 req / 60s — prevent token brute force
         r"^/api/auth/email/verify/request/$": (10, 60),  # 10 req / 60s
-        r"^/api/auth/2fa/": (20, 60),  # 20 req / 60s (per user when authenticated)
+        r"^/api/auth/2fa/enable$": (5, 60),   # 5 req / 60s — verify OTP to enable 2FA
+        r"^/api/auth/2fa/disable$": (5, 60),  # 5 req / 60s — verify OTP to disable 2FA
+        r"^/api/auth/2fa/backup-codes/rotate$": (5, 60),  # 5 req / 60s
+        r"^/api/auth/2fa/": (20, 60),  # 20 req / 60s catch-all for other 2FA endpoints
         r'^/api/search/': (30, 60),      # 30 req / 60s
         r'^/api/projects/.+/export/': (5, 60), # 5 req / 60s
         r"^/api/auth/oauth/": (10, 60),  # 10 req / 60s — OAuth redirect + callback
@@ -158,7 +164,7 @@ class JWTAuthMiddleware:
                 user_id = access_token["user_id"]
                 scope["user"] = await get_user(user_id)
             except Exception as e:
-                print(f"WS JWT Auth Error: {e}")
+                _ws_logger.debug("WS JWT auth failed: %s", e)
                 scope["user"] = AnonymousUser()
         else:
             scope["user"] = AnonymousUser()

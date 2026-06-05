@@ -127,21 +127,12 @@ class TeamMembersView(generics.ListCreateAPIView):
         return standardize_response(data=serializer.data)
 
     def create(self, request, *args, **kwargs):
-        team = get_object_or_404(Team, id=self.kwargs["id"])
-
         from .plans import get_team_limits
-        limits = get_team_limits(team)
-        current_member_count = TeamMember.objects.filter(team=team).count()
-        if current_member_count >= int(limits.get("max_members", 5)):
-            return standardize_response(
-                success=False,
-                error={"code": "plan_limit", "message": "Team member limit reached for your plan."},
-                status=status.HTTP_402_PAYMENT_REQUIRED,
-            )
 
         user_id = request.data.get("user_id") or request.data.get("user")
         email = request.data.get("email")
         desired_role = normalize_team_role(request.data.get("role")) if request.data.get("role") else TeamMember.MEMBER
+
         if not is_valid_team_role(desired_role):
             return standardize_response(
                 success=False,
@@ -158,41 +149,52 @@ class TeamMembersView(generics.ListCreateAPIView):
         else:
             return standardize_response(success=False, error="user_id or email is required", status=status.HTTP_400_BAD_REQUEST)
 
-        actor_role = get_user_team_role(team_id=str(team.id), user=request.user)
+        with transaction.atomic():
+            # Lock the team row so concurrent requests can't both pass the member-limit check.
+            team = Team.objects.select_for_update().get(id=self.kwargs["id"])
 
-        # Managers can add members, but only at/under "member" by default.
-        allowed_roles = compute_team_capabilities(team=team, user=request.user).assignable_invite_roles
-        if desired_role not in allowed_roles and not request.user.is_superuser:
-            return standardize_response(
-                success=False,
-                error={"code": "forbidden_role", "message": "You are not allowed to assign that role."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
-        member, created = TeamMember.objects.get_or_create(
-            team=team,
-            user=user,
-            defaults={"role": desired_role, "invited_by": request.user},
-        )
-
-        # If member already exists, treat role change as a separate, protected operation.
-        if not created and member.role != desired_role:
-            allowed, reason = can_change_member_role(
-                team_id=str(team.id),
-                actor=request.user,
-                actor_role=actor_role,
-                target_user_id=str(user.id),
-                current_role=member.role,
-                new_role=desired_role,
-            )
-            if not allowed:
+            limits = get_team_limits(team)
+            current_member_count = TeamMember.objects.filter(team=team).count()
+            if current_member_count >= int(limits.get("max_members", 5)):
                 return standardize_response(
                     success=False,
-                    error={"code": reason, "message": "Role change not permitted."},
-                    status=status.HTTP_403_FORBIDDEN if reason not in ("invalid_role",) else status.HTTP_400_BAD_REQUEST,
+                    error={"code": "plan_limit", "message": "Team member limit reached for your plan."},
+                    status=status.HTTP_402_PAYMENT_REQUIRED,
                 )
-            member.role = desired_role
-            member.save(update_fields=["role"])
+
+            actor_role = get_user_team_role(team_id=str(team.id), user=request.user)
+            allowed_roles = compute_team_capabilities(team=team, user=request.user).assignable_invite_roles
+            if desired_role not in allowed_roles and not request.user.is_superuser:
+                return standardize_response(
+                    success=False,
+                    error={"code": "forbidden_role", "message": "You are not allowed to assign that role."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            member, created = TeamMember.objects.get_or_create(
+                team=team,
+                user=user,
+                defaults={"role": desired_role, "invited_by": request.user},
+            )
+
+            # If member already exists, treat role change as a separate, protected operation.
+            if not created and member.role != desired_role:
+                allowed, reason = can_change_member_role(
+                    team_id=str(team.id),
+                    actor=request.user,
+                    actor_role=actor_role,
+                    target_user_id=str(user.id),
+                    current_role=member.role,
+                    new_role=desired_role,
+                )
+                if not allowed:
+                    return standardize_response(
+                        success=False,
+                        error={"code": reason, "message": "Role change not permitted."},
+                        status=status.HTTP_403_FORBIDDEN if reason not in ("invalid_role",) else status.HTTP_400_BAD_REQUEST,
+                    )
+                member.role = desired_role
+                member.save(update_fields=["role"])
 
         return standardize_response(data=TeamMemberSerializer(member).data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
@@ -267,26 +269,29 @@ class InviteCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated, IsTeamManager]
 
     def perform_create(self, serializer):
-        team = get_object_or_404(Team, id=self.kwargs["id"])
         from .plans import get_team_limits
-        limits = get_team_limits(team)
-        current_member_count = TeamMember.objects.filter(team=team).count()
-        pending_invites = TeamInvite.objects.filter(team=team, is_accepted=False).count()
-        if current_member_count + pending_invites >= int(limits.get("max_members", 5)):
-            raise PermissionDenied("Team member limit reached for your plan.")
+        _logger = logging.getLogger(__name__)
 
         desired_role = normalize_team_role(serializer.validated_data.get("role"))
         if not is_valid_team_role(desired_role):
             raise PermissionDenied("Invalid role.")
 
-        allowed_roles = compute_team_capabilities(team=team, user=self.request.user).assignable_invite_roles
-        if desired_role not in allowed_roles and not self.request.user.is_superuser:
-            raise PermissionDenied("You are not allowed to assign that role.")
+        # Lock the team row so concurrent requests can’t both pass the member limit check.
+        with transaction.atomic():
+            team = Team.objects.select_for_update().get(id=self.kwargs["id"])
+            limits = get_team_limits(team)
+            current_member_count = TeamMember.objects.filter(team=team).count()
+            pending_invites = TeamInvite.objects.filter(team=team, is_accepted=False).count()
+            if current_member_count + pending_invites >= int(limits.get("max_members", 5)):
+                raise PermissionDenied("Team member limit reached for your plan.")
 
-        invite = serializer.save(team=team, invited_by=self.request.user, role=desired_role)
+            allowed_roles = compute_team_capabilities(team=team, user=self.request.user).assignable_invite_roles
+            if desired_role not in allowed_roles and not self.request.user.is_superuser:
+                raise PermissionDenied("You are not allowed to assign that role.")
+
+            invite = serializer.save(team=team, invited_by=self.request.user, role=desired_role)
+
         invite_link = TeamInviteSerializer(context={"request": self.request}).get_invite_link(invite)
-        logger = logging.getLogger(__name__)
-
         company_name = getattr(getattr(team, "company", None), "name", None) or team.name
         inviter_name = self.request.user.full_name or self.request.user.email
 
@@ -302,13 +307,13 @@ class InviteCreateView(generics.CreateAPIView):
 
         result = send_transactional_email(to_email=invite.email, subject=subject, text=message)
         if result.ok:
-            logger.info(
+            _logger.info(
                 "Team invite email dispatched",
                 extra={"invite_id": str(invite.id), "team_id": str(team.id), "provider": result.provider},
             )
         else:
-            # Don't block invite creation; surface the invite_link via API response.
-            logger.warning(
+            # Don’t block invite creation; the invite_link is returned via the API response.
+            _logger.warning(
                 "Failed to send team invite email",
                 extra={
                     "invite_id": str(invite.id),
