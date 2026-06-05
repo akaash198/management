@@ -206,18 +206,15 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
       return { resolved };
     },
     enabled: !!teamId,
-    staleTime: 10 * 60_000,      // 10 min — capabilities don't change mid-session
-    gcTime: 30 * 60_000,         // 30 min — survive the full session without cache miss
-    refetchOnWindowFocus: false, // don't re-fetch on tab switch
-    refetchOnMount: false,       // use cached value on navigation, don't re-fetch
+    staleTime: 0,   // always consider stale so a fresh fetch runs when component mounts
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
 
   const resolved = data?.resolved ?? {};
   return {
     resolved,
     can: (cap: TeamCapabilityKey) => !!resolved[cap],
-    // Only report loading when there is truly no data yet (first fetch).
-    // Background refetches must not flash the sidebar or block pages.
     isLoading: isLoading && !data,
   };
 }
