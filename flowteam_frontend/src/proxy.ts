@@ -13,7 +13,17 @@ export default function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const publicRoutes = ["/login", "/register", "/accept-invite/"];
+  const publicRoutes = [
+    "/login",
+    "/register",
+    "/onboarding",
+    "/forgot-password",
+    "/reset-password",
+    "/accept-invite/",
+    "/company-invite/",
+    "/auth/callback",
+    "/view/",
+  ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
 
   if (!token && !isPublicRoute && pathname !== "/") {
