@@ -5,84 +5,61 @@ existing TeamMember and TeamInvite rows by matching their legacy role slug.
 """
 from django.db import migrations
 
+ALL_CAPS = [
+    "can_manage_team", "can_invite_members", "can_change_roles",
+    "can_remove_members", "can_delete_team", "can_view_audit_log",
+    "can_access_projects", "can_create_project", "can_manage_billing",
+    "can_access_reports", "can_manage_integrations",
+    "can_access_messages", "can_access_calendar", "can_access_meetings",
+    "can_access_issues", "can_access_planning", "can_access_operations",
+]
+
 SYSTEM_ROLES = [
     {
         "slug": "ceo",
         "name": "CEO",
         "level": 0,
         "is_owner_role": True,
-        "capabilities": {
-            "can_manage_team": True,
-            "can_invite_members": True,
-            "can_change_roles": True,
-            "can_remove_members": True,
-            "can_delete_team": True,
-            "can_view_audit_log": True,
-            "can_create_project": True,
-            "can_manage_billing": True,
-            "can_access_reports": True,
-            "can_manage_integrations": True,
-        },
+        "capabilities": {c: True for c in ALL_CAPS},
     },
     {
         "slug": "admin",
         "name": "Admin",
         "level": 10,
         "is_owner_role": False,
-        "capabilities": {
-            "can_manage_team": True,
-            "can_invite_members": True,
-            "can_change_roles": True,
-            "can_remove_members": True,
-            "can_delete_team": False,
-            "can_view_audit_log": True,
-            "can_create_project": True,
-            "can_manage_billing": True,
-            "can_access_reports": True,
-            "can_manage_integrations": True,
-        },
+        "capabilities": {c: c != "can_delete_team" for c in ALL_CAPS},
     },
     {
         "slug": "manager",
         "name": "Manager",
         "level": 30,
         "is_owner_role": False,
-        "capabilities": {
-            "can_manage_team": False,
-            "can_invite_members": True,
-            "can_change_roles": False,
-            "can_remove_members": False,
-            "can_delete_team": False,
-            "can_view_audit_log": False,
-            "can_create_project": True,
-            "can_manage_billing": False,
-            "can_access_reports": True,
-            "can_manage_integrations": False,
-        },
+        "capabilities": {c: c in (
+            "can_invite_members", "can_access_projects", "can_create_project",
+            "can_access_reports", "can_access_messages", "can_access_calendar",
+            "can_access_meetings", "can_access_issues", "can_access_planning",
+            "can_access_operations",
+        ) for c in ALL_CAPS},
     },
     {
         "slug": "member",
         "name": "Employee",
         "level": 50,
         "is_owner_role": False,
-        "capabilities": {c: False for c in [
-            "can_manage_team", "can_invite_members", "can_change_roles",
-            "can_remove_members", "can_delete_team", "can_view_audit_log",
-            "can_create_project", "can_manage_billing", "can_access_reports",
-            "can_manage_integrations",
-        ]},
+        "capabilities": {c: c in (
+            "can_access_projects", "can_access_messages", "can_access_calendar",
+            "can_access_meetings", "can_access_issues", "can_access_planning",
+        ) for c in ALL_CAPS},
     },
     {
         "slug": "viewer",
         "name": "Viewer",
         "level": 80,
         "is_owner_role": False,
-        "capabilities": {c: False for c in [
-            "can_manage_team", "can_invite_members", "can_change_roles",
-            "can_remove_members", "can_delete_team", "can_view_audit_log",
-            "can_create_project", "can_manage_billing", "can_access_reports",
-            "can_manage_integrations",
-        ]},
+        "capabilities": {c: c in (
+            "can_access_projects", "can_access_messages", "can_access_calendar",
+            "can_access_meetings", "can_access_issues", "can_access_planning",
+        ) for c in ALL_CAPS},
     },
 ]
 
