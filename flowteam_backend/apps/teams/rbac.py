@@ -82,50 +82,59 @@ def ceo_count(*, team_id: str) -> int:
 
 
 def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None, fallback_role: str | None = None) -> dict:
-    """Merge role capability baseline with per-member overrides.
+    """Resolve effective capabilities for a team member.
 
-    Resolution order for each capability:
-      1. Per-member override (permissions_json) — explicit grant/revoke wins always.
-      2. Stored CustomRole.capabilities JSON value.
-      3. DEFAULT_ROLE_CAPABILITIES for the role slug — safety net so stale/incomplete
-         stored JSON never silently removes access from a system role.
+    Resolution order (highest to lowest priority):
+      1. Per-member override (permissions_json) — explicit grant/revoke, always wins.
+      2. For SYSTEM roles (ceo/admin/manager/member/viewer):
+           DEFAULT_ROLE_CAPABILITIES is the authoritative source.
+           Stored CustomRole.capabilities is ONLY consulted for keys NOT present in
+           defaults (i.e. future custom caps an admin may have added).
+      3. For CUSTOM (user-created) roles:
+           Stored CustomRole.capabilities is the source of truth.
+           DEFAULT_ROLE_CAPABILITIES is the fallback for any missing key.
+
+    Rationale: system roles have a well-known, code-defined capability set.
+    Trusting the stored JSON as primary caused repeated incidents where stale
+    migrations left False in the DB, silently blocking access for all users.
+    Using DEFAULT_ROLE_CAPABILITIES as primary for system roles makes the
+    system self-healing — no migration can permanently break system role access.
     """
     role_hint = None
+    stored_caps: dict = {}
+
     if custom_role:
-        base = dict(custom_role.capabilities)
+        stored_caps = dict(custom_role.capabilities) if isinstance(custom_role.capabilities, dict) else {}
         role_hint = normalize_team_role(getattr(custom_role, "slug", None) or fallback_role)
     elif fallback_role:
         role_hint = normalize_team_role(fallback_role)
-        base = dict(DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}))
-    else:
-        base = {c: False for c in ALL_TEAM_CAPABILITIES}
 
-    # For system roles (ceo/admin/manager/member/viewer), the DEFAULT_ROLE_CAPABILITIES
-    # table is the canonical truth. Merge it under the stored JSON so any cap that is
-    # missing from or incorrect in stored JSON (e.g. from an incomplete migration) is
-    # corrected automatically — without overriding legitimate admin customisations.
     is_system_role = role_hint in DEFAULT_ROLE_CAPABILITIES
-    role_defaults = DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}) if is_system_role else {}
+    code_defaults = DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}) if role_hint else {}
 
     overrides = permissions_json or {}
     result = {}
     for cap in ALL_TEAM_CAPABILITIES:
-        override = overrides.get(cap)
-        if override is not None:
-            # Explicit per-member grant/revoke always wins.
-            result[cap] = bool(override)
-        elif cap in base:
-            stored = bool(base[cap])
-            # For system roles: if stored is False but the canonical default is True,
-            # the stored value is stale (incomplete migration). Use the canonical default.
-            if not stored and is_system_role and role_defaults.get(cap, False):
-                result[cap] = True
+        # Layer 1: explicit per-member override.
+        if cap in overrides:
+            result[cap] = bool(overrides[cap])
+            continue
+
+        if is_system_role:
+            # Layer 2a (system role): code defaults are authoritative.
+            if cap in code_defaults:
+                result[cap] = bool(code_defaults[cap])
             else:
-                result[cap] = stored
-        elif role_hint:
-            result[cap] = bool(role_defaults.get(cap, False))
+                # Cap not in defaults — fall back to stored (custom addition).
+                result[cap] = bool(stored_caps.get(cap, False))
         else:
-            result[cap] = False
+            # Layer 2b (custom role): stored caps are authoritative.
+            if cap in stored_caps:
+                result[cap] = bool(stored_caps[cap])
+            else:
+                # Missing from stored — fall back to code defaults.
+                result[cap] = bool(code_defaults.get(cap, False))
+
     return result
 
 
