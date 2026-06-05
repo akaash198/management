@@ -423,10 +423,27 @@ export default function MessagingPage() {
         />
       )}
 
-      {/* Sidebar — full width on mobile (shown/hidden), fixed width on desktop */}
+      {/* Desktop chat sidebar — always in flow */}
+      <div className="hidden md:block shrink-0">
+        <ChatSidebar
+          channels={channels}
+          selectedId={selectedChannel?.id || ""}
+          activeView={activeView}
+          onSelect={handleSelect}
+          onViewChange={handleViewChange}
+          isLoading={isLoading}
+          teamId={activeTeamId ?? ""}
+          onRefreshChannels={refreshChannels}
+          onStartDirectMessage={startDirectMessage}
+          onCreateChannel={createChannel}
+          onlineUserIds={onlineUserIds}
+        />
+      </div>
+
+      {/* Mobile chat sidebar — slide-over */}
       <div className={cn(
-        "absolute inset-y-0 left-0 z-40 md:relative md:z-auto md:translate-x-0 transition-transform duration-200",
-        mobileSidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        "absolute inset-y-0 left-0 z-40 transition-transform duration-200 md:hidden",
+        mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <ChatSidebar
           channels={channels}
