@@ -1,6 +1,7 @@
 from rest_framework import generics, status, permissions
 from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from django.db.models import Q
 from .models import Team, TeamMember, TeamInvite
 from .serializers import TeamSerializer, TeamMemberSerializer, TeamInviteSerializer, TeamInvitePreviewSerializer
 import logging
@@ -31,7 +32,12 @@ class TeamListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         if self.request.user.is_superuser:
             return Team.objects.all()
-        return Team.objects.filter(members__user=self.request.user)
+        user = self.request.user
+        return Team.objects.filter(
+            Q(members__user=user)
+            | Q(company__ceo=user)
+            | Q(company__members__user=user, company__members__role__in=["ceo", "admin"])
+        ).distinct()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()

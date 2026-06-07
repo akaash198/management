@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import Team, TeamMember, TeamInvite, CustomRole
 from apps.users.serializers import UserSerializer
 from django.conf import settings
+from apps.companies.models import CompanyMember
+from apps.companies.rbac import get_user_company_role
 
 
 class CustomRoleMinimalSerializer(serializers.ModelSerializer):
@@ -47,6 +49,12 @@ class TeamSerializer(serializers.ModelSerializer):
             member = obj.members.select_related("custom_role").get(user=user)
             return member.role
         except TeamMember.DoesNotExist:
+            if obj.company_id:
+                company_role = get_user_company_role(company_id=str(obj.company_id), user=user)
+                if company_role == CompanyMember.CEO:
+                    return TeamMember.CEO
+                if company_role == CompanyMember.ADMIN:
+                    return TeamMember.ADMIN
             return None
 
     def get_your_custom_role(self, obj):
@@ -61,7 +69,15 @@ class TeamSerializer(serializers.ModelSerializer):
             if member.custom_role:
                 return CustomRoleMinimalSerializer(member.custom_role).data
         except TeamMember.DoesNotExist:
-            pass
+            if obj.company_id:
+                company_role = get_user_company_role(company_id=str(obj.company_id), user=user)
+                if company_role in (CompanyMember.CEO, CompanyMember.ADMIN):
+                    custom_role = CustomRole.objects.filter(
+                        team=obj,
+                        slug="ceo" if company_role == CompanyMember.CEO else "admin",
+                    ).first()
+                    if custom_role:
+                        return CustomRoleMinimalSerializer(custom_role).data
         return None
 
 

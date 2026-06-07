@@ -175,7 +175,10 @@ export function useTeamPermissions(team?: Team | null): TeamPermissions {
  * Includes custom-role defaults + per-member overrides resolved by the backend.
  */
 export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapabilities {
-  const { data, isLoading } = useQuery({
+  const { teams } = useTeamStore();
+  const activeTeam = teams.find((team) => team.id === teamId) ?? null;
+
+  const { data, isLoading, isError } = useQuery({
     queryKey: ["my-team-capabilities", teamId],
     queryFn: async () => {
       if (!teamId) return { resolved: {} as Record<string, boolean> };
@@ -211,11 +214,36 @@ export function useMyTeamCapabilities(teamId?: string | null): ResolvedTeamCapab
     refetchOnWindowFocus: false,
   });
 
-  const resolved = data?.resolved ?? {};
+  const fallbackResolved = useMemo(() => {
+    const role = activeTeam?.your_role;
+    if (!role) return {} as Record<string, boolean>;
+
+    return {
+      can_manage_team: role === "ceo" || role === "admin",
+      can_invite_members: role === "ceo" || role === "admin" || role === "manager",
+      can_change_roles: role === "ceo" || role === "admin",
+      can_remove_members: role === "ceo" || role === "admin",
+      can_delete_team: role === "ceo",
+      can_view_audit_log: role === "ceo" || role === "admin",
+      can_access_projects: true,
+      can_create_project: role === "ceo" || role === "admin" || role === "manager",
+      can_manage_billing: role === "ceo" || role === "admin",
+      can_access_reports: role === "ceo" || role === "admin" || role === "manager",
+      can_manage_integrations: role === "ceo" || role === "admin",
+      can_access_messages: true,
+      can_access_calendar: true,
+      can_access_meetings: true,
+      can_access_issues: true,
+      can_access_planning: true,
+      can_access_operations: role === "ceo" || role === "admin" || role === "manager",
+    } satisfies Partial<Record<TeamCapabilityKey, boolean>>;
+  }, [activeTeam?.your_role]);
+
+  const resolved = data?.resolved ?? (isError ? fallbackResolved : {});
   return {
     resolved,
     can: (cap: TeamCapabilityKey) => !!resolved[cap],
-    isLoading: isLoading && !data,
+    isLoading: isLoading && !data && !isError,
   };
 }
 

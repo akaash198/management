@@ -22,13 +22,15 @@ def get_user_team_role(*, team_id: str, user) -> str | None:
     if not getattr(user, "is_authenticated", False):
         return None
     from apps.companies.models import Company
+
     if Company.objects.filter(teams__id=team_id, ceo=user).exists():
         return TeamMember.CEO
 
     team = Team.objects.filter(id=team_id).only("company_id").first()
     if team and team.company_id:
-        from apps.companies.rbac import get_user_company_role
         from apps.companies.models import CompanyMember
+        from apps.companies.rbac import get_user_company_role
+
         company_role = get_user_company_role(company_id=str(team.company_id), user=user)
         if company_role == CompanyMember.CEO:
             return TeamMember.CEO
@@ -42,13 +44,15 @@ def get_user_custom_role(*, team_id: str, user) -> CustomRole | None:
     if not getattr(user, "is_authenticated", False):
         return None
     from apps.companies.models import Company
+
     if Company.objects.filter(teams__id=team_id, ceo=user).exists():
         return CustomRole.objects.filter(team_id=team_id, slug="ceo").first()
 
     team = Team.objects.filter(id=team_id).only("company_id").first()
     if team and team.company_id:
-        from apps.companies.rbac import get_user_company_role
         from apps.companies.models import CompanyMember
+        from apps.companies.rbac import get_user_company_role
+
         company_role = get_user_company_role(company_id=str(team.company_id), user=user)
         if company_role == CompanyMember.CEO:
             return CustomRole.objects.filter(team_id=team_id, slug="ceo").first()
@@ -70,6 +74,7 @@ def team_has_owner(*, team_id: str) -> bool:
 
 def owner_count(*, team_id: str) -> int:
     from django.db.models import Q
+
     return TeamMember.objects.filter(
         team_id=team_id
     ).filter(
@@ -82,58 +87,41 @@ def ceo_count(*, team_id: str) -> int:
 
 
 def _resolve_caps(custom_role: CustomRole | None, permissions_json: dict | None, fallback_role: str | None = None) -> dict:
-    """Resolve effective capabilities for a team member.
-
-    Resolution order (highest to lowest priority):
-      1. Per-member override (permissions_json) — explicit grant/revoke, always wins.
-      2. For SYSTEM roles (ceo/admin/manager/member/viewer):
-           DEFAULT_ROLE_CAPABILITIES is the authoritative source.
-           Stored CustomRole.capabilities is ONLY consulted for keys NOT present in
-           defaults (i.e. future custom caps an admin may have added).
-      3. For CUSTOM (user-created) roles:
-           Stored CustomRole.capabilities is the source of truth.
-           DEFAULT_ROLE_CAPABILITIES is the fallback for any missing key.
-
-    Rationale: system roles have a well-known, code-defined capability set.
-    Trusting the stored JSON as primary caused repeated incidents where stale
-    migrations left False in the DB, silently blocking access for all users.
-    Using DEFAULT_ROLE_CAPABILITIES as primary for system roles makes the
-    system self-healing — no migration can permanently break system role access.
-    """
+    """Resolve effective capabilities for a team member."""
     role_hint = None
+    fallback_hint = normalize_team_role(fallback_role) if fallback_role else None
     stored_caps: dict = {}
 
     if custom_role:
         stored_caps = dict(custom_role.capabilities) if isinstance(custom_role.capabilities, dict) else {}
-        role_hint = normalize_team_role(getattr(custom_role, "slug", None) or fallback_role)
+        role_hint = normalize_team_role(getattr(custom_role, "slug", None))
     elif fallback_role:
-        role_hint = normalize_team_role(fallback_role)
+        role_hint = fallback_hint
 
     is_system_role = role_hint in DEFAULT_ROLE_CAPABILITIES
     code_defaults = DEFAULT_ROLE_CAPABILITIES.get(role_hint, {}) if role_hint else {}
+    fallback_defaults = DEFAULT_ROLE_CAPABILITIES.get(fallback_hint, {}) if fallback_hint else {}
 
     overrides = permissions_json or {}
     result = {}
     for cap in ALL_TEAM_CAPABILITIES:
-        # Layer 1: explicit per-member override.
         if cap in overrides:
             result[cap] = bool(overrides[cap])
             continue
 
         if is_system_role:
-            # Layer 2a (system role): code defaults are authoritative.
             if cap in code_defaults:
                 result[cap] = bool(code_defaults[cap])
             else:
-                # Cap not in defaults — fall back to stored (custom addition).
                 result[cap] = bool(stored_caps.get(cap, False))
+            continue
+
+        if cap in stored_caps:
+            result[cap] = bool(stored_caps[cap])
+        elif cap in fallback_defaults:
+            result[cap] = bool(fallback_defaults[cap])
         else:
-            # Layer 2b (custom role): stored caps are authoritative.
-            if cap in stored_caps:
-                result[cap] = bool(stored_caps[cap])
-            else:
-                # Missing from stored — fall back to code defaults.
-                result[cap] = bool(code_defaults.get(cap, False))
+            result[cap] = bool(code_defaults.get(cap, False))
 
     return result
 
@@ -157,7 +145,6 @@ def assignable_custom_roles_for_invite(*, actor_custom_role: CustomRole | None, 
     actor_level = actor_custom_role.level
     if actor_custom_role.is_owner_role:
         return list(CustomRole.objects.filter(team_id=team_id).order_by("level"))
-    # Actors can only assign roles at a strictly higher level (lower authority) than their own.
     return list(CustomRole.objects.filter(team_id=team_id, level__gt=actor_level).order_by("level"))
 
 
@@ -216,22 +203,18 @@ def can_change_member_custom_role(
 
     is_self = str(getattr(actor, "id", "")) == str(target_user_id)
 
-    # Protect owner role: only owner-role actors can assign/remove owner roles.
     if target_current_custom_role and target_current_custom_role.is_owner_role:
         if not actor_custom_role.is_owner_role:
             return False, "owner_protected"
     if new_custom_role.is_owner_role and not actor_custom_role.is_owner_role:
         return False, "owner_protected"
 
-    # Prevent removing the last owner.
     if target_current_custom_role and target_current_custom_role.is_owner_role:
         if not new_custom_role.is_owner_role and owner_count(team_id=team_id) <= 1:
             return False, "last_owner"
 
-    # Actors can only assign roles they themselves can be assigned (level >= their own level).
-    if not actor_custom_role.is_owner_role:
-        if new_custom_role.level <= actor_custom_role.level:
-            return False, "forbidden"
+    if not actor_custom_role.is_owner_role and new_custom_role.level <= actor_custom_role.level:
+        return False, "forbidden"
 
     return True, "ok"
 
@@ -251,9 +234,8 @@ def can_remove_member(
         return False, "forbidden"
     if target_role == TeamMember.CEO and actor_role != TeamMember.CEO:
         return False, "ceo_protected"
-    if target_role == TeamMember.CEO:
-        if ceo_count(team_id=team_id) <= 1:
-            return False, "last_ceo"
+    if target_role == TeamMember.CEO and ceo_count(team_id=team_id) <= 1:
+        return False, "last_ceo"
     if is_self and target_role == TeamMember.CEO and ceo_count(team_id=team_id) <= 1:
         return False, "last_ceo"
     return True, "ok"
@@ -267,10 +249,6 @@ def can_grant_revoke_permissions(
     grant: list[str],
     revoke: list[str],
 ) -> tuple[bool, str]:
-    """
-    CEO/Admin (or owner-role) can grant/revoke caps.
-    Actor cannot grant a capability they themselves don't have (no escalation).
-    """
     if not actor_custom_role:
         return False, "not_a_member"
 
@@ -327,32 +305,44 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
     )
 
     if not membership:
-        # Company admins (and the designated company CEO) can administer all teams
-        # even without an explicit TeamMember row.
         company_role = None
         if team.company_id:
             from apps.companies.rbac import get_user_company_role
+
             company_role = get_user_company_role(company_id=str(team.company_id), user=user)
 
         if not company_role:
             return TeamCapabilities(
-                role=None, custom_role_id=None, custom_role_name=None,
+                role=None,
+                custom_role_id=None,
+                custom_role_name=None,
                 is_owner_role=False,
-                can_manage_team=False, can_invite_members=False,
-                can_change_roles=False, can_remove_members=False,
-                can_delete_team=False, can_view_audit_log=False,
-                can_access_projects=False, can_create_project=False, can_manage_billing=False,
-                can_access_reports=False, can_manage_integrations=False,
-                can_access_messages=False, can_access_calendar=False, can_access_meetings=False,
-                can_access_issues=False, can_access_planning=False, can_access_operations=False,
-                assignable_invite_roles=[], assignable_custom_role_ids=[],
+                can_manage_team=False,
+                can_invite_members=False,
+                can_change_roles=False,
+                can_remove_members=False,
+                can_delete_team=False,
+                can_view_audit_log=False,
+                can_access_projects=False,
+                can_create_project=False,
+                can_manage_billing=False,
+                can_access_reports=False,
+                can_manage_integrations=False,
+                can_access_messages=False,
+                can_access_calendar=False,
+                can_access_meetings=False,
+                can_access_issues=False,
+                can_access_planning=False,
+                can_access_operations=False,
+                assignable_invite_roles=[],
+                assignable_custom_role_ids=[],
             )
 
-        # Company CEO/Admin gets seeded role caps even without membership.
         from apps.companies.models import CompanyMember
+
         role_slug = TeamMember.CEO if company_role == CompanyMember.CEO else TeamMember.ADMIN
         custom_role = CustomRole.objects.filter(team=team, slug=role_slug).first()
-        caps = _resolve_caps(custom_role, None)
+        caps = _resolve_caps(custom_role, None, role_slug)
         has_ceo = team_has_owner(team_id=str(team.id))
         assignable = assignable_custom_roles_for_invite(actor_custom_role=custom_role, team_id=str(team.id))
         return TeamCapabilities(
@@ -362,7 +352,7 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
             is_owner_role=role_slug == TeamMember.CEO,
             **{k: caps.get(k, False) for k in ALL_TEAM_CAPABILITIES},
             assignable_invite_roles=assignable_roles_for_invite(actor_role=role_slug, has_ceo=has_ceo),
-            assignable_custom_role_ids=[str(r.id) for r in assignable],
+            assignable_custom_role_ids=[str(role.id) for role in assignable],
         )
 
     custom_role = membership.custom_role
@@ -393,5 +383,5 @@ def compute_team_capabilities(*, team: Team, user) -> TeamCapabilities:
         can_access_planning=caps.get("can_access_planning", False),
         can_access_operations=caps.get("can_access_operations", False),
         assignable_invite_roles=assignable_roles_for_invite(actor_role=membership.role, has_ceo=has_ceo),
-        assignable_custom_role_ids=[str(r.id) for r in assignable],
+        assignable_custom_role_ids=[str(role.id) for role in assignable],
     )
