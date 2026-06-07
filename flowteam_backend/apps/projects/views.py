@@ -282,6 +282,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             return Project.objects.none()
 
         # A user can see a project if:
+        # - they are a member of the owning team, OR
         # - they created it, OR
         # - they have an explicit ProjectRole, OR
         # - they are assigned/reporter on a task, OR
@@ -294,7 +295,8 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         ).values_list("team_id", flat=True)
 
         filtered_queryset = queryset.filter(
-            Q(roles__user=self.request.user)
+            Q(team__members__user=self.request.user)
+            | Q(roles__user=self.request.user)
             | Q(created_by=self.request.user)
             | Q(tasks__assignee=self.request.user)
             | Q(tasks__reporter=self.request.user)
