@@ -19,70 +19,79 @@ jobs:
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
         run: |
           python - <<'PY'
-          import os, base64, paramiko
+          import base64
+          import os
+          import paramiko
 
           key_raw = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
           if "BEGIN" in key_raw:
               key_raw = key_raw.replace("\\r", "\r").replace("\\n", "\n")
               if not key_raw.endswith("\n"):
                   key_raw += "\n"
-              with open("hetzner_key", "w") as f:
-                  f.write(key_raw)
+              with open("hetzner_key", "w", encoding="utf-8") as file_obj:
+                  file_obj.write(key_raw)
           else:
-              with open("hetzner_key", "wb") as f:
-                  f.write(base64.b64decode(key_raw.replace("\\n","").replace(" ","")))
+              with open("hetzner_key", "wb") as file_obj:
+                  file_obj.write(base64.b64decode(key_raw.replace("\\n", "").replace(" ", "")))
+
           os.chmod("hetzner_key", 0o600)
 
           client = paramiko.SSHClient()
           client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-          client.connect(os.environ["HETZNER_HOST"], username=os.environ["HETZNER_USER"], key_filename="hetzner_key")
+          client.connect(
+              os.environ["HETZNER_HOST"],
+              username=os.environ["HETZNER_USER"],
+              key_filename="hetzner_key",
+          )
 
-          cmds = [
-              # Diagnose project 404 - full picture
-              """CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1); docker exec $CONTAINER python -c "
-import os, django
-os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
-django.setup()
-from apps.projects.models import Project, ProjectRole
-from apps.teams.models import TeamMember
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-User = get_user_model()
+          command = r"""CONTAINER=$(docker ps --filter name=backend --format '{{.Names}}' | head -1)
+          docker exec "$CONTAINER" python - <<'INNER' 2>&1
+          import os
+          import django
+          from django.contrib.auth import get_user_model
+          from django.db.models import Q
+          from apps.projects.models import Project, ProjectRole
+          from apps.teams.models import TeamMember
 
-project_id = '4a865163-998b-424e-9cf2-f61a0c79b67a'
-p = Project.objects.filter(id=project_id).first()
-if not p:
-    print('PROJECT NOT FOUND IN DB')
-else:
-    print(f'Project: {p.name} | team_id: {p.team_id} | created_by: {p.created_by}')
-    print()
-    members = TeamMember.objects.filter(team_id=p.team_id).select_related('user')
-    print(f'Team members ({members.count()}):')
-    for m in members:
-        print(f'  {m.user.email} | {m.role}')
-    print()
-    roles = ProjectRole.objects.filter(project=p).select_related('user')
-    print(f'ProjectRoles ({roles.count()}):')
-    for r in roles:
-        print(f'  {r.user.email} | {r.role}')
-    print()
-    # Check all users and whether they can see this project
-    for u in User.objects.filter(is_active=True)[:10]:
-        admin_team_ids = list(TeamMember.objects.filter(user=u, role__in=['ceo','admin']).values_list('team_id', flat=True))
-        can_see = Project.objects.filter(
-            Q(id=project_id) & (
-                Q(roles__user=u) | Q(created_by=u) |
-                Q(tasks__assignee=u) | Q(tasks__reporter=u) |
-                Q(team_id__in=admin_team_ids)
-            )
-        ).exists()
-        print(f'  {u.email} -> can_see={can_see}')
-" 2>&1""",
-          ]
-          for cmd in cmds:
-              _, stdout, stderr = client.exec_command(cmd)
-              print(stdout.read().decode())
-              print(stderr.read().decode())
+          os.environ['DJANGO_SETTINGS_MODULE'] = 'config.settings.production'
+          django.setup()
+          User = get_user_model()
 
+          project_id = '4a865163-998b-424e-9cf2-f61a0c79b67a'
+          project = Project.objects.filter(id=project_id).first()
+          if not project:
+              print('PROJECT NOT FOUND IN DB')
+          else:
+              print(f'Project: {project.name} | team_id: {project.team_id} | created_by: {project.created_by}')
+              print()
+              members = TeamMember.objects.filter(team_id=project.team_id).select_related('user')
+              print(f'Team members ({members.count()}):')
+              for member in members:
+                  print(f'  {member.user.email} | {member.role}')
+              print()
+              roles = ProjectRole.objects.filter(project=project).select_related('user')
+              print(f'ProjectRoles ({roles.count()}):')
+              for role in roles:
+                  print(f'  {role.user.email} | {role.role}')
+              print()
+              for user in User.objects.filter(is_active=True)[:10]:
+                  admin_team_ids = list(
+                      TeamMember.objects.filter(user=user, role__in=['ceo', 'admin']).values_list('team_id', flat=True)
+                  )
+                  can_see = Project.objects.filter(
+                      Q(id=project_id) & (
+                          Q(roles__user=user)
+                          | Q(created_by=user)
+                          | Q(tasks__assignee=user)
+                          | Q(tasks__reporter=user)
+                          | Q(team_id__in=admin_team_ids)
+                      )
+                  ).exists()
+                  print(f'  {user.email} -> can_see={can_see}')
+          INNER"""
+
+          _, stdout, stderr = client.exec_command(command)
+          print(stdout.read().decode())
+          print(stderr.read().decode())
           client.close()
           PY
