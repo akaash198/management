@@ -250,8 +250,50 @@ class CompanyMemberDetailView(generics.RetrieveUpdateDestroyAPIView):
                 error={"code": reason, "message": "Remove not permitted."},
                 status=status.HTTP_403_FORBIDDEN,
             )
-        instance.delete()
+        _remove_member_cascade(instance)
         return standardize_response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _remove_member_cascade(membership) -> None:
+    """
+    Remove a user from a company and clean up everything they owned within it.
+
+    What we do:
+    - Delete all TeamMember rows for teams belonging to this company
+    - Unassign open tasks (set assignee to null — preserves history)
+    - Revoke all active UserSession records for this user so they're
+      signed out automatically on next token check
+    - Delete the CompanyMember row last
+    """
+    from apps.teams.models import Team, TeamMember
+    from apps.projects.models import Task
+    from apps.users.models import UserSession
+
+    user = membership.user
+    company = membership.company
+
+    # 1. Remove from all teams under this company
+    company_team_ids = Team.objects.filter(company=company).values_list("id", flat=True)
+    TeamMember.objects.filter(user=user, team_id__in=company_team_ids).delete()
+
+    # 2. Unassign open tasks within this company's projects
+    Task.objects.filter(
+        project__team_id__in=company_team_ids,
+        assignee=user,
+        status__in=["todo", "in_progress", "in_review"],
+    ).update(assignee=None)
+
+    # 3. Revoke active JWT sessions so the user is signed out
+    UserSession.objects.filter(user=user, is_revoked=False).update(is_revoked=True)
+    try:
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+        for token in OutstandingToken.objects.filter(user=user):
+            BlacklistedToken.objects.get_or_create(token=token)
+    except Exception:
+        pass
+
+    # 4. Remove company membership
+    membership.delete()
 
 
 # ──────────────────────────────────────────────────────────────

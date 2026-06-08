@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/api";
-import type { ApiResponse, Team, TeamMember } from "@/types";
+import type { ApiResponse, Team } from "@/types";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { Button } from "@/components/ui/button";
@@ -60,16 +60,8 @@ type AdminCompanyDetail = AdminCompany & {
   pending_invites_count: number;
 };
 
-type AdminUser = {
-  id: string;
-  email: string;
-  full_name: string;
-  is_active: boolean;
-  is_staff: boolean;
-  is_superuser: boolean;
-};
 
-type DrillView = "companies" | "company_detail" | "team_members";
+type DrillView = "companies" | "company_detail";
 
 // ─── Main Panel ──────────────────────────────────────────────────────────────
 
@@ -79,7 +71,6 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
   // Drill-down state
   const [drillView, setDrillView] = useState<DrillView>("companies");
   const [activeCompany, setActiveCompany] = useState<AdminCompany | null>(null);
-  const [activeTeam, setActiveTeam] = useState<Team | null>(null);
 
   // Search + filter
   const [search, setSearch] = useState("");
@@ -115,15 +106,6 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
       return res.data.data;
     },
     enabled: isSuperuser && !!activeCompany && drillView !== "companies",
-  });
-
-  const { data: teamMembers, isLoading: isMembersLoading } = useQuery<TeamMember[]>({
-    queryKey: ["super-admin-team-members", activeTeam?.id],
-    queryFn: async () => {
-      const res = await api.get<ApiResponse<TeamMember[]>>(`/teams/${activeTeam!.id}/members/`);
-      return res.data.data ?? [];
-    },
-    enabled: !!activeTeam && drillView === "team_members",
   });
 
   const { data: companySettings } = useQuery<Record<string, unknown>>({
@@ -190,11 +172,6 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
     setDrillView("company_detail");
   };
 
-  const openTeamMembers = (t: Team) => {
-    setActiveTeam(t);
-    setDrillView("team_members");
-  };
-
   const openWizard = (c: AdminCompany | null) => {
     setWizardCompany(c);
     setWizardOpen(true);
@@ -238,7 +215,7 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
       {drillView !== "companies" && (
         <div className="flex items-center gap-1.5 text-sm bg-muted/40 border border-border rounded-xl px-3 py-2">
           <button
-            onClick={() => { setDrillView("companies"); setActiveCompany(null); setActiveTeam(null); }}
+            onClick={() => { setDrillView("companies"); setActiveCompany(null); }}
             className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
           >
             <Building2 size={12} />
@@ -248,21 +225,12 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
             <>
               <ChevronRight size={13} className="text-muted-foreground/50" />
               <button
-                onClick={() => { setDrillView("company_detail"); setActiveTeam(null); }}
+                onClick={() => setDrillView("company_detail")}
                 className={`flex items-center gap-1.5 transition-colors ${drillView === "company_detail" ? "font-semibold text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               >
                 <OnboardingStatusBadge status={activeCompany.onboarding_status} />
                 {activeCompany.name}
               </button>
-            </>
-          )}
-          {drillView === "team_members" && activeTeam && (
-            <>
-              <ChevronRight size={13} className="text-muted-foreground/50" />
-              <span className="font-semibold text-foreground flex items-center gap-1.5">
-                <Layers size={12} className="text-blue-500" />
-                {activeTeam.name}
-              </span>
             </>
           )}
         </div>
@@ -328,19 +296,9 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
           company={activeCompany}
           detail={companyDetail ?? null}
           isLoading={isDetailLoading}
-          onOpenTeamMembers={openTeamMembers}
           onEdit={() => openWizard(activeCompany)}
           onOpenSettings={() => companyDetail && openSettings(companyDetail)}
           onStatusChange={(status) => updateStatus.mutate({ id: activeCompany.id, status })}
-        />
-      )}
-
-      {/* ── View: Team Members ── */}
-      {drillView === "team_members" && activeTeam && (
-        <TeamMembersView
-          team={activeTeam}
-          members={teamMembers ?? []}
-          isLoading={isMembersLoading}
         />
       )}
 
@@ -534,12 +492,11 @@ function CompanyCard({
 
 function CompanyDetailView({
   company, detail, isLoading,
-  onOpenTeamMembers, onEdit, onOpenSettings, onStatusChange,
+  onEdit, onOpenSettings, onStatusChange,
 }: {
   company: AdminCompany;
   detail: AdminCompanyDetail | null;
   isLoading: boolean;
-  onOpenTeamMembers: (t: Team) => void;
   onEdit: () => void;
   onOpenSettings: () => void;
   onStatusChange: (s: AdminCompany["onboarding_status"]) => void;
@@ -687,8 +644,7 @@ function CompanyDetailView({
               {detail.teams.map((t) => (
                 <div
                   key={t.id}
-                  className="group flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-blue-50/50 dark:hover:bg-blue-950/20 transition-all cursor-pointer"
-                  onClick={() => onOpenTeamMembers(t)}
+                  className="flex items-center gap-3 rounded-xl border border-border px-4 py-3"
                 >
                   <div className="w-9 h-9 rounded-lg bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
                     <Layers size={15} className="text-blue-600 dark:text-blue-400" />
@@ -697,13 +653,6 @@ function CompanyDetailView({
                     <p className="text-sm font-semibold truncate">{t.name}</p>
                     <p className="text-xs text-muted-foreground">{t.member_count ?? 0} members · <span className="capitalize">{t.plan ?? "free"}</span></p>
                   </div>
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">View members</span>
-                  </div>
-                  <ChevronRight
-                    size={14}
-                    className="text-muted-foreground/40 group-hover:text-blue-500 group-hover:translate-x-0.5 transition-all shrink-0"
-                  />
                 </div>
               ))}
             </div>
@@ -711,75 +660,6 @@ function CompanyDetailView({
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-// ─── Team Members View ────────────────────────────────────────────────────────
-
-function TeamMembersView({ team, members, isLoading }: {
-  team: Team;
-  members: TeamMember[];
-  isLoading: boolean;
-}) {
-  const ROLE_COLORS: Record<string, string> = {
-    ceo: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
-    admin: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400",
-    manager: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
-    member: "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400",
-    viewer: "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400",
-  };
-
-  return (
-    <Card>
-      <CardHeader className="pb-3 border-b border-border">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Users size={14} className="text-primary" />
-            </div>
-            {team.name}
-            <span className="text-muted-foreground font-normal">— Members</span>
-          </CardTitle>
-          <Badge className="bg-primary/10 text-primary border-0 font-bold">{members.length}</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="pt-3">
-        {isLoading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-14 rounded-xl" />)}
-          </div>
-        ) : members.length === 0 ? (
-          <div className="flex flex-col items-center py-10 gap-3 text-center">
-            <div className="p-3 rounded-xl bg-muted/60">
-              <Users size={24} className="text-muted-foreground/50" />
-            </div>
-            <p className="text-sm text-muted-foreground">No members yet.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {members.map((m) => (
-              <div key={m.id} className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 hover:bg-muted/30 transition-colors">
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${ROLE_COLORS[m.role] ?? ROLE_COLORS.viewer}`}>
-                  {(m.user.full_name || m.user.email).charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{m.user.full_name || "—"}</p>
-                  <p className="text-xs text-muted-foreground truncate">{m.user.email}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${ROLE_COLORS[m.role] ?? ROLE_COLORS.viewer}`}>
-                    {m.role}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground hidden sm:block">
-                    {new Date(m.joined_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
   );
 }
 
