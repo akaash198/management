@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight, FlaskConical, LayoutGrid, RefreshCcw, Table2 } from "lucide-react";
+import { AIAssistPanel, type AIAction } from "@/components/ai/AIAssistPanel";
 
 type PortfolioProject = {
   id: string;
@@ -33,6 +34,95 @@ type PortfolioProject = {
 };
 
 type ViewMode = "projects" | "ds";
+
+interface PortfolioAISummary {
+  headline: string;
+  health_summary: string;
+  top_risks: { project_name: string; risk: string; severity: string }[];
+  highlights: string[];
+  recommendations: string[];
+  overall_health: "on_track" | "at_risk" | "critical";
+}
+
+function PortfolioAIPanel({ teamId }: { teamId: string }) {
+  const HEALTH_COLOR: Record<string, string> = {
+    on_track: "text-emerald-600 dark:text-emerald-400",
+    at_risk: "text-amber-600 dark:text-amber-400",
+    critical: "text-red-600 dark:text-red-400",
+  };
+  const SEV_COLOR: Record<string, string> = {
+    critical: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+    high: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    medium: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400",
+    low: "bg-muted text-muted-foreground",
+  };
+
+  const actions: AIAction[] = [
+    {
+      key: "portfolio_summary",
+      label: "Executive Summary",
+      description: "AI-generated cross-project health, risks, and recommendations for leadership",
+      run: async () => {
+        const res = await api.post("/ai/portfolio-summary/", { team_id: teamId });
+        const d = res.data?.data ?? res.data;
+        return { result: d, logId: d?.log_id ?? null };
+      },
+      renderResult: (result) => {
+        const s = result as PortfolioAISummary;
+        return (
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold uppercase tracking-wide ${HEALTH_COLOR[s.overall_health] ?? ""}`}>
+                {s.overall_health?.replace("_", " ")}
+              </span>
+              <span className="font-medium">{s.headline}</span>
+            </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">{s.health_summary}</p>
+            {s.top_risks?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-1.5">Top Risks</p>
+                <div className="space-y-1.5">
+                  {s.top_risks.map((r, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${SEV_COLOR[r.severity] ?? SEV_COLOR.low}`}>
+                        {r.severity}
+                      </span>
+                      <span className="text-xs"><span className="font-medium">{r.project_name}</span> — {r.risk}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {s.highlights?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-1">Highlights</p>
+                <ul className="space-y-0.5">
+                  {s.highlights.map((h, i) => <li key={i} className="text-xs text-muted-foreground">✓ {h}</li>)}
+                </ul>
+              </div>
+            )}
+            {s.recommendations?.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold mb-1">Recommendations</p>
+                <ol className="space-y-0.5 list-decimal list-inside">
+                  {s.recommendations.map((r, i) => <li key={i} className="text-xs text-muted-foreground">{r}</li>)}
+                </ol>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <AIAssistPanel
+      title="Portfolio AI"
+      actions={actions}
+      className="max-w-2xl"
+    />
+  );
+}
 
 export default function PortfolioPage() {
   const { activeTeamId, fetchTeams, teams } = useTeamStore();
@@ -151,6 +241,11 @@ export default function PortfolioPage() {
           </Button>
         </div>
       </div>
+
+      {/* AI Portfolio Summary panel */}
+      {activeTeamId && (
+        <PortfolioAIPanel teamId={activeTeamId} />
+      )}
 
       {/* Projects view */}
       {viewMode === "projects" && (

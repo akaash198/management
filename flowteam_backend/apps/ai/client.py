@@ -271,10 +271,15 @@ def call_llm_engine(
     system = scrub_sensitive_data(system) + SAFETY_SUFFIX
     user_prompt = scrub_sensitive_data(user_prompt)
 
-    # 3. Resolve AI access + credit check
+    # 3. Resolve AI access + feature policy + credit check
     ai_access, _ = CompanyAIAccess.objects.get_or_create(
         company=company, defaults={"integration_mode": CompanyAIAccess.MODE_PLATFORM}
     )
+    from apps.ai.models import AIFeaturePolicy
+    policy, _ = AIFeaturePolicy.objects.get_or_create(company=company)
+    if not policy.is_feature_enabled(feature_name):
+        raise ValueError(f"AI feature '{feature_name}' is disabled for your company. Contact your administrator.")
+
     credits_status, _ = CompanyAICredits.objects.get_or_create(
         company=company, defaults={"total_allocated": Decimal("5000.00"), "credits_used": Decimal("0.00")}
     )

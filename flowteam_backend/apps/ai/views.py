@@ -5,7 +5,8 @@ import re
 from datetime import timedelta
 from decimal import Decimal
 
-from django.db.models import Count, Sum
+from django.db import models as db_models
+from django.db.models import Count, Q, Sum
 from django.core.cache import cache
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -54,6 +55,14 @@ from .serializers import (
     TaskIdSerializer,
     TaskDescriptionSerializer,
     WeeklyReportSerializer,
+    PortfolioSummarySerializer,
+    ExperimentSummarySerializer,
+    EscalationScanSerializer,
+    ThreadReplyDraftSerializer,
+    ManagerRiskRollupSerializer,
+    ModelCardDraftSerializer,
+    BlockerDetectSerializer,
+    AIFeaturePolicySerializer,
 )
 
 
@@ -788,3 +797,521 @@ class AIDailyBudgetView(APIView):
             ],
             "disclaimer": AI_DISCLAIMER,
         })
+
+
+# ── Portfolio Executive Summary ───────────────────────────────────────────────
+
+class PortfolioSummaryView(APIView):
+    """
+    POST /ai/portfolio-summary/
+    Scoped to team. Only CEO/Admin/Manager roles or superuser may call.
+    Aggregates all active projects in the team and generates a leadership-level summary.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = PortfolioSummarySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team = get_object_or_404(Team.objects.select_related("company"), id=serializer.validated_data["team_id"])
+
+        # RBAC: only manager+ or superuser
+        if not request.user.is_superuser:
+            membership = TeamMember.objects.filter(team=team, user=request.user).first()
+            if not membership or membership.role not in ("ceo", "admin", "manager"):
+                raise PermissionDenied("Portfolio summaries require Manager role or above.")
+
+        projects = list(
+            Project.objects.filter(team=team, status="active")
+            .prefetch_related("tasks", "tasks__column")
+            .select_related("team")
+        )
+        if not projects:
+            return standardize_response(data={
+                "headline": "No active projects found.",
+                "health_summary": "The team has no active projects at this time.",
+                "top_risks": [],
+                "highlights": [],
+                "recommendations": ["Create your first project to get started."],
+                "overall_health": "on_track",
+            })
+
+        project_data = []
+        for p in projects:
+            tasks = p.tasks.filter(is_archived=False)
+            total = tasks.count()
+            done = tasks.filter(column__is_done_column=True).count()
+            overdue = tasks.filter(column__is_done_column=False, due_date__lt=timezone.now().date()).count()
+            score = max(0, min(100, 90 - overdue * 12 - max(0, total - done - 20)))
+            project_data.append({
+                "name": p.name,
+                "total_tasks": total,
+                "completed_tasks": done,
+                "overdue_tasks": overdue,
+                "health_score": score,
+                "health_label": "Healthy" if score >= 80 else "Watch" if score >= 50 else "At Risk",
+            })
+
+        user_prompt = json.dumps({
+            "team": team.name,
+            "date": timezone.now().date().isoformat(),
+            "projects": project_data,
+            "total_projects": len(project_data),
+        })
+
+        fallback = {
+            "headline": f"{team.name} has {len(project_data)} active projects.",
+            "health_summary": f"{sum(1 for p in project_data if p['health_label'] == 'Healthy')} of {len(project_data)} projects are healthy.",
+            "top_risks": [
+                {"project_name": p["name"], "risk": f"{p['overdue_tasks']} overdue tasks", "severity": "high"}
+                for p in project_data if p["overdue_tasks"] > 0
+            ][:3],
+            "highlights": [p["name"] for p in project_data if p["health_label"] == "Healthy"][:3],
+            "recommendations": ["Review overdue tasks across all projects.", "Rebalance team workload."],
+            "overall_health": "at_risk" if any(p["health_label"] == "At Risk" for p in project_data) else "on_track",
+        }
+
+        raw = _call_ai(request, "portfolio_summary", prompts.PORTFOLIO_SUMMARY_SYSTEM, user_prompt, team=team, max_tokens=1400)
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Experiment Summary (DS / AI teams) ───────────────────────────────────────
+
+class ExperimentSummaryView(APIView):
+    """
+    POST /ai/experiment-summary/
+    Scoped to a single experiment task. Reads custom fields from
+    IssueTypeFieldDefinition + TaskCustomFieldValue. User must have project access.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = ExperimentSummarySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = get_object_or_404(
+            Task.objects.select_related("project__team", "column", "assignee", "sprint"),
+            id=serializer.validated_data["task_id"],
+            issue_type="experiment",
+        )
+        _ensure_project_access(request.user, task.project)
+
+        from apps.projects.models import TaskCustomFieldValue, ProjectDocument
+        from apps.ai.models import AIFeaturePolicy
+
+        policy, _ = AIFeaturePolicy.objects.get_or_create(company=_resolve_company(request, project=task.project))
+
+        # Build custom field context
+        custom_values = list(
+            TaskCustomFieldValue.objects.filter(task=task)
+            .select_related("field_definition")
+        )
+        fields_context = {cv.field_definition.name: cv.value for cv in custom_values}
+
+        # Optionally include attached documents if policy allows
+        docs_context = ""
+        if policy.allow_document_content:
+            docs = ProjectDocument.objects.filter(task=task).order_by("-created_at")[:3]
+            docs_context = "\n".join(
+                f"Document: {d.title}\n{(d.content or '')[:800]}"
+                for d in docs
+            )
+
+        user_prompt = json.dumps({
+            "experiment_name": task.title,
+            "description": task.description or "",
+            "status": task.column.name if task.column else "Unknown",
+            "sprint": task.sprint.name if task.sprint else None,
+            "assignee": task.assignee.full_name if task.assignee else "Unassigned",
+            "custom_fields": fields_context,
+            "attached_docs_excerpt": docs_context[:1500] if docs_context else None,
+        }, default=str)
+
+        fallback = {
+            "experiment_name": task.title,
+            "status_summary": f"Experiment is currently in '{task.column.name if task.column else 'Unknown'}' status.",
+            "key_metrics": [],
+            "hypothesis_assessment": "Insufficient data to assess hypothesis.",
+            "blockers": [],
+            "next_steps": ["Document experiment results.", "Define success metrics."],
+            "readiness": "needs_work",
+        }
+
+        raw = _call_ai(request, "experiment_summary", prompts.EXPERIMENT_SUMMARY_SYSTEM, user_prompt, project=task.project, max_tokens=1200)
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Escalation Scan (manager) ─────────────────────────────────────────────────
+
+class EscalationScanView(APIView):
+    """
+    POST /ai/escalation-scan/
+    Scoped to a project. Requires Manager+ or project_admin role.
+    Finds tasks that need immediate manager attention.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = EscalationScanSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = get_object_or_404(Project.objects.select_related("team"), id=serializer.validated_data["project_id"])
+        _ensure_project_access(request.user, project)
+
+        today = timezone.now().date()
+        open_tasks = list(
+            Task.objects.filter(project=project, is_archived=False, column__is_done_column=False)
+            .select_related("column", "assignee", "sprint")
+            .order_by("due_date")[:60]
+        )
+
+        task_data = [
+            {
+                "id": str(t.id),
+                "title": t.title,
+                "priority": t.priority,
+                "assignee": t.assignee.full_name if t.assignee else None,
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "days_overdue": (today - t.due_date).days if t.due_date and t.due_date < today else 0,
+                "status": t.column.name if t.column else "Unknown",
+                "in_sprint": bool(t.sprint),
+            }
+            for t in open_tasks
+        ]
+
+        critical = [t for t in task_data if t["days_overdue"] > 3 and t["priority"] in ("urgent", "high")]
+        fallback = {
+            "escalations": [
+                {
+                    "task_id": t["id"],
+                    "title": t["title"],
+                    "reason": f"Overdue by {t['days_overdue']} days with {t['priority']} priority",
+                    "severity": "critical" if t["days_overdue"] > 7 else "high",
+                    "suggested_action": "Assign to available team member or reschedule.",
+                    "days_overdue": t["days_overdue"],
+                }
+                for t in critical[:5]
+            ]
+        }
+
+        raw = _call_ai(
+            request, "escalation_scan", prompts.ESCALATION_SCAN_SYSTEM,
+            json.dumps({"project": project.name, "tasks": task_data}),
+            project=project, max_tokens=1200,
+        )
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Thread Reply Draft ─────────────────────────────────────────────────────────
+
+class ThreadReplyDraftView(APIView):
+    """
+    POST /ai/thread-reply-draft/
+    Drafts a contextual reply to a message thread.
+    User must be a member of the channel.
+    Policy check: allow_message_content must be True.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = ThreadReplyDraftSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        channel = get_object_or_404(Channel.objects.select_related("team__company"), id=serializer.validated_data["channel_id"])
+        _ensure_channel_access(request.user, channel)
+
+        # Policy check
+        company = _resolve_company(request, team=channel.team)
+        from apps.ai.models import AIFeaturePolicy
+        policy, _ = AIFeaturePolicy.objects.get_or_create(company=company)
+        if not policy.allow_message_content:
+            return standardize_response(
+                success=False,
+                error="Message content access is disabled by your company AI policy.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        since_count = serializer.validated_data["since_messages"]
+        root_message = get_object_or_404(Message, id=serializer.validated_data["message_id"], channel=channel)
+
+        # Get thread: root + replies, or last N channel messages
+        thread_messages = list(
+            Message.objects.filter(
+                channel=channel,
+                is_deleted=False,
+            ).filter(
+                Q(id=root_message.id) | Q(parent=root_message)
+            ).select_related("sender").order_by("created_at")[:since_count]
+        )
+        if not thread_messages:
+            thread_messages = list(
+                Message.objects.filter(channel=channel, is_deleted=False)
+                .select_related("sender")
+                .order_by("-created_at")[:since_count]
+            )
+            thread_messages.reverse()
+
+        context = "\n".join(f"{m.sender.full_name}: {m.text}" for m in thread_messages)
+        user_prompt = f"Channel: #{channel.display_name or channel.name}\nThread:\n{context}\n\nDraft a reply as: {request.user.full_name}"
+
+        fallback = {
+            "draft": "Thanks for sharing this. I'll follow up shortly.",
+            "tone": "professional",
+            "alternative_drafts": ["Got it — will look into this.", "Acknowledged. Let's discuss further."],
+        }
+
+        raw = _call_ai(request, "thread_reply_draft", prompts.THREAD_REPLY_DRAFT_SYSTEM, user_prompt, team=channel.team, max_tokens=600)
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Manager Risk Rollup ────────────────────────────────────────────────────────
+
+class ManagerRiskRollupView(APIView):
+    """
+    POST /ai/manager-risk-rollup/
+    Scoped to team. Requires Manager+ role.
+    Aggregates health, workload, and overdue data across all projects.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = ManagerRiskRollupSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        team = get_object_or_404(Team.objects.select_related("company"), id=serializer.validated_data["team_id"])
+
+        if not request.user.is_superuser:
+            membership = TeamMember.objects.filter(team=team, user=request.user).first()
+            if not membership or membership.role not in ("ceo", "admin", "manager"):
+                raise PermissionDenied("Risk rollup requires Manager role or above.")
+
+        today = timezone.now().date()
+        projects = list(Project.objects.filter(team=team, status="active"))
+
+        project_summaries = []
+        for p in projects:
+            tasks = Task.objects.filter(project=p, is_archived=False)
+            total = tasks.count()
+            done = tasks.filter(column__is_done_column=True).count()
+            overdue = tasks.filter(column__is_done_column=False, due_date__lt=today).count()
+            unassigned_urgent = tasks.filter(
+                column__is_done_column=False, assignee__isnull=True, priority__in=("urgent", "high")
+            ).count()
+            score = max(0, min(100, 90 - overdue * 12 - max(0, total - done - 20)))
+            project_summaries.append({
+                "name": p.name,
+                "total": total,
+                "done": done,
+                "overdue": overdue,
+                "unassigned_urgent": unassigned_urgent,
+                "health_score": score,
+            })
+
+        # Workload per member
+        member_loads = list(
+            Task.objects.filter(
+                project__team=team,
+                is_archived=False,
+                column__is_done_column=False,
+                assignee__isnull=False,
+            )
+            .values("assignee__full_name")
+            .annotate(open_tasks=Count("id"))
+            .order_by("-open_tasks")[:10]
+        )
+
+        user_prompt = json.dumps({
+            "team": team.name,
+            "date": today.isoformat(),
+            "projects": project_summaries,
+            "member_workloads": member_loads,
+        }, default=str)
+
+        total_overdue = sum(p["overdue"] for p in project_summaries)
+        fallback = {
+            "overall_risk": "high" if total_overdue > 10 else "medium" if total_overdue > 3 else "low",
+            "risk_summary": f"{len(project_summaries)} active projects, {total_overdue} overdue tasks total.",
+            "projects_at_risk": [
+                {"project_name": p["name"], "risk_reason": f"{p['overdue']} overdue tasks", "severity": "high"}
+                for p in project_summaries if p["overdue"] > 0
+            ],
+            "team_bottlenecks": [
+                f"{m['assignee__full_name']} has {m['open_tasks']} open tasks"
+                for m in member_loads[:3]
+            ],
+            "immediate_actions": ["Review top overdue items.", "Check unassigned urgent tasks."],
+            "positive_signals": [p["name"] for p in project_summaries if p["health_score"] >= 80],
+        }
+
+        raw = _call_ai(request, "escalation_scan", prompts.MANAGER_RISK_ROLLUP_SYSTEM, user_prompt, team=team, max_tokens=1200)
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Blocker Detection ─────────────────────────────────────────────────────────
+
+class BlockerDetectView(APIView):
+    """
+    POST /ai/blocker-detect/
+    Analyzes sprint tasks for hidden blockers. Requires project access.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = BlockerDetectSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        sprint = get_object_or_404(Sprint.objects.select_related("project__team"), id=serializer.validated_data["sprint_id"])
+        _ensure_project_access(request.user, sprint.project)
+
+        today = timezone.now().date()
+        tasks = list(
+            sprint.tasks.filter(is_archived=False, column__is_done_column=False)
+            .select_related("column", "assignee")
+            .prefetch_related("linked_tasks")
+            .order_by("priority", "due_date")[:40]
+        )
+
+        task_data = [
+            {
+                "id": str(t.id),
+                "title": t.title,
+                "priority": t.priority,
+                "assignee": t.assignee.full_name if t.assignee else "Unassigned",
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "days_overdue": (today - t.due_date).days if t.due_date and t.due_date < today else 0,
+                "status": t.column.name if t.column else "Unknown",
+                "has_description": bool(t.description and len(t.description) > 20),
+            }
+            for t in tasks
+        ]
+
+        critical_blockers = [t for t in task_data if t["days_overdue"] > 0 and t["priority"] in ("urgent", "high")]
+        fallback = {
+            "blockers": [
+                {
+                    "task_id": t["id"],
+                    "title": t["title"],
+                    "risk_type": "overdue_high_priority",
+                    "description": f"Overdue {t['days_overdue']} day(s) with {t['priority']} priority.",
+                    "suggested_action": "Escalate to manager or reassign.",
+                }
+                for t in critical_blockers[:5]
+            ]
+        }
+
+        raw = _call_ai(
+            request, "blocker_detect", prompts.BLOCKER_DETECT_SYSTEM,
+            json.dumps({"sprint": sprint.name, "goal": sprint.goal, "tasks": task_data}),
+            project=sprint.project, max_tokens=1000,
+        )
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── Model Card Draft (DS / AI teams) ─────────────────────────────────────────
+
+class ModelCardDraftView(APIView):
+    """
+    POST /ai/model-card-draft/
+    Generates a model card draft from an experiment task's custom fields + documents.
+    Requires project access and DS role (manager+).
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAIEnabled]
+
+    def post(self, request):
+        serializer = ModelCardDraftSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = get_object_or_404(
+            Task.objects.select_related("project__team", "column", "assignee"),
+            id=serializer.validated_data["task_id"],
+            issue_type="experiment",
+        )
+        _ensure_project_access(request.user, task.project, "view_project")
+
+        from apps.projects.models import TaskCustomFieldValue, ProjectDocument
+
+        custom_values = list(
+            TaskCustomFieldValue.objects.filter(task=task).select_related("field_definition")
+        )
+        fields_context = {cv.field_definition.name: cv.value for cv in custom_values}
+
+        # Pull model_card-type documents if they exist
+        docs = list(ProjectDocument.objects.filter(task=task, doc_type="model_card").order_by("-created_at")[:2])
+        docs_text = "\n".join(f"Existing doc: {d.title}\n{(d.content or '')[:600]}" for d in docs)
+
+        user_prompt = json.dumps({
+            "experiment_name": task.title,
+            "description": task.description or "",
+            "custom_fields": fields_context,
+            "existing_model_card_excerpts": docs_text or None,
+            "project": task.project.name,
+            "assignee": task.assignee.full_name if task.assignee else "Unassigned",
+        }, default=str)
+
+        fallback = {
+            "model_name": task.title,
+            "model_type": fields_context.get("model_type", "Not documented."),
+            "intended_use": task.description or "Not documented.",
+            "training_data_summary": "Not documented.",
+            "evaluation_metrics": [],
+            "limitations": ["Not documented."],
+            "risks": ["Evaluation pending."],
+            "recommended_uses": [],
+            "out_of_scope_uses": [],
+            "contact_owner": task.assignee.full_name if task.assignee else "Not assigned.",
+        }
+
+        raw = _call_ai(request, "experiment_summary", prompts.MODEL_CARD_DRAFT_SYSTEM, user_prompt, project=task.project, max_tokens=1400)
+        return standardize_response(data=_json_from_text(raw, fallback))
+
+
+# ── AI Feature Policy (company admin settings) ────────────────────────────────
+
+class AIFeaturePolicyView(APIView):
+    """
+    GET  /ai/feature-policy/  — read current policy for the user's company
+    PATCH /ai/feature-policy/ — update policy (CEO or ADMIN only)
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def _get_company_and_policy(self, request):
+        company = _resolve_company(request)
+        if not company:
+            return None, None
+        from apps.ai.models import AIFeaturePolicy
+        policy, _ = AIFeaturePolicy.objects.get_or_create(company=company)
+        return company, policy
+
+    def _assert_admin(self, request, company):
+        if request.user.is_superuser:
+            return
+        membership = CompanyMember.objects.filter(user=request.user, company=company).first()
+        if not membership or membership.role not in ("ceo", "admin"):
+            raise PermissionDenied("Only company CEO or Admin can modify AI feature policy.")
+
+    def get(self, request):
+        company, policy = self._get_company_and_policy(request)
+        if not company:
+            return standardize_response(success=False, error="No company found.", status=status.HTTP_404_NOT_FOUND)
+
+        from apps.ai.models import AIFeaturePolicy
+        fields = [f.name for f in AIFeaturePolicy._meta.get_fields()
+                  if f.name not in ("id", "company", "created_at", "updated_at")]
+        data = {f: getattr(policy, f) for f in fields}
+        return standardize_response(data=data)
+
+    def patch(self, request):
+        company, policy = self._get_company_and_policy(request)
+        if not company:
+            return standardize_response(success=False, error="No company found.", status=status.HTTP_404_NOT_FOUND)
+        self._assert_admin(request, company)
+
+        serializer = AIFeaturePolicySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        update_fields = []
+        for field, value in serializer.validated_data.items():
+            setattr(policy, field, value)
+            update_fields.append(field)
+
+        if update_fields:
+            policy.save(update_fields=update_fields + ["updated_at"])
+
+        from apps.ai.models import AIFeaturePolicy
+        fields = [f.name for f in AIFeaturePolicy._meta.get_fields()
+                  if f.name not in ("id", "company", "created_at", "updated_at")]
+        data = {f: getattr(policy, f) for f in fields}
+        return standardize_response(data=data)

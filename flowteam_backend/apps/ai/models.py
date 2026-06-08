@@ -143,6 +143,115 @@ class AILog(models.Model):
         ]
 
 
+class AIFeaturePolicy(models.Model):
+    """
+    Per-company feature-level AI policy.
+    Controls which features are enabled, which model tier to use,
+    and whether human confirmation is required before applying output.
+    One row per company — created on first access, defaults to all enabled.
+    """
+    TIER_FAST = "fast"       # Gemini Flash, haiku — cheap, low latency
+    TIER_STANDARD = "standard"   # Claude Sonnet, GPT-4o-mini
+    TIER_PREMIUM = "premium"     # Claude Opus, GPT-4o — complex reasoning
+
+    TIER_CHOICES = [
+        (TIER_FAST, "Fast (cheap, low latency)"),
+        (TIER_STANDARD, "Standard"),
+        (TIER_PREMIUM, "Premium (complex reasoning)"),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.OneToOneField(Company, on_delete=models.CASCADE, related_name="ai_feature_policy")
+
+    # Global kill-switch — overrides all feature flags
+    ai_globally_enabled = models.BooleanField(default=True)
+
+    # Individual contributor features
+    feat_daily_briefing = models.BooleanField(default=True)
+    feat_focus_recommend = models.BooleanField(default=True)
+    feat_task_description = models.BooleanField(default=True)
+    feat_task_summarize = models.BooleanField(default=True)
+    feat_auto_label = models.BooleanField(default=True)
+    feat_thread_reply_draft = models.BooleanField(default=True)
+
+    # Manager features
+    feat_sprint_plan = models.BooleanField(default=True)
+    feat_workload_balance = models.BooleanField(default=True)
+    feat_retrospective = models.BooleanField(default=True)
+    feat_project_health = models.BooleanField(default=True)
+    feat_blocker_detect = models.BooleanField(default=True)
+    feat_escalation_scan = models.BooleanField(default=True)
+    feat_weekly_report = models.BooleanField(default=True)
+    feat_channel_summary = models.BooleanField(default=True)
+    feat_meeting_action_items = models.BooleanField(default=True)
+    feat_client_report = models.BooleanField(default=True)
+    feat_build_automation = models.BooleanField(default=True)
+
+    # Leadership / admin features
+    feat_portfolio_summary = models.BooleanField(default=True)
+    feat_generate_tasks = models.BooleanField(default=True)
+
+    # DS / AI team features
+    feat_experiment_summary = models.BooleanField(default=True)
+
+    # Model tier routing (null = use company-level default)
+    tier_individual = models.CharField(max_length=20, choices=TIER_CHOICES, default=TIER_STANDARD)
+    tier_manager = models.CharField(max_length=20, choices=TIER_CHOICES, default=TIER_STANDARD)
+    tier_leadership = models.CharField(max_length=20, choices=TIER_CHOICES, default=TIER_PREMIUM)
+    tier_ds = models.CharField(max_length=20, choices=TIER_CHOICES, default=TIER_STANDARD)
+
+    # Human-in-the-loop: require confirmation before applying output
+    require_confirm_task_create = models.BooleanField(default=True)
+    require_confirm_bulk_label = models.BooleanField(default=True)
+    require_confirm_client_report = models.BooleanField(default=True)
+
+    # Data sources — restrict what content AI may access
+    allow_message_content = models.BooleanField(default=True)
+    allow_document_content = models.BooleanField(default=False)
+    allow_meeting_transcripts = models.BooleanField(default=True)
+
+    # Retention — how long prompt/response previews are kept in AILog
+    log_retention_days = models.PositiveIntegerField(default=90)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    # Map feature_name (used in call_llm_engine) -> policy field name
+    FEATURE_FLAG_MAP: dict[str, str] = {
+        "daily_briefing":       "feat_daily_briefing",
+        "focus_recommend":      "feat_focus_recommend",
+        "task_description":     "feat_task_description",
+        "task_summarize":       "feat_task_summarize",
+        "auto_label":           "feat_auto_label",
+        "thread_reply_draft":   "feat_thread_reply_draft",
+        "sprint_plan":          "feat_sprint_plan",
+        "workload_balance":     "feat_workload_balance",
+        "retrospective":        "feat_retrospective",
+        "project_health_score": "feat_project_health",
+        "blocker_detect":       "feat_blocker_detect",
+        "escalation_scan":      "feat_escalation_scan",
+        "weekly_report":        "feat_weekly_report",
+        "channel_summary":      "feat_channel_summary",
+        "meeting_action_items": "feat_meeting_action_items",
+        "client_report":        "feat_client_report",
+        "build_automation":     "feat_build_automation",
+        "portfolio_summary":    "feat_portfolio_summary",
+        "generate_tasks":       "feat_generate_tasks",
+        "experiment_summary":   "feat_experiment_summary",
+    }
+
+    def is_feature_enabled(self, feature_name: str) -> bool:
+        if not self.ai_globally_enabled:
+            return False
+        field = self.FEATURE_FLAG_MAP.get(feature_name)
+        if field is None:
+            return True  # unknown features default to allowed
+        return bool(getattr(self, field, True))
+
+    class Meta:
+        verbose_name = "AI Feature Policy"
+
+
 class DailyAIBudget(models.Model):
     """
     Tracks per-company per-feature AI usage per day.
