@@ -163,6 +163,7 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
     active: (companies ?? []).filter((c) => c.onboarding_status === "active").length,
     in_progress: (companies ?? []).filter((c) => c.onboarding_status === "in_progress").length,
     pending: (companies ?? []).filter((c) => c.onboarding_status === "pending").length,
+    suspended: (companies ?? []).filter((c) => c.onboarding_status === "suspended").length,
   };
 
   // ── Navigation ────────────────────────────────────────────────────────────
@@ -194,7 +195,7 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
             Company Management
           </h2>
           <p className="text-sm text-muted-foreground">
-            {statusCounts.all} companies · {statusCounts.active} active · {statusCounts.in_progress} onboarding
+            {statusCounts.all} {statusCounts.all === 1 ? "company" : "companies"} · {statusCounts.active} active · {statusCounts.in_progress} onboarding{statusCounts.suspended > 0 ? ` · ${statusCounts.suspended} suspended` : ""}
           </p>
         </div>
         <Button onClick={() => openWizard(null)} className="gap-2">
@@ -209,6 +210,9 @@ export default function CompanyManagementPanel({ isSuperuser }: { isSuperuser: b
         <StatusChip label="Active" count={statusCounts.active} active={statusFilter === "active"} onClick={() => setStatusFilter("active")} color="success" />
         <StatusChip label="Onboarding" count={statusCounts.in_progress} active={statusFilter === "in_progress"} onClick={() => setStatusFilter("in_progress")} color="info" />
         <StatusChip label="Pending" count={statusCounts.pending} active={statusFilter === "pending"} onClick={() => setStatusFilter("pending")} color="muted" />
+        {statusCounts.suspended > 0 && (
+          <StatusChip label="Suspended" count={statusCounts.suspended} active={statusFilter === "suspended"} onClick={() => setStatusFilter("suspended")} color="error" />
+        )}
       </div>
 
       {/* Drill-down breadcrumb */}
@@ -480,7 +484,7 @@ function CompanyCard({
       >
         <span className="flex items-center gap-1.5">
           <Layers size={11} />
-          View teams & members
+          View teams
         </span>
         <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
       </button>
@@ -785,7 +789,7 @@ function StatusChip({
   count: number;
   active: boolean;
   onClick?: () => void;
-  color: "default" | "success" | "info" | "muted";
+  color: "default" | "success" | "info" | "muted" | "error";
 }) {
   const baseClass = "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all border cursor-pointer select-none";
   const colorMap = {
@@ -801,6 +805,9 @@ function StatusChip({
     muted: active
       ? "bg-slate-600 text-white border-slate-600 shadow-sm"
       : "bg-background text-muted-foreground border-border hover:border-slate-400 hover:text-slate-700 dark:hover:text-slate-400",
+    error: active
+      ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+      : "bg-background text-muted-foreground border-border hover:border-rose-400 hover:text-rose-700 dark:hover:text-rose-400",
   };
   return (
     <button
