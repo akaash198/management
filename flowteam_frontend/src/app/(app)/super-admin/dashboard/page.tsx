@@ -67,6 +67,7 @@ type AdminUser = {
   is_staff: boolean;
   is_superuser: boolean;
   date_joined: string;
+  company_count: number;
 };
 
 type AdminUserUpsertPayload = {
@@ -451,6 +452,7 @@ export default function SuperAdminDashboardPage() {
                   <th className="px-4 py-3">Name</th>
                   <th className="px-4 py-3">Email</th>
                   <th className="px-4 py-3">Role</th>
+                  <th className="px-4 py-3">Companies</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
@@ -458,20 +460,20 @@ export default function SuperAdminDashboardPage() {
               <tbody className="divide-y divide-border">
                 {isUsersLoading && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
                       Loading users...
                     </td>
                   </tr>
                 )}
                 {!isUsersLoading && (users?.length ?? 0) === 0 && (
                   <tr>
-                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={6}>
+                    <td className="px-4 py-10 text-center text-muted-foreground" colSpan={7}>
                       No users found.
                     </td>
                   </tr>
                 )}
                 {(users ?? []).map((u) => (
-                  <tr key={u.id} className="hover:bg-muted/30 transition-colors">
+                  <tr key={u.id} className={`hover:bg-muted/30 transition-colors ${!u.is_active ? "opacity-60" : ""}`}>
                     <td className="px-4 py-3">
                       <input
                         type="checkbox"
@@ -493,7 +495,16 @@ export default function SuperAdminDashboardPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {u.is_active ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Disabled</Badge>}
+                      {u.is_superuser || u.is_staff ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : u.company_count === 0 ? (
+                        <Badge variant="destructive" className="text-[10px]">No company</Badge>
+                      ) : (
+                        <span className="text-xs font-medium">{u.company_count}</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.is_active ? <Badge variant="outline">Active</Badge> : <Badge variant="secondary">Inactive</Badge>}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <DropdownMenu>

@@ -295,6 +295,12 @@ def _remove_member_cascade(membership) -> None:
     # 4. Remove company membership
     membership.delete()
 
+    # 5. Deactivate account if user now belongs to no companies
+    remaining = user.company_memberships.count()
+    if remaining == 0 and not user.is_staff and not user.is_superuser:
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+
 
 # ──────────────────────────────────────────────────────────────
 # Company Invites (email-based invite flow)

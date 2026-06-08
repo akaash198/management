@@ -68,6 +68,7 @@ def mask_name(name):
 
 class AdminUserSerializer(serializers.ModelSerializer):
     timezone = serializers.CharField(source="timezone_pref", required=False)
+    company_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -80,8 +81,12 @@ class AdminUserSerializer(serializers.ModelSerializer):
             "is_staff",
             "is_superuser",
             "date_joined",
+            "company_count",
         )
-        read_only_fields = ("id", "date_joined")
+        read_only_fields = ("id", "date_joined", "company_count")
+
+    def get_company_count(self, instance):
+        return instance.company_memberships.count()
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
