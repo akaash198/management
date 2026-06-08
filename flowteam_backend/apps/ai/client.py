@@ -279,7 +279,7 @@ def call_llm_engine(
         company=company, defaults={"total_allocated": Decimal("5000.00"), "credits_used": Decimal("0.00")}
     )
     if credits_status.remaining_credits <= Decimal("0.00"):
-        raise ValueError("Insufficient AI credits. Contact your administrator.")
+        raise ValueError("Insufficient credit balance. Contact your administrator.")
 
     # 4. Daily budget check
     _check_daily_budget(company, feature_name)
