@@ -20,4 +20,6 @@ urlpatterns = [
     path("auto-label/", views.AutoLabelView.as_view(), name="ai-auto-label"),
     path("dashboard/", views.AIUsageDashboardView.as_view(), name="ai-dashboard"),
     path("test-connection/", views.AITestConnectionView.as_view(), name="ai-test-connection"),
+    path("logs/<uuid:log_id>/feedback/", views.AIFeedbackView.as_view(), name="ai-feedback"),
+    path("daily-budget/", views.AIDailyBudgetView.as_view(), name="ai-daily-budget"),
 ]

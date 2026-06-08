@@ -23,6 +23,8 @@ from config.utils import standardize_response
 
 from apps.companies.models import CompanyMember, Company
 from .client import call_llm_engine, OpenAIAdapter, AnthropicAdapter, GeminiAdapter, LLMAdapterFactory
+from .models import AILog, DailyAIBudget
+from .utils import AI_DISCLAIMER
 
 def _resolve_company(request, project=None, team=None) -> Company:
     if project and project.team and project.team.company:
@@ -710,3 +712,79 @@ class AITestConnectionView(APIView):
             return standardize_response(data={"message": "Connection test successful", "result": res["content"]})
         except Exception as e:
             return standardize_response(success=False, error=f"Connection test failed: {str(e)}", status=status.HTTP_400_BAD_REQUEST)
+
+
+class AIFeedbackView(APIView):
+    """POST /ai/logs/<log_id>/feedback/  — thumbs-up/down + optional text per AI response."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, log_id):
+        log = get_object_or_404(AILog, id=log_id)
+
+        # Only the user who triggered the call may rate it
+        if log.user_id and str(log.user_id) != str(request.user.id):
+            return standardize_response(
+                success=False, error="You can only rate your own AI responses.",
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        rating = request.data.get("rating")
+        feedback_text = (request.data.get("feedback_text") or "").strip()[:2000]
+        acted_on = request.data.get("output_acted_on")
+
+        if rating is not None:
+            try:
+                rating = int(rating)
+                if rating not in range(1, 6):
+                    raise ValueError()
+            except (ValueError, TypeError):
+                return standardize_response(
+                    success=False, error="rating must be 1–5.",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            log.feedback_rating = rating
+
+        if feedback_text:
+            log.feedback_text = feedback_text
+
+        if acted_on is not None:
+            log.output_acted_on = bool(acted_on)
+
+        log.save(update_fields=["feedback_rating", "feedback_text", "output_acted_on"])
+        return standardize_response(data={"message": "Feedback recorded. Thank you!"})
+
+
+class AIDailyBudgetView(APIView):
+    """GET /ai/daily-budget/  — today's per-feature usage for the company."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        company = _resolve_company(request)
+        if not company:
+            return standardize_response(
+                success=False, error="No company found.", status=status.HTTP_404_NOT_FOUND
+            )
+
+        today = timezone.now().date()
+        budgets = list(
+            DailyAIBudget.objects.filter(company=company, date=today)
+            .values("feature", "calls", "credits_used")
+        )
+        from .client import DEFAULT_FEATURE_DAILY_CAPS, DEFAULT_DAILY_COMPANY_CREDIT_CAP
+        ai_policy = (company.settings_json or {}).get("ai_policy", {})
+        totals = {"calls": sum(b["calls"] for b in budgets), "credits_used": sum(float(b["credits_used"]) for b in budgets)}
+
+        return standardize_response(data={
+            "date": today.isoformat(),
+            "company_daily_credit_cap": float(ai_policy.get("daily_credit_cap", DEFAULT_DAILY_COMPANY_CREDIT_CAP)),
+            "totals": totals,
+            "features": [
+                {
+                    **b,
+                    "credits_used": float(b["credits_used"]),
+                    "cap": ai_policy.get(f"daily_cap_{b['feature']}") or DEFAULT_FEATURE_DAILY_CAPS.get(b["feature"], 500),
+                }
+                for b in budgets
+            ],
+            "disclaimer": AI_DISCLAIMER,
+        })

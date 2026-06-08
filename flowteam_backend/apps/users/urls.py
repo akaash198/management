@@ -16,6 +16,11 @@ from .views import (
     PushSubscribeView,
     PushVapidKeyView,
     CookieTokenRefreshView,
+    SessionListView,
+    SessionRevokeView,
+    SessionRevokeAllView,
+    APIKeyListCreateView,
+    APIKeyRevokeView,
 )
 from .oauth_views import (
     BitbucketOAuthCallbackView,
@@ -53,4 +58,11 @@ urlpatterns = [
     path("oauth/gitlab/callback/", GitLabOAuthCallbackView.as_view(), name="gitlab_callback"),
     path("oauth/bitbucket/redirect/", BitbucketOAuthRedirectView.as_view(), name="bitbucket_redirect"),
     path("oauth/bitbucket/callback/", BitbucketOAuthCallbackView.as_view(), name="bitbucket_callback"),
+    # Session management
+    path("sessions/", SessionListView.as_view(), name="auth_sessions_list"),
+    path("sessions/all/", SessionRevokeAllView.as_view(), name="auth_sessions_revoke_all"),
+    path("sessions/<str:jti>/", SessionRevokeView.as_view(), name="auth_session_revoke"),
+    # API key management
+    path("api-keys/", APIKeyListCreateView.as_view(), name="auth_api_keys"),
+    path("api-keys/<uuid:key_id>/", APIKeyRevokeView.as_view(), name="auth_api_key_revoke"),
 ]

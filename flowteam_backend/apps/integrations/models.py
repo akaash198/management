@@ -1,11 +1,35 @@
 from __future__ import annotations
 
 import uuid
+import base64
+import hashlib
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
 from apps.teams.models import Team
+
+
+def _get_fernet():
+    """Reuse the same Fernet key derivation as apps.ai.models."""
+    from cryptography.fernet import Fernet
+    key_bytes = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    return Fernet(base64.urlsafe_b64encode(key_bytes))
+
+
+def _encrypt(raw: str) -> str:
+    if not raw:
+        return ""
+    return _get_fernet().encrypt(raw.encode()).decode()
+
+
+def _decrypt(cipher: str) -> str:
+    if not cipher:
+        return ""
+    try:
+        return _get_fernet().decrypt(cipher.encode()).decode()
+    except Exception:
+        return ""
 
 
 class SlackWebhook(models.Model):
@@ -32,8 +56,19 @@ class GitHubIntegration(models.Model):
         blank=True,
         related_name="github_integration",
     )
+    # access_token kept for migration compat; use set/get_access_token() in all new code
     access_token = models.TextField()
+    access_token_enc = models.TextField(blank=True, default="")  # Fernet-encrypted
     github_user = models.CharField(max_length=255)
+
+    def set_access_token(self, raw: str) -> None:
+        self.access_token = ""           # clear plaintext
+        self.access_token_enc = _encrypt(raw)
+
+    def get_access_token(self) -> str:
+        if self.access_token_enc:
+            return _decrypt(self.access_token_enc)
+        return self.access_token        # legacy fallback
     repo_owner = models.CharField(max_length=255, blank=True)
     repo_name = models.CharField(max_length=255, blank=True)
     webhook_id = models.CharField(max_length=50, blank=True)
@@ -136,7 +171,17 @@ class GitLabIntegration(models.Model):
         related_name="gitlab_integration",
     )
     access_token = models.TextField()
+    access_token_enc = models.TextField(blank=True, default="")
     gitlab_user = models.CharField(max_length=255, blank=True, default="")
+
+    def set_access_token(self, raw: str) -> None:
+        self.access_token = ""
+        self.access_token_enc = _encrypt(raw)
+
+    def get_access_token(self) -> str:
+        if self.access_token_enc:
+            return _decrypt(self.access_token_enc)
+        return self.access_token
     repo_full_path = models.CharField(max_length=512, blank=True, default="")  # group/subgroup/repo
     webhook_id = models.CharField(max_length=80, blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -156,7 +201,17 @@ class BitbucketIntegration(models.Model):
         related_name="bitbucket_integration",
     )
     access_token = models.TextField()
+    access_token_enc = models.TextField(blank=True, default="")
     bitbucket_user = models.CharField(max_length=255, blank=True, default="")
+
+    def set_access_token(self, raw: str) -> None:
+        self.access_token = ""
+        self.access_token_enc = _encrypt(raw)
+
+    def get_access_token(self) -> str:
+        if self.access_token_enc:
+            return _decrypt(self.access_token_enc)
+        return self.access_token
     workspace = models.CharField(max_length=255, blank=True, default="")
     repo_slug = models.CharField(max_length=255, blank=True, default="")
     webhook_id = models.CharField(max_length=80, blank=True, default="")
@@ -179,10 +234,24 @@ class ExternalCalendarAccount(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="calendar_accounts")
     provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
 
-    access_token = models.TextField(blank=True, default="")
-    refresh_token = models.TextField(blank=True, default="")
+    access_token = models.TextField(blank=True, default="")      # legacy plaintext
+    refresh_token = models.TextField(blank=True, default="")     # legacy plaintext
+    access_token_enc = models.TextField(blank=True, default="")  # Fernet-encrypted
+    refresh_token_enc = models.TextField(blank=True, default="") # Fernet-encrypted
     expires_at = models.DateTimeField(null=True, blank=True)
     scopes = models.TextField(blank=True, default="")
+
+    def set_tokens(self, access: str, refresh: str) -> None:
+        self.access_token = ""
+        self.refresh_token = ""
+        self.access_token_enc = _encrypt(access)
+        self.refresh_token_enc = _encrypt(refresh)
+
+    def get_access_token(self) -> str:
+        return _decrypt(self.access_token_enc) if self.access_token_enc else self.access_token
+
+    def get_refresh_token(self) -> str:
+        return _decrypt(self.refresh_token_enc) if self.refresh_token_enc else self.refresh_token
 
     enabled = models.BooleanField(default=True)
     sync_external_events = models.BooleanField(default=False)

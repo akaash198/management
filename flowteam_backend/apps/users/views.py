@@ -505,3 +505,195 @@ class PushVapidKeyView(generics.GenericAPIView):
 
     def get(self, request):
         return standardize_response(data={"public_key": getattr(settings, "VAPID_PUBLIC_KEY", "")})
+
+
+# ── Session management ────────────────────────────────────────────────────────
+
+class SessionListView(generics.GenericAPIView):
+    """GET /auth/sessions/ — list active sessions for the current user."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        from .models import UserSession
+        sessions = UserSession.objects.filter(user=request.user, is_revoked=False).order_by("-last_active")
+        data = [
+            {
+                "id": str(s.id),
+                "jti": s.jti,
+                "device_name": s.device_name,
+                "ip_address": s.ip_address,
+                "last_active": s.last_active.isoformat(),
+                "created_at": s.created_at.isoformat(),
+            }
+            for s in sessions
+        ]
+        return standardize_response(data=data)
+
+
+class SessionRevokeView(generics.GenericAPIView):
+    """DELETE /auth/sessions/<jti>/ — revoke a specific session."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request, jti):
+        from .models import UserSession
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+
+        qs = UserSession.objects.filter(user=request.user, jti=jti, is_revoked=False)
+        if not qs.exists():
+            return standardize_response(success=False, error="Session not found", status=status.HTTP_404_NOT_FOUND)
+
+        qs.update(is_revoked=True)
+        # Try to blacklist the underlying JWT if simplejwt has it on record
+        try:
+            outstanding = OutstandingToken.objects.filter(jti=jti).first()
+            if outstanding:
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass
+
+        return standardize_response(data={"revoked": True})
+
+
+class SessionRevokeAllView(generics.GenericAPIView):
+    """DELETE /auth/sessions/ — revoke all sessions except the current one."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request):
+        from .models import UserSession
+        from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
+
+        # Current session JTI from cookie token
+        current_jti = None
+        try:
+            from rest_framework_simplejwt.tokens import AccessToken as _AT
+            raw = request.COOKIES.get("access_token") or ""
+            if not raw:
+                auth = request.headers.get("Authorization", "") if hasattr(request, "headers") else ""
+                if isinstance(auth, str) and auth.lower().startswith("bearer "):
+                    raw = auth[7:].strip()
+            if raw:
+                current_jti = _AT(raw).get("jti")
+        except Exception:
+            pass
+
+        sessions = UserSession.objects.filter(user=request.user, is_revoked=False)
+        if current_jti:
+            sessions = sessions.exclude(jti=current_jti)
+        jtis = list(sessions.values_list("jti", flat=True))
+        sessions.update(is_revoked=True)
+
+        try:
+            for jti in jtis:
+                outstanding = OutstandingToken.objects.filter(jti=jti).first()
+                if outstanding:
+                    BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception:
+            pass
+
+        return standardize_response(data={"revoked_count": len(jtis)})
+
+
+# ── Public API Key management ─────────────────────────────────────────────────
+
+class APIKeyListCreateView(generics.GenericAPIView):
+    """
+    GET  /auth/api-keys/        — list active API keys for the current user's teams
+    POST /auth/api-keys/        — create a new key (raw returned once)
+    """
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def get(self, request):
+        from .models import PublicAPIKey
+        from apps.teams.models import TeamMember
+        team_ids = TeamMember.objects.filter(user=request.user).values_list("team_id", flat=True)
+        keys = PublicAPIKey.objects.filter(team_id__in=team_ids, is_active=True).select_related("team", "created_by")
+        data = [
+            {
+                "id": str(k.id),
+                "team_id": str(k.team_id),
+                "team_name": k.team.name,
+                "name": k.name,
+                "prefix": k.prefix,
+                "scopes": k.scopes,
+                "last_used_at": k.last_used_at.isoformat() if k.last_used_at else None,
+                "expires_at": k.expires_at.isoformat() if k.expires_at else None,
+                "created_at": k.created_at.isoformat(),
+                "created_by": str(k.created_by_id) if k.created_by_id else None,
+            }
+            for k in keys
+        ]
+        return standardize_response(data=data)
+
+    def post(self, request):
+        from .models import PublicAPIKey
+        from apps.teams.models import TeamMember
+
+        team_id = request.data.get("team_id")
+        name = (request.data.get("name") or "").strip()
+        scopes = request.data.get("scopes") or []
+        expires_at_raw = request.data.get("expires_at")
+
+        if not team_id or not name:
+            return standardize_response(
+                success=False,
+                error="team_id and name are required",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Must be team member
+        if not TeamMember.objects.filter(user=request.user, team_id=team_id).exists():
+            return standardize_response(success=False, error="Not a member of that team", status=status.HTTP_403_FORBIDDEN)
+
+        valid_scopes = {s for s, _ in PublicAPIKey.ALL_SCOPES}
+        invalid = [s for s in scopes if s not in valid_scopes]
+        if invalid:
+            return standardize_response(
+                success=False,
+                error=f"Invalid scopes: {invalid}. Valid: {list(valid_scopes)}",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from apps.teams.models import Team
+        team = Team.objects.get(id=team_id)
+
+        expires_at = None
+        if expires_at_raw:
+            from django.utils.dateparse import parse_datetime
+            expires_at = parse_datetime(expires_at_raw)
+
+        key, raw = PublicAPIKey.generate(
+            team=team, created_by=request.user, name=name, scopes=scopes, expires_at=expires_at
+        )
+        return standardize_response(
+            data={
+                "id": str(key.id),
+                "name": key.name,
+                "prefix": key.prefix,
+                "scopes": key.scopes,
+                "key": raw,  # shown ONCE
+                "expires_at": key.expires_at.isoformat() if key.expires_at else None,
+                "created_at": key.created_at.isoformat(),
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class APIKeyRevokeView(generics.GenericAPIView):
+    """DELETE /auth/api-keys/<key_id>/ — revoke an API key."""
+    permission_classes = (permissions.IsAuthenticated,)
+
+    def delete(self, request, key_id):
+        from .models import PublicAPIKey
+        from apps.teams.models import TeamMember
+
+        try:
+            key = PublicAPIKey.objects.select_related("team").get(id=key_id, is_active=True)
+        except PublicAPIKey.DoesNotExist:
+            return standardize_response(success=False, error="API key not found", status=status.HTTP_404_NOT_FOUND)
+
+        if not TeamMember.objects.filter(user=request.user, team=key.team).exists():
+            return standardize_response(success=False, error="Forbidden", status=status.HTTP_403_FORBIDDEN)
+
+        key.is_active = False
+        key.save(update_fields=["is_active"])
+        return standardize_response(data={"revoked": True})

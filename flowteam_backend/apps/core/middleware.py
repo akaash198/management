@@ -142,6 +142,108 @@ def _ws_cookie(scope, name):
     return None
 
 
+class IPAllowlistMiddleware:
+    """
+    Enforces company-level IP allowlists for authenticated users.
+    If a company has settings_json.security.ip_allowlist populated, only those
+    CIDR ranges / exact IPs may access the API. Anonymous requests pass through.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @staticmethod
+    def _client_ip(request) -> str:
+        try:
+            forwarded = request.headers.get("X-Forwarded-For", "") if hasattr(request, "headers") else ""
+        except Exception:
+            forwarded = ""
+        if forwarded:
+            return forwarded.split(",")[0].strip()
+        return (request.META.get("REMOTE_ADDR") or "").strip()
+
+    @staticmethod
+    def _ip_allowed(client_ip: str, allowlist: list[str]) -> bool:
+        import ipaddress
+        try:
+            addr = ipaddress.ip_address(client_ip)
+        except ValueError:
+            return False
+        for entry in allowlist:
+            try:
+                if "/" in entry:
+                    if addr in ipaddress.ip_network(entry, strict=False):
+                        return True
+                else:
+                    if addr == ipaddress.ip_address(entry):
+                        return True
+            except ValueError:
+                continue
+        return False
+
+    def __call__(self, request):
+        # Only enforce for authenticated users after auth middleware has run.
+        user = getattr(request, "user", None)
+        if user and getattr(user, "is_authenticated", False) and not getattr(user, "is_superuser", False):
+            try:
+                from apps.companies.models import CompanyMember
+                member = (
+                    CompanyMember.objects
+                    .select_related("company")
+                    .filter(user=user)
+                    .first()
+                )
+                if member:
+                    allowlist = (
+                        (member.company.settings_json or {})
+                        .get("security", {})
+                        .get("ip_allowlist", [])
+                    )
+                    if allowlist:
+                        client_ip = self._client_ip(request)
+                        if not self._ip_allowed(client_ip, allowlist):
+                            return JsonResponse(
+                                {"success": False, "error": "Access denied: your IP is not on the allowlist."},
+                                status=403,
+                            )
+            except Exception:
+                pass  # Never block on unexpected errors in security middleware
+        return self.get_response(request)
+
+
+class PublicAPIKeyAuthMiddleware:
+    """
+    Authenticates requests bearing an `Authorization: ApiKey cwrk_...` header.
+    Sets request.user and request.auth_scopes so DRF views can enforce scopes.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        try:
+            auth = request.headers.get("Authorization", "") if hasattr(request, "headers") else ""
+        except Exception:
+            auth = request.META.get("HTTP_AUTHORIZATION", "")
+
+        if isinstance(auth, str) and auth.lower().startswith("apikey "):
+            raw_key = auth[7:].strip()
+            try:
+                from apps.users.models import PublicAPIKey
+                key = PublicAPIKey.authenticate(raw_key)
+                if key:
+                    # Attach a synthetic user from the team's creator for permission checks
+                    team = key.team
+                    if key.created_by and key.created_by.is_active:
+                        request.user = key.created_by
+                    request.api_key = key
+                    request.api_key_scopes = key.scopes
+            except Exception:
+                pass
+
+        return self.get_response(request)
+
+
 class JWTAuthMiddleware:
     """
     Custom middleware that authenticates WebSocket connections via:

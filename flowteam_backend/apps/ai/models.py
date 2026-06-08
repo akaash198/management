@@ -84,30 +84,51 @@ class CompanyAICredits(models.Model):
 class AILog(models.Model):
     STATUS_SUCCESS = "success"
     STATUS_FAILED = "failed"
+    STATUS_BLOCKED = "blocked"
     STATUS_CHOICES = [
         (STATUS_SUCCESS, "Success"),
         (STATUS_FAILED, "Failed"),
+        (STATUS_BLOCKED, "Blocked by guardrails"),
+    ]
+
+    TRIGGER_USER = "user_action"
+    TRIGGER_AUTOMATION = "automation"
+    TRIGGER_SCHEDULED = "scheduled"
+    TRIGGER_CHOICES = [
+        (TRIGGER_USER, "User action"),
+        (TRIGGER_AUTOMATION, "Automation rule"),
+        (TRIGGER_SCHEDULED, "Scheduled task"),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="ai_logs")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True)
-    
-    feature_name = models.CharField(max_length=50)
+
+    feature_name = models.CharField(max_length=60)
     integration_mode = models.CharField(max_length=20)
     provider = models.CharField(max_length=30)
-    model_name = models.CharField(max_length=50)
-    
+    model_name = models.CharField(max_length=80)
+    model_version = models.CharField(max_length=80, blank=True, default="")
+
     prompt_tokens = models.IntegerField(default=0)
     completion_tokens = models.IntegerField(default=0)
-    
+
     cost_usd = models.DecimalField(max_digits=10, decimal_places=6, default=0.00)
     credits_deducted = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    
-    latency_ms = models.IntegerField()
+
+    latency_ms = models.IntegerField(default=0)
     status = models.CharField(max_length=15, choices=STATUS_CHOICES)
     error_message = models.TextField(blank=True, null=True)
-    
+    output_warnings = models.JSONField(default=list, blank=True)  # e.g. ["output_truncated", "ssn_redacted"]
+    block_reason = models.CharField(max_length=60, blank=True, default="")  # "prompt_injection" | "input_too_large" | "budget_exceeded"
+
+    triggered_by = models.CharField(max_length=20, choices=TRIGGER_CHOICES, default=TRIGGER_USER)
+    output_acted_on = models.BooleanField(null=True, blank=True)
+
+    # User feedback
+    feedback_rating = models.SmallIntegerField(null=True, blank=True)   # 1–5 (thumbs: 1=bad, 5=great)
+    feedback_text = models.TextField(blank=True, default="")
+
     request_summary = models.TextField(blank=True, default="")
     response_preview = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
@@ -116,3 +137,30 @@ class AILog(models.Model):
         ordering = ["-created_at"]
         verbose_name = "AI Log"
         verbose_name_plural = "AI Logs"
+        indexes = [
+            models.Index(fields=["company", "feature_name", "created_at"], name="ailog_co_feat_time_idx"),
+            models.Index(fields=["company", "status", "created_at"], name="ailog_co_status_time_idx"),
+        ]
+
+
+class DailyAIBudget(models.Model):
+    """
+    Tracks per-company per-feature AI usage per day.
+    Enforced in call_llm_engine() to prevent a single company or user from
+    draining the credit pool in a short burst.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="daily_ai_budgets")
+    date = models.DateField()
+    feature = models.CharField(max_length=60)
+    calls = models.PositiveIntegerField(default=0)
+    credits_used = models.DecimalField(max_digits=12, decimal_places=4, default=0)
+
+    class Meta:
+        unique_together = ("company", "date", "feature")
+        indexes = [
+            models.Index(fields=["company", "date"], name="dailyaibudget_co_date_idx"),
+        ]
+
+    def __str__(self):
+        return f"{self.company_id} / {self.feature} / {self.date}"

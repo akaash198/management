@@ -166,3 +166,120 @@ def github_sync_open_prs() -> dict:
                 synced += 1
     GitHubIntegration.objects.filter(id__in=list(integrations.values_list("id", flat=True))).update(last_synced_at=timezone.now())
     return {"synced": synced}
+
+
+@shared_task(
+    bind=True,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_backoff_max=3600,  # cap at 1 hour
+    max_retries=7,
+)
+def deliver_webhook(self, event_id: str) -> dict:
+    """
+    Deliver a single OutboxEvent with celery-managed exponential backoff.
+    Falls back to the existing outbox logic but bound to a specific event.
+    """
+    event = OutboxEvent.objects.filter(id=event_id).first()
+    if not event:
+        return {"ok": False, "error": "event_not_found"}
+
+    if event.status == OutboxEvent.STATUS_SENT:
+        return {"ok": True, "skipped": True}
+
+    try:
+        if event.destination == OutboxEvent.DEST_SLACK:
+            hooks = SlackWebhook.objects.filter(team_id=event.team_id, enabled=True)
+            payload = _slack_payload(event)
+            for hook in hooks:
+                requests.post(hook.webhook_url, json=payload, timeout=5).raise_for_status()
+
+        OutboxEvent.objects.filter(id=event_id).update(
+            status=OutboxEvent.STATUS_SENT,
+            last_error=None,
+            updated_at=timezone.now(),
+        )
+        return {"ok": True}
+    except Exception as exc:
+        OutboxEvent.objects.filter(id=event_id).update(
+            attempts=OutboxEvent.objects.filter(id=event_id).values_list("attempts", flat=True).first() + 1,
+            last_error=str(exc)[:2000],
+            updated_at=timezone.now(),
+        )
+        raise  # Celery handles retry with backoff
+
+
+@shared_task
+def rotate_expiring_oauth_tokens() -> dict:
+    """
+    Refresh OAuth tokens that expire within the next 30 minutes.
+    Runs every 6 hours via celery-beat. Only handles Google/Microsoft calendar for now.
+    """
+    import requests as _req
+    from django.conf import settings as _settings
+    from apps.integrations.models import ExternalCalendarAccount
+
+    cutoff = timezone.now() + timezone.timedelta(minutes=30)
+    candidates = ExternalCalendarAccount.objects.filter(
+        enabled=True,
+        expires_at__lte=cutoff,
+    ).exclude(refresh_token_enc="").exclude(refresh_token="")
+
+    refreshed = 0
+    failed = 0
+
+    for account in candidates:
+        refresh_tok = account.get_refresh_token()
+        if not refresh_tok:
+            continue
+        try:
+            if account.provider == ExternalCalendarAccount.PROVIDER_GOOGLE:
+                resp = _req.post(
+                    "https://oauth2.googleapis.com/token",
+                    data={
+                        "client_id": getattr(_settings, "GOOGLE_CLIENT_ID", ""),
+                        "client_secret": getattr(_settings, "GOOGLE_CLIENT_SECRET", ""),
+                        "refresh_token": refresh_tok,
+                        "grant_type": "refresh_token",
+                    },
+                    timeout=10,
+                )
+                resp.raise_for_status()
+                new_data = resp.json()
+                new_access = new_data.get("access_token", "")
+                expires_in = int(new_data.get("expires_in", 3600))
+
+            elif account.provider == ExternalCalendarAccount.PROVIDER_MICROSOFT:
+                resp = _req.post(
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                    data={
+                        "client_id": getattr(_settings, "MICROSOFT_CLIENT_ID", ""),
+                        "client_secret": getattr(_settings, "MICROSOFT_CLIENT_SECRET", ""),
+                        "refresh_token": refresh_tok,
+                        "grant_type": "refresh_token",
+                        "scope": "https://graph.microsoft.com/Calendars.ReadWrite offline_access",
+                    },
+                    timeout=10,
+                )
+                resp.raise_for_status()
+                new_data = resp.json()
+                new_access = new_data.get("access_token", "")
+                new_refresh = new_data.get("refresh_token", refresh_tok)
+                expires_in = int(new_data.get("expires_in", 3600))
+                account.set_tokens(new_access, new_refresh)
+            else:
+                continue
+
+            if account.provider == ExternalCalendarAccount.PROVIDER_GOOGLE:
+                account.set_tokens(new_access, refresh_tok)  # Google doesn't rotate refresh token
+
+            account.expires_at = timezone.now() + timezone.timedelta(seconds=expires_in)
+            account.save(update_fields=["access_token_enc", "refresh_token_enc", "expires_at"])
+            refreshed += 1
+
+        except Exception as exc:
+            failed += 1
+            import logging
+            logging.getLogger(__name__).warning("Token refresh failed for account %s: %s", account.id, exc)
+
+    return {"refreshed": refreshed, "failed": failed}

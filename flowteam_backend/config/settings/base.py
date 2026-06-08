@@ -91,6 +91,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "axes.middleware.AxesMiddleware",
     "apps.core.middleware.RateLimitMiddleware",
+    "apps.core.middleware.IPAllowlistMiddleware",
+    "apps.core.middleware.PublicAPIKeyAuthMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"

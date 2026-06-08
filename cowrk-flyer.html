@@ -1,0 +1,1177 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cowrk — One Workspace. Every Team.</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:       #c9a84c;
+      --gold-light: #e8c97a;
+      --gold-dim:   #8a6a28;
+      --blue:       #3b82f6;
+      --blue-dark:  #1d4ed8;
+      --cyan:       #22d3ee;
+      --ink:        #05090f;
+      --ink2:       #0a1120;
+      --ink3:       #0f1c30;
+      --slate:      #94a3b8;
+      --slate-dim:  #475569;
+      --white:      #ffffff;
+      --glass:      rgba(255,255,255,.04);
+      --glass-border: rgba(255,255,255,.08);
+      --gold-glass: rgba(201,168,76,.08);
+      --gold-border: rgba(201,168,76,.22);
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: #020509;
+      color: var(--white);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .page {
+      width: 820px;
+      margin: 0 auto;
+      background: var(--ink);
+    }
+
+    /* ── Shared ambient glow layers ── */
+    .glow-layer {
+      position: relative;
+      overflow: hidden;
+    }
+    .glow-layer::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 45% at 8% 12%,  rgba(59,130,246,.10) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 92% 88%, rgba(34,211,238,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 35% 30% at 50% 50%, rgba(201,168,76,.04) 0%, transparent 70%);
+    }
+
+    /* ── Noise texture overlay ── */
+    .noise::after {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none; opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 180px;
+    }
+
+    /* ── Section skeleton ── */
+    .section { padding: 64px 60px; position: relative; }
+    .section.alt { background: var(--ink2); }
+    .section.alt2 { background: var(--ink3); }
+
+    /* ── Gold rule ── */
+    .gold-rule {
+      width: 36px; height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--gold-light));
+      border-radius: 99px; margin-bottom: 16px;
+    }
+
+    .eyebrow {
+      font-size: 10px; font-weight: 700; letter-spacing: 3.5px;
+      text-transform: uppercase; color: var(--gold);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: 32px; font-weight: 800; line-height: 1.18;
+      letter-spacing: -.6px; color: var(--white); margin-bottom: 14px;
+    }
+    .section-title em {
+      font-style: normal;
+      background: linear-gradient(100deg, var(--gold-light), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .section-lead {
+      font-size: 14px; line-height: 1.75; color: var(--slate);
+      max-width: 580px; margin-bottom: 44px;
+    }
+
+    /* ── Glass card base ── */
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 18px;
+      position: relative; overflow: hidden;
+    }
+    .card.gold-trim::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    /* ── Icon badge ── */
+    .badge {
+      width: 48px; height: 48px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; flex-shrink: 0;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       HERO
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .hero {
+      background:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(59,130,246,.18) 0%, transparent 65%),
+        radial-gradient(ellipse 60% 50% at 90% 110%, rgba(201,168,76,.10) 0%, transparent 65%),
+        linear-gradient(180deg, #050d1a 0%, #070f1e 60%, #05090f 100%);
+      padding: 72px 60px 64px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+
+    /* Subtle grid mesh */
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    }
+
+    /* Bottom border glow */
+    .hero::after {
+      content: '';
+      position: absolute; left: 0; right: 0; bottom: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--gold) 40%, var(--cyan) 60%, transparent 100%);
+      opacity: .5;
+    }
+
+    /* Logo */
+    .logo-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      margin-bottom: 48px; position: relative;
+    }
+    .logo-img-wrap {
+      display: flex; align-items: center; justify-content: center;
+    }
+    .logo-img-wrap img {
+      height: 52px; width: auto; object-fit: contain;
+      filter: drop-shadow(0 0 18px rgba(34,211,238,.25));
+    }
+    .logo-sub {
+      font-size: 9.5px; font-weight: 700; letter-spacing: 3px;
+      text-transform: uppercase; color: var(--gold-dim);
+    }
+
+    /* Hero headline */
+    .hero-h1 {
+      font-size: 50px; font-weight: 900; line-height: 1.08;
+      letter-spacing: -2px; color: var(--white);
+      margin-bottom: 22px; position: relative;
+    }
+    .hero-h1 .grad {
+      background: linear-gradient(95deg, #e8c97a 10%, #22d3ee 90%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 16px; color: #7a93b0; line-height: 1.75;
+      max-width: 520px; margin: 0 auto 44px; font-weight: 400;
+    }
+
+    /* Stat chips */
+    .stat-strip {
+      display: flex; justify-content: center; gap: 16px;
+      flex-wrap: wrap; margin-bottom: 52px;
+    }
+    .stat-chip {
+      display: flex; align-items: center; gap: 10px;
+      background: rgba(255,255,255,.045);
+      border: 1px solid rgba(255,255,255,.09);
+      border-radius: 999px; padding: 9px 22px;
+      backdrop-filter: blur(8px);
+    }
+    .stat-chip .n {
+      font-size: 18px; font-weight: 900;
+      background: linear-gradient(90deg, var(--gold-light), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-chip .l {
+      font-size: 12px; color: #7a93b0; font-weight: 500;
+    }
+
+    /* Three-pillar strip */
+    .pillar-strip {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+    .pillar-strip::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--cyan), transparent);
+      opacity: .4;
+    }
+    .pillar {
+      padding: 30px 28px; text-align: left;
+    }
+    .pillar + .pillar { border-left: 1px solid rgba(255,255,255,.07); }
+    .pillar-icon {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 14px;
+    }
+    .pillar h4 {
+      font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 6px;
+    }
+    .pillar p { font-size: 11.5px; color: #6b87a0; line-height: 1.65; }
+    .replaces-tag {
+      display: inline-flex; align-items: center; gap: 5px;
+      margin-top: 10px;
+      background: rgba(201,168,76,.1);
+      border: 1px solid rgba(201,168,76,.2);
+      border-radius: 999px; padding: 3px 11px;
+      font-size: 10px; font-weight: 600; color: var(--gold);
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       CHALLENGE
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .challenge-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 18px; margin-bottom: 40px;
+    }
+    .c-card {
+      padding: 28px 26px; border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      position: relative; overflow: hidden;
+    }
+    .c-card::after {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,168,76,.4), transparent);
+    }
+    .c-num {
+      font-size: 42px; font-weight: 900; line-height: 1;
+      background: linear-gradient(135deg, rgba(201,168,76,.18), rgba(201,168,76,.05));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+    .c-card h3 {
+      font-size: 15px; font-weight: 700; color: var(--white); margin-bottom: 8px;
+    }
+    .c-card p { font-size: 12.5px; color: var(--slate); line-height: 1.65; }
+
+    /* Impact callout */
+    .impact-callout {
+      border-radius: 20px; padding: 36px 40px;
+      background:
+        linear-gradient(135deg, rgba(201,168,76,.10) 0%, rgba(34,211,238,.06) 100%);
+      border: 1px solid rgba(201,168,76,.2);
+      display: flex; gap: 40px; align-items: center;
+      position: relative; overflow: hidden;
+    }
+    .impact-callout::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    .impact-callout .left { flex: 1; }
+    .impact-callout h3 {
+      font-size: 20px; font-weight: 800; color: var(--white); margin-bottom: 14px;
+    }
+    .impact-callout ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .impact-callout ul li {
+      font-size: 13px; color: var(--slate);
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .impact-callout ul li::before {
+      content: '—'; color: var(--gold); font-weight: 700; flex-shrink: 0;
+    }
+    .callout-stats { display: flex; flex-direction: column; gap: 14px; min-width: 148px; }
+    .c-stat {
+      text-align: center;
+      background: rgba(5,9,15,.5);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px; padding: 14px 18px;
+    }
+    .c-stat .v {
+      font-size: 28px; font-weight: 900;
+      background: linear-gradient(90deg, var(--gold-light), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .c-stat .k { font-size: 10.5px; color: var(--slate-dim); margin-top: 2px; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       SOLUTION / FEATURES
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .feature-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    .f-card {
+      padding: 26px 22px; border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      position: relative; overflow: hidden;
+      transition: none;
+    }
+    .f-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold-border), transparent);
+    }
+    .f-icon {
+      width: 46px; height: 46px; border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 21px; margin-bottom: 14px;
+    }
+    .f-card h4 {
+      font-size: 13.5px; font-weight: 700; color: var(--white); margin-bottom: 7px;
+    }
+    .f-card p { font-size: 11.5px; color: var(--slate); line-height: 1.65; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       ARCHITECTURE
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .arch-wrap {
+      display: flex; flex-direction: column; gap: 0;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px; overflow: hidden;
+      margin-bottom: 24px;
+    }
+    .arch-row {
+      display: flex; gap: 0; align-items: stretch;
+      border-bottom: 1px solid var(--glass-border);
+      background: var(--glass);
+    }
+    .arch-row:last-child { border-bottom: none; }
+    .arch-row:nth-child(even) { background: rgba(255,255,255,.02); }
+    .arch-num-col {
+      width: 64px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-right: 1px solid var(--glass-border);
+      padding: 20px 0;
+    }
+    .arch-circle {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #000;
+    }
+    .arch-content { padding: 20px 24px; flex: 1; }
+    .arch-content h4 {
+      font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 4px;
+    }
+    .arch-content p { font-size: 12px; color: var(--slate); line-height: 1.6; }
+
+    .stack-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+    }
+    .stack-card {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px; padding: 20px 22px;
+    }
+    .stack-card h5 {
+      font-size: 11px; font-weight: 700; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 10px;
+    }
+    .stack-pills {
+      display: flex; flex-wrap: wrap; gap: 6px;
+    }
+    .stack-pill {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 999px; padding: 3px 11px;
+      font-size: 10.5px; color: #7a93b0; font-weight: 500;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       BUSINESS IMPACT
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .results-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 36px;
+    }
+    .result-card {
+      padding: 26px 22px; border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      position: relative; overflow: hidden;
+    }
+    .result-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,168,76,.35), transparent);
+    }
+    .result-big {
+      font-size: 40px; font-weight: 900; line-height: 1;
+      background: linear-gradient(90deg, var(--gold-light), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+    .result-card h4 {
+      font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 6px;
+    }
+    .result-card p { font-size: 11.5px; color: var(--slate); line-height: 1.6; }
+
+    /* SLA bar */
+    .sla-bar {
+      display: flex; justify-content: space-around; align-items: center;
+      background:
+        linear-gradient(135deg, rgba(201,168,76,.08), rgba(34,211,238,.05));
+      border: 1px solid rgba(201,168,76,.18);
+      border-radius: 18px; padding: 30px 40px;
+      position: relative; overflow: hidden;
+    }
+    .sla-bar::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--cyan), transparent);
+      opacity: .5;
+    }
+    .sla-item { text-align: center; }
+    .sla-val {
+      font-size: 38px; font-weight: 900;
+      background: linear-gradient(90deg, var(--gold-light), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .sla-lbl { font-size: 11px; color: var(--slate-dim); margin-top: 5px; font-weight: 500; letter-spacing: .5px; }
+    .sla-sep { width: 1px; height: 56px; background: rgba(255,255,255,.08); }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       COMPETITIVE ADVANTAGES
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .adv-grid {
+      display: flex; flex-direction: column; gap: 0;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px; overflow: hidden;
+    }
+    .adv-row {
+      display: flex; gap: 0; align-items: stretch;
+      border-bottom: 1px solid var(--glass-border);
+      background: var(--glass);
+    }
+    .adv-row:last-child { border-bottom: none; }
+    .adv-row:nth-child(even) { background: rgba(255,255,255,.025); }
+    .adv-icon-col {
+      width: 72px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      border-right: 1px solid var(--glass-border);
+    }
+    .adv-icon-box {
+      width: 42px; height: 42px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      background: rgba(201,168,76,.08);
+      border: 1px solid rgba(201,168,76,.15);
+    }
+    .adv-body { padding: 22px 24px; flex: 1; }
+    .adv-body h4 {
+      font-size: 14px; font-weight: 700; color: var(--white); margin-bottom: 5px;
+    }
+    .adv-body p { font-size: 12px; color: var(--slate); line-height: 1.65; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       TESTIMONIAL
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .testimonial-wrap {
+      background:
+        linear-gradient(135deg, rgba(59,130,246,.10), rgba(201,168,76,.07));
+      border: 1px solid rgba(201,168,76,.18);
+      border-radius: 20px; padding: 40px 44px;
+      position: relative; overflow: hidden;
+    }
+    .testimonial-wrap::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+    .quote-mark {
+      font-size: 72px; line-height: .8; font-weight: 900;
+      color: var(--gold); opacity: .25; margin-bottom: 12px;
+      font-family: Georgia, serif;
+    }
+    .testimonial-wrap blockquote {
+      font-size: 15.5px; color: #c8d8ec; line-height: 1.8;
+      font-weight: 400; margin-bottom: 22px; font-style: italic;
+    }
+    .testimonial-wrap blockquote strong { color: var(--white); font-style: normal; }
+    .testimonial-source {
+      display: flex; align-items: center; gap: 14px;
+    }
+    .source-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue-dark), var(--gold-dim));
+      border: 1px solid var(--gold-border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 15px; font-weight: 800; color: var(--gold-light);
+    }
+    .source-name { font-size: 13px; font-weight: 700; color: var(--white); }
+    .source-role { font-size: 11px; color: var(--slate-dim); margin-top: 1px; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       SECURITY
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .security-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 16px; margin-bottom: 40px;
+    }
+    .sec-card {
+      padding: 26px 22px; border-radius: 18px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      position: relative; overflow: hidden;
+    }
+    .sec-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(34,211,238,.3), transparent);
+    }
+    .sec-icon {
+      font-size: 26px; margin-bottom: 12px; display: block;
+    }
+    .sec-card h5 {
+      font-size: 13px; font-weight: 700; color: var(--white); margin-bottom: 7px;
+    }
+    .sec-card p { font-size: 11.5px; color: var(--slate); line-height: 1.6; }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       CTA
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .cta-box {
+      border-radius: 22px; padding: 52px 56px;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 0%, rgba(59,130,246,.22) 0%, transparent 70%),
+        linear-gradient(180deg, #0d1f3c, #07101c);
+      border: 1px solid rgba(201,168,76,.22);
+      position: relative; overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, var(--gold) 30%, var(--cyan) 70%, transparent 100%);
+    }
+    /* Orbiting rings */
+    .cta-box::after {
+      content: '';
+      position: absolute; bottom: -120px; right: -120px;
+      width: 320px; height: 320px; border-radius: 50%;
+      border: 1px solid rgba(201,168,76,.08);
+      pointer-events: none;
+    }
+    .cta-box h2 {
+      font-size: 30px; font-weight: 900; letter-spacing: -.6px;
+      color: var(--white); margin-bottom: 14px; position: relative; z-index: 1;
+    }
+    .cta-box h2 span {
+      background: linear-gradient(90deg, var(--gold-light), var(--cyan));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .cta-box p {
+      font-size: 14px; color: #7a93b0; line-height: 1.75;
+      max-width: 460px; margin: 0 auto 32px;
+      position: relative; z-index: 1;
+    }
+    .cta-checklist {
+      display: flex; flex-wrap: wrap; justify-content: center;
+      gap: 10px 28px; margin-bottom: 36px;
+      list-style: none; position: relative; z-index: 1;
+    }
+    .cta-checklist li {
+      font-size: 12.5px; color: #94a3b8;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cta-check {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 9px; color: #000; font-weight: 900; flex-shrink: 0;
+    }
+    .cta-btns {
+      display: flex; gap: 14px; justify-content: center;
+      position: relative; z-index: 1;
+    }
+    .btn-gold {
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #0d1100; font-size: 13.5px; font-weight: 800;
+      padding: 14px 32px; border-radius: 12px;
+      text-decoration: none; letter-spacing: .1px;
+      box-shadow: 0 4px 24px rgba(201,168,76,.3);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,.06); color: var(--white);
+      border: 1px solid rgba(255,255,255,.14);
+      font-size: 13.5px; font-weight: 600;
+      padding: 14px 32px; border-radius: 12px;
+      text-decoration: none;
+    }
+
+    /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+       FOOTER
+    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+    .footer {
+      background: #030609;
+      padding: 28px 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-top: 1px solid rgba(255,255,255,.05);
+    }
+    .footer-brand { display: flex; flex-direction: column; gap: 6px; }
+    .footer-logo-img img {
+      height: 28px; width: auto; object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(34,211,238,.2));
+    }
+    .footer-brand .sub {
+      font-size: 10px; color: var(--slate-dim); letter-spacing: 1px;
+    }
+    .footer-right { text-align: right; }
+    .footer-right .caps {
+      font-size: 10.5px; color: var(--slate-dim); line-height: 1.8;
+    }
+    .footer-right .copy {
+      font-size: 10px; color: #1e2d3d; margin-top: 3px;
+    }
+
+    /* ── PDF button ── */
+    .pdf-bar {
+      position: fixed; bottom: 28px; right: 28px; z-index: 9999;
+    }
+    .btn-pdf {
+      display: flex; align-items: center; gap: 10px;
+      background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+      color: #0a0e00; font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px; font-weight: 800; letter-spacing: .3px;
+      padding: 13px 22px; border-radius: 12px; border: none;
+      cursor: pointer;
+      box-shadow: 0 6px 28px rgba(201,168,76,.45), 0 2px 8px rgba(0,0,0,.5);
+    }
+    .btn-pdf svg { flex-shrink: 0; }
+
+    @media print {
+      body { background: var(--ink); }
+      .page { width: 100%; }
+      .pdf-bar { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="pdf-bar">
+  <button class="btn-pdf" onclick="window.print()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 16V4"/><path d="M6 10l6 6 6-6"/><rect x="3" y="18" width="18" height="3" rx="1"/>
+    </svg>
+    Download PDF
+  </button>
+</div>
+
+<div class="page">
+
+  <!-- ══════════════════════════════════════
+       HERO
+  ══════════════════════════════════════ -->
+  <section class="hero noise">
+    <div class="logo-wrap">
+      <div class="logo-img-wrap">
+        <img src="logo.png" alt="Cowrk" />
+      </div>
+      <div class="logo-sub">ONE WORKSPACE &middot; EVERY TEAM</div>
+    </div>
+
+    <h1 class="hero-h1">
+      Stop Juggling Tools.<br/>
+      <span class="grad">Start Shipping Faster.</span>
+    </h1>
+    <p class="hero-sub">
+      Cowrk unifies project management, real-time messaging, and video collaboration
+      in a single workspace — where every decision, task, and conversation
+      stays permanently connected.
+    </p>
+
+    <div class="stat-strip">
+      <div class="stat-chip"><span class="n">40%</span><span class="l">Faster release cycles</span></div>
+      <div class="stat-chip"><span class="n">2.5h</span><span class="l">Saved per person / week</span></div>
+      <div class="stat-chip"><span class="n">150+</span><span class="l">Countries</span></div>
+      <div class="stat-chip"><span class="n">6 → 1</span><span class="l">Tools consolidated</span></div>
+    </div>
+
+    <div class="pillar-strip">
+      <div class="pillar">
+        <div class="pillar-icon" style="background:rgba(59,130,246,.15);">📋</div>
+        <h4>Project Management</h4>
+        <p>Kanban, sprints, milestones, time tracking, roadmaps, and custom fields in one board.</p>
+        <span class="replaces-tag">↳ Replaces Jira &amp; Asana</span>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon" style="background:rgba(34,211,238,.12);">💬</div>
+        <h4>Real-Time Messaging</h4>
+        <p>Channels, threads, DMs, reactions, pinned messages, and full-text search history.</p>
+        <span class="replaces-tag">↳ Replaces Slack</span>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon" style="background:rgba(16,185,129,.12);">📹</div>
+        <h4>Video Collaboration</h4>
+        <p>HD video, screen sharing, co-annotation, AI transcriptions, and auto-linked recordings.</p>
+        <span class="replaces-tag">↳ Replaces Zoom / Teams</span>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       THE CHALLENGE
+  ══════════════════════════════════════ -->
+  <section class="section alt glow-layer">
+    <div class="eyebrow">The Problem</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">Modern Teams Are Drowning<br/>in <em>Tooling Chaos</em></h2>
+    <p class="section-lead">
+      The average software team juggles 6+ disconnected tools. Every context switch costs
+      focus. Every decision buried in a DM becomes a bottleneck. Every missed update
+      delays a sprint.
+    </p>
+
+    <div class="challenge-grid">
+      <div class="c-card">
+        <div class="c-num">01</div>
+        <h3>Context-Switching Tax</h3>
+        <p>Teams lose 5–10 hours a week bouncing between Slack, Jira, Zoom, and email. Decisions made in chat never reach the task board — blind spots compound and rework escalates.</p>
+      </div>
+      <div class="c-card">
+        <div class="c-num">02</div>
+        <h3>Decisions Lost in DMs</h3>
+        <p>Critical choices buried in private threads mean engineers re-debate the same problems sprint after sprint. Knowledge silos slow velocity and inflate meeting load across every team.</p>
+      </div>
+      <div class="c-card">
+        <div class="c-num">03</div>
+        <h3>Tool Sprawl &amp; Hidden Cost</h3>
+        <p>Six subscriptions — Slack, Jira, Zoom, Confluence, Figma, email — plus integration costs, maintenance overhead, and onboarding friction for every new hire add up to a hidden tax.</p>
+      </div>
+      <div class="c-card">
+        <div class="c-num">04</div>
+        <h3>Remote Alignment Gaps</h3>
+        <p>Async teams across time zones miss sprint goals and status updates. Without a single source of truth, managers default to manual check-ins and status meetings nobody needs.</p>
+      </div>
+    </div>
+
+    <div class="impact-callout">
+      <div class="left">
+        <h3>The Real Cost of Fragmented Tooling</h3>
+        <ul>
+          <li>Hours wasted per person on context switches every single week</li>
+          <li>Thousands lost in duplicate SaaS subscriptions each year</li>
+          <li>Compliance exposure from decisions made off-system</li>
+          <li>Slowed hiring &amp; onboarding — six tools to learn on day one</li>
+        </ul>
+      </div>
+      <div class="callout-stats">
+        <div class="c-stat"><div class="v">6+</div><div class="k">Tools replaced</div></div>
+        <div class="c-stat"><div class="v">10h</div><div class="k">Weekly time lost / person</div></div>
+        <div class="c-stat"><div class="v">30%</div><div class="k">Fewer meetings reported</div></div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       SOLUTION — FEATURES
+  ══════════════════════════════════════ -->
+  <section class="section alt2 glow-layer">
+    <div class="eyebrow">The Solution</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">One Platform.<br/><em>Everything Connected.</em></h2>
+    <p class="section-lead">
+      Cowrk integrates project management, messaging, and video into a single context-aware
+      workspace. When you comment on a task, the thread lives there — not buried in a DM.
+      When a sprint review ends, the recording links directly to the epic.
+    </p>
+
+    <div class="feature-grid">
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(59,130,246,.14);">📋</div>
+        <h4>Kanban &amp; Sprint Boards</h4>
+        <p>Drag-and-drop Kanban with epics, stories, bugs, subtasks, and custom fields. Sprint planning, backlog grooming, and visual roadmaps built in.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(34,211,238,.12);">💬</div>
+        <h4>Threaded Channels &amp; DMs</h4>
+        <p>Public &amp; private channels, nested threads, @mentions, reactions, scheduled messages, and full-text search with retention policies.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(16,185,129,.12);">📹</div>
+        <h4>HD Video &amp; AI Recordings</h4>
+        <p>WebRTC calls, screen sharing, co-annotation, and AI-generated transcriptions — recordings auto-link to the project context that spawned them.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(201,168,76,.12);">🤖</div>
+        <h4>AI Assistant</h4>
+        <p>Daily briefings, smart focus queues, sprint planning assistance, automated task generation, retrospective summaries, and client report drafting.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(139,92,246,.12);">⚙️</div>
+        <h4>No-Code Automation</h4>
+        <p>Trigger-based workflows — auto-assign overdue tasks, send approvals, update statuses — built without a single line of code via a visual rule builder.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(239,68,68,.12);">📊</div>
+        <h4>Reports &amp; Dashboards</h4>
+        <p>Sprint burndowns, team velocity, workload heatmaps, portfolio views, and overdue analysis — all real-time via WebSocket refresh.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(59,130,246,.12);">🗓️</div>
+        <h4>Timeline &amp; Calendar</h4>
+        <p>Gantt-style milestone timelines, drag-to-reschedule calendar views, and cross-project capacity planning in a single pane.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(34,211,238,.10);">🔗</div>
+        <h4>Deep Integrations</h4>
+        <p>GitHub PRs, Figma previews, Google Workspace embeds, Salesforce context, Confluence docs, Okta / Azure AD SSO, and REST webhooks.</p>
+      </div>
+      <div class="f-card">
+        <div class="f-icon" style="background:rgba(16,185,129,.10);">🧾</div>
+        <h4>Billing &amp; Invoicing</h4>
+        <p>Project-level invoicing with line items, multi-currency support, and invoice lifecycle management — built for agencies and client-facing teams.</p>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       ARCHITECTURE
+  ══════════════════════════════════════ -->
+  <section class="section alt glow-layer">
+    <div class="eyebrow">Platform Architecture</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">Six Pillars of the<br/><em>Cowrk Engine</em></h2>
+    <p class="section-lead">
+      Built on a modern, cloud-native stack designed for 10M+ active users and
+      real-time collaboration across 150+ countries.
+    </p>
+
+    <div class="arch-wrap">
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">1</div></div>
+        <div class="arch-content">
+          <h4>Real-Time WebSocket Layer</h4>
+          <p>Django Channels 4 + Redis Channel Layer power live task updates, presence indicators, and instant messaging without manual refresh. Every board stays in sync with a live 30-second heartbeat.</p>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">2</div></div>
+        <div class="arch-content">
+          <h4>AI Orchestration &amp; Smart Assistance</h4>
+          <p>Pluggable LLM layer supports OpenAI, Anthropic, Google Gemini, and private fine-tuned models. Powers daily briefings, sprint planning, task generation, and automated client reports grounded in your actual project data.</p>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">3</div></div>
+        <div class="arch-content">
+          <h4>Granular Permission Engine</h4>
+          <p>Five-tier company hierarchy (CEO → Admin → Manager → Member → Viewer) with four project-level roles and field-level access controls via django-guardian — enterprise governance without enterprise complexity.</p>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">4</div></div>
+        <div class="arch-content">
+          <h4>Async Task &amp; Automation Engine</h4>
+          <p>Celery 5.3 handles background jobs — recurring task generation, notification dispatch, report compilation, and no-code rule execution — without ever blocking the UI thread.</p>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">5</div></div>
+        <div class="arch-content">
+          <h4>WebRTC Peer Collaboration</h4>
+          <p>SimplePeer-powered HD video with screen sharing and co-annotation. Every meeting is recorded, transcribed by AI, and attached directly to the project that spawned it — zero manual linking.</p>
+        </div>
+      </div>
+      <div class="arch-row">
+        <div class="arch-num-col"><div class="arch-circle">6</div></div>
+        <div class="arch-content">
+          <h4>Cloud-Native &amp; Mobile-Ready</h4>
+          <p>Next.js 16 + React Native share business logic across web, iOS, and Android. Containerised microservices deploy on AWS, GCP, Azure, or fully on-premises via Docker Compose.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack-row">
+      <div class="stack-card">
+        <h5>Frontend</h5>
+        <div class="stack-pills">
+          <span class="stack-pill">Next.js 16</span>
+          <span class="stack-pill">React 19</span>
+          <span class="stack-pill">TypeScript</span>
+          <span class="stack-pill">Tailwind CSS</span>
+          <span class="stack-pill">Radix UI</span>
+          <span class="stack-pill">TanStack Query</span>
+          <span class="stack-pill">Zustand</span>
+          <span class="stack-pill">Recharts</span>
+          <span class="stack-pill">Framer Motion</span>
+        </div>
+      </div>
+      <div class="stack-card">
+        <h5>Backend</h5>
+        <div class="stack-pills">
+          <span class="stack-pill">Django 5</span>
+          <span class="stack-pill">DRF 3.15</span>
+          <span class="stack-pill">PostgreSQL</span>
+          <span class="stack-pill">Redis</span>
+          <span class="stack-pill">Celery 5.3</span>
+          <span class="stack-pill">Django Channels 4</span>
+          <span class="stack-pill">SimpleJWT</span>
+          <span class="stack-pill">Daphne / Uvicorn</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       BUSINESS IMPACT
+  ══════════════════════════════════════ -->
+  <section class="section alt2 glow-layer">
+    <div class="eyebrow">Measurable Business Impact</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">Real Results.<br/><em>Real Teams.</em></h2>
+    <p class="section-lead">
+      Cowrk customers across engineering, e-commerce, finance, and operations report
+      transformative outcomes within their first quarter of adoption.
+    </p>
+
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="result-big">40%</div>
+        <h4>Faster Release Cycles</h4>
+        <p>TechFlow eliminated 6 context-switching tools and cut sprint-to-ship time nearly in half within one quarter.</p>
+      </div>
+      <div class="result-card">
+        <div class="result-big">2.5h</div>
+        <h4>Saved Per Person / Week</h4>
+        <p>GlobalScale recovered 2.5 hours weekly per employee by unifying task tracking, chat, and video in a single window.</p>
+      </div>
+      <div class="result-card">
+        <div class="result-big">Zero</div>
+        <h4>Compliance Findings</h4>
+        <p>BankSafe's regulated team cleared Q1 audit with zero findings using Cowrk's built-in SOC 2 controls and audit logs.</p>
+      </div>
+      <div class="result-card">
+        <div class="result-big">30%</div>
+        <h4>Fewer Meetings</h4>
+        <p>RemoteFirst cut standing meetings by 30% with async-first threads, recorded video updates, and structured decision logs.</p>
+      </div>
+      <div class="result-card">
+        <div class="result-big">100%</div>
+        <h4>Straight-Through Processing</h4>
+        <p>Standardised project lanes process end-to-end without human intervention — teams focus on exceptions, Cowrk handles the rest.</p>
+      </div>
+      <div class="result-card">
+        <div class="result-big">6 → 1</div>
+        <h4>Tools Consolidated</h4>
+        <p>Replacing Slack + Jira + Zoom + Confluence alone saves most teams $30–60 per user monthly while delivering a more integrated UX.</p>
+      </div>
+    </div>
+
+    <div class="sla-bar">
+      <div class="sla-item">
+        <div class="sla-val">99.9%</div>
+        <div class="sla-lbl">Uptime SLA</div>
+      </div>
+      <div class="sla-sep"></div>
+      <div class="sla-item">
+        <div class="sla-val">10M+</div>
+        <div class="sla-lbl">Users Supported</div>
+      </div>
+      <div class="sla-sep"></div>
+      <div class="sla-item">
+        <div class="sla-val">150+</div>
+        <div class="sla-lbl">Countries</div>
+      </div>
+      <div class="sla-sep"></div>
+      <div class="sla-item">
+        <div class="sla-val">&lt;30s</div>
+        <div class="sla-lbl">Live Sync Refresh</div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       COMPETITIVE ADVANTAGES
+  ══════════════════════════════════════ -->
+  <section class="section alt glow-layer">
+    <div class="eyebrow">Competitive Advantages</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">Built for Teams,<br/>Not <em>Bolted Together.</em></h2>
+    <p class="section-lead">
+      Unlike generic tools retrofitted with integrations, Cowrk was designed from day one
+      as a unified workspace. The difference is visible at every layer.
+    </p>
+
+    <div class="adv-grid">
+      <div class="adv-row">
+        <div class="adv-icon-col"><div class="adv-icon-box">🧩</div></div>
+        <div class="adv-body">
+          <h4>Unified Context — Tasks, Chat &amp; Video in One Thread</h4>
+          <p>Every decision made in a meeting or channel is one click from the task it spawned. No more "as discussed" action items that nobody can trace back to the original conversation.</p>
+        </div>
+      </div>
+      <div class="adv-row">
+        <div class="adv-icon-col"><div class="adv-icon-box">🤖</div></div>
+        <div class="adv-body">
+          <h4>AI That Knows Your Sprint, Not Just Your Prompt</h4>
+          <p>Cowrk's AI has full context of your projects, tasks, and team history — delivering daily briefings, sprint recommendations, and client reports that are grounded in real data, not generic suggestions.</p>
+        </div>
+      </div>
+      <div class="adv-row">
+        <div class="adv-icon-col"><div class="adv-icon-box">🔐</div></div>
+        <div class="adv-body">
+          <h4>Enterprise Security Without Enterprise Friction</h4>
+          <p>SOC 2 Type II, GDPR, HIPAA-eligible, ISO 27001, SAML SSO, SCIM provisioning, 2FA, immutable audit logs, and data residency controls — accessible from a clean UI, not a compliance maze.</p>
+        </div>
+      </div>
+      <div class="adv-row">
+        <div class="adv-icon-col"><div class="adv-icon-box">⚡</div></div>
+        <div class="adv-body">
+          <h4>Real-Time Collaboration — Not a Paid Add-On</h4>
+          <p>WebSocket-driven live updates across every board, channel, and dashboard are standard. Presence indicators, live typing, and instant reactions work out of the box at every tier.</p>
+        </div>
+      </div>
+      <div class="adv-row">
+        <div class="adv-icon-col"><div class="adv-icon-box">📱</div></div>
+        <div class="adv-body">
+          <h4>True Mobile-First — Native iOS &amp; Android Apps</h4>
+          <p>React Native apps share business logic with the web platform, delivering a consistent experience. Approve tasks, review sprints, or join a video call from your phone — no compromise.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       TESTIMONIAL
+  ══════════════════════════════════════ -->
+  <section class="section alt2 glow-layer">
+    <div class="eyebrow">Trusted by Industry Leaders</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">What Our Customers<br/><em>Actually Say</em></h2>
+
+    <div class="testimonial-wrap">
+      <div class="quote-mark">"</div>
+      <blockquote>
+        <strong>Cowrk</strong> transformed how our engineering and product teams collaborate.
+        We replaced six different tools with one workspace — sprint planning, daily standups,
+        design reviews, and client updates all happen in a single place. We're shipping 40% faster
+        and our team actually looks forward to Monday planning sessions now. The AI assistant
+        alone saves each engineer over an hour a week on status reporting.
+      </blockquote>
+      <div class="testimonial-source">
+        <div class="source-avatar">S</div>
+        <div>
+          <div class="source-name">Senior Engineering Manager</div>
+          <div class="source-role">TechFlow · Global SaaS Platform</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       SECURITY & CTA
+  ══════════════════════════════════════ -->
+  <section class="section alt glow-layer">
+    <div class="eyebrow">Enterprise-Grade Security</div>
+    <div class="gold-rule"></div>
+    <h2 class="section-title">Trusted in<br/><em>Regulated Industries</em></h2>
+    <p class="section-lead">
+      Bank-level security controls, compliance certifications, and flexible deployment
+      options so every organisation can adopt Cowrk without risk.
+    </p>
+
+    <div class="security-grid">
+      <div class="sec-card">
+        <span class="sec-icon">🔒</span>
+        <h5>Data Protection</h5>
+        <p>End-to-end encryption, SOC 2 Type II, GDPR &amp; HIPAA-eligible, ISO 27001. Your data never trains our models.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">☁️</span>
+        <h5>Flexible Deployment</h5>
+        <p>SaaS (AWS / GCP / Azure), Hybrid VPC, or fully on-premises. Containerised microservices — your infrastructure, your rules.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">🛡️</span>
+        <h5>Role-Based Access</h5>
+        <p>Five-tier company hierarchy plus four project-level roles with field-level permissions and immutable audit logs.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">🔑</span>
+        <h5>SSO &amp; 2FA</h5>
+        <p>SAML 2.0, Okta, Azure AD, Google Workspace. SCIM provisioning for zero-touch user lifecycle management.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">📜</span>
+        <h5>Immutable Audit Trails</h5>
+        <p>Every create, update, delete, and permission change is logged with timestamp, actor, and full change delta.</p>
+      </div>
+      <div class="sec-card">
+        <span class="sec-icon">🌍</span>
+        <h5>Data Residency</h5>
+        <p>Choose where your data lives. Regional storage controls ensure compliance with local data sovereignty laws.</p>
+      </div>
+    </div>
+
+    <div class="cta-box">
+      <h2>Ready to Unify Your<br/><span>Team's Workspace?</span></h2>
+      <p>
+        Join thousands of teams already using Cowrk to collaborate faster, ship more,
+        and stop paying for six tools that don't talk to each other. See the difference
+        in a personalised 30-minute demo with your own projects.
+      </p>
+      <ul class="cta-checklist">
+        <li><span class="cta-check">✓</span>Live demo with your actual workflow</li>
+        <li><span class="cta-check">✓</span>ROI analysis for your team size</li>
+        <li><span class="cta-check">✓</span>Migration plan from current tools</li>
+        <li><span class="cta-check">✓</span>Implementation support from day one</li>
+      </ul>
+      <div class="cta-btns">
+        <a href="#" class="btn-gold">Start Free — No Credit Card</a>
+        <a href="#" class="btn-ghost">Schedule a Demo →</a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ══════════════════════════════════════
+       FOOTER
+  ══════════════════════════════════════ -->
+  <footer class="footer">
+    <div class="footer-brand">
+      <div class="footer-logo-img">
+        <img src="logo.png" alt="Cowrk" />
+      </div>
+      <div class="sub">Project Management &middot; Messaging &middot; Video &middot; AI &middot; Automation</div>
+    </div>
+    <div class="footer-right">
+      <div class="caps">One Workspace. Every Team. Every Device.</div>
+      <div class="copy">© 2025 Cowrk. All rights reserved.</div>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

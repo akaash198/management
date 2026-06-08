@@ -121,7 +121,7 @@ export default function LoginClient() {
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0A1628] to-transparent" />
 
         <div className="relative select-none">
-          <Image src="/logo.png" alt="cowrk" width={120} height={40} className="object-contain" style={{ height: 28, width: "auto" }} />
+          <Image src="/logo.png" alt="cowrk" width={180} height={60} className="object-contain" style={{ height: 42, width: "auto" }} />
         </div>
 
         <div className="relative space-y-8">
@@ -188,7 +188,7 @@ export default function LoginClient() {
         <div className="absolute left-1/2 top-1/3 h-[440px] w-[440px] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[110px]" style={{ background: "rgba(124,255,203,0.03)" }} />
 
         <div className="lg:hidden relative mb-10 select-none">
-          <Image src="/logo.png" alt="cowrk" width={110} height={36} className="object-contain" style={{ height: 24, width: "auto" }} />
+          <Image src="/logo.png" alt="cowrk" width={150} height={50} className="object-contain" style={{ height: 34, width: "auto" }} />
         </div>
 
         <div className="relative w-full max-w-[380px] space-y-6">
