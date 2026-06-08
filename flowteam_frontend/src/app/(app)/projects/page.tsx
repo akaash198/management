@@ -4,7 +4,7 @@ import { useDeleteProject, useProjects, useRestoreProject } from "@/hooks/usePro
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Plus, Briefcase, Users, Search,
+  Plus, Briefcase, Users, Search, X,
   CheckCircle2, AlertTriangle, ArrowUpRight,
   FolderKanban, TrendingUp, MoreHorizontal, FileDown, Settings,
   LayoutList, LayoutGrid,
@@ -16,7 +16,7 @@ import {
   Target,
 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -57,6 +57,8 @@ export default function ProjectsPage() {
     searchParams.get("filter") === "overdue" ? "overdue" : "updated"
   );
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [atRiskOnly, setAtRiskOnly] = useState(false);
+  const projectListRef = useRef<HTMLDivElement>(null);
   const { teams, activeTeamId, fetchTeams } = useTeamStore();
   const archiveProject = useDeleteProject();
   const restoreProject = useRestoreProject();
@@ -91,6 +93,7 @@ export default function ProjectsPage() {
   const visible = useMemo(() => {
     const q = searchText.trim().toLowerCase();
     const filtered = allProjects.filter((p) => {
+      if (atRiskOnly && (p.overdue_count ?? 0) < 2) return false;
       if (!q) return true;
       return p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
     });
@@ -104,7 +107,7 @@ export default function ProjectsPage() {
     });
   }, [allProjects, searchText, sortBy]);
 
-  const hasActiveFilters = searchText || statusFilter !== "all" || sortBy !== "updated";
+  const hasActiveFilters = searchText || statusFilter !== "all" || sortBy !== "updated" || atRiskOnly;
 
   if (isLoading || !activeTeamId || capsLoading) {
     return (
@@ -213,7 +216,12 @@ export default function ProjectsPage() {
             {stats.atRisk} project{stats.atRisk > 1 ? "s are" : " is"} at risk with multiple overdue tasks — review and reassign to get back on track.
           </p>
           <button
-            onClick={() => { setStatusFilter("active"); setSortBy("overdue"); }}
+            onClick={() => {
+              setStatusFilter("active");
+              setSortBy("overdue");
+              setAtRiskOnly(true);
+              setTimeout(() => projectListRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+            }}
             className="ml-auto shrink-0 text-[12px] font-semibold text-amber-700 dark:text-amber-400 hover:underline"
           >
             View at-risk
@@ -290,12 +298,23 @@ export default function ProjectsPage() {
             <RefreshCw size={13} />
           </button>
 
+          {atRiskOnly && (
+            <button
+              onClick={() => setAtRiskOnly(false)}
+              className="inline-flex items-center gap-1.5 h-9 rounded-lg px-3 text-[12px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200 dark:border-amber-800/60 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+            >
+              <AlertTriangle size={11} />
+              At-risk only
+              <X size={11} className="ml-0.5 opacity-60" />
+            </button>
+          )}
+
           {hasActiveFilters && (
             <Button
               variant="ghost"
               size="sm"
               className="h-9 text-[13px] text-muted-foreground hover:text-foreground px-2"
-              onClick={() => { setSearchText(""); setStatusFilter("all"); setSortBy("updated"); }}
+              onClick={() => { setSearchText(""); setStatusFilter("all"); setSortBy("updated"); setAtRiskOnly(false); }}
             >
               Clear
             </Button>
@@ -304,6 +323,7 @@ export default function ProjectsPage() {
       </div>
 
       {/* ── Content ── */}
+      <div ref={projectListRef} />
       {allProjects.length === 0 ? (
         <EmptyState canCreate={canCreate} onOpen={() => setIsModalOpen(true)} />
       ) : visible.length === 0 ? (
@@ -314,7 +334,7 @@ export default function ProjectsPage() {
             variant="outline"
             size="sm"
             className="mt-4 text-[13px]"
-            onClick={() => { setSearchText(""); setStatusFilter("all"); setSortBy("updated"); }}
+            onClick={() => { setSearchText(""); setStatusFilter("all"); setSortBy("updated"); setAtRiskOnly(false); }}
           >
             Reset filters
           </Button>
