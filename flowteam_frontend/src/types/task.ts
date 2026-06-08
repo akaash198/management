@@ -17,7 +17,7 @@ export interface Task {
   assignee: SlimUser | null;
   assignees?: SlimUser[];
   reporter: SlimUser;
-  issue_type?: "epic" | "story" | "task" | "bug" | "subtask";
+  issue_type?: "epic" | "story" | "task" | "bug" | "subtask" | "experiment";
   priority: TaskPriority;
   start_date?: string | null;
   due_date: string | null;
@@ -148,7 +148,7 @@ export interface TaskMutationInput {
   assignee_ids?: string[];
   sprint?: string | null;
   parent_task?: string | null;
-  issue_type?: "epic" | "story" | "task" | "bug" | "subtask";
+  issue_type?: "epic" | "story" | "task" | "bug" | "subtask" | "experiment";
   priority: TaskPriority;
   start_date?: string | null;
   due_date?: string | null;

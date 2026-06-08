@@ -25,6 +25,7 @@ export default function proxy(request: NextRequest) {
     "/view/",
   ];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isDocumentViewerRoute = pathname.startsWith("/view/");
 
   if (!token && !isPublicRoute && pathname !== "/") {
     const url = new URL("/login", request.url);
@@ -32,7 +33,7 @@ export default function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (token && isPublicRoute) {
+  if (token && isPublicRoute && !isDocumentViewerRoute) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 

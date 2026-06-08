@@ -54,7 +54,7 @@ import { Badge } from "@/components/ui/badge";
 
 type GeneratedTask = {
   title: string;
-  issue_type?: "epic" | "story" | "task" | "bug" | "subtask";
+  issue_type?: "epic" | "story" | "task" | "bug" | "subtask" | "experiment";
   priority?: TaskPriority;
   estimated_hours?: number;
 };
@@ -645,6 +645,7 @@ export function CreateTaskModal({
                     <SelectItem value="task" className="text-[13px] py-2.5">Task</SelectItem>
                     <SelectItem value="story" className="text-[13px] py-2.5">Story</SelectItem>
                     <SelectItem value="bug" className="text-[13px] py-2.5 text-red-500">Bug</SelectItem>
+                    <SelectItem value="experiment" className="text-[13px] py-2.5 text-emerald-600 dark:text-emerald-400">Experiment</SelectItem>
                     <SelectItem value="epic" className="text-[13px] py-2.5 text-purple-500 font-medium">Epic</SelectItem>
                   </SelectContent>
                 </Select>

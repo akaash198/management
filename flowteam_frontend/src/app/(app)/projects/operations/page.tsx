@@ -736,7 +736,7 @@ export default function ProjectOperationsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Issue type">
                   <Select value={fieldForm.issue_type} onChange={(v) => setFieldForm((s) => ({ ...s, issue_type: v }))}
-                    options={[{ value: "epic", label: "Epic" }, { value: "story", label: "Story" }, { value: "task", label: "Task" }, { value: "bug", label: "Bug" }, { value: "subtask", label: "Subtask" }]} />
+                    options={[{ value: "epic", label: "Epic" }, { value: "story", label: "Story" }, { value: "task", label: "Task" }, { value: "bug", label: "Bug" }, { value: "experiment", label: "Experiment" }, { value: "subtask", label: "Subtask" }]} />
                 </Field>
                 <Field label="Field type">
                   <Select value={fieldForm.field_type} onChange={(v) => setFieldForm((s) => ({ ...s, field_type: v as IssueFieldDefinition["field_type"] }))}

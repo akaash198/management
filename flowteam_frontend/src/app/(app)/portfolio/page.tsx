@@ -67,6 +67,10 @@ export default function PortfolioPage() {
   });
 
   const projects = data?.projects ?? [];
+  const experimentProjects = useMemo(
+    () => projects.filter((project) => (project.experiment_total ?? 0) > 0),
+    [projects]
+  );
 
   const totals = useMemo(() => {
     const total = projects.length;
@@ -76,6 +80,12 @@ export default function PortfolioPage() {
     const expDeployed = projects.reduce((s, p) => s + (p.experiment_deployed ?? 0), 0);
     return { total, overdue, atRisk, expTotal, expDeployed };
   }, [projects]);
+
+  const experimentTotals = useMemo(() => {
+    const total = experimentProjects.reduce((sum, project) => sum + (project.experiment_total ?? 0), 0);
+    const deployed = experimentProjects.reduce((sum, project) => sum + (project.experiment_deployed ?? 0), 0);
+    return { total, deployed };
+  }, [experimentProjects]);
 
   if (!capsLoading && activeTeamId && !canAccessReports) {
     return (
@@ -223,20 +233,20 @@ export default function PortfolioPage() {
             <Card>
               <CardContent className="pt-5">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Total experiments</p>
-                <p className="text-3xl font-bold mt-1">{totals.expTotal}</p>
+                <p className="text-3xl font-bold mt-1">{experimentTotals.total}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-5">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Deployed models</p>
-                <p className="text-3xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{totals.expDeployed}</p>
+                <p className="text-3xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{experimentTotals.deployed}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-5">
                 <p className="text-[11px] text-muted-foreground uppercase tracking-wide">Deployment rate</p>
                 <p className="text-3xl font-bold mt-1">
-                  {totals.expTotal > 0 ? Math.round((totals.expDeployed / totals.expTotal) * 100) : 0}%
+                  {experimentTotals.total > 0 ? Math.round((experimentTotals.deployed / experimentTotals.total) * 100) : 0}%
                 </p>
               </CardContent>
             </Card>
@@ -273,14 +283,14 @@ export default function PortfolioPage() {
                         </td>
                       </tr>
                     )}
-                    {!isLoading && projects.length === 0 && (
+                    {!isLoading && experimentProjects.length === 0 && (
                       <tr>
                         <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground text-sm">
-                          No projects found.
+                          No experiment projects found.
                         </td>
                       </tr>
                     )}
-                    {projects.map((p) => {
+                    {experimentProjects.map((p) => {
                       const score = p.health_score ?? 0;
                       const scoreTone =
                         score >= 80 ? "text-emerald-600 dark:text-emerald-400"

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
   Sheet, 
@@ -65,6 +66,8 @@ import { RichEmbeds } from "@/components/embeds/RichEmbeds";
 import type { Column } from "@/types/project";
 import type { Attachment } from "@/types/task";
 import { useTask, useUpdateTask, useMoveTask, useTaskWatchers, useAddWatcher, useRemoveWatcher, useCreateSubtask, useUpdateSubtask, useDeleteSubtask } from "@/hooks/useTasks";
+import { useCustomFieldValues, useIssueFields, useUpsertCustomFieldValue } from "@/hooks/useOperations";
+import type { CustomFieldValue, IssueFieldDefinition } from "@/types/operations";
 
 interface TaskDetailPanelProps {
   taskId: string;
@@ -123,6 +126,9 @@ export function TaskDetailPanel({ taskId, projectId, columns, onEdit }: TaskDeta
   const { data: task, isLoading } = useTask(taskId);
   const updateTask = useUpdateTask();
   const moveTask = useMoveTask();
+  const { data: issueFields = [] } = useIssueFields(task?.project);
+  const { data: customFieldValues = [] } = useCustomFieldValues(taskId);
+  const upsertCustomFieldValue = useUpsertCustomFieldValue();
   const { data: watchers = [] } = useTaskWatchers(taskId);
   const addWatcher = useAddWatcher();
   const removeWatcher = useRemoveWatcher();
@@ -172,6 +178,7 @@ export function TaskDetailPanel({ taskId, projectId, columns, onEdit }: TaskDeta
   // RBAC helpers (mirrors backend logic)
   const isAdmin = userProjectRole === "project_admin";
   const canUpload = userProjectRole === "project_admin" || userProjectRole === "editor";
+  const canEditExperimentFields = !userProjectRole || userProjectRole === "project_admin" || userProjectRole === "editor";
   const canDeleteAny = isAdmin;
   const canManageAny = isAdmin; // rename/replace any file
   const canDeleteOwn = (att: Attachment) =>
@@ -422,6 +429,37 @@ export function TaskDetailPanel({ taskId, projectId, columns, onEdit }: TaskDeta
 
   const handleClose = () => {
     router.push(`/projects/${projectId}`, { scroll: false });
+  };
+
+  const experimentFields = issueFields.filter((field) => field.issue_type === "experiment");
+  const experimentFieldValues = experimentFields.map((field) => {
+    const currentValue = customFieldValues.find((value) => value.field_definition.id === field.id) ?? null;
+    return { field, currentValue };
+  });
+
+  const readCustomFieldValue = (fieldValue: CustomFieldValue | null) => {
+    const raw = fieldValue?.value;
+    if (!raw || typeof raw !== "object") return "";
+    const value = (raw as Record<string, unknown>).value;
+    if (value == null) return "";
+    return String(value);
+  };
+
+  const saveExperimentField = async (field: IssueFieldDefinition, rawValue: string) => {
+    if (!task) return;
+    const existing = customFieldValues.find((value) => value.field_definition.id === field.id);
+    const trimmed = field.field_type === "text" ? rawValue : rawValue.trim();
+    const normalizedValue =
+      field.field_type === "number"
+        ? (trimmed === "" ? null : Number(trimmed))
+        : trimmed;
+
+    await upsertCustomFieldValue.mutateAsync({
+      id: existing?.id,
+      task: task.id,
+      field_definition_id: field.id,
+      value: { value: normalizedValue },
+    });
   };
 
   const onDescriptionBlur = () => {
@@ -830,6 +868,68 @@ export function TaskDetailPanel({ taskId, projectId, columns, onEdit }: TaskDeta
                 />
                 <RichEmbeds text={draftDescription ?? task.description ?? ""} />
               </div>
+
+              {task.issue_type === "experiment" && experimentFields.length === 0 && (
+                <div className="rounded-lg border border-dashed border-border/70 bg-muted/20 p-4">
+                  <p className="text-[13px] font-medium">Experiment fields are not configured for this project.</p>
+                  <p className="mt-1 text-[12px] text-muted-foreground">
+                    Load the default ML experiment fields or define your own in project settings.
+                  </p>
+                  <Button asChild variant="outline" size="sm" className="mt-3 h-8 text-[12px]">
+                    <Link href={`/projects/${projectId}/settings/ml-experiment`}>
+                      Open ML Experiment Setup
+                    </Link>
+                  </Button>
+                </div>
+              )}
+
+              {task.issue_type === "experiment" && experimentFields.length > 0 && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-[13px] font-medium flex items-center gap-2">
+                      <CheckSquare size={14} className="text-muted-foreground/60" /> Experiment metadata
+                    </h3>
+                    <p className="mt-1 text-[12px] text-muted-foreground">
+                      These fields feed the DS / AI portfolio view and model rollout tracking.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 gap-3">
+                    {experimentFieldValues.map(({ field, currentValue }) => {
+                      const inputValue = readCustomFieldValue(currentValue);
+                      return (
+                        <div key={field.id} className="space-y-1.5">
+                          <label className="text-[11px] uppercase font-medium tracking-wider text-muted-foreground/60">
+                            {field.name}
+                            {field.is_required ? " *" : ""}
+                          </label>
+                          {field.field_type === "select" ? (
+                            <select
+                              className="h-10 w-full rounded-md border border-border bg-background px-3 text-[13px] shadow-sm"
+                              defaultValue={inputValue}
+                              disabled={!canEditExperimentFields || upsertCustomFieldValue.isPending}
+                              onChange={(e) => void saveExperimentField(field, e.target.value)}
+                            >
+                              <option value="">Select value</option>
+                              {field.options.map((option) => (
+                                <option key={option} value={option}>{option}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <Input
+                              type={field.field_type === "number" ? "number" : field.field_type === "date" ? "date" : "text"}
+                              defaultValue={inputValue}
+                              disabled={!canEditExperimentFields || upsertCustomFieldValue.isPending}
+                              placeholder={field.field_type === "date" ? "" : `Enter ${field.name.toLowerCase()}`}
+                              className="text-[13px]"
+                              onBlur={(e) => void saveExperimentField(field, e.target.value)}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Subtasks Section */}
               <div className="space-y-4">

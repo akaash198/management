@@ -80,3 +80,21 @@ class IsCompanyAdminPermission(permissions.BasePermission):
             user=request.user,
             role__in=[CompanyMember.CEO, CompanyMember.ADMIN],
         ).exists()
+
+
+class IsCompanyCreator(permissions.BasePermission):
+    """The user who created this company (created_by), or a superuser.
+    Used for onboarding endpoints where the company has no members yet."""
+
+    def _get_company_id(self, view, request):
+        return view.kwargs.get("id") or view.kwargs.get("company_id")
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.user.is_superuser:
+            return True
+        company_id = self._get_company_id(view, request)
+        if not company_id:
+            return False
+        return Company.objects.filter(id=company_id, created_by=request.user).exists()

@@ -29,6 +29,7 @@ from .permissions import (
     IsCompanyMemberPermission,
     IsCompanyManagerPermission,
     IsCompanyAdminPermission,
+    IsCompanyCreator,
 )
 from .rbac import (
     compute_company_capabilities,
@@ -473,6 +474,58 @@ class CompanyCapabilitiesView(generics.GenericAPIView):
 
 
 # ──────────────────────────────────────────────────────────────
+# Self-service company creation (called during user onboarding)
+# ──────────────────────────────────────────────────────────────
+
+class CreateCompanyForOnboardingView(generics.GenericAPIView):
+    """
+    POST /companies/create-for-onboarding/
+    Called by the onboarding wizard when a corporate-email user registers.
+    Creates a Company, makes the caller the CEO + CompanyMember(role=ceo),
+    and sets onboarding_status='in_progress'.
+    Accepts multipart/form-data so a logo can be uploaded in the same request.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        name = (request.data.get("name") or "").strip()
+        if not name:
+            return standardize_response(
+                success=False, error="Company name is required.", status=status.HTTP_400_BAD_REQUEST
+            )
+
+        industry = (request.data.get("industry") or "").strip()
+        size = (request.data.get("size") or "").strip()
+        country = (request.data.get("country") or "").strip()
+        logo = request.FILES.get("logo")
+
+        with transaction.atomic():
+            company = Company(
+                name=name,
+                industry=industry,
+                size=size,
+                country=country,
+                ceo=request.user,
+                created_by=request.user,
+                onboarding_status="in_progress",
+            )
+            if logo:
+                company.logo = logo
+            company.save()
+
+            CompanyMember.objects.create(
+                company=company,
+                user=request.user,
+                role=CompanyMember.CEO,
+            )
+
+        return standardize_response(
+            data=CompanyDetailSerializer(company, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+# ──────────────────────────────────────────────────────────────
 # Teams, Onboarding, Settings, Domain (existing, preserved)
 # ──────────────────────────────────────────────────────────────
 
@@ -544,10 +597,10 @@ class CompanyAssignTeamView(generics.GenericAPIView):
 
 class CompanyOnboardingView(generics.GenericAPIView):
     """Multi-step onboarding wizard. POST /companies/<id>/onboarding/"""
-    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+    permission_classes = [permissions.IsAuthenticated, IsCompanyCreator]
 
     def get_company(self, id):
-        return Company.objects.get(id=id)
+        return get_object_or_404(Company, id=id)
 
     def post(self, request, id):
         company = self.get_company(id)
@@ -683,16 +736,71 @@ class CompanyOnboardingView(generics.GenericAPIView):
             )
 
 
-class CompanyOnboardingInvitesView(generics.ListAPIView):
-    """List all onboarding invites for a company."""
-    permission_classes = [permissions.IsAuthenticated, IsSuperUser]
+class CompanyOnboardingInvitesView(generics.GenericAPIView):
+    """
+    GET  /companies/<id>/onboarding/invites/ → list onboarding invites
+    POST /companies/<id>/onboarding/invites/ → send a seed invite during onboarding
+    """
+    permission_classes = [permissions.IsAuthenticated, IsCompanyCreator]
     serializer_class = CompanyOnboardingInviteSerializer
 
-    def list(self, request, id):
-        company = Company.objects.get(id=id)
+    def get(self, request, id):
+        company = get_object_or_404(Company, id=id)
         invites = company.onboarding_invites.all()
         data = CompanyOnboardingInviteSerializer(invites, many=True).data
         return standardize_response(data=data)
+
+    def post(self, request, id):
+        company = get_object_or_404(Company, id=id)
+        email = (request.data.get("email") or "").strip().lower()
+        role = (request.data.get("role") or "member").strip()
+
+        if not email:
+            return standardize_response(
+                success=False, error="email is required.", status=status.HTTP_400_BAD_REQUEST
+            )
+
+        valid_roles = [r[0] for r in CompanyMember.ROLE_CHOICES]
+        if role not in valid_roles:
+            return standardize_response(
+                success=False, error=f"Invalid role. Choose from: {', '.join(valid_roles)}",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Upsert: delete old pending/expired invite for same email, create fresh
+        CompanyOnboardingInvite.objects.filter(company=company, email=email).delete()
+        invite = CompanyOnboardingInvite.objects.create(
+            company=company,
+            email=email,
+            role=role,
+            invited_by=request.user,
+        )
+
+        self._send_onboarding_invite_email(company=company, to_email=email, role=role, inviter=request.user)
+
+        return standardize_response(
+            data=CompanyOnboardingInviteSerializer(invite).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def _send_onboarding_invite_email(self, *, company, to_email, role, inviter):
+        from django.conf import settings as django_settings
+        base = (getattr(django_settings, "FRONTEND_BASE_URL", "") or "http://localhost:3000").rstrip("/")
+        role_display = dict(CompanyMember.ROLE_CHOICES).get(role, role)
+        subject = f"You've been invited to join {company.name} on FlowTeam"
+        body = (
+            f"Hi,\n\n"
+            f"{inviter.full_name or inviter.email} has invited you to join "
+            f"{company.name} as {role_display} on FlowTeam.\n\n"
+            f"Get started here: {base}/register\n\n"
+            f"— FlowTeam"
+        )
+        result = send_transactional_email(to_email=to_email, subject=subject, text=body)
+        if not result.ok:
+            logger.warning(
+                "Onboarding invite email failed",
+                extra={"company_id": str(company.id), "recipient": to_email, "error": result.error},
+            )
 
 
 class CompanySettingsView(generics.GenericAPIView):

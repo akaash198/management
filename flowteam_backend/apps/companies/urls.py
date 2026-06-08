@@ -15,9 +15,13 @@ from .views import (
     CompanySettingsView,
     CompanyDomainVerifyView,
     CompanyAISettingsView,
+    CreateCompanyForOnboardingView,
 )
 
 urlpatterns = [
+    # Self-service company creation during user onboarding
+    path("create-for-onboarding/", CreateCompanyForOnboardingView.as_view(), name="company_create_for_onboarding"),
+
     # Company CRUD
     path("", CompanyListCreateView.as_view(), name="company_list_create"),
     path("<uuid:id>/", CompanyDetailView.as_view(), name="company_detail"),
