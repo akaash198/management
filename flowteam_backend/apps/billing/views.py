@@ -45,7 +45,12 @@ class TeamCheckoutView(APIView):
                 plan=plan,
             )
         except Exception as e:
-            return standardize_response(success=False, error=str(e), status=status.HTTP_400_BAD_REQUEST)
+            logger.error("Stripe checkout failed for team %s: %s", team_id, e)
+            return standardize_response(
+                success=False,
+                error="Payment provider error. Please try again.",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return standardize_response(data={"checkout_url": session.get("url"), "session_id": session.get("id")})
 

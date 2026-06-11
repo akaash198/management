@@ -37,7 +37,8 @@ export const useTask = (taskId: string) => {
     queryKey: ["task", taskId],
     queryFn: async () => {
       const res = await api.get<ApiResponse<TaskDetail>>(`${TASKS_BASE}/${taskId}/`);
-      return res.data.data ?? {} as TaskDetail;
+      if (!res.data.data) throw new Error("Task not found");
+      return res.data.data;
     },
     enabled: !!taskId,
   });
@@ -48,11 +49,13 @@ export const useCreateTask = () => {
   return useMutation({
     mutationFn: async (data: TaskMutationInput) => {
       const res = await api.post<ApiResponse<TaskDetail>>(`${TASKS_BASE}/`, data);
-      return res.data.data ?? {} as Task;
+      if (!res.data.data) throw new Error("Failed to create task");
+      return res.data.data;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks", { project_id: variables.project }] });
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      // Invalidate only the specific project's task list, not all task queries
+      queryClient.invalidateQueries({ queryKey: ["tasks", { project_id: variables.project }], exact: false });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Task created");
     },
     onError: (error: unknown) => {
@@ -69,8 +72,9 @@ export const useUpdateTask = () => {
       return res.data.data;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
-      queryClient.invalidateQueries({ queryKey: ["task", data?.id] });
+      // Invalidate the specific task and its project's list only
+      if (data?.id) queryClient.invalidateQueries({ queryKey: ["task", data.id] });
+      if (data?.project) queryClient.invalidateQueries({ queryKey: ["tasks", { project_id: data.project }], exact: false });
       toast.success("Task updated");
     },
     onError: (error: unknown) => {
@@ -82,15 +86,17 @@ export const useUpdateTask = () => {
 export const useMoveTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, columnId, order }: { id: string; columnId: string; order: number }) => {
+    mutationFn: async ({ id, columnId, order, projectId }: { id: string; columnId: string; order: number; projectId?: string }) => {
       const res = await api.post<ApiResponse<Task>>(`${TASKS_BASE}/${id}/move/`, {
         column: columnId,
         order,
       });
-      return res.data.data;
+      return { data: res.data.data, projectId };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onSuccess: ({ projectId }) => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ["tasks", { project_id: projectId }], exact: false });
+      }
     },
     onError: () => {
       toast.error("Failed to move task. Please try again.");
@@ -141,11 +147,15 @@ export const useRemoveWatcher = () => {
 export const useDeleteTask = () => {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (taskId: string) => {
+    mutationFn: async ({ taskId, projectId }: { taskId: string; projectId?: string }) => {
       await api.delete(`${TASKS_BASE}/${taskId}/`);
+      return projectId;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onSuccess: (projectId) => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: ["tasks", { project_id: projectId }], exact: false });
+      }
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
       toast.success("Task deleted");
     },
   });

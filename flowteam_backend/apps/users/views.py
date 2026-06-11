@@ -42,10 +42,11 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Create default personal team
+        # Create default personal team — loop to guarantee uniqueness
+        import secrets
         team_name = f"{user.full_name}'s Team"
-        if Team.objects.filter(name=team_name).exists():
-            team_name = f"{team_name} {uuid.uuid4().hex[:4]}"
+        while Team.objects.filter(name=team_name).exists():
+            team_name = f"{user.full_name}'s Team {secrets.token_hex(2)}"
 
         team = Team.objects.create(
             name=team_name,
@@ -92,7 +93,7 @@ class LoginView(TokenObtainPairView):
         if not user:
             return standardize_response(success=False, error="Invalid credentials", status=status.HTTP_401_UNAUTHORIZED)
 
-        if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", False) and not user.email_verified_at:
+        if getattr(settings, "REQUIRE_EMAIL_VERIFICATION", True) and not user.email_verified_at:
             return standardize_response(
                 success=False,
                 error="Email address is not verified.",

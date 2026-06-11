@@ -298,6 +298,7 @@ class ProjectViewSet(AuditedModelMixin, viewsets.ModelViewSet):
             Q(team__members__user=self.request.user)
             | Q(roles__user=self.request.user)
             | Q(created_by=self.request.user)
+            | Q(tasks__assignees=self.request.user)
             | Q(tasks__assignee=self.request.user)
             | Q(tasks__reporter=self.request.user)
             | Q(team_id__in=admin_team_ids)
@@ -550,6 +551,7 @@ class TaskViewSet(AuditedModelMixin, viewsets.ModelViewSet):
         visible_projects = Project.objects.filter(
             Q(roles__user=self.request.user)
             | Q(created_by=self.request.user)
+            | Q(tasks__assignees=self.request.user)
             | Q(tasks__assignee=self.request.user)
             | Q(tasks__reporter=self.request.user)
         ).values_list("id", flat=True)

@@ -72,7 +72,7 @@ def check_project_permission(user, project, permission: str) -> bool:
 
     # Legacy compatibility: if the user is already assigned/reporter on tasks in the project,
     # treat them as a member and implicitly grant baseline "editor" access.
-    if project.tasks.filter(models.Q(assignee=user) | models.Q(reporter=user)).exists():
+    if project.tasks.filter(models.Q(assignees=user) | models.Q(assignee=user) | models.Q(reporter=user)).exists():
         # Only allow view/edit related permissions; membership management should remain explicit.
         if permission in {"view_project", "edit_project", "comment_project", "export_project"}:
             defaults = ProjectRole.DEFAULT_CAPABILITIES.get("editor", {})

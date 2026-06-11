@@ -45,6 +45,7 @@ export default function LoginClient() {
   const [otpCode, setOtpCode]     = useState("");
   const [useBackup, setUseBackup] = useState(false);
   const [backupCode, setBackupCode] = useState("");
+  const sessionExpired = searchParams.get("reason") === "session_expired";
 
   const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -200,6 +201,15 @@ export default function LoginClient() {
               Sign in to your workspace
             </p>
           </div>
+
+          {sessionExpired && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/[0.08] px-3.5 py-3 mb-2">
+              <AlertCircle size={14} className="shrink-0 text-amber-400 mt-px" />
+              <p className="text-[12.5px] text-amber-300 font-medium leading-snug">
+                Your session expired. Please sign in again.
+              </p>
+            </div>
+          )}
 
           <div className="rounded-2xl border border-white/[0.08] bg-[#1A2942] p-6 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
             <button

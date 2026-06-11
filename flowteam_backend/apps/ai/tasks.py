@@ -48,7 +48,7 @@ def _generate_briefing_for_user(*, team_id: str, user_id: str) -> dict:
 
     overdue = list(
         Task.objects.filter(
-            assignee=user,
+            assignees=user,
             is_archived=False,
             project__team_id=team_id,
             column__is_done_column=False,
@@ -58,7 +58,7 @@ def _generate_briefing_for_user(*, team_id: str, user_id: str) -> dict:
     )
     due_today = list(
         Task.objects.filter(
-            assignee=user,
+            assignees=user,
             is_archived=False,
             project__team_id=team_id,
             column__is_done_column=False,

@@ -66,6 +66,7 @@ class RateLimitMiddleware:
         r'^/api/search/': (30, 60),      # 30 req / 60s
         r'^/api/projects/.+/export/': (5, 60), # 5 req / 60s
         r"^/api/auth/oauth/": (10, 60),  # 10 req / 60s — OAuth redirect + callback
+        r"^/api/ai/": (20, 60),  # 20 AI requests / 60s — prevent credit drain
     }
 
     def _client_ip(self, request) -> str:
@@ -246,19 +247,16 @@ class PublicAPIKeyAuthMiddleware:
 
 class JWTAuthMiddleware:
     """
-    Custom middleware that authenticates WebSocket connections via:
-    1. `access_token` httpOnly cookie (sent automatically by browser)
-    2. `?token=` query string (legacy/fallback)
+    Authenticates WebSocket connections via the httpOnly `access_token` cookie.
+    The cookie is sent automatically by the browser on the WS handshake — no
+    client-side token passing required. The ?token= query-string path has been
+    removed because URL tokens are logged by every proxy and web server.
     """
     def __init__(self, inner):
         self.inner = inner
 
     async def __call__(self, scope, receive, send):
-        query_params = parse_qs(scope["query_string"].decode())
-        token = query_params.get("token", [None])[0]
-
-        if not token:
-            token = _ws_cookie(scope, "access_token")
+        token = _ws_cookie(scope, "access_token")
 
         if token:
             try:

@@ -50,9 +50,15 @@ api.interceptors.response.use(
         return api(originalRequest);
       }
 
-      // Redirect to login on auth failure
+      // Session is fully expired — notify the user before redirecting so they
+      // know why they are being sent to the login page. Lazy import keeps this
+      // module safe in SSR contexts where sonner is not available.
       if (typeof window !== "undefined") {
-        window.location.href = "/login";
+        const { toast } = await import("sonner");
+        toast.error("Your session has expired. Please log in again.", { duration: 3000 });
+        setTimeout(() => {
+          window.location.href = "/login?reason=session_expired";
+        }, 2000);
       }
     }
 

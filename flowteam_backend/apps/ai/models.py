@@ -7,7 +7,10 @@ from cryptography.fernet import Fernet
 from apps.companies.models import Company
 
 def get_fernet() -> Fernet:
-    key_bytes = hashlib.sha256(settings.SECRET_KEY.encode()).digest()
+    # Use a dedicated encryption key for BYOK API key storage — decoupled from
+    # SECRET_KEY so that rotating one does not invalidate the other.
+    raw = getattr(settings, "AI_ENCRYPTION_KEY", None) or settings.SECRET_KEY
+    key_bytes = hashlib.sha256(raw.encode()).digest()
     fernet_key = base64.urlsafe_b64encode(key_bytes)
     return Fernet(fernet_key)
 

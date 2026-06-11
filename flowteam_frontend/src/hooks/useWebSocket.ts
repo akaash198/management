@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { clearTokens, refreshAccessToken, getAccessToken } from "@/lib/auth";
+import { clearTokens, refreshAccessToken } from "@/lib/auth";
 
 type ConnectionState = "connecting" | "connected" | "disconnected" | "error";
 
@@ -58,16 +58,12 @@ export function useWebSocket(url: string, options: WebSocketOptions = {}) {
     let wsUrl: URL;
     try {
       wsUrl = new URL(url);
-      const token = getAccessToken();
-      if (token) {
-        wsUrl.searchParams.set("token", token);
-      }
+      // Do NOT append ?token= — the httpOnly cookie is sent automatically on the
+      // WS handshake. Putting the token in the URL would expose it in proxy logs.
     } catch (e) {
       setConnectionState("error");
       return;
     }
-    
-    console.log(`[WS] Connecting to: ${wsUrl.origin}${wsUrl.pathname}`);
 
     const socket = new WebSocket(wsUrl.toString());
     socketRef.current = socket;

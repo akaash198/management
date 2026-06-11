@@ -790,7 +790,7 @@ class NotificationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["GET"], url_path="digest-preview")
     def digest_preview(self, request):
-        overdue = Task.objects.filter(assignee=request.user, is_archived=False, column__is_done_column=False, due_date__lt=timezone.now().date())
+        overdue = Task.objects.filter(assignees=request.user, is_archived=False, column__is_done_column=False, due_date__lt=timezone.now().date())
         approvals = TaskApproval.objects.filter(project__team__members__user=request.user, status=TaskApproval.STATUS_PENDING).count()
         watching = TaskWatcher.objects.filter(user=request.user).count()
         return standardize_response(data={

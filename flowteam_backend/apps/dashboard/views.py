@@ -129,7 +129,7 @@ class DashboardView(views.APIView):
         # My Tasks Stats
         base_tasks = Task.objects.filter(project__team_id=team_id, project__status="active", is_archived=False)
         if scope == "my":
-            base_tasks = base_tasks.filter(assignee=request.user)
+            base_tasks = base_tasks.filter(assignees=request.user)
 
         open_tasks = base_tasks.exclude(column__is_done_column=True)
         today = timezone.now().date()
@@ -246,29 +246,31 @@ class WorkloadView(views.APIView):
 
         result = []
         for member in members:
-            tasks = Task.objects.filter(assignee=member.user)
+            # Use multi-assignee M2M field (assignees) — not the legacy FK (assignee)
+            tasks = Task.objects.filter(assignees=member.user)
             if project_id:
                 tasks = tasks.filter(project_id=project_id)
             else:
                 tasks = tasks.filter(project__team_id=team_id)
 
             open_tasks = tasks.exclude(column__is_done_column=True)
-            
+            done_tasks = tasks.filter(column__is_done_column=True)
+
             assigned_7d = tasks.filter(created_at__gte=last_7d).count()
             completed_7d = TaskActivity.objects.filter(
-                actor=member.user, 
-                verb="completed", 
+                actor=member.user,
+                verb="completed",
                 created_at__gte=last_7d
             ).count()
 
+            # Use is_done_column flag rather than hardcoded column names, which are
+            # user-configurable and differ across teams.
             result.append({
                 "user": SlimUserSerializer(member.user).data,
                 "total_assigned": tasks.count(),
                 "by_status": {
-                    "todo": open_tasks.filter(column__name="To Do").count(),
-                    "in_progress": open_tasks.filter(column__name="In Progress").count(),
-                    "in_review": open_tasks.filter(column__name="In Review").count(),
-                    "done": tasks.filter(column__is_done_column=True).count(),
+                    "open": open_tasks.count(),
+                    "done": done_tasks.count(),
                 },
                 "by_priority": {
                     "urgent": open_tasks.filter(priority="urgent").count(),
@@ -277,7 +279,7 @@ class WorkloadView(views.APIView):
                     "low": open_tasks.filter(priority="low").count(),
                 },
                 "overdue": open_tasks.filter(due_date__lt=today).count(),
-                "completion_rate_7d": round((completed_7d / assigned_7d * 100), 1) if assigned_7d > 0 else 0
+                "completion_rate_7d": round((completed_7d / assigned_7d * 100), 1) if assigned_7d > 0 else 0,
             })
 
         cache.set(cache_key, result, 120)
@@ -307,9 +309,9 @@ class CalendarView(views.APIView):
         tasks = Task.objects.filter(project__team_id=team_id, due_date__isnull=False)
         if start and end:
             tasks = tasks.filter(due_date__range=[start, end])
-        
+
         if mine:
-            tasks = tasks.filter(assignee=request.user)
+            tasks = tasks.filter(assignees=request.user)
 
         meetings = Meeting.objects.filter(team_id=team_id).select_related("channel", "created_by")
         if start and end:

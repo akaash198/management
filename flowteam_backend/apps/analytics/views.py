@@ -130,7 +130,7 @@ def member_stats_analytics(request):
     
     for member in members:
         user = member.user
-        tasks = Task.objects.filter(project_id=project_id, assignee=user)
+        tasks = Task.objects.filter(project_id=project_id, assignees=user)
         
         assigned_count = tasks.count()
         completed_count = tasks.filter(column__is_done_column=True).count()
@@ -184,7 +184,7 @@ def project_health_analytics(request):
         return standardize_response(data={"health_score": 100, "health_label": "Healthy", "factors": {}, "recommendations": []})
 
     overdue = tasks.filter(column__is_done_column=False, due_date__lt=timezone.now().date()).count()
-    unassigned = tasks.filter(assignee__isnull=True).count()
+    unassigned = tasks.filter(assignees__isnull=True).count()
     
     recent_activity = TaskActivity.objects.filter(
         task__project=project, 

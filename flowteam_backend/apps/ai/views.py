@@ -377,7 +377,7 @@ class DailyBriefingView(APIView):
 
         overdue = list(
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_archived=False,
                 project__team_id=team_id,
                 column__is_done_column=False,
@@ -388,7 +388,7 @@ class DailyBriefingView(APIView):
         )
         due_today = list(
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_archived=False,
                 project__team_id=team_id,
                 column__is_done_column=False,
@@ -466,7 +466,7 @@ class FocusRecommendView(APIView):
 
         tasks = list(
             Task.objects.filter(
-                assignee=user,
+                assignees=user,
                 is_archived=False,
                 project__team_id=team_id,
                 column__is_done_column=False,

@@ -276,12 +276,16 @@ def _remove_member_cascade(membership) -> None:
     company_team_ids = Team.objects.filter(company=company).values_list("id", flat=True)
     TeamMember.objects.filter(user=user, team_id__in=company_team_ids).delete()
 
-    # 2. Unassign open tasks within this company's projects
-    Task.objects.filter(
+    # 2. Unassign open tasks within this company's projects (both legacy FK and M2M)
+    open_tasks = Task.objects.filter(
         project__team_id__in=company_team_ids,
-        assignee=user,
-        status__in=["todo", "in_progress", "in_review"],
-    ).update(assignee=None)
+        column__is_done_column=False,
+    )
+    # Clear legacy single-assignee FK
+    open_tasks.filter(assignee=user).update(assignee=None)
+    # Remove from multi-assignee M2M — cannot use update(), must use remove()
+    for task in open_tasks.filter(assignees=user):
+        task.assignees.remove(user)
 
     # 3. Revoke active JWT sessions so the user is signed out
     UserSession.objects.filter(user=user, is_revoked=False).update(is_revoked=True)

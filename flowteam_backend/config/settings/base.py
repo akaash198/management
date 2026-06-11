@@ -13,7 +13,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     USE_SQLITE=(bool, False),
     DISABLE_REDIS=(bool, False),
-    REQUIRE_EMAIL_VERIFICATION=(bool, False),
+    REQUIRE_EMAIL_VERIFICATION=(bool, True),
     JSON_LOGS=(bool, False),
     LOG_LEVEL=(str, "INFO"),
     TOTP_ISSUER=(str, "FlowTeam"),
@@ -145,6 +145,8 @@ else:
                     "PASSWORD": _db_password,
                     "HOST": _db_host,
                     "PORT": _db_port,
+                    "CONN_MAX_AGE": env.int("DB_CONN_MAX_AGE", default=60),
+                    "CONN_HEALTH_CHECKS": True,
                 }
             }
         else:
@@ -257,6 +259,11 @@ SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "SAMEORIGIN"
 
+# Trust the X-Forwarded-Proto header from the load balancer so request.is_secure()
+# returns True behind HTTPS-terminating proxies (AWS ALB, Nginx, Cloudflare).
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+
 # Channels
 if DISABLE_REDIS:
     CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
@@ -283,6 +290,19 @@ CELERY_RESULT_BACKEND = "django-db"
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    "daily-digest": {
+        "task": "apps.users.tasks.send_daily_digest",
+        "schedule": crontab(hour=7, minute=0),
+    },
+    "task-due-reminders": {
+        "task": "apps.projects.tasks.send_task_due_reminders",
+        "schedule": crontab(hour=8, minute=0),
+    },
+}
 
 # Redis Cache
 if DISABLE_REDIS:
@@ -341,6 +361,10 @@ STRIPE_PRICE_ID_AI = env("STRIPE_PRICE_ID_AI", default="")
 ANTHROPIC_API_KEY = env("ANTHROPIC_API_KEY", default="")
 OPENAI_API_KEY = env("OPENAI_API_KEY", default="")
 OPENAI_TRANSCRIBE_MODEL = env("OPENAI_TRANSCRIBE_MODEL", default="gpt-4o-mini-transcribe")
+
+# Dedicated key for BYOK API key encryption — rotate independently of SECRET_KEY.
+# If not set, falls back to SECRET_KEY (acceptable for dev; set explicitly in production).
+AI_ENCRYPTION_KEY = env("AI_ENCRYPTION_KEY", default="")
 
 # Web Push (VAPID)
 VAPID_PRIVATE_KEY = env("VAPID_PRIVATE_KEY", default="")
