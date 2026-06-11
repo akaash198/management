@@ -649,7 +649,7 @@ export default function ProjectIssuesPage() {
               onEdit={setEditingTask}
               onDelete={(task) => {
                 if (!confirm(`Delete "${task.title}"?`)) return;
-                deleteTask.mutate(task.id);
+                deleteTask.mutate({ taskId: task.id, projectId: projectId || undefined });
               }}
             />
           ))
