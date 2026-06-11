@@ -157,8 +157,11 @@ class AuthHardeningTests(TestCase):
 
 class TwoFactorTests(TestCase):
     def setUp(self):
+        from django.utils import timezone
         self.client = APIClient()
         self.user = User.objects.create_user(email="2fa@example.com", full_name="Two Fa", password="password123")
+        self.user.email_verified_at = timezone.now()
+        self.user.save(update_fields=["email_verified_at"])
         access = str(RefreshToken.for_user(self.user).access_token)
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
