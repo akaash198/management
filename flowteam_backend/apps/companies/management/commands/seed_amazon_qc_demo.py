@@ -119,6 +119,7 @@ class Command(BaseCommand):
     # ─── Users ─────────────────────────────────────────────────────────────────
 
     def _create_users(self, password: str) -> dict[str, User]:
+        from django.utils import timezone as tz
         users = {}
         for full_name, email, _role, _zone, _title in USERS:
             user, created = User.objects.get_or_create(
@@ -126,7 +127,9 @@ class Command(BaseCommand):
                 defaults={"full_name": full_name, "is_active": True},
             )
             user.set_password(password)
-            user.save(update_fields=["password"] if not created else None)
+            if not user.email_verified_at:
+                user.email_verified_at = tz.now()
+            user.save(update_fields=["password", "email_verified_at"] if not created else None)
             self.stdout.write(f"  {'Created' if created else 'Updated'} user: {email}")
             users[email] = user
         return users

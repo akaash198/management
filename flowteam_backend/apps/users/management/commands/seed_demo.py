@@ -17,14 +17,22 @@ from apps.users.models import User
 
 
 def _get_or_create_user(*, email: str, full_name: str, password: str, reset_password: bool) -> User:
+    from django.utils import timezone as tz
     user, created = User.objects.get_or_create(email=email, defaults={"full_name": full_name})
     if created:
         user.set_password(password)
-        user.save(update_fields=["password"])
+        user.email_verified_at = tz.now()
+        user.save(update_fields=["password", "email_verified_at"])
     else:
+        updates = []
         if reset_password:
             user.set_password(password)
-            user.save(update_fields=["password"])
+            updates.append("password")
+        if not user.email_verified_at:
+            user.email_verified_at = tz.now()
+            updates.append("email_verified_at")
+        if updates:
+            user.save(update_fields=updates)
         if user.full_name != full_name:
             user.full_name = full_name
             user.save(update_fields=["full_name"])

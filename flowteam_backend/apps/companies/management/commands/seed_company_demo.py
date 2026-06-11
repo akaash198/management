@@ -126,20 +126,21 @@ class Command(BaseCommand):
     # ──────────────────────────────────────────────────────────────────────────
 
     def _create_users(self, password: str) -> dict[str, User]:
+        from django.utils import timezone as tz
         users = {}
         for full_name, email, _role in USERS:
             user, created = User.objects.get_or_create(
                 email=email,
                 defaults={"full_name": full_name, "is_active": True},
             )
+            user.set_password(password)
+            if not user.email_verified_at:
+                user.email_verified_at = tz.now()
             if created:
-                user.set_password(password)
                 user.save()
                 self.stdout.write(f"  Created user: {email}")
             else:
-                # Re-apply password on re-seed so it always matches what's printed
-                user.set_password(password)
-                user.save(update_fields=["password"])
+                user.save(update_fields=["password", "email_verified_at"])
                 self.stdout.write(f"  Updated user: {email}")
             users[email] = user
         return users
