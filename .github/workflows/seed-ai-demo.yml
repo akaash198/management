@@ -1,0 +1,152 @@
+name: Seed AI Demo (Spectra AI Labs)
+
+on:
+  # Run automatically after a successful deploy
+  workflow_run:
+    workflows: ["Deploy to Hetzner (SSH + Docker Compose)"]
+    types: [completed]
+
+  # Also manually triggerable from the GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      reset:
+        description: "Wipe existing Spectra AI demo data before seeding?"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+      demo_password:
+        description: "Demo password for all seeded accounts (blank = Demo@AI2025)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    # For workflow_run triggers: only run if the deploy succeeded
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install paramiko
+        run: pip install paramiko pynacl
+
+      - name: Write SSH key
+        env:
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+        run: |
+          python - <<'PY'
+          import os, base64
+          key = (os.environ.get("HETZNER_SSH_KEY") or "").strip()
+          if not key:
+              raise SystemExit("Missing HETZNER_SSH_KEY secret.")
+          if "BEGIN" in key:
+              key = key.replace("\\r", "\r").replace("\\n", "\n")
+              if not key.endswith("\n"):
+                  key += "\n"
+              open("hetzner_key", "w").write(key)
+          else:
+              key = key.replace("\\n","").replace("\\r","").replace(" ","")
+              open("hetzner_key", "wb").write(base64.b64decode(key, validate=True))
+          PY
+          chmod 600 hetzner_key
+
+      - name: Seed AI demo on production
+        env:
+          HETZNER_HOST: ${{ secrets.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          RESET: ${{ github.event.inputs.reset }}
+          DEMO_PASSWORD: ${{ github.event.inputs.demo_password }}
+        run: |
+          python - <<'PY'
+          import os, paramiko
+
+          host     = os.environ["HETZNER_HOST"]
+          user     = os.environ.get("HETZNER_USER", "deploy")
+          reset    = os.environ.get("RESET", "false") == "true"
+          password = os.environ.get("DEMO_PASSWORD", "").strip() or "Demo@AI2025"
+
+          def run(client, cmd, timeout=240):
+              print(f"\n$ {cmd}")
+              _, stdout, stderr = client.exec_command(cmd, timeout=timeout, get_pty=True)
+              out = stdout.read().decode("utf-8", errors="replace")
+              err = stderr.read().decode("utf-8", errors="replace")
+              if out: print(out)
+              if err: print("[stderr]", err)
+              return out.strip()
+
+          client = paramiko.SSHClient()
+          client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+          client.connect(host, port=22, username=user, key_filename="hetzner_key", timeout=20)
+          print(f"Connected to {host}")
+
+          # Locate the running backend container
+          container = run(client, "docker ps --filter 'name=backend' --format '{{.Names}}' | head -1")
+          if not container:
+              raise SystemExit("No backend container found. Is the stack running?")
+          print(f"Backend container: {container}")
+
+          # Upload the seed file from the checked-out repo into the container
+          sftp = client.open_sftp()
+          sftp.put(
+              "flowteam_backend/apps/companies/management/commands/seed_ai_demo.py",
+              "/tmp/seed_ai_demo.py",
+          )
+          sftp.close()
+          run(client,
+              f"docker cp /tmp/seed_ai_demo.py "
+              f"{container}:/app/apps/companies/management/commands/seed_ai_demo.py")
+          print("Seed file copied into container.")
+
+          # Run migrations first (idempotent, safe)
+          print("\nRunning migrations...")
+          run(client, f"docker exec {container} python manage.py migrate --noinput", timeout=300)
+
+          # Optionally wipe existing demo data
+          if reset:
+              print("\nResetting existing AI demo data...")
+              run(client,
+                  f"docker exec -e DEMO_PASSWORD='{password}' {container} "
+                  f"python manage.py seed_ai_demo --reset --confirm",
+                  timeout=120)
+
+          # Run the seed
+          print("\nRunning AI demo seed...")
+          run(client,
+              f"docker exec -e DEMO_PASSWORD='{password}' {container} "
+              f"python manage.py seed_ai_demo",
+              timeout=300)
+
+          # Verify the seeded company and AI layer
+          print("\nVerifying seed...")
+          verify_cmd = (
+              f"docker exec {container} python manage.py shell -c \""
+              "from apps.companies.models import Company; "
+              "from apps.ai.models import CompanyAIAccess, CompanyAICredits, AIFeaturePolicy, AILog, DailyAIBudget; "
+              "co = Company.objects.filter(slug='spectra-ai-demo').first(); "
+              "print('Company:', co); "
+              "print('AI Access:', CompanyAIAccess.objects.filter(company=co).first()); "
+              "print('Credits used:', getattr(CompanyAICredits.objects.filter(company=co).first(), 'credits_used', 'N/A')); "
+              "print('Policy enabled:', getattr(AIFeaturePolicy.objects.filter(company=co).first(), 'ai_globally_enabled', 'N/A')); "
+              "print('AI Logs:', AILog.objects.filter(company=co).count()); "
+              "print('Daily budget rows:', DailyAIBudget.objects.filter(company=co).count()); "
+              "\""
+          )
+          run(client, verify_cmd, timeout=120)
+
+          client.close()
+          print("\nAI demo seed complete.")
+          PY
