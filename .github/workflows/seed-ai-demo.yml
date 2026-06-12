@@ -1,4 +1,4 @@
-name: Seed AI Demo (Spectra AI Labs)
+name: Seed AI Demo (Amazon AI Platform)
 
 on:
   # Run automatically after a successful deploy
@@ -136,7 +136,7 @@ jobs:
               f"docker exec {container} python manage.py shell -c \""
               "from apps.companies.models import Company; "
               "from apps.ai.models import CompanyAIAccess, CompanyAICredits, AIFeaturePolicy, AILog, DailyAIBudget; "
-              "co = Company.objects.filter(slug='spectra-ai-demo').first(); "
+              "co = Company.objects.filter(slug='amazon-ai-demo').first(); "
               "print('Company:', co); "
               "print('AI Access:', CompanyAIAccess.objects.filter(company=co).first()); "
               "print('Credits used:', getattr(CompanyAICredits.objects.filter(company=co).first(), 'credits_used', 'N/A')); "

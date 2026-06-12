@@ -1,18 +1,19 @@
 """
 seed_ai_demo — Seeds a complete, self-contained AI feature demo workspace.
 
-Company : Spectra AI Labs (fictional)
-Scenario: A 12-person AI product team building an ML-powered analytics platform.
+Company : Amazon AI Platform (demo)
+Scenario: An AI/ML engineering team at Amazon building a multi-modal RAG
+          platform and real-time anomaly detection engine.
           Every AI feature in FlowTeam is exercised: briefings, health scores,
           sprint planning, workload balance, retrospectives, blocker detection,
           escalation scans, experiment summaries, and model card drafts.
 
 Users (5 roles, all AI features accessible):
-  - CEO       : alex.chen@spectra-ai-demo.internal        (portfolio_summary, leadership)
-  - Admin     : priya.kapoor@spectra-ai-demo.internal     (full admin)
-  - Manager   : james.osei@spectra-ai-demo.internal       (sprint/workload/retro/health)
+  - CEO       : alex.chen@amazon-ai-demo.internal        (portfolio_summary, leadership)
+  - Admin     : priya.kapoor@amazon-ai-demo.internal     (full admin)
+  - Manager   : james.osei@amazon-ai-demo.internal       (sprint/workload/retro/health)
   - Member ×3 : dev1, dev2, ds1 (individual contributor AI features)
-  - Viewer    : investor@spectra-ai-demo.internal         (view only)
+  - Viewer    : observer@amazon-ai-demo.internal         (view only)
 
 Projects:
   1. ML Platform Core          — active sprint, tasks across all columns
@@ -49,30 +50,30 @@ from django.utils import timezone
 
 User = get_user_model()
 
-DEMO_MARKER   = "[spectra-ai-demo]"
-COMPANY_NAME  = "Spectra AI Labs"
-COMPANY_SLUG  = "spectra-ai-demo"
-EMAIL_DOMAIN  = "spectra-ai-demo.internal"
+DEMO_MARKER   = "[amazon-ai-demo]"
+COMPANY_NAME  = "Amazon AI Platform"
+COMPANY_SLUG  = "amazon-ai-demo"
+EMAIL_DOMAIN  = "amazon-ai-demo.internal"
 
 # ── Users ──────────────────────────────────────────────────────────────────────
 # (full_name, email, company_role, title)
 USERS = [
-    ("Alex Chen",       "alex.chen@spectra-ai-demo.internal",      "ceo",     "CEO & Co-Founder"),
-    ("Priya Kapoor",    "priya.kapoor@spectra-ai-demo.internal",   "admin",   "Head of Engineering"),
-    ("James Osei",      "james.osei@spectra-ai-demo.internal",     "manager", "ML Platform Lead"),
-    ("Sofia Martinez",  "sofia.martinez@spectra-ai-demo.internal", "member",  "Senior ML Engineer"),
-    ("Liam Park",       "liam.park@spectra-ai-demo.internal",      "member",  "Backend Engineer"),
-    ("Nadia Hassan",    "nadia.hassan@spectra-ai-demo.internal",   "member",  "Data Scientist"),
-    ("Tom Nguyen",      "investor@spectra-ai-demo.internal",       "viewer",  "Investor Observer"),
+    ("Alex Chen",       "alex.chen@amazon-ai-demo.internal",      "ceo",     "VP Engineering, AI Platform"),
+    ("Priya Kapoor",    "priya.kapoor@amazon-ai-demo.internal",   "admin",   "Head of Engineering"),
+    ("James Osei",      "james.osei@amazon-ai-demo.internal",     "manager", "ML Platform Lead"),
+    ("Sofia Martinez",  "sofia.martinez@amazon-ai-demo.internal", "member",  "Senior ML Engineer"),
+    ("Liam Park",       "liam.park@amazon-ai-demo.internal",      "member",  "Backend Engineer"),
+    ("Nadia Hassan",    "nadia.hassan@amazon-ai-demo.internal",   "member",  "Data Scientist"),
+    ("Tom Nguyen",      "observer@amazon-ai-demo.internal",       "viewer",  "Stakeholder Observer"),
 ]
 
 
 class Command(BaseCommand):
-    help = "Seed a complete AI feature demo workspace (Spectra AI Labs). Production-safe."
+    help = "Seed a complete AI feature demo workspace (Amazon AI Platform). Production-safe."
 
     def add_arguments(self, parser):
         parser.add_argument("--reset", action="store_true",
-                            help="Delete existing Spectra AI demo data before re-seeding.")
+                            help="Delete existing Amazon AI demo data before re-seeding.")
         parser.add_argument("--confirm", action="store_true",
                             help="Required with --reset to prevent accidental deletion.")
 
@@ -104,7 +105,7 @@ class Command(BaseCommand):
 
     def _reset(self):
         from apps.companies.models import Company
-        self.stdout.write(self.style.WARNING("Resetting Spectra AI demo data..."))
+        self.stdout.write(self.style.WARNING("Resetting Amazon AI demo data..."))
         emails = [u[1] for u in USERS]
         d_co, _    = Company.objects.filter(slug=COMPANY_SLUG).delete()
         d_usr, _   = User.objects.filter(email__in=emails).delete()
@@ -136,14 +137,14 @@ class Command(BaseCommand):
     def _create_company(self, users: dict) -> "Company":
         from apps.companies.models import Company, CompanyMember
 
-        alex     = users["alex.chen@spectra-ai-demo.internal"]
+        alex     = users["alex.chen@amazon-ai-demo.internal"]
         role_map = {email: role for _, email, role, _ in USERS}
 
         company, created = Company.objects.get_or_create(
             slug=COMPANY_SLUG,
             defaults={
                 "name":                     COMPANY_NAME,
-                "website":                  "https://spectra-ai-demo.internal",
+                "website":                  "https://amazon-ai-demo.internal",
                 "industry":                 "technology",
                 "size":                     "11-50",
                 "country":                  "United Kingdom",
@@ -153,7 +154,7 @@ class Command(BaseCommand):
                 "onboarding_completed_at":  timezone.now(),
                 "email_domain":             EMAIL_DOMAIN,
                 "email_domain_verified":    False,
-                "notes":                    f"{DEMO_MARKER} Spectra AI demo — safe to delete",
+                "notes":                    f"{DEMO_MARKER} Amazon AI demo — safe to delete",
                 "settings_json": {
                     "ai_enabled":          True,
                     "notifications_enabled": True,
@@ -179,11 +180,11 @@ class Command(BaseCommand):
     def _create_team(self, company: "Company", users: dict) -> "Team":
         from apps.teams.models import Team, TeamMember
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
         role_map = {email: role for _, email, role, _ in USERS}
 
         team, _ = Team.objects.get_or_create(
-            name="Spectra AI Labs",
+            name="Amazon AI Platform",
             defaults={
                 "created_by": alex,
                 "company":    company,
@@ -209,7 +210,7 @@ class Command(BaseCommand):
                 defaults={"role": role, "invited_by": alex},
             )
 
-        self.stdout.write("  Team: Spectra AI Labs")
+        self.stdout.write("  Team: Amazon AI Platform")
         return team
 
     # ── Channels ───────────────────────────────────────────────────────────────
@@ -217,7 +218,7 @@ class Command(BaseCommand):
     def _create_channels(self, team, users: dict) -> dict:
         from apps.messaging.models import Channel, ChannelMember
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
         all_u = list(users.values())
 
         specs = [
@@ -226,9 +227,9 @@ class Command(BaseCommand):
             ("data-science",   "Data Science",    "DS experiments, model evals, research.",  False, all_u[:-1]),
             ("incidents",      "Incidents",       "Production incidents and postmortems.",   False, all_u[:-1]),
             ("leadership",     "Leadership",      "CEO and management channel.",             True,
-             [users["alex.chen@spectra-ai-demo.internal"],
-              users["priya.kapoor@spectra-ai-demo.internal"],
-              users["james.osei@spectra-ai-demo.internal"]]),
+             [users["alex.chen@amazon-ai-demo.internal"],
+              users["priya.kapoor@amazon-ai-demo.internal"],
+              users["james.osei@amazon-ai-demo.internal"]]),
         ]
 
         channels = {}
@@ -254,16 +255,16 @@ class Command(BaseCommand):
     def _create_messages(self, channels: dict, users: dict) -> None:
         from apps.messaging.models import Message
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
-        priya = users["priya.kapoor@spectra-ai-demo.internal"]
-        james = users["james.osei@spectra-ai-demo.internal"]
-        sofia = users["sofia.martinez@spectra-ai-demo.internal"]
-        liam  = users["liam.park@spectra-ai-demo.internal"]
-        nadia = users["nadia.hassan@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
+        priya = users["priya.kapoor@amazon-ai-demo.internal"]
+        james = users["james.osei@amazon-ai-demo.internal"]
+        sofia = users["sofia.martinez@amazon-ai-demo.internal"]
+        liam  = users["liam.park@amazon-ai-demo.internal"]
+        nadia = users["nadia.hassan@amazon-ai-demo.internal"]
 
         msg_specs = {
             "general": [
-                (alex,  "Welcome to Spectra AI Labs on FlowTeam! All AI features are live — try the Daily Briefing on your dashboard."),
+                (alex,  "Welcome to Amazon AI Platform on FlowTeam! All AI features are live — try the Daily Briefing on your dashboard."),
                 (priya, "Engineering update: RAG Pipeline v2 sprint starts Monday. James has the capacity plan ready."),
                 (james, "Sprint 7 goal: ship hybrid retrieval with cross-encoder reranking. Target 15% faithfulness improvement over v1."),
                 (sofia, "Ran RAGAS eval on the new retrieval stack — faithfulness at 0.89, up from 0.61. Sharing full report in #data-science."),
@@ -322,8 +323,8 @@ class Command(BaseCommand):
     def _create_projects(self, team, users: dict) -> dict:
         from apps.projects.models import Project, Column, Label, Sprint, Milestone
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
-        james = users["james.osei@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
+        james = users["james.osei@amazon-ai-demo.internal"]
         today = datetime.date.today()
 
         project_specs = [
@@ -516,11 +517,11 @@ class Command(BaseCommand):
     def _create_tasks(self, projects: dict, users: dict) -> None:
         from apps.projects.models import Task
 
-        james = users["james.osei@spectra-ai-demo.internal"]
-        sofia = users["sofia.martinez@spectra-ai-demo.internal"]
-        liam  = users["liam.park@spectra-ai-demo.internal"]
-        nadia = users["nadia.hassan@spectra-ai-demo.internal"]
-        priya = users["priya.kapoor@spectra-ai-demo.internal"]
+        james = users["james.osei@amazon-ai-demo.internal"]
+        sofia = users["sofia.martinez@amazon-ai-demo.internal"]
+        liam  = users["liam.park@amazon-ai-demo.internal"]
+        nadia = users["nadia.hassan@amazon-ai-demo.internal"]
+        priya = users["priya.kapoor@amazon-ai-demo.internal"]
         today = datetime.date.today()
 
         # (title, col, assignee, priority, issue_type, due_offset, in_sprint, labels, description)
@@ -653,12 +654,12 @@ class Command(BaseCommand):
         from apps.messaging.models import Channel, ChannelMember
         from apps.meetings.models import Meeting
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
-        priya = users["priya.kapoor@spectra-ai-demo.internal"]
-        james = users["james.osei@spectra-ai-demo.internal"]
-        sofia = users["sofia.martinez@spectra-ai-demo.internal"]
-        liam  = users["liam.park@spectra-ai-demo.internal"]
-        nadia = users["nadia.hassan@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
+        priya = users["priya.kapoor@amazon-ai-demo.internal"]
+        james = users["james.osei@amazon-ai-demo.internal"]
+        sofia = users["sofia.martinez@amazon-ai-demo.internal"]
+        liam  = users["liam.park@amazon-ai-demo.internal"]
+        nadia = users["nadia.hassan@amazon-ai-demo.internal"]
         now   = timezone.now()
 
         meeting_specs = [
@@ -741,12 +742,12 @@ class Command(BaseCommand):
             AIFeaturePolicy, AILog, CompanyAIAccess, CompanyAICredits, DailyAIBudget,
         )
 
-        alex  = users["alex.chen@spectra-ai-demo.internal"]
-        priya = users["priya.kapoor@spectra-ai-demo.internal"]
-        james = users["james.osei@spectra-ai-demo.internal"]
-        sofia = users["sofia.martinez@spectra-ai-demo.internal"]
-        liam  = users["liam.park@spectra-ai-demo.internal"]
-        nadia = users["nadia.hassan@spectra-ai-demo.internal"]
+        alex  = users["alex.chen@amazon-ai-demo.internal"]
+        priya = users["priya.kapoor@amazon-ai-demo.internal"]
+        james = users["james.osei@amazon-ai-demo.internal"]
+        sofia = users["sofia.martinez@amazon-ai-demo.internal"]
+        liam  = users["liam.park@amazon-ai-demo.internal"]
+        nadia = users["nadia.hassan@amazon-ai-demo.internal"]
         today = datetime.date.today()
 
         # 1. AI Access — platform-managed (no real key needed for demo)
@@ -914,7 +915,7 @@ class Command(BaseCommand):
 
         w("")
         w(S("=" * 72))
-        w(S("  SPECTRA AI LABS — FLOWTEAM AI DEMO SEEDED"))
+        w(S("  AMAZON AI PLATFORM — FLOWTEAM AI DEMO SEEDED"))
         w(S("=" * 72))
         w("")
         w(B("  DEMO CREDENTIALS (share these)"))
@@ -926,8 +927,8 @@ class Command(BaseCommand):
         w("")
         w(B("  WHAT WAS CREATED"))
         w("  " + "─" * 68)
-        w("  Company     : Spectra AI Labs (AI plan, platform-managed credits)")
-        w("  Team        : Spectra AI Labs (6 members, 1 viewer)")
+        w("  Company     : Amazon AI Platform (AI plan, platform-managed credits)")
+        w("  Team        : Amazon AI Platform (6 members, 1 viewer)")
         w("  Channels    : #general, #ml-platform, #data-science, #incidents, #leadership")
         w("  Messages    : 6 per channel — realistic ML team conversations")
         w("  Projects    : 4 (ML Platform Core, RAG Pipeline v2, Anomaly Detection, Client Dashboard)")
