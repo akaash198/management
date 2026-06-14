@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo } from "react";
+import { Component, Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
@@ -40,9 +40,42 @@ const ViewerDashboard = dynamic(
 export default function DashboardPage() {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
-      <DashboardInner />
+      <DashboardRouteBoundary>
+        <DashboardInner />
+      </DashboardRouteBoundary>
     </Suspense>
   );
+}
+
+class DashboardRouteBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("Dashboard render failed", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mx-auto max-w-[1400px] space-y-4 p-6">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+            <p className="text-sm font-semibold">Dashboard had trouble rendering.</p>
+            <p className="mt-1 text-sm opacity-80">Try refreshing. If the issue persists, open Projects or Messages from the menu while we load a safe fallback.</p>
+          </div>
+          <DashboardSkeleton />
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 function DashboardInner() {

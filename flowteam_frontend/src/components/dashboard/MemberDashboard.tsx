@@ -29,6 +29,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
+import { getInitials } from "./shared";
 
 interface Props {
   data: DashboardData;
@@ -298,7 +299,7 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
                 <Avatar className="h-8 w-8 shrink-0">
                   <AvatarImage src={reportingTo.user.avatar_url || ""} />
                   <AvatarFallback className="bg-muted text-[10px] font-semibold">
-                    {reportingTo.user.full_name.split(" ").map((n: string) => n[0]).join("")}
+                                      {getInitials(reportingTo.user.full_name)}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">

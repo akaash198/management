@@ -130,6 +130,8 @@ export function StatCard({
 // ─── Project card ──────────────────────────────────────────────────────────────
 
 export function ProjectCard({ project }: { project: ProjectProgress }) {
+  const projectMembers = project.members ?? [];
+  const progressPercent = Number.isFinite(project.progress_percent) ? project.progress_percent : 0;
   const health = project.overdue_count > 0
     ? (project.overdue_count >= 3 ? "at-risk" : "warning")
     : "on-track";
@@ -145,7 +147,7 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
             </div>
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold tracking-[-0.01em] group-hover:text-primary transition-colors">
-                {project.name}
+                {project.name || "Untitled project"}
               </p>
               <div className="mt-0.5 flex items-center gap-1.5">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/50">
@@ -165,31 +167,31 @@ export function ProjectCard({ project }: { project: ProjectProgress }) {
               </div>
             </div>
             <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: project.color ?? undefined }}>
-              {project.progress_percent}%
+              {progressPercent}%
             </span>
           </div>
 
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/60">
             <div
               className="h-full rounded-full transition-all duration-700"
-              style={{ width: `${project.progress_percent}%`, backgroundColor: project.color ?? "#7CFFCB" }}
+              style={{ width: `${progressPercent}%`, backgroundColor: project.color ?? "#7CFFCB" }}
             />
           </div>
 
           <div className="mt-3 flex items-center justify-between">
             <div className="flex -space-x-1.5">
-              {(project.members ?? []).slice(0, 4).map((m) => (
+              {projectMembers.slice(0, 4).map((m) => (
                 <div
                   key={m.id}
                   className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-muted text-[8px] font-bold uppercase text-muted-foreground"
                   title={m.full_name}
                 >
-                  {m.full_name.split(" ").map((n: string) => n[0]).join("")}
+                  {getInitials(m.full_name)}
                 </div>
               ))}
-              {(project.members ?? []).length > 4 && (
+              {projectMembers.length > 4 && (
                 <div className="flex h-5 w-5 items-center justify-center rounded-full border-2 border-card bg-muted text-[8px] font-medium text-muted-foreground">
-                  +{project.members.length - 4}
+                  +{projectMembers.length - 4}
                 </div>
               )}
             </div>
@@ -274,24 +276,27 @@ export function TaskRow({ task, onComplete }: { task: DashboardTask; onComplete?
 // ─── Activity row ──────────────────────────────────────────────────────────────
 
 export function ActivityRow({ item }: { item: ActivityItemType }) {
+  const actorName = item.actor?.full_name || "Unknown user";
+  const actorInitial = getInitials(actorName).slice(0, 1) || "?";
+  const createdLabel = safeDistanceToNow(item.created_at);
   return (
     <div className="flex items-start gap-3 px-5 py-3">
       <Avatar className="mt-0.5 h-6 w-6 shrink-0">
         <AvatarImage src={item.actor.avatar ?? ""} />
         <AvatarFallback className="bg-muted text-[9px] font-bold text-muted-foreground">
-          {item.actor.full_name[0]}
+          {actorInitial}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
         <p className="text-[12px] leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{item.actor.full_name}</span>
+          <span className="font-semibold text-foreground">{actorName}</span>
           {" "}{item.verb}{" "}
           <span className="font-medium text-primary">{item.task_title}</span>
           {" "}in{" "}
           <span className="font-medium text-foreground/65">{item.project_name}</span>
         </p>
         <p className="mt-0.5 text-[10px] text-muted-foreground/45">
-          {formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+          {createdLabel}
         </p>
       </div>
     </div>
@@ -417,8 +422,7 @@ export function RoleBadge({ role }: { role: string }) {
 // ─── Member row ────────────────────────────────────────────────────────────────
 
 export function MemberRow({ member, action }: { member: TeamMember; action?: ReactNode }) {
-  const initials = (member.user.full_name || member.user.email)
-    .split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = getInitials(member.user.full_name || member.user.email);
   return (
     <div className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20">
       <Avatar className="h-7 w-7 shrink-0">
@@ -550,4 +554,22 @@ export function useDateGreeting() {
 
 export function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+export function getInitials(value?: string | null) {
+  const source = (value || "").trim();
+  if (!source) return "?";
+  return source
+    .split(/\s+/)
+    .map((part) => part[0] || "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+export function safeDistanceToNow(value?: string | null) {
+  if (!value) return "Recently";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Recently";
+  return formatDistanceToNow(date, { addSuffix: true });
 }

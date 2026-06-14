@@ -11,6 +11,7 @@ import { Eye, Activity, Briefcase, Users, TrendingUp, Search } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
+import { getInitials } from "./shared";
 
 interface Props {
   data: DashboardData;
@@ -30,15 +31,15 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
   const filteredProjects = useMemo(() => {
     if (!search.trim()) return projectItems;
     const q = search.toLowerCase();
-    return projectItems.filter((p) => p.name.toLowerCase().includes(q));
+    return projectItems.filter((p) => (p.name || "").toLowerCase().includes(q));
   }, [projectItems, search]);
 
   const filteredMembers = useMemo(() => {
     if (!search.trim()) return members ?? [];
     const q = search.toLowerCase();
     return (members ?? []).filter((m) =>
-      m.user.full_name.toLowerCase().includes(q) ||
-      m.user.email.toLowerCase().includes(q) ||
+      (m.user.full_name || "").toLowerCase().includes(q) ||
+      (m.user.email || "").toLowerCase().includes(q) ||
       m.role.toLowerCase().includes(q)
     );
   }, [members, search]);
@@ -175,7 +176,7 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
 }
 
 function ViewerMemberRow({ member }: { member: TeamMember }) {
-  const initials = (member.user.full_name || member.user.email).split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = getInitials(member.user.full_name || member.user.email);
   return (
     <div className="flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/20">
       <Avatar className="h-7 w-7 shrink-0">

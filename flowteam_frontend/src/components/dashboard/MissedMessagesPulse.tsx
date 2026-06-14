@@ -35,6 +35,9 @@ export const MissedMessagesPulse: React.FC = () => {
     return null;
   }
 
+  const sinceDate = new Date(summary.since);
+  const sinceLabel = Number.isNaN(sinceDate.getTime()) ? "recently" : `${formatDistanceToNow(sinceDate)} ago`;
+
   return (
     <AnimatePresence>
       <motion.div
@@ -115,7 +118,7 @@ export const MissedMessagesPulse: React.FC = () => {
                     </p>
                     <div className="flex items-center gap-2">
                       <div className="h-4 w-4 rounded-full bg-indigo-200 dark:bg-indigo-900 flex items-center justify-center text-[8px] font-bold text-indigo-700 dark:text-indigo-300">
-                        {channel.last_message.sender.charAt(0)}
+                        {(channel.last_message.sender || "?").charAt(0)}
                       </div>
                       <span className="text-[10px] text-muted-foreground/60 font-medium">
                         {channel.last_message.sender}
@@ -139,7 +142,7 @@ export const MissedMessagesPulse: React.FC = () => {
 
           <div className="mt-4 flex items-center gap-2 text-[10px] text-muted-foreground/60 font-medium uppercase tracking-wider">
             <Clock size={10} />
-            Since your last login {formatDistanceToNow(new Date(summary.since))} ago
+            Since your last login {sinceLabel}
           </div>
         </div>
       </motion.div>

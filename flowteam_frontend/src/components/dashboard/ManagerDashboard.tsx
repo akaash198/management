@@ -28,6 +28,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
+import { getInitials } from "./shared";
 
 const PRIORITY_ORDER = ["urgent","high","normal","low"] as PriorityKey[];
 
@@ -319,7 +320,7 @@ function FocusTaskCard({ task }: { task: DashboardTask }) {
 }
 
 function MemberRow({ member }: { member: TeamMember }) {
-  const initials = member.user.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = getInitials(member.user.full_name || member.user.email);
   return (
     <div className="flex items-center gap-3 px-5 py-2.5 transition-colors hover:bg-muted/20">
       <Avatar className="h-7 w-7 shrink-0">
