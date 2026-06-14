@@ -19,6 +19,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { firstWord, safeLower } from "@/lib/uiSafety";
 
 const EpicView = dynamic(
   () => import("@/components/projects/EpicView").then((m) => ({ default: m.EpicView })),
@@ -594,7 +595,7 @@ function AssigneePicker({
   const selectedOverflow = overflow.find((m) => m.user.id === value);
 
   const filteredOverflow = overflow.filter((m) =>
-    m.user.full_name.toLowerCase().includes(search.toLowerCase())
+    safeLower(m.user.full_name).includes(safeLower(search))
   );
 
   const pillBase =
@@ -647,7 +648,7 @@ function AssigneePicker({
               {initials(member.user.full_name)}
             </span>
             <span className="text-[11.5px] font-semibold">
-              {isSelf ? "Me" : member.user.full_name.split(" ")[0]}
+              {isSelf ? "Me" : firstWord(member.user.full_name)}
             </span>
             {active && <Check size={10} className="shrink-0" />}
           </button>
@@ -675,7 +676,7 @@ function AssigneePicker({
                   >
                     {initials(selectedOverflow.user.full_name)}
                   </span>
-                  {selectedOverflow.user.full_name.split(" ")[0]}
+                  {firstWord(selectedOverflow.user.full_name)}
                   <Check size={10} className="shrink-0" />
                 </>
               ) : (

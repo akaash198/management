@@ -48,6 +48,7 @@ import {
   useTeamPermissions, type Capability, type ProjectRole as ProjectRoleType, type TeamRole,
 } from "@/hooks/usePermissions";
 import { format } from "date-fns";
+import { safeLower } from "@/lib/uiSafety";
 
 const TIMEZONES = [
   { value: "UTC", label: "UTC (Greenwich Mean Time)" },
@@ -199,11 +200,11 @@ export default function SettingsPage() {
 
   const filteredMembers = useMemo(() => {
     if (!memberSearch.trim()) return members;
-    const q = memberSearch.toLowerCase();
+    const q = safeLower(memberSearch);
     return members.filter((m) =>
-      m.user.full_name.toLowerCase().includes(q) ||
-      m.user.email.toLowerCase().includes(q) ||
-      m.role.toLowerCase().includes(q)
+      safeLower(m.user.full_name).includes(q) ||
+      safeLower(m.user.email).includes(q) ||
+      safeLower(m.role).includes(q)
     );
   }, [members, memberSearch]);
 

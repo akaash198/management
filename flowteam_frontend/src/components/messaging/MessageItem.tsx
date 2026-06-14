@@ -18,6 +18,7 @@ import { Pin, Link as LinkIcon, Star, Send } from "lucide-react";
 import { RichEmbeds } from "@/components/embeds/RichEmbeds";
 import { VoiceMemoPlayer } from "./VoiceMemo";
 import { getAccessToken } from "@/lib/auth";
+import { getInitials } from "@/lib/uiSafety";
 
 interface MessageItemProps {
   message: Message;
@@ -437,9 +438,7 @@ export function MessageItem({
       sublabel = `${senderName}'s message was removed by ${deletedByName}`;
     }
 
-    const initials = actor?.full_name
-      ? actor.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-      : "?";
+    const initials = getInitials(actor?.full_name);
 
     return (
       <div className={cn("group flex items-start gap-3 px-4 py-1.5", showAvatar ? "mt-2" : "mt-0.5")}>
@@ -486,10 +485,10 @@ export function MessageItem({
       {/* ── Avatar / timestamp ghost ── */}
       <div className="w-9 shrink-0 pt-0.5">
         {showAvatar ? (
-          <Avatar className="h-9 w-9 rounded-full border border-border/50">
+            <Avatar className="h-9 w-9 rounded-full border border-border/50">
             <AvatarImage src={normalizeUrl(message.sender.avatar)} />
             <AvatarFallback className="text-[12px] font-semibold bg-primary/10 text-primary">
-              {message.sender.full_name[0].toUpperCase()}
+              {getInitials(message.sender.full_name).slice(0, 1)}
             </AvatarFallback>
           </Avatar>
         ) : (
@@ -505,7 +504,7 @@ export function MessageItem({
         {showAvatar && (
           <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
             <span className="text-[13px] font-semibold text-foreground leading-none">
-              {message.sender.full_name}
+              {message.sender.full_name || "Unknown user"}
             </span>
             <span className="text-[11px] text-muted-foreground/60 font-normal">
               {format(createdAt, "h:mm a")}

@@ -24,6 +24,7 @@ import { useTeamStore } from "@/store/team";
 import { useAuthStore } from "@/store/auth";
 import { useMyTeamCapabilities } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
+import { safeLower } from "@/lib/uiSafety";
 import type { Project } from "@/types/project";
 import type { LucideIcon } from "lucide-react";
 import api from "@/lib/api";
@@ -91,11 +92,11 @@ export default function ProjectsPage() {
   }, [allProjects]);
 
   const visible = useMemo(() => {
-    const q = searchText.trim().toLowerCase();
+    const q = safeLower(searchText.trim());
     const filtered = allProjects.filter((p) => {
       if (atRiskOnly && (p.overdue_count ?? 0) < 2) return false;
       if (!q) return true;
-      return p.name.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q);
+      return safeLower(p.name).includes(q) || safeLower(p.description).includes(q);
     });
     const pct = (p: Project) => (p.task_count ? (p.completed_task_count ?? 0) / p.task_count : 0);
     return [...filtered].sort((a, b) => {

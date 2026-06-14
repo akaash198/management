@@ -5,7 +5,7 @@ import { useAuthStore } from "@/store/auth";
 import { Comment } from "@/types/messaging";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { formatDistanceToNow } from "date-fns";
+import { getInitials, safeDistanceToNow } from "@/lib/uiSafety";
 import { MessageSquare, Send, X, Edit2, Trash2, Reply } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -118,14 +118,14 @@ function CommentItem({
         {comment.author.avatar ? (
           <img src={comment.author.avatar} className="h-full w-full rounded-full object-cover" />
         ) : (
-          <span className="text-[10px] font-bold">{comment.author.full_name[0]}</span>
+          <span className="text-[10px] font-bold">{getInitials(comment.author.full_name).slice(0, 1)}</span>
         )}
       </div>
       <div className="flex-1 space-y-1 min-w-0">
         <div className="flex items-center gap-2">
           <span className="text-sm font-bold">{comment.author.full_name}</span>
           <span className="text-[10px] text-slate-400">
-            {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+            {safeDistanceToNow(comment.created_at)}
           </span>
           {comment.is_edited && <span className="text-[10px] text-slate-400 italic">(edited)</span>}
         </div>

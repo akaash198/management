@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
 import { useTeamPermissions } from "@/hooks/usePermissions";
 import Link from "next/link";
+import { safeDateLabel } from "@/lib/uiSafety";
 
 type Role = "ceo" | "admin" | "manager" | "member" | "viewer";
 
@@ -307,7 +308,7 @@ export default function SettingsMembersPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {new Date(member.joined_at).toLocaleDateString()}
+                      {safeDateLabel(member.joined_at)}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>

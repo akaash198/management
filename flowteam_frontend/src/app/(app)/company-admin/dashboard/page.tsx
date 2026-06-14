@@ -27,6 +27,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { safeDateLabel } from "@/lib/uiSafety";
 import {
   Users, Building2, Layers, MoreHorizontal, Plus, Mail, Trash2,
   UserPlus, Shield, CheckCircle2, Clock, XCircle,
@@ -435,7 +436,7 @@ export default function CompanyAdminDashboard() {
                       <td className="px-4 py-3 text-muted-foreground">{m.user.email}</td>
                       <td className="px-4 py-3"><RoleBadge role={m.role} /></td>
                       <td className="px-4 py-3 text-right text-muted-foreground text-xs">
-                        {new Date(m.joined_at).toLocaleDateString()}
+                        {safeDateLabel(m.joined_at)}
                       </td>
                       {caps?.can_change_roles && (
                         <td className="px-4 py-3 text-right">
@@ -578,7 +579,7 @@ export default function CompanyAdminDashboard() {
                         <td className="px-4 py-3 text-muted-foreground">{inv.email}</td>
                         <td className="px-4 py-3"><RoleBadge role={inv.role} /></td>
                         <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : "—"}
+                          {safeDateLabel(inv.expires_at)}
                         </td>
                         <td className="px-4 py-3 text-right">
                           <Button

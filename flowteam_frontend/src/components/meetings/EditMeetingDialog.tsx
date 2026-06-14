@@ -14,6 +14,7 @@ import type { ApiResponse, TeamMember } from "@/types";
 import type { Meeting, MeetingCallType } from "@/types/meetings";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { safeLower } from "@/lib/uiSafety";
 
 function toLocalDatetimeInputValue(iso: string) {
   const d = new Date(iso);
@@ -87,11 +88,11 @@ export function EditMeetingDialog({
 
   const filteredMembers = useMemo(() => {
     if (!attendeeSearch.trim()) return members;
-    const q = attendeeSearch.toLowerCase().trim();
+    const q = safeLower(attendeeSearch.trim());
     return members.filter(
       (m) =>
-        m.user.full_name.toLowerCase().includes(q) ||
-        m.user.email.toLowerCase().includes(q)
+        safeLower(m.user.full_name).includes(q) ||
+        safeLower(m.user.email).includes(q)
     );
   }, [members, attendeeSearch]);
 
@@ -257,4 +258,3 @@ export function EditMeetingDialog({
     </Dialog>
   );
 }
-

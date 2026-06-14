@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 import { useTeamStore } from "@/store/team";
+import { safeDateLabel, safeDistanceToNow } from "@/lib/uiSafety";
 
 export default function AuditLogPage() {
   const [filters, setFilters] = useState({ model: "", action: "" });
@@ -152,8 +153,8 @@ export default function AuditLogPage() {
                        </td>
                        <td className="px-6 py-5">
                           <div className="flex flex-col text-right">
-                             <span className="text-xs font-bold text-foreground">{formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}</span>
-                             <span className="text-[10px] text-muted-foreground font-medium">{format(new Date(log.created_at), "MMM d, HH:mm")}</span>
+                             <span className="text-xs font-bold text-foreground">{safeDistanceToNow(log.created_at)}</span>
+                             <span className="text-[10px] text-muted-foreground font-medium">{safeDateLabel(log.created_at, "—", undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
                           </div>
                        </td>
                     </tr>

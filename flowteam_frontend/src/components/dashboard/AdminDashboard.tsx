@@ -34,6 +34,7 @@ import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
+import { getInitials } from "@/lib/uiSafety";
 
 type Role = "manager" | "member" | "viewer";
 const ROLE_LABELS: Record<string, string> = { ceo: "CEO", admin: "Admin", manager: "Manager", member: "Employee", viewer: "Viewer" };
@@ -335,7 +336,7 @@ function AdminMemberRow({ member, isSelf, onChangeRole, onRemove }: {
   onChangeRole: (m: TeamMember) => void;
   onRemove: (m: TeamMember) => void;
 }) {
-  const initials = (member.user.full_name || member.user.email).split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase();
+  const initials = getInitials(member.user.full_name || member.user.email);
   const canChange = !isSelf && member.role !== "ceo";
 
   return (

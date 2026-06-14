@@ -40,6 +40,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { toErrorMessage } from "@/lib/errorMessage";
+import { getInitials, safeLower } from "@/lib/uiSafety";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
@@ -3208,7 +3209,7 @@ export function ChatArea({
 
                   <div className="space-y-1">
                     {(channelMembers ?? [])
-                      .filter(m => m.full_name.toLowerCase().includes(memberSearch.toLowerCase()))
+                      .filter(m => safeLower(m.full_name).includes(safeLower(memberSearch)))
                       .map((m) => {
                         const isOnline = onlineUserIds?.has(m.id);
                         return (
@@ -3217,7 +3218,7 @@ export function ChatArea({
                                <div className="relative">
                                   <Avatar className="h-8 w-8">
                                     <AvatarImage src={m.avatar || ""} />
-                                    <AvatarFallback>{m.full_name[0]}</AvatarFallback>
+                                    <AvatarFallback>{getInitials(m.full_name).slice(0, 1)}</AvatarFallback>
                                   </Avatar>
                                   <span className={cn(
                                     "absolute bottom-0 right-0 h-2 w-2 rounded-full border border-background",

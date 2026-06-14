@@ -2,12 +2,12 @@
 
 import { useEffect } from "react";
 import { useNotificationStore } from "@/store/notificationStore";
-import { formatDistanceToNow } from "date-fns";
 import { Check, BellOff, MessageCircle, ClipboardCheck, UserPlus, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { safeDistanceToNow } from "@/lib/uiSafety";
 
 const typeIcons = {
   task_assigned: ClipboardCheck,
@@ -96,9 +96,7 @@ export function NotificationPanel({ onClose }: { onClose: () => void }) {
                     <p className="text-[11px] text-slate-500 line-clamp-2">
                       {n.body}
                     </p>
-                    <p className="text-[10px] text-slate-400">
-                      {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
-                    </p>
+                    <p className="text-[10px] text-slate-400">{safeDistanceToNow(n.created_at)}</p>
                   </div>
                 </div>
               );

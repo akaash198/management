@@ -11,7 +11,7 @@ import { Eye, Activity, Briefcase, Users, TrendingUp, Search } from "lucide-reac
 import { cn } from "@/lib/utils";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
-import { getInitials } from "./shared";
+import { getInitials, safeLower } from "@/lib/uiSafety";
 
 interface Props {
   data: DashboardData;
@@ -30,17 +30,17 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
 
   const filteredProjects = useMemo(() => {
     if (!search.trim()) return projectItems;
-    const q = search.toLowerCase();
-    return projectItems.filter((p) => (p.name || "").toLowerCase().includes(q));
+    const q = safeLower(search);
+    return projectItems.filter((p) => safeLower(p.name).includes(q));
   }, [projectItems, search]);
 
   const filteredMembers = useMemo(() => {
     if (!search.trim()) return members ?? [];
-    const q = search.toLowerCase();
+    const q = safeLower(search);
     return (members ?? []).filter((m) =>
-      (m.user.full_name || "").toLowerCase().includes(q) ||
-      (m.user.email || "").toLowerCase().includes(q) ||
-      m.role.toLowerCase().includes(q)
+      safeLower(m.user.full_name).includes(q) ||
+      safeLower(m.user.email).includes(q) ||
+      safeLower(m.role).includes(q)
     );
   }, [members, search]);
 

@@ -29,7 +29,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
-import { getInitials } from "./shared";
+import { getInitials, safeLower } from "@/lib/uiSafety";
 
 interface Props {
   data: DashboardData;
@@ -63,14 +63,14 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
     (completedThisWeek / Math.max(data.team_stats.tasks_created_this_week, 1)) * 100
   ));
 
-  const search = deferredSearch.trim().toLowerCase();
+  const search = safeLower(deferredSearch.trim());
   const filteredTasks = useMemo(() => {
     let tasks = recentTasks;
     if (taskFilter === "overdue") tasks = tasks.filter((t) => t.is_overdue);
     else if (taskFilter === "today") tasks = tasks.filter((t) => t.due_date === format(new Date(), "yyyy-MM-dd"));
     else if (taskFilter === "upcoming") tasks = tasks.filter((t) => t.due_date && !t.is_overdue);
     if (search) tasks = tasks.filter((t) =>
-      t.title.toLowerCase().includes(search) || (t.project_name ?? "").toLowerCase().includes(search)
+      safeLower(t.title).includes(search) || safeLower(t.project_name).includes(search)
     );
     return tasks;
   }, [recentTasks, taskFilter, search]);

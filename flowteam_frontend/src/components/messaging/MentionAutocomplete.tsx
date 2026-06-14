@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/uiSafety";
 import type { ApiResponse, TeamMember } from "@/types";
 
 interface MentionAutocompleteProps {
@@ -296,7 +297,7 @@ export function MentionAutocomplete({
                     <Avatar className="h-6 w-6">
                       <AvatarImage src={m.member.user.avatar_url || ""} />
                       <AvatarFallback className={cn(i === selectedIndex ? "text-primary" : "")}>
-                        {m.member.user.full_name[0]}
+                        {getInitials(m.member.user.full_name).slice(0, 1)}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col min-w-0">

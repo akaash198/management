@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { formatDistanceToNow, format, isToday, isTomorrow, isPast } from "date-fns";
+import { format, isToday, isTomorrow, isPast } from "date-fns";
 import Link from "next/link";
 import { ArrowUpRight, CheckCircle2, Circle, TrendingDown, TrendingUp as TrendingUpIcon, Minus, AlertTriangle, Crown, Shield, Briefcase, User, Eye } from "lucide-react";
 import type { ComponentType, ReactNode, SVGProps } from "react";
 import type { DashboardData, ActivityItem as ActivityItemType, ProjectProgress } from "@/types/dashboard";
 import type { TeamMember } from "@/types";
+import { getInitials, safeDistanceToNow } from "@/lib/uiSafety";
 
 export type DashboardTask = DashboardData["my_tasks"]["recent"][number];
 export type PriorityKey = keyof DashboardData["my_tasks"]["by_priority"];
@@ -554,22 +555,4 @@ export function useDateGreeting() {
 
 export function capitalize(s: string) {
   return s.charAt(0).toUpperCase() + s.slice(1);
-}
-
-export function getInitials(value?: string | null) {
-  const source = (value || "").trim();
-  if (!source) return "?";
-  return source
-    .split(/\s+/)
-    .map((part) => part[0] || "")
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-}
-
-export function safeDistanceToNow(value?: string | null) {
-  if (!value) return "Recently";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Recently";
-  return formatDistanceToNow(date, { addSuffix: true });
 }

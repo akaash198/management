@@ -24,6 +24,7 @@ import { formatDistanceToNow, format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useTeamStore } from "@/store/team";
 import Link from "next/link";
+import { safeDateLabel, safeDistanceToNow } from "@/lib/uiSafety";
 
 const ACTION_META: Record<string, { icon: typeof LogIn; colors: string }> = {
   create: { icon: LogIn, colors: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20" },
@@ -209,10 +210,10 @@ export default function AuditLogPage() {
                         <td className="px-6 py-4">
                           <div className="flex flex-col text-right">
                             <span className="text-xs font-semibold text-foreground">
-                              {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
+                              {safeDistanceToNow(log.created_at)}
                             </span>
                             <span className="text-[10px] text-muted-foreground font-medium">
-                              {format(new Date(log.created_at), "MMM d, HH:mm")}
+                              {safeDateLabel(log.created_at, "—", undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
                         </td>

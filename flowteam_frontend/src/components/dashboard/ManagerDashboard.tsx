@@ -28,7 +28,7 @@ import api from "@/lib/api";
 import { toast } from "sonner";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
-import { getInitials } from "./shared";
+import { getInitials } from "@/lib/uiSafety";
 
 const PRIORITY_ORDER = ["urgent","high","normal","low"] as PriorityKey[];
 
