@@ -12,7 +12,7 @@ export interface ProjectProgress extends Project {
 
 export interface ActivityItem {
   id: string;
-  actor: SlimUser;
+  actor: SlimUser | null;
   verb: string;
   task_title: string;
   task_id: string;

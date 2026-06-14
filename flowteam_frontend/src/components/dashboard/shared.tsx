@@ -283,7 +283,7 @@ export function ActivityRow({ item }: { item: ActivityItemType }) {
   return (
     <div className="flex items-start gap-3 px-5 py-3">
       <Avatar className="mt-0.5 h-6 w-6 shrink-0">
-        <AvatarImage src={item.actor.avatar ?? ""} />
+        <AvatarImage src={item.actor?.avatar ?? ""} />
         <AvatarFallback className="bg-muted text-[9px] font-bold text-muted-foreground">
           {actorInitial}
         </AvatarFallback>
