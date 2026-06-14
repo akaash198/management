@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatDistanceToNow, format, isToday, isTomorrow, isPast } from "date-fns";
@@ -532,6 +533,19 @@ export function getTimeOfDay() {
   if (h < 12) return "morning";
   if (h < 17) return "afternoon";
   return "evening";
+}
+
+/** Client-only hook — avoids SSR/hydration mismatch from date formatting. */
+export function useDateGreeting() {
+  const [greeting, setGreeting] = useState("morning");
+  const [dateLabel, setDateLabel] = useState("");
+
+  useEffect(() => {
+    setGreeting(getTimeOfDay());
+    setDateLabel(format(new Date(), "EEEE, MMMM d"));
+  }, []);
+
+  return { greeting, dateLabel };
 }
 
 export function capitalize(s: string) {

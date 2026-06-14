@@ -4,11 +4,10 @@ import { useMemo, useState } from "react";
 import { useAuthStore } from "@/store/auth";
 import type { TeamMember } from "@/types";
 import type { DashboardData } from "@/types/dashboard";
-import { Section, SectionLink, EmptyNote, ProjectCard, ActivityRow, StatCard, RoleBadge, getTimeOfDay } from "./shared";
+import { Section, SectionLink, EmptyNote, ProjectCard, ActivityRow, StatCard, RoleBadge, useDateGreeting } from "./shared";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Eye, Activity, Briefcase, Users, TrendingUp, Search } from "lucide-react";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
@@ -22,6 +21,7 @@ interface Props {
 export function ViewerDashboard({ data, members, activeTeamId }: Props) {
   const { user } = useAuthStore();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const { greeting, dateLabel } = useDateGreeting();
   const projectItems = data.projects.items ?? [];
 
   const [search, setSearch] = useState("");
@@ -54,11 +54,11 @@ export function ViewerDashboard({ data, members, activeTeamId }: Props) {
               <Eye size={12} className="text-muted-foreground" />
             </div>
             <h1 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-              Good {getTimeOfDay()}, {firstName}
+              Good {greeting}, {firstName}
             </h1>
           </div>
           <p className="ml-8 text-[12.5px] text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d")} · Read-only access
+            {dateLabel} · Read-only access
           </p>
         </div>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/40 px-2.5 py-1 text-[10.5px] font-semibold text-muted-foreground shrink-0">

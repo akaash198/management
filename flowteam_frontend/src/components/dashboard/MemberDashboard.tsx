@@ -13,7 +13,7 @@ import type { Task, TaskPriority } from "@/types/task";
 import {
   Section, SectionLink, EmptyNote, StatCard, ProjectCard, TaskRow,
   TodayBanner, VelocityGauge, QuickActionLink, PriorityPill,
-  getTimeOfDay, type DashboardTask, type PriorityKey,
+  useDateGreeting, type DashboardTask, type PriorityKey,
 } from "./shared";
 import {
   Briefcase, AlertCircle, Clock, TrendingUp, RefreshCcw, Sparkles,
@@ -44,6 +44,7 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const { greeting, dateLabel } = useDateGreeting();
 
   const [searchText, setSearchText] = useState("");
   const [taskFilter, setTaskFilter] = useState<"all" | "overdue" | "today" | "upcoming">("all");
@@ -127,10 +128,10 @@ export function MemberDashboard({ data, members, activeTeamId, onRefresh, isFetc
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-            Good {getTimeOfDay()}, {firstName}
+            Good {greeting}, {firstName}
           </h1>
           <p className="mt-0.5 text-[12.5px] text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d")} · Your work summary
+            {dateLabel} · Your work summary
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

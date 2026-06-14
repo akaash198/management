@@ -7,7 +7,7 @@ import type { TeamMember } from "@/types";
 import type { DashboardData } from "@/types/dashboard";
 import {
   Section, SectionLink, EmptyNote, StatCard, ActivityRow,
-  MiniMetric, RoleBadge, VelocityGauge, getTimeOfDay,
+  MiniMetric, RoleBadge, VelocityGauge, useDateGreeting,
 } from "./shared";
 import { MissedMessagesPulse } from "./MissedMessagesPulse";
 import { InviteMemberModal } from "./InviteMemberModal";
@@ -29,7 +29,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { format } from "date-fns";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import type { ApiResponse } from "@/types";
@@ -52,6 +51,7 @@ export function AdminDashboard({ data, members, activeTeamId, onRefresh, isFetch
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const { greeting, dateLabel } = useDateGreeting();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [changeRoleTarget, setChangeRoleTarget] = useState<TeamMember | null>(null);
@@ -181,11 +181,11 @@ export function AdminDashboard({ data, members, activeTeamId, onRefresh, isFetch
               <Shield size={12} className="text-blue-500" />
             </div>
             <h1 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-              Good {getTimeOfDay()}, {firstName}
+              Good {greeting}, {firstName}
             </h1>
           </div>
           <p className="ml-8 text-[12.5px] text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d")} · Admin overview
+            {dateLabel} · Admin overview
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

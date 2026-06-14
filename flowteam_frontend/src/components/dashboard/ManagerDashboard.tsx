@@ -13,7 +13,7 @@ import {
   Section, SectionLink, EmptyNote, StatCard, ProjectCard, ActivityRow,
   MiniMetric, QuickActionLink, PriorityBar, VelocityGauge,
   PriorityPill, RoleBadge,
-  getTimeOfDay, type DashboardTask, type PriorityKey,
+  useDateGreeting, type DashboardTask, type PriorityKey,
 } from "./shared";
 import {
   Briefcase, AlertCircle, TrendingUp, CheckSquare, Activity,
@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { format } from "date-fns";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { InviteMemberModal } from "./InviteMemberModal";
 import api from "@/lib/api";
@@ -44,6 +43,7 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const { greeting, dateLabel } = useDateGreeting();
 
   const [createTaskOpen, setCreateTaskOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -95,11 +95,11 @@ export function ManagerDashboard({ data, members, activeTeamId, onRefresh, isFet
               <Layers size={12} className="text-primary" />
             </div>
             <h1 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-              Good {getTimeOfDay()}, {firstName}
+              Good {greeting}, {firstName}
             </h1>
           </div>
           <p className="ml-8 text-[12.5px] text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d")} · Team delivery overview
+            {dateLabel} · Team delivery overview
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">

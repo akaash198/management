@@ -12,7 +12,7 @@ import type { DashboardData } from "@/types/dashboard";
 import {
   Section, SectionLink, EmptyNote, StatCard, ProjectCard, ActivityRow,
   MiniMetric, RoleBadge, MemberRow, VelocityGauge,
-  getTimeOfDay,
+  useDateGreeting,
 } from "./shared";
 import {
   Users, Briefcase, TrendingUp, AlertCircle, Activity, BarChart3,
@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { format } from "date-fns";
 import { AIGate } from "@/components/ai/AIGate";
 import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
 
@@ -36,6 +35,7 @@ interface Props {
 export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetching }: Props) {
   const { user } = useAuthStore();
   const firstName = user?.full_name?.split(" ")[0] ?? "there";
+  const { greeting, dateLabel } = useDateGreeting();
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
@@ -84,11 +84,11 @@ export function CEODashboard({ data, members, activeTeamId, onRefresh, isFetchin
               <Crown size={12} className="text-violet-500" />
             </div>
             <h1 className="text-[20px] font-bold tracking-[-0.03em] text-foreground">
-              Good {getTimeOfDay()}, {firstName}
+              Good {greeting}, {firstName}
             </h1>
           </div>
           <p className="ml-8 text-[12.5px] text-muted-foreground">
-            {format(new Date(), "EEEE, MMMM d")} · Executive overview
+            {dateLabel} · Executive overview
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
