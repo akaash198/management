@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthStore } from "@/store/auth";
@@ -9,48 +9,7 @@ import { useTeamPermissions } from "@/hooks/usePermissions";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import api from "@/lib/api";
 import { DashboardData } from "@/types/dashboard";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertCircle,
-  Clock,
-  TrendingUp,
-  Briefcase,
-  ChevronRight,
-  Activity,
-  ArrowUpRight,
-  BarChart3,
-  Gauge,
-  CalendarDays,
-  Zap,
-  ArrowRight,
-  Sparkles,
-  Plus,
-  RefreshCcw,
-  BookmarkPlus,
-  Filter,
-  FolderPlus,
-  ListTodo,
-  CalendarRange,
-  X,
-} from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
 import type { ApiResponse, TeamMember } from "@/types";
-import type { ComponentType, ReactNode, SVGProps } from "react";
-import { AIGate } from "@/components/ai/AIGate";
-import { DailyBriefingCard } from "@/components/ai/DailyBriefingCard";
-import { FocusCard } from "@/components/ai/FocusCard";
 import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/dashboard/shared";
 import { toast } from "sonner";
@@ -77,31 +36,22 @@ const ViewerDashboard = dynamic(
   { loading: () => <DashboardSkeleton /> }
 );
 
-type DashboardTask = DashboardData["my_tasks"]["recent"][number];
-type DashboardProject = DashboardData["projects"]["items"][number];
-type QuickLinkProject = DashboardData["quick_links"][number];
-type DashboardActivity = DashboardData["activity"][number];
-type PriorityKey = keyof DashboardData["my_tasks"]["by_priority"];
-type TaskFilterState = "all" | "overdue" | "today" | "upcoming";
-type SavedView = {
-  id: string;
-  name: string;
-  priority: string;
-  projectId: string;
-  taskState: TaskFilterState;
-  search: string;
-};
-type SavedViewMap = Record<string, SavedView[]>;
-
-const PRIORITY_ORDER = ["urgent", "high", "normal", "low"] as PriorityKey[];
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <DashboardInner />
+    </Suspense>
+  );
+}
+
+function DashboardInner() {
   const { user } = useAuthStore();
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const { activeTeamId, fetchTeams, isLoading: isTeamsLoading } = useTeamStore();
-  const { role, isCEO, isAdmin, isManager, isMember } = useTeamPermissions();
+  const { isCEO, isAdmin, isManager, isMember } = useTeamPermissions();
 
   useEffect(() => {
     fetchTeams();
